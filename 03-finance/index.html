@@ -4172,97 +4172,25 @@ function deleteHolding(idx) {
 function manageHoldings() {
     var ov = document.createElement('div');
     ov.className = 'overlay';
-    var rows = stockData.holdings.map(function(h, i) {
-        return '<div class="hold-drag-row" data-idx="' + i + '" style="display:flex;align-items:center;justify-content:space-between;padding:8px 6px;border-bottom:1px solid var(--border);background:var(--card)">' +
+    // 取得依代號由小到大排序後的索引（保留原 index 給 deleteHolding 使用）
+    var sorted = stockData.holdings
+        .map(function(h, i){ return { h: h, i: i }; })
+        .sort(function(a, b){ return String(a.h.id || '').localeCompare(String(b.h.id || '')); });
+    var rows = sorted.map(function(it) {
+        var h = it.h, i = it.i;
+        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 6px;border-bottom:1px solid var(--border);background:var(--card)">' +
             '<span style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">' +
-                '<span class="hold-drag-handle" style="cursor:grab;color:var(--muted);user-select:none;padding:0 4px;touch-action:none"><i class="ti ti-grip-vertical" style="font-size:16px"></i></span>' +
                 '<span style="font-size:14px"><b>' + esc(h.id) + '</b> <span style="color:var(--muted)">' + esc(h.name || '') + '</span></span>' +
             '</span>' +
             '<button onclick="this.closest(\'.overlay\').remove();deleteHolding(' + i + ')" style="padding:4px 10px;border:none;border-radius:6px;font-size:13px;cursor:pointer;background:var(--red);color:white;font-family:inherit"><i class="ti ti-x" style="font-size:14px"></i></button>' +
             '</div>';
     }).join('');
     if (stockData.holdings.length === 0) rows = '<div style="padding:16px;text-align:center;color:var(--muted)">尚無持股</div>';
-    ov.innerHTML = '<div class="modal" style="max-height:80vh;overflow-y:auto"><h3>管理持股 <span style="font-size:11px;color:var(--muted);font-weight:400">（拖曳左側 ⋮⋮ 可調順序）</span></h3>' +
-        '<div class="hold-drag-list">' + rows + '</div>' +
+    ov.innerHTML = '<div class="modal" style="max-height:80vh;overflow-y:auto"><h3>管理持股</h3>' +
+        '<div>' + rows + '</div>' +
         '<div style="margin-top:12px"><button onclick="this.closest(\'.overlay\').remove();addHolding()" style="width:100%;padding:10px;border:none;border-radius:8px;background:var(--lux-navy);color:white;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">＋ 新增持股</button></div>' +
         '<div style="margin-top:8px"><button onclick="this.closest(\'.overlay\').remove()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card);font-size:14px;cursor:pointer;font-family:inherit">關閉</button></div></div>';
     document.body.appendChild(ov);
-    bindHoldingDrag(ov.querySelector('.hold-drag-list'));
-}
-
-function bindHoldingDrag(listEl) {
-    if (!listEl) return;
-    var dragging = null, startY = 0, originalIdx = -1, placeholder = null;
-    listEl.querySelectorAll('.hold-drag-handle').forEach(function(handle) {
-        handle.addEventListener('pointerdown', function(e) {
-            e.preventDefault();
-            var row = handle.closest('.hold-drag-row');
-            if (!row) return;
-            dragging = row;
-            originalIdx = parseInt(row.dataset.idx, 10);
-            startY = e.clientY;
-            var rect = row.getBoundingClientRect();
-            placeholder = document.createElement('div');
-            placeholder.style.height = rect.height + 'px';
-            placeholder.style.background = 'rgba(200,164,90,0.15)';
-            placeholder.style.borderBottom = '1px solid var(--border)';
-            row.parentNode.insertBefore(placeholder, row);
-            row.style.position = 'fixed';
-            row.style.left = rect.left + 'px';
-            row.style.top = rect.top + 'px';
-            row.style.width = rect.width + 'px';
-            row.style.zIndex = '300';
-            row.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)';
-            row.style.opacity = '0.95';
-            handle.setPointerCapture(e.pointerId);
-        });
-        handle.addEventListener('pointermove', function(e) {
-            if (!dragging) return;
-            var dy = e.clientY - startY;
-            dragging.style.top = (parseFloat(dragging.style.top) + dy) + 'px';
-            startY = e.clientY;
-            var siblings = listEl.querySelectorAll('.hold-drag-row');
-            var insertBefore = null;
-            for (var i = 0; i < siblings.length; i++) {
-                var s = siblings[i];
-                if (s === dragging) continue;
-                var r = s.getBoundingClientRect();
-                if (e.clientY < r.top + r.height / 2) { insertBefore = s; break; }
-            }
-            if (insertBefore) listEl.insertBefore(placeholder, insertBefore);
-            else listEl.appendChild(placeholder);
-        });
-        function endDrag() {
-            if (!dragging) return;
-            var allChildren = Array.prototype.slice.call(listEl.children);
-            var placeholderIdx = allChildren.indexOf(placeholder);
-            var draggingIdx = allChildren.indexOf(dragging);
-            var newIdx = placeholderIdx;
-            if (draggingIdx >= 0 && draggingIdx < placeholderIdx) newIdx--;
-            dragging.style.position = '';
-            dragging.style.left = '';
-            dragging.style.top = '';
-            dragging.style.width = '';
-            dragging.style.zIndex = '';
-            dragging.style.boxShadow = '';
-            dragging.style.opacity = '';
-            placeholder.parentNode.insertBefore(dragging, placeholder);
-            placeholder.remove();
-            placeholder = null;
-            if (newIdx !== originalIdx && newIdx >= 0) {
-                var item = stockData.holdings.splice(originalIdx, 1)[0];
-                stockData.holdings.splice(newIdx, 0, item);
-                saveStockData();
-                renderStock();
-                var ov = listEl.closest('.overlay');
-                if (ov) { ov.remove(); manageHoldings(); }
-            }
-            dragging = null;
-            originalIdx = -1;
-        }
-        handle.addEventListener('pointerup', endDrag);
-        handle.addEventListener('pointercancel', endDrag);
-    });
 }
 
 // ── 股利管理 ──
@@ -5334,6 +5262,9 @@ function renderStockHoldings() {
     if (currentBroker) {
         rows = rows.filter(function(r){ return (r.h.broker || '') === currentBroker; });
     }
+
+    // 預設依代號由小到大排序
+    rows.sort(function(a, b){ return String(a.h.id || '').localeCompare(String(b.h.id || '')); });
 
     // 排序
     if (ss.col) {
