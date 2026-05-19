@@ -1596,6 +1596,8 @@ var DEFAULT_EXPENSE_CATS = [];
 // 質押券商預設清單（可自訂新增；舊資料沒填則歸類「未指定」）
 var PLEDGE_BROKERS = ['元大證金', '永豐證券'];
 function _pledgeBroker(p) { return (p && p.broker) ? p.broker : '未指定'; }
+// 紀錄類型：pledge=質押（借錢，預設），lend=借券（出借股票）
+function _pledgeType(p) { return (p && p.type === 'lend') ? 'lend' : 'pledge'; }
 var DEFAULT_PASSIVE_SOURCES = [];
 var DEFAULT_YEARS = ['115'];
 
@@ -3398,7 +3400,7 @@ var STOCK_COLUMNS = [
     { key: 'dayPL',   label: '今日損益',            default: true },
     { key: 'price',   label: '股價（含漲跌幅）',     default: true },
     { key: 'pl',      label: '總損益（含報酬率）',   default: true },
-    { key: 'shares',  label: '股數（含質押）',       default: true },
+    { key: 'shares',  label: '股數（含質押／借券）', default: true },
     { key: 'cost',    label: '均價（含總成本）',     default: true },
     { key: 'market',  label: '市值（含佔比）',       default: true },
     { key: 'chg7d',   label: '近 7 日漲跌',          default: true },
@@ -5148,7 +5150,7 @@ function renderStock() {
     html += '<div class="stock-sub-tabs">';
     html += '<button class="stock-sub-tab' + (stockSubTab==='holdings'?' active':'') + '" onclick="stockSubTab=\'holdings\';renderStock()"><span class="lbl-full">持股總覽</span><span class="lbl-short">總覽</span></button>';
     html += '<button class="stock-sub-tab' + (stockSubTab==='dividend'?' active':'') + '" onclick="stockSubTab=\'dividend\';renderStock()"><span class="lbl-full">股利紀錄</span><span class="lbl-short">股利</span></button>';
-    html += '<button class="stock-sub-tab' + (stockSubTab==='pledge'?' active':'') + '" onclick="stockSubTab=\'pledge\';renderStock()"><span class="lbl-full">質押紀錄</span><span class="lbl-short">質押</span></button>';
+    html += '<button class="stock-sub-tab' + (stockSubTab==='pledge'?' active':'') + '" onclick="stockSubTab=\'pledge\';renderStock()"><span class="lbl-full">質押借券</span><span class="lbl-short">質押</span></button>';
     html += '<button class="stock-sub-tab' + (stockSubTab==='analysis'?' active':'') + '" onclick="stockSubTab=\'analysis\';renderStock()"><span class="lbl-full">分析</span><span class="lbl-short">分析</span></button>';
     html += '</div>';
     html += renderDividendAlerts();
@@ -5251,12 +5253,17 @@ function renderStockHoldings() {
         var weight = totalMarket > 0 && market !== null ? (market / totalMarket) * 100 : null;
         var dayPL = change !== null ? h.shares * change : null;
         var pledgedShares = 0;
-        if (stockData.pledges) stockData.pledges.forEach(function(pp){ if (pp.stockId === h.id) pledgedShares += pp.shares; });
+        var lentShares = 0;
+        if (stockData.pledges) stockData.pledges.forEach(function(pp){
+            if (pp.stockId !== h.id) return;
+            if (_pledgeType(pp) === 'lend') lentShares += pp.shares;
+            else pledgedShares += pp.shares;
+        });
         var chg7d   = getStockPriceChange(h.id, 7);
         var chg30d  = getStockPriceChange(h.id, 30);
         var chg90d  = getStockPriceChange(h.id, 90);
         var chg365d = getStockPriceChange(h.id, 365);
-        return { h:h, idx:idx, curPrice:curPrice, change:change, changePct:changePct, cost:cost, market:market, pl:pl, rate:rate, weight:weight, dayPL:dayPL, pledgedShares:pledgedShares, chg7d:chg7d, chg30d:chg30d, chg90d:chg90d, chg365d:chg365d };
+        return { h:h, idx:idx, curPrice:curPrice, change:change, changePct:changePct, cost:cost, market:market, pl:pl, rate:rate, weight:weight, dayPL:dayPL, pledgedShares:pledgedShares, lentShares:lentShares, chg7d:chg7d, chg30d:chg30d, chg90d:chg90d, chg365d:chg365d };
     });
     // 套用券商過濾
     if (currentBroker) {
@@ -5340,10 +5347,13 @@ function renderStockHoldings() {
             }
             html += '<td class="' + plCls + '" style="font-weight:600">' + plHtml + rateHtml + '</td>';
         }
-        // 股數 / 質押
+        // 股數 / 質押 / 借券
         if (vis.shares !== false) {
-            var pledgeHtml = r.pledgedShares > 0 ? '<br><span style="font-size:11px;color:#D97706;font-weight:500">質押 ' + fmt(r.pledgedShares) + '</span>' : '';
-            html += '<td>' + fmt(h.shares) + pledgeHtml + '</td>';
+            var subParts = [];
+            if (r.pledgedShares > 0) subParts.push('<span style="color:#D97706;font-weight:500">質押 ' + fmt(r.pledgedShares) + '</span>');
+            if (r.lentShares > 0) subParts.push('<span style="color:#7C3AED;font-weight:500">出借 ' + fmt(r.lentShares) + '</span>');
+            var subHtml = subParts.length ? '<br><span style="font-size:11px">' + subParts.join('／') + '</span>' : '';
+            html += '<td>' + fmt(h.shares) + subHtml + '</td>';
         }
         // 均價 / 總成本
         if (vis.cost !== false) {
@@ -5561,41 +5571,60 @@ function renderStockDividend() {
 }
 
 // ── 質押管理 ──
-function addPledge() {
+function addPledge() { _openAddPledgeForm('pledge'); }
+function addLend() { _openAddPledgeForm('lend'); }
+
+function _openAddPledgeForm(type) {
+    var isLend = (type === 'lend');
+    var title = isLend ? '新增借券紀錄' : '新增質押紀錄';
+    var sharesLabel = isLend ? '出借股數' : '質押股數';
+    var dateLabel = isLend ? '出借起日' : '質押日期';
+    var rateLabel = isLend ? '年化費率（%）' : '年利率（%）';
+    var ratePlaceholder = isLend ? '例如 0.5' : '例如 2.5';
+    var defaultBroker = isLend ? '永豐證券' : '';
+
     var options = stockData.holdings.map(function(h) {
         return '<option value="' + esc(h.id) + '">' + esc(h.id + ' ' + h.name) + '</option>';
     }).join('');
-    // 券商清單：預設 + 既有質押中出現過的其他券商
+    // 券商清單：預設 + 既有紀錄中出現過的其他券商
     var usedBrokers = {};
     (stockData.pledges || []).forEach(function(p){ if (p.broker) usedBrokers[p.broker] = true; });
     var allBrokers = PLEDGE_BROKERS.slice();
     Object.keys(usedBrokers).forEach(function(b){ if (allBrokers.indexOf(b) < 0) allBrokers.push(b); });
-    var brokerOpts = allBrokers.map(function(b){ return '<option value="'+esc(b)+'">'+esc(b)+'</option>'; }).join('')
-        + '<option value="__custom__">＋ 自訂…</option>';
-    var ov = document.createElement('div');
-    ov.className = 'overlay';
-    ov.innerHTML = '<div class="modal"><h3>新增質押紀錄</h3>' +
-        '<label style="font-size:12px;color:var(--muted)">質押標的</label>' +
+    var brokerOpts = allBrokers.map(function(b){
+        return '<option value="'+esc(b)+'"'+(b===defaultBroker?' selected':'')+'>'+esc(b)+'</option>';
+    }).join('') + '<option value="__custom__">＋ 自訂…</option>';
+
+    // 借券版表單較精簡（無借款金額、無到期日）
+    var formInner = '<label style="font-size:12px;color:var(--muted)">標的</label>' +
         '<select id="pledge-stock">' + options + '</select>' +
         '<label style="font-size:12px;color:var(--muted)">券商</label>' +
         '<select id="pledge-broker">' + brokerOpts + '</select>' +
         '<input type="text" id="pledge-broker-custom" placeholder="輸入券商名稱" style="display:none;margin-top:6px">' +
-        '<label style="font-size:12px;color:var(--muted)">質押股數</label>' +
-        '<input type="number" id="pledge-shares" placeholder="0">' +
-        '<label style="font-size:12px;color:var(--muted)">借款金額</label>' +
-        '<input type="number" id="pledge-amount" placeholder="0">' +
-        '<label style="font-size:12px;color:var(--muted)">年利率（%）</label>' +
-        '<input type="number" id="pledge-rate" placeholder="例如 2.5" step="0.01">' +
-        '<label style="font-size:12px;color:var(--muted)">質押日期</label>' +
-        '<input type="text" id="pledge-date" placeholder="YYYY-MM-DD">' +
-        '<label style="font-size:12px;color:var(--muted)">到期日（可留空，預設質押日 +6 個月）</label>' +
-        '<input type="text" id="pledge-due-date" placeholder="YYYY-MM-DD（留空自動算）">' +
+        '<label style="font-size:12px;color:var(--muted)">' + sharesLabel + '</label>' +
+        '<input type="number" id="pledge-shares" placeholder="0">';
+    if (!isLend) {
+        formInner += '<label style="font-size:12px;color:var(--muted)">借款金額</label>' +
+            '<input type="number" id="pledge-amount" placeholder="0">';
+    }
+    formInner += '<label style="font-size:12px;color:var(--muted)">' + rateLabel + '</label>' +
+        '<input type="number" id="pledge-rate" placeholder="' + ratePlaceholder + '" step="0.01">' +
+        '<label style="font-size:12px;color:var(--muted)">' + dateLabel + '</label>' +
+        '<input type="text" id="pledge-date" placeholder="YYYY-MM-DD">';
+    if (!isLend) {
+        formInner += '<label style="font-size:12px;color:var(--muted)">到期日（可留空，預設質押日 +6 個月）</label>' +
+            '<input type="text" id="pledge-due-date" placeholder="YYYY-MM-DD（留空自動算）">';
+    }
+
+    var ov = document.createElement('div');
+    ov.className = 'overlay';
+    ov.innerHTML = '<div class="modal"><h3>' + title + '</h3>' + formInner +
         '<div class="modal-btns"><button onclick="this.closest(\'.overlay\').remove()">取消</button>' +
         '<button class="btn-primary" id="pledge-save">確定</button></div></div>';
     document.body.appendChild(ov);
     document.getElementById('pledge-date').value = _localDateStr(new Date());
     bindDateInput(document.getElementById('pledge-date'));
-    bindDateInput(document.getElementById('pledge-due-date'));
+    if (!isLend) bindDateInput(document.getElementById('pledge-due-date'));
     var brokerSel = document.getElementById('pledge-broker');
     var brokerCustom = document.getElementById('pledge-broker-custom');
     brokerSel.onchange = function() {
@@ -5605,15 +5634,15 @@ function addPledge() {
     document.getElementById('pledge-save').onclick = function() {
         var stockId = document.getElementById('pledge-stock').value;
         var shares = parseInt(document.getElementById('pledge-shares').value) || 0;
-        var amount = parseInt(document.getElementById('pledge-amount').value) || 0;
+        var amount = isLend ? 0 : (parseInt(document.getElementById('pledge-amount').value) || 0);
         var rate = parseFloat(document.getElementById('pledge-rate').value) || 0;
         var date = document.getElementById('pledge-date').value;
-        var dueDate = document.getElementById('pledge-due-date').value.trim();
+        var dueDate = isLend ? '' : document.getElementById('pledge-due-date').value.trim();
         var broker = brokerSel.value === '__custom__' ? brokerCustom.value.trim() : brokerSel.value;
         if (!stockId) { toast('請選擇標的', true); return; }
         if (!broker) { toast('請選擇或輸入券商', true); return; }
-        if (shares <= 0) { toast('請輸入質押股數', true); return; }
-        if (amount < 0) { toast('借款金額不可為負', true); return; }
+        if (shares <= 0) { toast('請輸入' + sharesLabel, true); return; }
+        if (!isLend && amount < 0) { toast('借款金額不可為負', true); return; }
         if (dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) { toast('到期日格式錯誤（YYYY-MM-DD）', true); return; }
         var holding = stockData.holdings.find(function(h){ return h.id === stockId; });
         var rec = {
@@ -5625,12 +5654,13 @@ function addPledge() {
             rate: rate,
             date: date
         };
+        if (isLend) rec.type = 'lend';
         if (dueDate) rec.dueDate = dueDate;
         stockData.pledges.push(rec);
         saveStockData();
         ov.remove();
         renderStock();
-        toast('已新增質押紀錄');
+        toast(isLend ? '已新增借券紀錄' : '已新增質押紀錄');
     };
     // 已移除點空白關閉行為（避免誤觸）
 }
@@ -5638,6 +5668,12 @@ function addPledge() {
 function editPledge(idx) {
     var p = stockData.pledges[idx];
     if (!p) return;
+    var isLend = _pledgeType(p) === 'lend';
+    var title = isLend ? '編輯借券 - ' : '編輯質押 - ';
+    var sharesLabel = isLend ? '出借股數' : '質押股數';
+    var dateLabel = isLend ? '出借起日' : '質押日期';
+    var rateLabel = isLend ? '年化費率（%）' : '年利率（%）';
+
     var usedBrokers = {};
     (stockData.pledges || []).forEach(function(pp){ if (pp.broker) usedBrokers[pp.broker] = true; });
     var allBrokers = PLEDGE_BROKERS.slice();
@@ -5647,27 +5683,33 @@ function editPledge(idx) {
     var brokerOpts = allBrokers.map(function(b){
         return '<option value="'+esc(b)+'"'+(b===curBroker?' selected':'')+'>'+esc(b)+'</option>';
     }).join('') + '<option value="__custom__">＋ 自訂…</option>';
-    var ov = document.createElement('div');
-    ov.className = 'overlay';
-    ov.innerHTML = '<div class="modal"><h3>編輯質押 - ' + esc(p.stockName) + '</h3>' +
-        '<label style="font-size:12px;color:var(--muted)">券商</label>' +
+
+    var formInner = '<label style="font-size:12px;color:var(--muted)">券商</label>' +
         '<select id="edit-pledge-broker">' + brokerOpts + '</select>' +
         '<input type="text" id="edit-pledge-broker-custom" placeholder="輸入券商名稱" style="display:none;margin-top:6px">' +
-        '<label style="font-size:12px;color:var(--muted)">質押股數</label>' +
-        '<input type="number" id="edit-pledge-shares" value="' + p.shares + '">' +
-        '<label style="font-size:12px;color:var(--muted)">借款金額</label>' +
-        '<input type="number" id="edit-pledge-amount" value="' + p.amount + '">' +
-        '<label style="font-size:12px;color:var(--muted)">年利率（%）</label>' +
-        '<input type="number" id="edit-pledge-rate" value="' + p.rate + '" step="0.01">' +
-        '<label style="font-size:12px;color:var(--muted)">質押日期</label>' +
-        '<input type="text" id="edit-pledge-date" placeholder="YYYY-MM-DD" value="' + (p.date||'') + '">' +
-        '<label style="font-size:12px;color:var(--muted)">到期日（可留空，預設質押日 +6 個月）</label>' +
-        '<input type="text" id="edit-pledge-due-date" placeholder="YYYY-MM-DD（留空自動算）" value="' + (p.dueDate||'') + '">' +
+        '<label style="font-size:12px;color:var(--muted)">' + sharesLabel + '</label>' +
+        '<input type="number" id="edit-pledge-shares" value="' + p.shares + '">';
+    if (!isLend) {
+        formInner += '<label style="font-size:12px;color:var(--muted)">借款金額</label>' +
+            '<input type="number" id="edit-pledge-amount" value="' + (p.amount||0) + '">';
+    }
+    formInner += '<label style="font-size:12px;color:var(--muted)">' + rateLabel + '</label>' +
+        '<input type="number" id="edit-pledge-rate" value="' + (p.rate||0) + '" step="0.01">' +
+        '<label style="font-size:12px;color:var(--muted)">' + dateLabel + '</label>' +
+        '<input type="text" id="edit-pledge-date" placeholder="YYYY-MM-DD" value="' + (p.date||'') + '">';
+    if (!isLend) {
+        formInner += '<label style="font-size:12px;color:var(--muted)">到期日（可留空,預設質押日 +6 個月）</label>' +
+            '<input type="text" id="edit-pledge-due-date" placeholder="YYYY-MM-DD（留空自動算）" value="' + (p.dueDate||'') + '">';
+    }
+
+    var ov = document.createElement('div');
+    ov.className = 'overlay';
+    ov.innerHTML = '<div class="modal"><h3>' + title + esc(p.stockName) + '</h3>' + formInner +
         '<div class="modal-btns"><button onclick="this.closest(\'.overlay\').remove()">取消</button>' +
         '<button class="btn-primary" id="edit-pledge-save">儲存</button></div></div>';
     document.body.appendChild(ov);
     bindDateInput(document.getElementById('edit-pledge-date'));
-    bindDateInput(document.getElementById('edit-pledge-due-date'));
+    if (!isLend) bindDateInput(document.getElementById('edit-pledge-due-date'));
     var brokerSel = document.getElementById('edit-pledge-broker');
     var brokerCustom = document.getElementById('edit-pledge-broker-custom');
     brokerSel.onchange = function() {
@@ -5678,22 +5720,26 @@ function editPledge(idx) {
         var broker = brokerSel.value === '__custom__' ? brokerCustom.value.trim() : brokerSel.value;
         if (broker) p.broker = broker;
         p.shares = parseInt(document.getElementById('edit-pledge-shares').value) || p.shares;
-        var newAmount = parseInt(document.getElementById('edit-pledge-amount').value);
-        if (!isNaN(newAmount) && newAmount >= 0) p.amount = newAmount;
+        if (!isLend) {
+            var newAmount = parseInt(document.getElementById('edit-pledge-amount').value);
+            if (!isNaN(newAmount) && newAmount >= 0) p.amount = newAmount;
+        }
         var newRate = parseFloat(document.getElementById('edit-pledge-rate').value);
         if (!isNaN(newRate) && newRate >= 0) p.rate = newRate;
         p.date = document.getElementById('edit-pledge-date').value || p.date;
-        var newDue = document.getElementById('edit-pledge-due-date').value.trim();
-        if (newDue) {
-            if (!/^\d{4}-\d{2}-\d{2}$/.test(newDue)) { toast('到期日格式錯誤（YYYY-MM-DD）', true); return; }
-            p.dueDate = newDue;
-        } else {
-            delete p.dueDate; // 留空 = 改回自動算
+        if (!isLend) {
+            var newDue = document.getElementById('edit-pledge-due-date').value.trim();
+            if (newDue) {
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(newDue)) { toast('到期日格式錯誤（YYYY-MM-DD）', true); return; }
+                p.dueDate = newDue;
+            } else {
+                delete p.dueDate; // 留空 = 改回自動算
+            }
         }
         saveStockData();
         ov.remove();
         renderStock();
-        toast('已更新質押紀錄');
+        toast(isLend ? '已更新借券紀錄' : '已更新質押紀錄');
     };
     // 已移除點空白關閉行為（避免誤觸）
 }
@@ -5736,7 +5782,9 @@ function renewPledge(idx) {
 }
 
 function deletePledge(idx) {
-    showConfirm('確定刪除此筆質押紀錄？', function() {
+    var p = stockData.pledges[idx];
+    var label = (p && _pledgeType(p) === 'lend') ? '借券' : '質押';
+    showConfirm('確定刪除此筆' + label + '紀錄？', function() {
         stockData.pledges.splice(idx, 1);
         saveStockData();
         renderStock();
@@ -6273,18 +6321,39 @@ function updateHoldingClassification(stockId, field, value) {
 function renderStockPledge() {
     var html = '';
 
-    html += '<div class="toolbar">';
+    html += '<div class="toolbar" style="display:flex;gap:8px;flex-wrap:wrap">';
     html += '<button class="btn-refresh btn-pledge-add" style="background:var(--lux-navy)" onclick="addPledge()">＋ 新增質押</button>';
+    html += '<button class="btn-refresh btn-pledge-add" style="background:#7C3AED" onclick="addLend()">＋ 新增借券</button>';
     html += '</div>';
 
     if (!stockData.pledges || stockData.pledges.length === 0) {
-        html += '<div style="text-align:center;padding:40px;color:var(--muted)">尚未新增質押紀錄</div>';
+        html += '<div style="text-align:center;padding:40px;color:var(--muted)">尚未新增質押或借券紀錄</div>';
         return html;
     }
 
+    // 將紀錄拆為質押 / 借券（保留原索引給編輯/刪除用）
+    var pledgeRows = [];
+    var lendRows = [];
+    stockData.pledges.forEach(function(p, i) {
+        if (_pledgeType(p) === 'lend') lendRows.push({ p:p, idx:i });
+        else pledgeRows.push({ p:p, idx:i });
+    });
+
+    html += _renderPledgeSection(pledgeRows);
+    html += _renderLendSection(lendRows);
+
+    return html;
+}
+
+// 質押 section（保留原本完整功能：分券商摘要、到期提醒、表格）
+function _renderPledgeSection(rows) {
+    if (rows.length === 0) return '';
+    var html = '<div style="margin-top:8px;font-size:13px;color:var(--lux-navy);font-weight:700">質押</div>';
+
     // 按券商分組
     var byBroker = {};
-    stockData.pledges.forEach(function(p) {
+    rows.forEach(function(r) {
+        var p = r.p;
         var b = _pledgeBroker(p);
         if (!byBroker[b]) byBroker[b] = { amount: 0, collateral: 0, daily: 0, count: 0 };
         var pr = stockData.prices[p.stockId];
@@ -6294,7 +6363,6 @@ function renderStockPledge() {
         byBroker[b].daily += (Number(p.amount) || 0) * ((p.rate || 0) / 100) / 365;
         byBroker[b].count += 1;
     });
-    // 總計
     var totalAmount = 0, totalCollateral = 0, totalDailyInterest = 0;
     Object.keys(byBroker).forEach(function(b){
         totalAmount += byBroker[b].amount;
@@ -6304,7 +6372,6 @@ function renderStockPledge() {
     var totalRatio = totalAmount > 0 ? (totalCollateral / totalAmount) * 100 : 0;
     var totalMonthlyInterest = totalDailyInterest * 30;
 
-    // 分券商摘要（多家時顯示；只有 1 家時省略，直接顯示總計列）
     var brokerNames = Object.keys(byBroker);
     if (brokerNames.length > 1) {
         html += '<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px">';
@@ -6325,7 +6392,6 @@ function renderStockPledge() {
         html += '</div>';
     }
 
-    // 總計列
     html += '<div class="stock-summary-bar pledge-summary-bar" style="display:flex;flex-wrap:wrap;gap:6px 20px;font-size:14px;margin-bottom:10px;padding:8px 12px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow)">';
     html += (brokerNames.length > 1 ? '<span style="color:var(--lux-navy);font-weight:700">合計</span>' : '');
     html += '<span class="ps-total" style="color:var(--muted)">總借款 <b style="color:var(--red)">' + fmt(totalAmount) + '</b></span>';
@@ -6336,17 +6402,15 @@ function renderStockPledge() {
     html += '<span class="pledge-interest ps-monthly" style="color:var(--muted)">月息 <b style="color:var(--red)">' + fmt(Math.round(totalMonthlyInterest)) + '</b></span>';
     html += '</div>';
 
-    // 到期提醒橫幅（半年一期 = +6 個月，到期前 30 天提醒）
     var today = new Date();
     var dueAlerts = [];
-    stockData.pledges.forEach(function(p) {
+    rows.forEach(function(r) {
+        var p = r.p;
         if (!p.date) return;
-        if (!p.amount || p.amount <= 0) return;  // 無借款不提醒到期
+        if (!p.amount || p.amount <= 0) return;
         var due = calcPledgeDue(p);
         var daysLeft = Math.ceil((due - today) / 86400000);
-        if (daysLeft <= 30) {
-            dueAlerts.push({ p: p, dueStr: _localDateStr(due), daysLeft: daysLeft });
-        }
+        if (daysLeft <= 30) dueAlerts.push({ p: p, dueStr: _localDateStr(due), daysLeft: daysLeft });
     });
     if (dueAlerts.length > 0) {
         html += '<div class="dividend-alert" style="background:#FEF2F2;border-color:#FCA5A5">';
@@ -6363,12 +6427,12 @@ function renderStockPledge() {
         html += '</div>';
     }
 
-    // 表格
     html += '<div class="table-wrap"><table class="stock-table pledge-table"><thead><tr>';
     html += '<th>標的</th><th>券商</th><th>質押股數</th><th>借款金額</th><th>年利率</th><th>擔保現值</th><th>維持率</th><th>質押日</th><th>到期日</th><th></th>';
     html += '</tr></thead><tbody>';
 
-    stockData.pledges.forEach(function(p, idx) {
+    rows.forEach(function(r) {
+        var p = r.p, idx = r.idx;
         var pr = stockData.prices[p.stockId];
         var curPrice = pr ? pr.price : null;
         var collateral = curPrice ? curPrice * p.shares : null;
@@ -6393,12 +6457,45 @@ function renderStockPledge() {
         html += '<td style="font-size:12px">' + esc(_pledgeBroker(p)) + '</td>';
         html += '<td>' + fmt(p.shares) + '</td>';
         html += '<td style="color:var(--red);font-weight:600">' + fmt(p.amount) + '</td>';
-        html += '<td>' + p.rate.toFixed(2) + '%</td>';
+        html += '<td>' + (p.rate||0).toFixed(2) + '%</td>';
         html += '<td style="font-weight:600">' + (collateral ? fmt(Math.round(collateral)) : '-') + '</td>';
         html += '<td style="font-weight:700;color:' + ratioColor + '">' + (noDebt ? '∞' : (ratio ? ratio.toFixed(1) + '%' : '-')) + '</td>';
         html += '<td style="font-size:12px">' + esc(_toROCDate(p.date || '')) + '</td>';
         html += '<td style="font-size:12px;' + (noDebt ? '' : dueColor) + '">' + (noDebt ? '-' : _toROCDate(dueStr) + dueDaysLabel) + '</td>';
         html += '<td style="white-space:nowrap"><button class="btn-del" title="展延" onclick="renewPledge(' + idx + ')"><i class="ti ti-refresh"></i></button><button class="btn-del" title="刪除" onclick="deletePledge(' + idx + ')"><i class="ti ti-x" style="font-size:14px"></i></button></td>';
+        html += '</tr>';
+    });
+
+    html += '</tbody></table></div>';
+    return html;
+}
+
+// 借券 section（精簡：總出借股數、表格）
+function _renderLendSection(rows) {
+    if (rows.length === 0) return '';
+    var html = '<div style="margin-top:16px;font-size:13px;color:#7C3AED;font-weight:700">借券</div>';
+
+    var totalShares = 0;
+    rows.forEach(function(r){ totalShares += Number(r.p.shares) || 0; });
+
+    html += '<div class="stock-summary-bar pledge-summary-bar" style="display:flex;flex-wrap:wrap;gap:6px 20px;font-size:14px;margin-bottom:10px;padding:8px 12px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border-left:3px solid #7C3AED">';
+    html += '<span style="color:var(--muted)">總出借股數 <b style="color:#7C3AED">' + fmt(totalShares) + '</b></span>';
+    html += '<span style="color:var(--muted)">筆數 <b>' + rows.length + '</b></span>';
+    html += '</div>';
+
+    html += '<div class="table-wrap"><table class="stock-table pledge-table"><thead><tr>';
+    html += '<th>標的</th><th>券商</th><th>出借股數</th><th>年化費率</th><th>出借起日</th><th></th>';
+    html += '</tr></thead><tbody>';
+
+    rows.forEach(function(r) {
+        var p = r.p, idx = r.idx;
+        html += '<tr>';
+        html += '<td class="stock-name-cell" style="cursor:pointer" onclick="editPledge(' + idx + ')">' + esc(p.stockId) + '<br><span class="pledge-stock-name" style="font-size:12px;color:var(--muted);font-weight:400">' + esc(p.stockName) + '</span></td>';
+        html += '<td style="font-size:12px">' + esc(_pledgeBroker(p)) + '</td>';
+        html += '<td>' + fmt(p.shares) + '</td>';
+        html += '<td>' + (p.rate||0).toFixed(2) + '%</td>';
+        html += '<td style="font-size:12px">' + esc(_toROCDate(p.date || '')) + '</td>';
+        html += '<td style="white-space:nowrap"><button class="btn-del" title="刪除" onclick="deletePledge(' + idx + ')"><i class="ti ti-x" style="font-size:14px"></i></button></td>';
         html += '</tr>';
     });
 
@@ -6499,7 +6596,10 @@ function calcStockHoldingsTWD() {
 // 台股自動連動：質押借款總和
 function calcStockPledgeDebtTWD() {
     if (!stockData || !Array.isArray(stockData.pledges)) return 0;
-    return stockData.pledges.reduce(function(a, p){ return a + (Number(p.amount) || 0); }, 0);
+    return stockData.pledges.reduce(function(a, p){
+        if (_pledgeType(p) === 'lend') return a;
+        return a + (Number(p.amount) || 0);
+    }, 0);
 }
 
 function sectionTotal(key) {
@@ -6743,7 +6843,7 @@ function renderAssets() {
         if (sec.key === 'debt') {
             var pledgeVal = calcStockPledgeDebtTWD();
             if (pledgeVal > 0) {
-                var n = stockData.pledges ? stockData.pledges.length : 0;
+                var n = stockData.pledges ? stockData.pledges.filter(function(p){ return _pledgeType(p) !== 'lend'; }).length : 0;
                 html += '<div class="asset-acc-row">';
                 html += '<div class="asset-acc-main">';
                 html += '<div class="asset-acc-name">證券質押借款 <span class="asset-acc-badge auto">自動</span></div>';
