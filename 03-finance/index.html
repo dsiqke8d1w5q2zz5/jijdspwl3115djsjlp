@@ -6315,7 +6315,16 @@ function showStockPriceTrend(stockId) {
         '<div class="modal-btns" style="margin-top:12px"><button onclick="this.closest(\'.overlay\').remove()" style="flex:1">關閉</button></div>' +
         '</div>';
     document.body.appendChild(ov);
-    ov.addEventListener('click', function(e){ if (e.target === ov) { ov.remove(); if (_stockPriceTrendChart) { try { _stockPriceTrendChart.destroy(); } catch(_){} _stockPriceTrendChart = null; } } });
+    // 點空白關閉：用 mousedown 起點 + click 終點都在 overlay 才關閉，避免從 input 拖曳出來誤觸
+    var _mdOnOv = false;
+    ov.addEventListener('mousedown', function(e){ _mdOnOv = (e.target === ov); });
+    ov.addEventListener('click', function(e){
+        if (e.target === ov && _mdOnOv) {
+            ov.remove();
+            if (_stockPriceTrendChart) { try { _stockPriceTrendChart.destroy(); } catch(_){} _stockPriceTrendChart = null; }
+        }
+        _mdOnOv = false;
+    });
     if (arr.length >= 2) {
         var canvas = document.getElementById('stock-price-trend-chart');
         function _draw(subset) {
@@ -7068,7 +7077,15 @@ function showSectionTrend(key) {
         '<div class="modal-btns" style="margin-top:12px"><button onclick="this.closest(\'.overlay\').remove()" style="flex:1">關閉</button></div>' +
         '</div>';
     document.body.appendChild(ov);
-    ov.addEventListener('click', function(e){ if (e.target === ov) { ov.remove(); if (_sectionTrendChart) { try { _sectionTrendChart.destroy(); } catch(_){} _sectionTrendChart = null; } } });
+    var _mdOnOvS = false;
+    ov.addEventListener('mousedown', function(e){ _mdOnOvS = (e.target === ov); });
+    ov.addEventListener('click', function(e){
+        if (e.target === ov && _mdOnOvS) {
+            ov.remove();
+            if (_sectionTrendChart) { try { _sectionTrendChart.destroy(); } catch(_){} _sectionTrendChart = null; }
+        }
+        _mdOnOvS = false;
+    });
     _drawSectionTrendChart(key);
 }
 
