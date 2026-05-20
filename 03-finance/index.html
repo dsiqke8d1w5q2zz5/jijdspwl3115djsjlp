@@ -19,7 +19,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/zh-tw.js"></script>
 <style>
 :root {
     --bg: #F7F5F3;
@@ -6298,9 +6301,9 @@ function showStockPriceTrend(stockId) {
             '</div>' +
             '<div style="display:flex;flex-wrap:wrap;align-items:stretch;gap:6px;margin-bottom:8px;font-size:12px;color:var(--muted)">' +
                 '<span style="display:inline-flex;align-items:center;height:28px;line-height:1">區間</span>' +
-                '<input type="date" id="trend-range-start" value="' + first.date + '" min="' + first.date + '" max="' + last.date + '" style="width:140px;height:28px;box-sizing:border-box;padding:0 8px;margin:0;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:12px;line-height:28px;vertical-align:middle">' +
+                '<input type="text" id="trend-range-start" value="' + first.date + '" placeholder="YYYY-MM-DD" readonly style="width:120px;height:28px;box-sizing:border-box;padding:0 8px;margin:0;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:12px;line-height:28px;vertical-align:middle;background:var(--card);cursor:pointer">' +
                 '<span style="display:inline-flex;align-items:center;height:28px;line-height:1">～</span>' +
-                '<input type="date" id="trend-range-end" value="' + last.date + '" min="' + first.date + '" max="' + last.date + '" style="width:140px;height:28px;box-sizing:border-box;padding:0 8px;margin:0;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:12px;line-height:28px;vertical-align:middle">' +
+                '<input type="text" id="trend-range-end" value="' + last.date + '" placeholder="YYYY-MM-DD" readonly style="width:120px;height:28px;box-sizing:border-box;padding:0 8px;margin:0;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:12px;line-height:28px;vertical-align:middle;background:var(--card);cursor:pointer">' +
                 '<button type="button" id="trend-range-apply" style="display:inline-flex;align-items:center;justify-content:center;height:28px;box-sizing:border-box;padding:0 12px;margin:0;border:none;border-radius:6px;background:var(--lux-navy);color:white;cursor:pointer;font-family:inherit;font-size:12px;line-height:1;vertical-align:middle">查詢</button>' +
                 '<button type="button" id="trend-range-reset" style="display:inline-flex;align-items:center;justify-content:center;height:28px;box-sizing:border-box;padding:0 10px;margin:0;border:1px solid var(--border);border-radius:6px;background:var(--card);cursor:pointer;font-family:inherit;font-size:12px;line-height:1;vertical-align:middle">全部</button>' +
                 '<span id="trend-range-result" style="margin-left:auto;display:inline-flex;align-items:center;height:28px;font-size:12px;line-height:1"></span>' +
@@ -6349,6 +6352,23 @@ function showStockPriceTrend(stockId) {
         var endInput = document.getElementById('trend-range-end');
         var resultEl = document.getElementById('trend-range-result');
 
+        // 套上 Flatpickr 日曆（若未載入則 fallback 為純文字輸入）
+        if (typeof flatpickr === 'function') {
+            var fpLocale = (flatpickr.l10ns && flatpickr.l10ns.zh_tw) ? flatpickr.l10ns.zh_tw : undefined;
+            var fpStart = flatpickr(startInput, {
+                dateFormat: 'Y-m-d', locale: fpLocale,
+                minDate: arr[0].date, maxDate: arr[arr.length-1].date,
+                defaultDate: first.date,
+                onChange: function(sel, str){ fpEnd && fpEnd.set('minDate', str); }
+            });
+            var fpEnd = flatpickr(endInput, {
+                dateFormat: 'Y-m-d', locale: fpLocale,
+                minDate: arr[0].date, maxDate: arr[arr.length-1].date,
+                defaultDate: last.date,
+                onChange: function(sel, str){ fpStart && fpStart.set('maxDate', str); }
+            });
+        }
+
         function _applyRange() {
             var s = (startInput.value || '').trim();
             var e = (endInput.value || '').trim();
@@ -6378,8 +6398,13 @@ function showStockPriceTrend(stockId) {
         var resetBtn = document.getElementById('trend-range-reset');
         if (applyBtn) applyBtn.onclick = _applyRange;
         if (resetBtn) resetBtn.onclick = function() {
-            startInput.value = arr[0].date;
-            endInput.value = arr[arr.length - 1].date;
+            if (typeof fpStart !== 'undefined' && fpStart) fpStart.setDate(arr[0].date, false);
+            else startInput.value = arr[0].date;
+            if (typeof fpEnd !== 'undefined' && fpEnd) fpEnd.setDate(arr[arr.length - 1].date, false);
+            else endInput.value = arr[arr.length - 1].date;
+            // 重置兩邊互鎖的 min/max
+            if (typeof fpStart !== 'undefined' && fpStart) fpStart.set('maxDate', arr[arr.length-1].date);
+            if (typeof fpEnd !== 'undefined' && fpEnd) fpEnd.set('minDate', arr[0].date);
             resultEl.innerHTML = '';
             _draw(arr);
         };
