@@ -4637,13 +4637,15 @@ function checkDividendAlerts() {
         });
     }
 
-    // 民國年日期 → 西元 YYYY-MM-DD（"1150519" → "2026-05-19"）
+    // 民國年日期 → 西元 YYYY-MM-DD（"1150519" → "2026-05-19"；"115/05/19" → "2026-05-19"；"115年05月19日" → "2026-05-19"）
     function _rocToYmd(s) {
-        s = String(s || '').replace(/[\/\-\.]/g, '');
-        if (s.length !== 7) return '';
-        var y = parseInt(s.slice(0, 3), 10);
+        s = String(s == null ? '' : s);
+        // 抽出所有數字
+        var digits = s.replace(/[^0-9]/g, '');
+        if (digits.length !== 7) return '';
+        var y = parseInt(digits.slice(0, 3), 10);
         if (!y) return '';
-        return (y + 1911) + '-' + s.slice(3, 5) + '-' + s.slice(5, 7);
+        return (y + 1911) + '-' + digits.slice(3, 5) + '-' + digits.slice(5, 7);
     }
     // 解析現金股利欄位（TWSE 有時帶 HTML 「待公告...」等字串）
     function _parseCash(v) {
