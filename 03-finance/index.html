@@ -6376,6 +6376,31 @@ function _stockModalNav(stockId) {
     return { prev: prev, next: next };
 }
 
+// 個股 modal 的左右切換列（置中、放大）
+// kind: 'trend' = 走勢 modal；'calendar' = 日曆 modal
+function _stockModalNavBar(stockId, kind) {
+    var nav = _stockModalNav(stockId);
+    if (!nav.prev && !nav.next) return '';
+    var fn = (kind === 'calendar') ? 'showStockCalendarModal' : 'showStockPriceTrend';
+    var btnStyle = 'flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--card);cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;color:var(--text)';
+    var disabledStyle = btnStyle + ';opacity:0.3;cursor:not-allowed';
+    var html = '<div style="display:flex;gap:10px;margin-bottom:12px;flex:none">';
+    if (nav.prev) {
+        html += '<button type="button" onclick="this.closest(\'.overlay\').remove();' + fn + '(\'' + esc(nav.prev) + '\')" style="' + btnStyle + '">' +
+            '<i class="ti ti-chevron-left" style="font-size:18px"></i> 上一檔 <span style="color:var(--muted);font-size:13px;font-weight:400">' + esc(nav.prev) + '</span></button>';
+    } else {
+        html += '<button type="button" disabled style="' + disabledStyle + '"><i class="ti ti-chevron-left"></i> 上一檔</button>';
+    }
+    if (nav.next) {
+        html += '<button type="button" onclick="this.closest(\'.overlay\').remove();' + fn + '(\'' + esc(nav.next) + '\')" style="' + btnStyle + '">' +
+            '<span style="color:var(--muted);font-size:13px;font-weight:400">' + esc(nav.next) + '</span> 下一檔 <i class="ti ti-chevron-right" style="font-size:18px"></i></button>';
+    } else {
+        html += '<button type="button" disabled style="' + disabledStyle + '">下一檔 <i class="ti ti-chevron-right"></i></button>';
+    }
+    html += '</div>';
+    return html;
+}
+
 // 點持股 → 顯示價格走勢 modal
 function showStockPriceTrend(stockId) {
     var holding = stockData.holdings.find(function(h){ return h.id === stockId; });
@@ -6424,14 +6449,12 @@ function showStockPriceTrend(stockId) {
             '<div style="font-size:11px;color:var(--muted);margin-top:8px">共 ' + arr.length + ' 筆紀錄（' + arr[0].date + ' ~ ' + arr[arr.length-1].date + '）　自記錄起 ' + fmtPriceChange({pct: totalChg}) + '</div>' +
             '<div style="font-size:11px;color:var(--muted);margin-top:4px">※ 漲跌已自動還原權息／股票股利／分割（資料來源：除權息提醒）</div>';
     }
-    var nav = _stockModalNav(stockId);
     ov.innerHTML = '<div class="modal" style="width:680px;max-width:94vw;min-height:560px;display:flex;flex-direction:column">' +
-        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;flex:none">' +
-            (nav.prev ? '<button type="button" onclick="this.closest(\'.overlay\').remove();showStockPriceTrend(\'' + esc(nav.prev) + '\')" title="上一檔：' + esc(nav.prev) + '" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--card);cursor:pointer;font-family:inherit;font-size:13px"><i class="ti ti-chevron-left"></i></button>' : '<button type="button" disabled style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--card);opacity:0.3;font-family:inherit;font-size:13px"><i class="ti ti-chevron-left"></i></button>') +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;flex:none">' +
             '<h3 style="margin:0;flex:1"><i class="ti ti-chart-line"></i> ' + esc(stockId) + ' ' + esc(name) + ' 價格走勢</h3>' +
-            (nav.next ? '<button type="button" onclick="this.closest(\'.overlay\').remove();showStockPriceTrend(\'' + esc(nav.next) + '\')" title="下一檔：' + esc(nav.next) + '" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--card);cursor:pointer;font-family:inherit;font-size:13px"><i class="ti ti-chevron-right"></i></button>' : '<button type="button" disabled style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--card);opacity:0.3;font-family:inherit;font-size:13px"><i class="ti ti-chevron-right"></i></button>') +
             '<button type="button" onclick="showStockCalendarModal(\'' + esc(stockId) + '\')" style="padding:6px 12px;border:1px solid var(--border);border-radius:6px;background:var(--card);cursor:pointer;font-family:inherit;font-size:12px"><i class="ti ti-calendar-month"></i> 看日曆</button>' +
         '</div>' +
+        _stockModalNavBar(stockId, 'trend') +
         body +
         '<div class="modal-btns" style="margin-top:12px"><button onclick="this.closest(\'.overlay\').remove()" style="flex:1">關閉</button></div>' +
         '</div>';
@@ -6549,14 +6572,12 @@ function showStockCalendarModal(stockId) {
 
     var ov = document.createElement('div');
     ov.className = 'overlay stock-cal-modal-overlay';
-    var navC = _stockModalNav(stockId);
     ov.innerHTML = '<div class="modal" style="width:680px;max-width:94vw;min-height:560px;display:flex;flex-direction:column">' +
-        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;flex:none">' +
-            (navC.prev ? '<button type="button" onclick="this.closest(\'.overlay\').remove();showStockCalendarModal(\'' + esc(navC.prev) + '\')" title="上一檔：' + esc(navC.prev) + '" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--card);cursor:pointer;font-family:inherit;font-size:13px"><i class="ti ti-chevron-left"></i></button>' : '<button type="button" disabled style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--card);opacity:0.3;font-family:inherit;font-size:13px"><i class="ti ti-chevron-left"></i></button>') +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;flex:none">' +
             '<h3 style="margin:0;flex:1"><i class="ti ti-calendar-month"></i> ' + esc(stockId) + ' ' + esc(name) + ' 漲跌日曆</h3>' +
-            (navC.next ? '<button type="button" onclick="this.closest(\'.overlay\').remove();showStockCalendarModal(\'' + esc(navC.next) + '\')" title="下一檔：' + esc(navC.next) + '" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--card);cursor:pointer;font-family:inherit;font-size:13px"><i class="ti ti-chevron-right"></i></button>' : '<button type="button" disabled style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--card);opacity:0.3;font-family:inherit;font-size:13px"><i class="ti ti-chevron-right"></i></button>') +
             '<button type="button" onclick="this.closest(\'.overlay\').remove();showStockPriceTrend(\'' + esc(stockId) + '\')" style="padding:6px 12px;border:1px solid var(--border);border-radius:6px;background:var(--card);cursor:pointer;font-family:inherit;font-size:12px"><i class="ti ti-chart-line"></i> 看走勢</button>' +
         '</div>' +
+        _stockModalNavBar(stockId, 'calendar') +
         '<div id="stock-cal-modal-body"></div>' +
         '<div class="modal-btns" style="margin-top:12px"><button onclick="this.closest(\'.overlay\').remove()" style="flex:1">關閉</button></div>' +
         '</div>';
