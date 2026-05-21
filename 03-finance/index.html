@@ -5417,13 +5417,14 @@ function renderStockHoldings() {
         }
         // 股價 / 漲跌幅
         if (vis.price !== false) {
-            var priceHtml = r.curPrice !== null ? r.curPrice.toFixed(2) : '<span style="color:var(--muted)">-</span>';
-            // 漲跌停徽章（台股 ±10%，閾值用 ±9.5% 容許浮點誤差）
-            if (r.changePct !== null && !isNaN(r.changePct)) {
+            var priceText = r.curPrice !== null ? r.curPrice.toFixed(2) : '<span style="color:var(--muted)">-</span>';
+            var priceHtml = priceText;
+            // 漲跌停：股價外加紅框／綠框（台股 ±10%，閾值 ±9.5% 容許浮點誤差）
+            if (r.changePct !== null && !isNaN(r.changePct) && r.curPrice !== null) {
                 if (r.changePct >= 9.5) {
-                    priceHtml += ' <span style="display:inline-block;font-size:10px;font-weight:700;color:#fff;background:var(--red);padding:1px 5px;border-radius:4px;vertical-align:1px" title="今日漲幅達 ±10%（漲停）">漲停</span>';
+                    priceHtml = '<span style="display:inline-block;border:2px solid var(--red);border-radius:4px;padding:1px 6px;line-height:1.2" title="今日漲幅達 ±10%（漲停）">' + priceText + '</span>';
                 } else if (r.changePct <= -9.5) {
-                    priceHtml += ' <span style="display:inline-block;font-size:10px;font-weight:700;color:#fff;background:var(--green);padding:1px 5px;border-radius:4px;vertical-align:1px" title="今日跌幅達 ±10%（跌停）">跌停</span>';
+                    priceHtml = '<span style="display:inline-block;border:2px solid var(--green);border-radius:4px;padding:1px 6px;line-height:1.2" title="今日跌幅達 ±10%（跌停）">' + priceText + '</span>';
                 }
             }
             var pctHtml = '';
@@ -6793,6 +6794,19 @@ function stopStockAutoRefresh() {
     if (_stockAutoTimer) { clearInterval(_stockAutoTimer); _stockAutoTimer = null; }
 }
 
+// 排定下一個「台灣時間 14:00」執行 maybeAutoSnapshot，跑完再排下一次
+// 用意：使用者長時間掛網頁不關、不切分頁，仍能每天記一筆市值/股價/淨資產快照
+function scheduleDailySnapshot() {
+    var tw = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+    var next = new Date(tw.getFullYear(), tw.getMonth(), tw.getDate(), 14, 0, 0);
+    if (next <= tw) next.setDate(next.getDate() + 1); // 今天 14:00 已過 → 明天 14:00
+    var delay = next.getTime() - tw.getTime();
+    setTimeout(function() {
+        try { maybeAutoSnapshot(); } catch(e) { console.error('[scheduleDailySnapshot]', e); }
+        scheduleDailySnapshot(); // 排下一次
+    }, delay);
+}
+
 // ══════════════════════════════════════════
 //   淨資產
 // ══════════════════════════════════════════
@@ -7813,6 +7827,8 @@ loadStockData();
 updateLastExportLabel();
 // 開啟網頁立即更新一次股價；之後盤中每 5 分鐘自動刷新（不論目前在哪個頁籤）
 try { startStockAutoRefresh(); } catch(_) {}
+// 每日 14:00（台灣時間）自動跑一次快照，確保長時間掛機也能累積每日資料
+try { scheduleDailySnapshot(); } catch(_) {}
 // 一次性：放款→借款
 (function(){
     var changed = false;
