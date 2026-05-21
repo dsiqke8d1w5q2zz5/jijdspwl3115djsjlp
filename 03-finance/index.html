@@ -5991,17 +5991,17 @@ function renderStockAnalysis() {
     var pieSel = pieOpts.map(function(o){
         return '<option value="' + o.v + '"' + (o.v === pieMode ? ' selected' : '') + '>' + o.l + '</option>';
     }).join('');
-    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin-bottom:14px;align-items:start">';
-    // 左：圓餅
-    html += '<div style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow)">';
-    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin-bottom:14px;align-items:stretch">';
+    // 左：圓餅（用 flex 撐滿等高，canvas 區塊隨高度自動放大）
+    html += '<div style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);display:flex;flex-direction:column">';
+    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex:none">';
     html += '<select id="pie-mode-select" onchange="onPieModeChange(this.value)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-weight:600;font-family:inherit;background:var(--card);color:var(--text)">' + pieSel + '</select>';
     html += '</div>';
-    html += '<div style="position:relative;height:200px"><canvas id="chart-pie"></canvas></div>';
-    html += '<div class="chart-legend-wrap" style="margin-top:10px"><div id="chart-pie-legend" class="chart-legend-list" style="font-size:12px"></div></div>';
+    html += '<div style="position:relative;flex:1;min-height:200px"><canvas id="chart-pie"></canvas></div>';
+    html += '<div class="chart-legend-wrap" style="margin-top:10px;flex:none"><div id="chart-pie-legend" class="chart-legend-list" style="font-size:12px"></div></div>';
     html += '</div>';
     // 右：報酬日曆
-    html += '<div id="return-calendar-slot">' + renderReturnCalendar() + '</div>';
+    html += '<div id="return-calendar-slot" style="display:flex;flex-direction:column">' + renderReturnCalendar() + '</div>';
     html += '</div>';
 
     // 行內分類編輯表
@@ -6143,7 +6143,7 @@ function renderReturnCalendar() {
         return '<option value="' + m + '"' + (m === curMonth ? ' selected' : '') + '>' + m + '</option>';
     }).join('');
 
-    var html = '<div style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);margin-top:14px">';
+    var html = '<div style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);flex:1;display:flex;flex-direction:column">';
     html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">';
     html += '<div style="font-size:14px;font-weight:600">報酬日曆</div>';
     html += '<select id="return-cal-month" onchange="onReturnCalendarMonthChange(this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--card)">' + monthOpts + '</select>';
