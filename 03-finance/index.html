@@ -6301,46 +6301,61 @@ function renderReturnCalendar() {
     html += '</span>';
     html += '</div>';
 
-    // 日曆網格（週一到週日，台股慣例週一起算；週六日只占位）
+    // 日曆網格（只顯示週一到週五，台股交易日才有資料）
     var ym = curMonth.split('-');
     var year = parseInt(ym[0], 10), monthIdx = parseInt(ym[1], 10) - 1;
-    var firstDay = new Date(year, monthIdx, 1);
-    var lastDay = new Date(year, monthIdx + 1, 0);
-    var startWeekday = firstDay.getDay(); // 0=日, 1=一, ...
-    var startOffset = startWeekday === 0 ? 6 : (startWeekday - 1); // 週一起算的偏移
+    var lastDay = new Date(year, monthIdx + 1, 0).getDate();
 
-    html += '<div style="display:grid;grid-template-columns:repeat(7,1fr) 70px;gap:4px;font-size:12px">';
-    ['一','二','三','四','五','六','日'].forEach(function(w){
+    html += '<div style="display:grid;grid-template-columns:repeat(5,1fr) 70px;gap:4px;font-size:12px">';
+    ['一','二','三','四','五'].forEach(function(w){
         html += '<div style="text-align:center;color:var(--muted);font-size:11px;padding:4px 0">' + w + '</div>';
     });
     html += '<div style="text-align:center;color:var(--muted);font-size:11px;padding:4px 0">週損益</div>';
 
-    var totalCells = startOffset + lastDay.getDate();
-    var totalRows = Math.ceil(totalCells / 7);
-    var dayCounter = 1 - startOffset;
-    for (var row = 0; row < totalRows; row++) {
+    // 把當月所有「平日」依「ISO 週」分組（週一起算）
+    function _isoWeekKey(d) {
+        // 找該日所屬週的「週一」當作 key
+        var dow = d.getDay() || 7; // 1=一 ... 7=日
+        var mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - (dow - 1));
+        return mon.getFullYear() + '-' + (mon.getMonth()+1) + '-' + mon.getDate();
+    }
+    var weeks = {};
+    var weekOrder = [];
+    for (var day = 1; day <= lastDay; day++) {
+        var d = new Date(year, monthIdx, day);
+        var dow = d.getDay();
+        if (dow === 0 || dow === 6) continue; // 跳過六日
+        var wk = _isoWeekKey(d);
+        if (!weeks[wk]) { weeks[wk] = []; weekOrder.push(wk); }
+        weeks[wk].push({ day: day, dow: dow });
+    }
+
+    weekOrder.forEach(function(wk) {
+        var daysInWeek = weeks[wk];
+        var byDow = {}; // 1=一 ... 5=五
+        daysInWeek.forEach(function(it){ byDow[it.dow] = it.day; });
         var weekPnL = 0, weekHasData = false;
-        for (var col = 0; col < 7; col++) {
-            if (dayCounter < 1 || dayCounter > lastDay.getDate()) {
+        for (var dow = 1; dow <= 5; dow++) {
+            var dayNum = byDow[dow];
+            if (!dayNum) {
                 html += '<div style="min-height:54px"></div>';
-            } else {
-                var dStr = year + '-' + String(monthIdx + 1).padStart(2,'0') + '-' + String(dayCounter).padStart(2,'0');
-                var entry = dailyPnL[dStr];
-                if (entry) {
-                    weekPnL += entry.pnl;
-                    weekHasData = true;
-                    var cellColor = entry.pnl > 0 ? 'var(--red)' : entry.pnl < 0 ? 'var(--green)' : 'var(--muted)';
-                    var bg = entry.pnl > 0 ? 'rgba(239,68,68,0.08)' : entry.pnl < 0 ? 'rgba(22,163,74,0.08)' : 'transparent';
-                    html += '<div style="background:' + bg + ';border-radius:6px;padding:4px 6px;text-align:center;min-height:54px">' +
-                        '<div style="font-size:11px;color:var(--muted)">' + dayCounter + '</div>' +
-                        '<div style="font-size:12px;font-weight:600;color:' + cellColor + '">' + (entry.pnl > 0 ? '+' : '') + fmt(Math.round(entry.pnl)) + '</div>' +
-                        '<div style="font-size:10px;color:' + cellColor + '">' + (entry.pct > 0 ? '+' : '') + entry.pct.toFixed(2) + '%</div>' +
-                        '</div>';
-                } else {
-                    html += '<div style="border:1px dashed var(--border);border-radius:6px;padding:4px 6px;text-align:center;min-height:54px;color:var(--muted);font-size:11px">' + dayCounter + '</div>';
-                }
+                continue;
             }
-            dayCounter++;
+            var dStr = year + '-' + String(monthIdx + 1).padStart(2,'0') + '-' + String(dayNum).padStart(2,'0');
+            var entry = dailyPnL[dStr];
+            if (entry) {
+                weekPnL += entry.pnl;
+                weekHasData = true;
+                var cellColor = entry.pnl > 0 ? 'var(--red)' : entry.pnl < 0 ? 'var(--green)' : 'var(--muted)';
+                var bg = entry.pnl > 0 ? 'rgba(239,68,68,0.08)' : entry.pnl < 0 ? 'rgba(22,163,74,0.08)' : 'transparent';
+                html += '<div style="background:' + bg + ';border-radius:6px;padding:4px 6px;text-align:center;min-height:54px">' +
+                    '<div style="font-size:11px;color:var(--muted)">' + dayNum + '</div>' +
+                    '<div style="font-size:12px;font-weight:600;color:' + cellColor + '">' + (entry.pnl > 0 ? '+' : '') + fmt(Math.round(entry.pnl)) + '</div>' +
+                    '<div style="font-size:10px;color:' + cellColor + '">' + (entry.pct > 0 ? '+' : '') + entry.pct.toFixed(2) + '%</div>' +
+                    '</div>';
+            } else {
+                html += '<div style="border:1px dashed var(--border);border-radius:6px;padding:4px 6px;text-align:center;min-height:54px;color:var(--muted);font-size:11px">' + dayNum + '</div>';
+            }
         }
         // 週合計
         if (weekHasData) {
@@ -6351,7 +6366,7 @@ function renderReturnCalendar() {
         } else {
             html += '<div style="min-height:54px"></div>';
         }
-    }
+    });
     html += '</div>';
 
     html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">※ 收盤後（台灣時間 13:30 之後）打開頁面才會自動記當日快照；同日多次開以最後一次為主。相鄰兩日快照相減＝當日損益。</div>';
