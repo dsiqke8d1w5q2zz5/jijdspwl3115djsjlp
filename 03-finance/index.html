@@ -2185,10 +2185,7 @@ function switchTab(tab) {
     });
     document.getElementById('tab-' + tab).classList.add('active');
     if (tab === 'stock') {
-        startStockAutoRefresh();
         if (!_dividendAlertChecked) checkDividendAlerts();
-    } else {
-        stopStockAutoRefresh();
     }
     if (tab === 'assets') {
         maybeAutoFetchFx();
@@ -6770,13 +6767,23 @@ function refreshPrices(silent) {
     });
 }
 
+// 是否為台股盤中（台灣時間 週一~五 9:00~13:30）
+function _isMarketHours() {
+    var tw = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+    var wd = tw.getDay();
+    if (wd === 0 || wd === 6) return false; // 週末
+    var hh = tw.getHours(), mm = tw.getMinutes();
+    var minutes = hh * 60 + mm;
+    return minutes >= 9 * 60 && minutes <= 13 * 60 + 30;
+}
+
 function startStockAutoRefresh() {
     stopStockAutoRefresh();
-    // 切到頁籤時立即更新一次
+    // 啟動時立即更新一次（不論盤中盤外，至少給個初值）
     if (stockData.holdings.length > 0) refreshPrices(true);
-    // 每 5 分鐘自動刷新
+    // 之後每 5 分鐘檢查：盤中才打 Yahoo（省 Apps Script 配額）
     _stockAutoTimer = setInterval(function() {
-        if (currentTab === 'stock' && stockData.holdings.length > 0) {
+        if (stockData.holdings.length > 0 && _isMarketHours()) {
             refreshPrices(true);
         }
     }, 5 * 60 * 1000);
@@ -7804,6 +7811,8 @@ function editAssetAccount(sectionKey, id) {
 loadData();
 loadStockData();
 updateLastExportLabel();
+// 開啟網頁立即更新一次股價；之後盤中每 5 分鐘自動刷新（不論目前在哪個頁籤）
+try { startStockAutoRefresh(); } catch(_) {}
 // 一次性：放款→借款
 (function(){
     var changed = false;
