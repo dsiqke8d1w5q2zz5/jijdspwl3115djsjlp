@@ -6259,9 +6259,7 @@ function renderReturnCalendar() {
     if (isStockMode) {
         var ph = (stockData.priceHistory || {})[_returnCalendarStock] || [];
         ph = ph.slice().sort(function(a, b){ return (a.date || '').localeCompare(b.date || ''); });
-        if (ph.length < 2) {
-            return _stockCalendarEmpty('此股票價格紀錄不足 2 筆，無法計算日漲跌。');
-        }
+        // priceHistory 有 2 筆以上：用相鄰相減（最準）
         for (var i = 1; i < ph.length; i++) {
             var prevP = ph[i - 1], curP = ph[i];
             if (prevP.price > 0) {
@@ -6269,6 +6267,23 @@ function renderReturnCalendar() {
             }
         }
         ph.forEach(function(e){ if (e.date) allMonthSet[e.date.slice(0,7)] = true; });
+        // 補：若今天還沒有 dailyPnL（priceHistory 不足或還沒到 13:30），用當前 Yahoo 即時 change 推算
+        var todayP = stockData.prices && stockData.prices[_returnCalendarStock];
+        if (todayP && typeof todayP.price === 'number' && typeof todayP.change === 'number') {
+            var prevClose = todayP.price - todayP.change;
+            // 推算「今天」對應的交易日
+            var twNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+            var dCheck = new Date(twNow.getFullYear(), twNow.getMonth(), twNow.getDate());
+            while (dCheck.getDay() === 0 || dCheck.getDay() === 6) dCheck.setDate(dCheck.getDate() - 1);
+            var todayKey = dCheck.getFullYear() + '-' + String(dCheck.getMonth()+1).padStart(2,'0') + '-' + String(dCheck.getDate()).padStart(2,'0');
+            if (!dailyPnL[todayKey] && prevClose > 0) {
+                dailyPnL[todayKey] = { pct: todayP.change / prevClose * 100 };
+                allMonthSet[todayKey.slice(0,7)] = true;
+            }
+        }
+        if (Object.keys(dailyPnL).length === 0) {
+            return _stockCalendarEmpty('此股票尚無價格紀錄。');
+        }
     } else {
         var mh = Array.isArray(stockData.marketHistory) ? stockData.marketHistory.slice() : [];
         mh.sort(function(a, b){ return (a.date || '').localeCompare(b.date || ''); });
