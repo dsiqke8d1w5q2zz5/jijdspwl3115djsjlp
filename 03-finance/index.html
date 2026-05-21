@@ -6167,9 +6167,14 @@ function renderStockAnalysis() {
     html += '<div id="return-calendar-slot" style="display:flex;flex-direction:column">' + renderReturnCalendar() + '</div>';
     html += '</div>';
 
-    // 行內分類編輯表
-    html += '<div style="background:var(--card);border-radius:var(--radius);padding:12px;box-shadow:var(--shadow)">';
-    html += '<div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px">持股明細 <span style="font-size:11px;color:var(--muted);font-weight:400">（類型／區域可直接點選下拉修改；點持股名看價格走勢）</span></div>';
+    // 行內分類編輯表（預設收合）
+    html += '<details style="background:var(--card);border-radius:var(--radius);padding:12px;box-shadow:var(--shadow)">';
+    html += '<summary style="font-size:14px;font-weight:600;color:var(--text);cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px">';
+    html += '<i class="ti ti-chevron-right" style="font-size:16px;transition:transform 0.2s"></i>';
+    html += '持股明細 <span style="font-size:11px;color:var(--muted);font-weight:400">（點開看｜類型／區域可直接點選下拉修改；點持股名看漲跌日曆）</span>';
+    html += '</summary>';
+    html += '<style>details[open] > summary > .ti-chevron-right { transform: rotate(90deg); }</style>';
+    html += '<div style="margin-top:10px">';
     html += '<div class="table-wrap"><table class="stock-table holdings-detail" style="width:100%"><thead><tr>';
     html += '<th style="text-align:left">持股</th>';
     html += '<th style="text-align:center">類型</th>';
@@ -6223,7 +6228,7 @@ function renderStockAnalysis() {
     html += '</tr>';
     html += '</tbody></table></div>';
     html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">※ 帳面損益＝目前市值 − 總成本。若該檔有定期定額，數字反映現在賣出相對於平均成本的損益，並非年化報酬。</div>';
-    html += '</div>';
+    html += '</div></details>';
 
     return html;
 }
