@@ -6066,64 +6066,37 @@ function renderStockAnalysis() {
 }
 
 // ── 報酬日曆 ──
-// 用「今日持倉股數」回推每日市值，相鄰兩交易日相減＝日損益
-// 注意：期間內若有買賣，回推市值會與當天實際市值有偏差
-var _returnCalendarMonth = null; // 'YYYY-MM' 字串；null 表示「本月」
+// 讀 stockData.marketHistory（每日真實整體市值快照），相鄰兩日相減＝日損益。
+// 快照由 maybeAutoSnapshot 自動寫入；買賣後當天的快照已反映真實部位變化。
+var _returnCalendarMonth = null; // 'YYYY-MM' 字串；null 表示「最近一個有資料的月份」
 function renderReturnCalendar() {
-    var ph = stockData.priceHistory || {};
     var holdings = stockData.holdings || [];
     if (holdings.length === 0) return '';
+    var mh = Array.isArray(stockData.marketHistory) ? stockData.marketHistory.slice() : [];
+    mh.sort(function(a, b){ return (a.date || '').localeCompare(b.date || ''); });
 
-    // 收集所有有資料的日期，找出最近的月份當預設
-    var allDates = {};
-    Object.keys(ph).forEach(function(id){
-        (ph[id] || []).forEach(function(e){ if (e.date) allDates[e.date] = true; });
-    });
-    var dateList = Object.keys(allDates).sort();
-    if (dateList.length === 0) {
-        return '<div style="background:var(--card);border-radius:var(--radius);padding:12px;box-shadow:var(--shadow);margin-top:14px;font-size:13px"><div style="font-weight:600;margin-bottom:6px">報酬日曆</div><div style="color:var(--muted);font-size:12px">尚無價格紀錄</div></div>';
+    if (mh.length === 0) {
+        return '<div style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);flex:1;display:flex;flex-direction:column"><div style="font-size:14px;font-weight:600;margin-bottom:6px">報酬日曆</div><div style="color:var(--muted);font-size:12px;line-height:1.6">尚無市值快照紀錄。<br>每次打開頁面（且有抓到股價）就會自動記一筆，過幾天累積後就能看到每日損益。</div></div>';
     }
 
-    // 月份選項：所有資料涵蓋的月份
+    // 月份選項：所有快照涵蓋的月份
     var monthSet = {};
-    dateList.forEach(function(d){ monthSet[d.slice(0,7)] = true; });
+    mh.forEach(function(e){ if (e.date) monthSet[e.date.slice(0,7)] = true; });
     var months = Object.keys(monthSet).sort().reverse();
     var curMonth = _returnCalendarMonth || months[0];
 
-    // 計算每日市值：用今日持倉股數 × 該日收盤價（無紀錄則沿用前一日）
-    var lastPriceMap = {}; // {stockId: lastPrice}
-    var marketByDate = {}; // {date: market}
-    dateList.forEach(function(date){
-        var totalMarket = 0;
-        holdings.forEach(function(h){
-            var hist = ph[h.id] || [];
-            // 找該日（或之前最近一日）的價格
-            var price = lastPriceMap[h.id];
-            for (var i = 0; i < hist.length; i++) {
-                if (hist[i].date === date) { price = hist[i].price; break; }
-                if (hist[i].date > date) break;
-                price = hist[i].price;
-            }
-            if (typeof price === 'number') {
-                lastPriceMap[h.id] = price;
-                totalMarket += h.shares * price;
-            }
-        });
-        marketByDate[date] = totalMarket;
-    });
-
-    // 計算當月每天的日損益
+    // 計算每天的日損益：相鄰快照相減
     var dailyPnL = {}; // {date: {pnl, pct}}
-    var prevMarket = null, prevDate = null;
-    for (var i = 0; i < dateList.length; i++) {
-        var d = dateList[i];
-        var m = marketByDate[d];
-        if (prevMarket !== null && prevMarket > 0) {
-            dailyPnL[d] = { pnl: m - prevMarket, pct: (m - prevMarket) / prevMarket * 100 };
+    for (var i = 1; i < mh.length; i++) {
+        var prev = mh[i - 1], cur = mh[i];
+        if (prev.market > 0) {
+            dailyPnL[cur.date] = { pnl: cur.market - prev.market, pct: (cur.market - prev.market) / prev.market * 100 };
         }
-        prevMarket = m;
-        prevDate = d;
     }
+    // 給後面月合計用
+    var marketByDate = {};
+    mh.forEach(function(e){ marketByDate[e.date] = e.market; });
+    var dateList = mh.map(function(e){ return e.date; });
 
     // 取當月資料
     var monthDates = Object.keys(dailyPnL).filter(function(d){ return d.slice(0,7) === curMonth; }).sort();
@@ -6208,7 +6181,7 @@ function renderReturnCalendar() {
     }
     html += '</div>';
 
-    html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">※ 以「今日持倉股數」回推每日市值。期間內若有買賣，回推市值會與當日實際略有差距，但可看趨勢。</div>';
+    html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">※ 每日真實市值快照（打開頁面且抓得到股價時自動記錄），相鄰兩日相減＝當日損益。</div>';
     html += '</div>';
     return html;
 }
@@ -6836,6 +6809,8 @@ function maybeAutoSnapshot() {
         }
         // 順便快照當日股價（若有現價則記錄，方便日後算「N 日價格漲跌」）
         try { snapshotStockPrices(today); } catch(_){}
+        // 快照整體持倉市值（給報酬日曆用）
+        try { snapshotPortfolioMarket(); } catch(_){}
         saveData(true);
     } catch(e) { console.error('[maybeAutoSnapshot]', e); }
 }
@@ -6856,6 +6831,37 @@ function _inferTradeDate() {
     var m = d.getMonth() + 1;
     var day = d.getDate();
     return y + '-' + (m < 10 ? '0' + m : m) + '-' + (day < 10 ? '0' + day : day);
+}
+
+// 將當日「整體持倉市值」寫入 stockData.marketHistory = [{date, market}, ...]
+// 報酬日曆會用這個算每日真實損益（買賣後快照值會反映實際部位變化）
+function snapshotPortfolioMarket() {
+    if (!stockData) return;
+    if (!Array.isArray(stockData.holdings) || stockData.holdings.length === 0) return;
+    if (!stockData.prices) return;
+    var tradeDate = _inferTradeDate();
+    var total = 0;
+    var hasAny = false;
+    stockData.holdings.forEach(function(h){
+        var p = stockData.prices[h.id];
+        if (p && typeof p.price === 'number') {
+            total += (h.shares || 0) * p.price;
+            hasAny = true;
+        }
+    });
+    if (!hasAny) return; // 沒任何現價就不記，避免寫入 0 造成日曆出現假的 -100% 跌幅
+    if (!Array.isArray(stockData.marketHistory)) stockData.marketHistory = [];
+    var arr = stockData.marketHistory;
+    var last = arr[arr.length - 1];
+    var dirty = false;
+    if (last && last.date === tradeDate) {
+        if (last.market !== total) { last.market = total; dirty = true; }
+    } else {
+        arr.push({ date: tradeDate, market: total });
+        if (arr.length > 1500) arr.splice(0, arr.length - 1500);
+        dirty = true;
+    }
+    if (dirty && typeof saveStockData === 'function') saveStockData();
 }
 
 // 將當日股價寫入 stockData.priceHistory[id] = [{date,price}, ...]
