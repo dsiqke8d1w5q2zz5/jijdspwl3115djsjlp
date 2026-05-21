@@ -6144,9 +6144,15 @@ function renderReturnCalendar() {
     var monthPnL = 0, monthPct = 0, basisMarket = null;
     monthDates.forEach(function(d){ monthPnL += dailyPnL[d].pnl; });
     var monthFirstDay = curMonth + '-01';
-    for (var j = dateListAll.length - 1; j >= 0; j--) {
-        if (dateListAll[j] < monthFirstDay) { basisMarket = marketByDate[dateListAll[j]]; break; }
+    // 基準市值：取「該月第一筆 dailyPnL 之前一筆 marketHistory」當分母
+    // 例：5 月只有 5/20 跟 5/21 兩筆 marketHistory，5/21 是當月第一筆 dailyPnL，
+    //     基準應該用 5/20（前一筆）；這樣月合計 % 跟單日 % 一致。
+    if (monthDates.length) {
+        var firstDailyDate = monthDates[0];
+        var firstIdx = dateListAll.indexOf(firstDailyDate);
+        if (firstIdx > 0) basisMarket = marketByDate[dateListAll[firstIdx - 1]];
     }
+    // 退路：若找不到（理論上不會），用該月第一筆 dailyPnL 那天的市值
     if (basisMarket === null && monthDates.length) basisMarket = marketByDate[monthDates[0]];
     monthPct = (basisMarket && basisMarket > 0) ? (monthPnL / basisMarket * 100) : 0;
 
