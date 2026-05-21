@@ -6164,17 +6164,17 @@ function renderStockAnalysis() {
     var pieSel = pieOpts.map(function(o){
         return '<option value="' + o.v + '"' + (o.v === pieMode ? ' selected' : '') + '>' + o.l + '</option>';
     }).join('');
-    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin-bottom:14px;align-items:stretch">';
-    // 左：圓餅（用 flex 撐滿等高，canvas 區塊隨高度自動放大）
-    html += '<div style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);display:flex;flex-direction:column">';
-    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex:none">';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin-bottom:14px;align-items:start">';
+    // 左：圓餅卡（餅圖固定 220×220，legend 自然撐高）
+    html += '<div style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow)">';
+    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">';
     html += '<select id="pie-mode-select" onchange="onPieModeChange(this.value)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-weight:600;font-family:inherit;background:var(--card);color:var(--text)">' + pieSel + '</select>';
     html += '</div>';
-    html += '<div style="position:relative;flex:1;min-height:120px"><canvas id="chart-pie"></canvas></div>';
-    html += '<div class="chart-legend-wrap" style="margin-top:10px;flex:none"><div id="chart-pie-legend" class="chart-legend-list"></div></div>';
+    html += '<div style="position:relative;width:220px;height:220px;margin:0 auto"><canvas id="chart-pie"></canvas></div>';
+    html += '<div class="chart-legend-wrap" style="margin-top:12px"><div id="chart-pie-legend" class="chart-legend-list" style="font-size:12px"></div></div>';
     html += '</div>';
     // 右：報酬日曆
-    html += '<div id="return-calendar-slot" style="display:flex;flex-direction:column">' + renderReturnCalendar() + '</div>';
+    html += '<div id="return-calendar-slot">' + renderReturnCalendar() + '</div>';
     html += '</div>';
 
     // 行內分類編輯表
@@ -6501,18 +6501,12 @@ function drawStockAnalysisCharts() {
         var box = document.getElementById(boxId);
         if (!box) return;
         var total = data.reduce(function(a, b){ return a + b; }, 0);
-        // 依行數動態縮字：≤2 行用 12px，3 行 11px，≥4 行 10px、色塊也縮
-        var n = labels.length;
-        var fontSize = n <= 2 ? 12 : n === 3 ? 11 : 10;
-        var blockSize = n <= 2 ? 14 : n === 3 ? 12 : 10;
-        var rowGap = n <= 2 ? 8 : n === 3 ? 4 : 2;
-        box.style.fontSize = fontSize + 'px';
         box.innerHTML = labels.map(function(lbl, i) {
             var color = colors[i % colors.length];
             var v = data[i];
             var pct = total > 0 ? (v / total * 100).toFixed(1) : '0.0';
-            return '<div style="display:flex;align-items:center;gap:8px;margin-top:' + (i === 0 ? 0 : rowGap) + 'px">' +
-                '<span style="display:inline-block;width:' + blockSize + 'px;height:' + blockSize + 'px;border-radius:3px;background:' + color + ';flex:none"></span>' +
+            return '<div style="display:flex;align-items:center;gap:8px;margin-top:' + (i === 0 ? 0 : 6) + 'px">' +
+                '<span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:' + color + ';flex:none"></span>' +
                 '<span style="color:var(--text)">' + esc(lbl) + '　<b>' + fmt(v) + '</b> <span style="color:var(--muted)">(' + pct + '%)</span></span>' +
                 '</div>';
         }).join('');
@@ -6605,8 +6599,7 @@ function showStockPriceTrend(stockId) {
     var body = '';
     if (arr.length < 2) {
         body = '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">' +
-               '此股票目前累積 ' + arr.length + ' 筆價格紀錄，<br>每天自動快照一次，至少需要 2 天才能繪製走勢圖。<br><br>' +
-               '<span style="font-size:12px">提示：每日股價快照從 2026-05-08 開始啟用。請每天打開一次此頁面以累積資料，建議把網址加到瀏覽器書籤或主畫面，每天順手點開即可。</span>' +
+               '此股票目前累積 ' + arr.length + ' 筆價格紀錄，<br>每天自動快照一次，至少需要 2 天才能繪製走勢圖。' +
                '</div>';
     } else {
         var first = arr[0], last = arr[arr.length - 1];
@@ -7164,7 +7157,15 @@ function snapshotStockPrices(today) {
     if (!stockData) return;
     if (!stockData.priceHistory) stockData.priceHistory = {};
     if (!stockData.holdings || !stockData.prices) return;
-    var tradeDate = _inferTradeDate();
+    // 只在「台灣時間收盤後（≥ 13:30）」且工作日寫入；盤中/週末不寫，避免拿即時延遲價誤覆蓋。
+    var tw = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+    var weekday = tw.getDay();
+    if (weekday === 0 || weekday === 6) return;
+    var afterClose = (tw.getHours() > 13) || (tw.getHours() === 13 && tw.getMinutes() >= 30);
+    if (!afterClose) return;
+    var tradeDate = tw.getFullYear() + '-' +
+        String(tw.getMonth()+1).padStart(2,'0') + '-' +
+        String(tw.getDate()).padStart(2,'0');
     var dirty = false;
     stockData.holdings.forEach(function(h) {
         var p = stockData.prices[h.id];
