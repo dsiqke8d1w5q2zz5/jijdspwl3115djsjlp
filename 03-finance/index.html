@@ -5341,9 +5341,6 @@ function renderStock() {
 
     if (stockSubTab === 'analysis') {
         setTimeout(drawStockAnalysisCharts, 0);
-    } else {
-        // 離開分析時 reset 動畫旗標，下次進來才會再轉一次
-        _stockPieFirstDrawn = false;
     }
 }
 
@@ -6027,7 +6024,6 @@ function _localDateStr(d) {
 
 // ── 分析子分頁 ──
 var _stockPieChart = null;
-var _stockPieFirstDrawn = false; // 控制只有「打開分析」第一次轉，後續重畫不再動畫
 var _stockPriceTrendChart = null;
 
 // 把除權息事件寫入 stockData.dividendHistory 持久化（每筆 {stockId, exDate, cash, stockDiv}）
@@ -6470,9 +6466,6 @@ function drawStockAnalysisCharts() {
         colors = ['#c8a45a', '#1a3a5c'];
     }
 
-    // 第一次畫才動畫，之後重畫（refresh 觸發 / 切下拉）不再轉，避免重複動畫
-    var firstDraw = !_stockPieFirstDrawn;
-    _stockPieFirstDrawn = true;
     _stockPieChart = new Chart(canvas.getContext('2d'), {
         type: 'doughnut',
         data: {
@@ -6483,7 +6476,7 @@ function drawStockAnalysisCharts() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            animation: firstDraw ? undefined : false,
+            animation: false,
             plugins: {
                 legend: { display: false },
                 tooltip: {
