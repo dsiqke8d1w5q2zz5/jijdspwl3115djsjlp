@@ -3797,9 +3797,82 @@ function fetchFinMindName(stockId, callback) {
         .catch(function() { callback(''); });
 }
 
+// 透過 Apps Script proxy 打 Yahoo Finance（15 分鐘延遲、盤中有變化）
+// 策略：先用 .TW（上市）打一輪，errors 的再用 .TWO（上櫃）打一輪
+// 為了避免每次都重打 .TWO，會把成功命中 .TWO 的代號快取到 localStorage
+// callback(filledIds[], notFoundIds[])
+var _yahooTwoFlagKey = 'yahooTwoFlags';
+function _getYahooTwoFlags() {
+    try { return JSON.parse(localStorage.getItem(_yahooTwoFlagKey)) || {}; }
+    catch(e) { return {}; }
+}
+function _setYahooTwoFlag(stockId) {
+    var flags = _getYahooTwoFlags();
+    flags[stockId] = true;
+    try { localStorage.setItem(_yahooTwoFlagKey, JSON.stringify(flags)); } catch(e) {}
+}
+function _fetchYahooBatch(holdings, suffix, callback) {
+    if (!holdings || holdings.length === 0) { callback([], []); return; }
+    var codes = holdings.map(function(h){ return h.id + suffix; }).join(',');
+    var url = CLOUD_URL + '?action=quote&codes=' + encodeURIComponent(codes) + '&t=' + Date.now();
+    var now = function(){ return _toROCDateTime(new Date()); };
+    fetchWithTimeout(url, {}, 15000)
+        .then(function(r){ return r.json(); })
+        .then(function(data){
+            var quotes = (data && data.quotes) || {};
+            var filled = [];
+            var notFound = [];
+            holdings.forEach(function(h){
+                var q = quotes[h.id + suffix];
+                if (q && typeof q.price === 'number') {
+                    stockData.prices[h.id] = { price: q.price, change: q.change || 0, date: now() };
+                    filled.push(h.id);
+                } else {
+                    notFound.push(h.id);
+                }
+            });
+            callback(filled, notFound);
+        })
+        .catch(function(err){
+            console.warn('[_fetchYahooBatch] failed:', err);
+            callback([], holdings.map(function(h){ return h.id; }));
+        });
+}
+function fetchYahooQuotes(holdings, callback) {
+    if (!holdings || holdings.length === 0) { callback([], []); return; }
+    if (typeof CLOUD_URL !== 'string' || !CLOUD_URL) { callback([], holdings.map(function(h){return h.id;})); return; }
+    // 依快取分流：標記過 .TWO 的直接走 .TWO；其他先試 .TW
+    var twoFlags = _getYahooTwoFlags();
+    var goTwo = holdings.filter(function(h){ return twoFlags[h.id]; });
+    var goTw  = holdings.filter(function(h){ return !twoFlags[h.id]; });
+
+    _fetchYahooBatch(goTw, '.TW', function(twFilled, twNotFound) {
+        // 第一輪沒命中的代號，併入 .TWO 批次再試
+        var allTwoHoldings = goTwo.concat(holdings.filter(function(h){ return twNotFound.indexOf(h.id) >= 0; }));
+        _fetchYahooBatch(allTwoHoldings, '.TWO', function(twoFilled, twoNotFound) {
+            // 命中 .TWO 的標記起來，下次直接走 .TWO（省一輪）
+            twoFilled.forEach(function(id){
+                if (!twoFlags[id]) _setYahooTwoFlag(id);
+            });
+            callback(twFilled.concat(twoFilled), twoNotFound);
+        });
+    });
+}
+
 function fetchAllPrices(onDone) {
     if (stockData.holdings.length === 0) { if (onDone) onDone(); return; }
-    fallbackTWSE(stockData.holdings, onDone);
+    // 先試 Yahoo（一個批次請求），剩下 Yahoo 沒料的再走 TWSE/TPEX/FinMind
+    fetchYahooQuotes(stockData.holdings, function(filledIds, notFoundIds) {
+        if (notFoundIds.length === 0) {
+            // 全部都 Yahoo 拿到了
+            stockData.lastUpdate = _toROCDateTime(new Date());
+            saveStockData({ skipCloudSync: true });
+            if (onDone) onDone();
+            return;
+        }
+        var remaining = stockData.holdings.filter(function(h){ return notFoundIds.indexOf(h.id) >= 0; });
+        fallbackTWSE(remaining, onDone);
+    });
 }
 
 // 清除 TWSE/TPEX 偶發的 unicode surrogate 亂碼 + replacement char
@@ -6181,7 +6254,7 @@ function renderReturnCalendar() {
     }
     html += '</div>';
 
-    html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">※ 每日真實市值快照（打開頁面且抓得到股價時自動記錄），相鄰兩日相減＝當日損益。</div>';
+    html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">※ 收盤後（台灣時間 13:30 之後）打開頁面才會自動記當日快照；同日多次開以最後一次為主。相鄰兩日快照相減＝當日損益。</div>';
     html += '</div>';
     return html;
 }
@@ -6834,12 +6907,22 @@ function _inferTradeDate() {
 }
 
 // 將當日「整體持倉市值」寫入 stockData.marketHistory = [{date, market}, ...]
-// 報酬日曆會用這個算每日真實損益（買賣後快照值會反映實際部位變化）
+// 規則：只在「台灣時間收盤後（≥ 13:30）」且當天是工作日才寫入；同日多次開頁面以最後一次為主。
+// 盤前/盤中/週末打開不寫，避免拿到非收盤價誤覆蓋前一個交易日的快照。
 function snapshotPortfolioMarket() {
     if (!stockData) return;
     if (!Array.isArray(stockData.holdings) || stockData.holdings.length === 0) return;
     if (!stockData.prices) return;
-    var tradeDate = _inferTradeDate();
+    // 收盤後判斷：台灣時間
+    var tw = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+    var weekday = tw.getDay(); // 0=日, 6=六
+    if (weekday === 0 || weekday === 6) return; // 週末不寫
+    var afterClose = (tw.getHours() > 13) || (tw.getHours() === 13 && tw.getMinutes() >= 30);
+    if (!afterClose) return; // 盤前/盤中不寫
+    var tradeDate = tw.getFullYear() + '-' +
+        String(tw.getMonth()+1).padStart(2,'0') + '-' +
+        String(tw.getDate()).padStart(2,'0');
+
     var total = 0;
     var hasAny = false;
     stockData.holdings.forEach(function(h){
@@ -6855,6 +6938,7 @@ function snapshotPortfolioMarket() {
     var last = arr[arr.length - 1];
     var dirty = false;
     if (last && last.date === tradeDate) {
+        // 同日再開頁面 → 覆蓋為最新值（以最後一次為主）
         if (last.market !== total) { last.market = total; dirty = true; }
     } else {
         arr.push({ date: tradeDate, market: total });
