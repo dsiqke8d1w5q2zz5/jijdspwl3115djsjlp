@@ -3794,6 +3794,32 @@ function fetchFinMindName(stockId, callback) {
         .catch(function() { callback(''); });
 }
 
+// 顯示「股價資料新鮮度」：以 stockData.prices 裡 Yahoo srcTime 最新一筆為準
+function _stockPriceFreshnessLabel() {
+    var maxTime = 0;
+    var hasYahoo = false;
+    if (stockData && stockData.prices) {
+        Object.keys(stockData.prices).forEach(function(id){
+            var p = stockData.prices[id];
+            if (!p) return;
+            if (p.source === 'yahoo' && p.srcTime > maxTime) {
+                maxTime = p.srcTime;
+                hasYahoo = true;
+            }
+        });
+    }
+    if (!hasYahoo || !maxTime) {
+        return '<span class="lbl-full">※ 顯示前一交易日收盤價</span><span class="lbl-short">※ 顯示昨日收盤價</span>';
+    }
+    var d = new Date(maxTime * 1000);
+    var hh = String(d.getHours()).padStart(2, '0');
+    var mm = String(d.getMinutes()).padStart(2, '0');
+    var diffMin = Math.max(0, Math.round((Date.now() - d.getTime()) / 60000));
+    var ago = diffMin === 0 ? '剛剛' : diffMin + ' 分鐘前';
+    return '<span class="lbl-full">Yahoo ' + hh + ':' + mm + '（' + ago + '）</span>' +
+           '<span class="lbl-short">' + hh + ':' + mm + '</span>';
+}
+
 // 透過 Apps Script proxy 打 Yahoo Finance（15 分鐘延遲、盤中有變化）
 // 策略：先用 .TW（上市）打一輪，errors 的再用 .TWO（上櫃）打一輪
 // 為了避免每次都重打 .TWO，會把成功命中 .TWO 的代號快取到 localStorage
@@ -3822,7 +3848,13 @@ function _fetchYahooBatch(holdings, suffix, callback) {
             holdings.forEach(function(h){
                 var q = quotes[h.id + suffix];
                 if (q && typeof q.price === 'number') {
-                    stockData.prices[h.id] = { price: q.price, change: q.change || 0, date: now() };
+                    stockData.prices[h.id] = {
+                        price: q.price,
+                        change: q.change || 0,
+                        date: now(),
+                        source: 'yahoo',
+                        srcTime: q.time || 0 // Yahoo 給的 unix timestamp（秒）
+                    };
                     filled.push(h.id);
                 } else {
                     notFound.push(h.id);
@@ -5309,7 +5341,7 @@ function renderStockHoldings() {
     html += '<button class="btn-refresh" id="btn-fetch-price" onclick="refreshPrices()"><i class="ti ti-antenna-bars-5"></i> <span class="lbl-full">更新股價</span><span class="lbl-short">更新</span></button>';
     html += '<button class="btn-refresh" style="background:linear-gradient(135deg,#0f2847 0%,#1a3a5c 50%,#2a5a8c 100%);border:1px solid var(--lux-gold)" onclick="toggleStockColumn()"><i class="ti ti-columns"></i> 欄位</button>';
     html += '<button class="btn-refresh" onclick="manageHoldings()"><i class="ti ti-list-details"></i> <span class="lbl-full">管理持股</span><span class="lbl-short">管理</span></button>';
-    html += '<span class="last-update" style="color:var(--yellow)"><span class="lbl-full">※ 顯示前一交易日收盤價</span><span class="lbl-short">※ 顯示昨日收盤價</span></span>';
+    html += '<span class="last-update" style="color:var(--muted)">' + _stockPriceFreshnessLabel() + '</span>';
     html += '</div>';
 
     // 券商過濾後的持股清單（保留原 stockData.holdings 索引以便 editHolding 對應）
@@ -5468,12 +5500,12 @@ function renderStockHoldings() {
         if (vis.price !== false) {
             var priceText = r.curPrice !== null ? r.curPrice.toFixed(2) : '<span style="color:var(--muted)">-</span>';
             var priceHtml = priceText;
-            // 漲跌停：股價外加紅框／綠框（台股 ±10%，閾值 ±9.5% 容許浮點誤差）
+            // 漲跌停：股價紅／綠底白字（台股 ±10%，閾值 ±9.5% 容許浮點誤差）
             if (r.changePct !== null && !isNaN(r.changePct) && r.curPrice !== null) {
                 if (r.changePct >= 9.5) {
-                    priceHtml = '<span style="display:inline-block;border:2px solid var(--red);border-radius:4px;padding:1px 6px;line-height:1.2" title="今日漲幅達 ±10%（漲停）">' + priceText + '</span>';
+                    priceHtml = '<span style="display:inline-block;background:var(--red);color:#fff;border-radius:4px;padding:2px 8px;line-height:1.2;font-weight:700" title="今日漲幅達 ±10%（漲停）">' + priceText + '</span>';
                 } else if (r.changePct <= -9.5) {
-                    priceHtml = '<span style="display:inline-block;border:2px solid var(--green);border-radius:4px;padding:1px 6px;line-height:1.2" title="今日跌幅達 ±10%（跌停）">' + priceText + '</span>';
+                    priceHtml = '<span style="display:inline-block;background:var(--green);color:#fff;border-radius:4px;padding:2px 8px;line-height:1.2;font-weight:700" title="今日跌幅達 ±10%（跌停）">' + priceText + '</span>';
                 }
             }
             var pctHtml = '';
