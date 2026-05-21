@@ -5339,10 +5339,6 @@ function renderStock() {
 
     container.innerHTML = html;
 
-    if (stockSubTab === 'analysis') {
-        // 等瀏覽器完成 layout 後再畫，避免 canvas 大小變化造成抖動
-        requestAnimationFrame(function() { requestAnimationFrame(drawStockAnalysisCharts); });
-    }
 }
 
 function renderStockHoldings() {
@@ -6101,137 +6097,10 @@ function fmtPriceChange(change) {
 }
 
 function renderStockAnalysis() {
-    var html = '';
-
     if (!stockData.holdings || stockData.holdings.length === 0) {
-        html += '<div style="text-align:center;padding:40px;color:var(--muted)">尚未新增持股，無法分析</div>';
-        return html;
+        return '<div style="text-align:center;padding:40px;color:var(--muted)">尚未新增持股，無法分析</div>';
     }
-
-    // 計算每檔市值（沒有現價就用成本當權重）
-    var rows = stockData.holdings.map(function(h) {
-        var p = stockData.prices[h.id];
-        var price = p ? p.price : null;
-        var market = price ? h.shares * price : h.shares * h.cost;
-        return {
-            h: h,
-            market: market,
-            assetType: getHoldingAssetType(h),
-            region: getHoldingRegion(h)
-        };
-    });
-    var totalMarket = rows.reduce(function(s, r){ return s + r.market; }, 0);
-
-    // 總覽數字列
-    var stockSum = rows.reduce(function(s, r){ return s + (r.assetType === 'stock' ? r.market : 0); }, 0);
-    var bondSum  = rows.reduce(function(s, r){ return s + (r.assetType === 'bond'  ? r.market : 0); }, 0);
-    var stockPct = totalMarket > 0 ? (stockSum / totalMarket * 100) : 0;
-    var bondPct  = totalMarket > 0 ? (bondSum  / totalMarket * 100) : 0;
-    // 總成本與總帳面損益（只計算有現價的）
-    var summaryTotalCost = 0, summaryTotalPnL = 0;
-    rows.forEach(function(r) {
-        var cost = r.h.shares * r.h.cost;
-        summaryTotalCost += cost;
-        if (stockData.prices[r.h.id] && stockData.prices[r.h.id].price) summaryTotalPnL += (r.market - cost);
-    });
-    var summaryPnLPct = summaryTotalCost > 0 ? (summaryTotalPnL / summaryTotalCost * 100) : null;
-    var summaryPnLColor = summaryTotalPnL > 0 ? 'var(--green)' : summaryTotalPnL < 0 ? 'var(--red)' : 'var(--muted)';
-    html += '<div class="analysis-summary" style="background:var(--card);border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;box-shadow:var(--shadow);font-size:13px">';
-    html += '<span class="as-total"><span style="color:var(--muted)">總市值 </span><b style="font-size:20px;color:var(--text);letter-spacing:-0.5px">' + fmt(Math.round(totalMarket)) + '</b></span>';
-    html += '<span class="as-stock"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#c8a45a;margin-right:6px;vertical-align:1px"></span><span style="color:var(--muted)">股票 </span><b>' + fmt(Math.round(stockSum)) + '</b> <span style="color:var(--muted)">(' + stockPct.toFixed(1) + '%)</span></span>';
-    html += '<span class="as-bond"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#1a3a5c;margin-right:6px;vertical-align:1px"></span><span style="color:var(--muted)">債券 </span><b>' + fmt(Math.round(bondSum)) + '</b> <span style="color:var(--muted)">(' + bondPct.toFixed(1) + '%)</span></span>';
-    html += '<span class="as-pnl" title="目前市值 − 總成本。受定期定額影響，不代表年化報酬"><span style="color:var(--muted)">帳面損益 </span><b style="color:' + summaryPnLColor + '">' + (summaryTotalPnL >= 0 ? '+' : '') + fmt(Math.round(summaryTotalPnL)) + '</b>' +
-        (summaryPnLPct !== null ? ' <span style="color:' + summaryPnLColor + ';font-size:12px">(' + (summaryPnLPct >= 0 ? '+' : '') + summaryPnLPct.toFixed(1) + '%)</span>' : '') + '</span>';
-    html += '<span class="as-count" style="color:var(--muted)">持股 ' + rows.length + ' 檔</span>';
-    html += '</div>';
-
-    // 上排：左 = 圓餅圖（可下拉切換）、右 = 報酬日曆
-    // 之前選過 holding 但已移除時，自動回到 asset
-    var pieMode = _pieMode === 'holding' ? 'asset' : (_pieMode || 'asset');
-    var pieOpts = [
-        { v: 'asset',   l: '股債配置' },
-        { v: 'region',  l: '區域分布' }
-    ];
-    var pieSel = pieOpts.map(function(o){
-        return '<option value="' + o.v + '"' + (o.v === pieMode ? ' selected' : '') + '>' + o.l + '</option>';
-    }).join('');
-    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin-bottom:14px;align-items:start">';
-    // 左：圓餅卡（canvas 用固定高度，避免 flex layout 完成前 Chart.js 先畫造成抖動）
-    html += '<div style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow)">';
-    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">';
-    html += '<select id="pie-mode-select" onchange="onPieModeChange(this.value)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-weight:600;font-family:inherit;background:var(--card);color:var(--text)">' + pieSel + '</select>';
-    html += '</div>';
-    html += '<div style="position:relative;width:100%;height:280px"><canvas id="chart-pie"></canvas></div>';
-    html += '<div class="chart-legend-wrap" style="margin-top:12px"><div id="chart-pie-legend" class="chart-legend-list" style="font-size:12px"></div></div>';
-    html += '</div>';
-    // 右：報酬日曆
-    html += '<div id="return-calendar-slot" style="display:flex;flex-direction:column">' + renderReturnCalendar() + '</div>';
-    html += '</div>';
-
-    // 行內分類編輯表（預設收合）
-    html += '<details style="background:var(--card);border-radius:var(--radius);padding:12px;box-shadow:var(--shadow)">';
-    html += '<summary style="font-size:14px;font-weight:600;color:var(--text);cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px">';
-    html += '<i class="ti ti-chevron-right" style="font-size:16px;transition:transform 0.2s"></i>';
-    html += '持股明細 <span style="font-size:11px;color:var(--muted);font-weight:400">（點開看｜類型／區域可直接點選下拉修改；點持股名看漲跌日曆）</span>';
-    html += '</summary>';
-    html += '<style>details[open] > summary > .ti-chevron-right { transform: rotate(90deg); }</style>';
-    html += '<div style="margin-top:10px">';
-    html += '<div class="table-wrap"><table class="stock-table holdings-detail" style="width:100%"><thead><tr>';
-    html += '<th style="text-align:left">持股</th>';
-    html += '<th style="text-align:center">類型</th>';
-    html += '<th style="text-align:center">區域</th>';
-    html += '<th class="col-cost" style="text-align:right">成本</th>';
-    html += '<th class="col-market" style="text-align:right">市值</th>';
-    html += '<th class="col-pnl" style="text-align:right" title="目前市值 − 總成本，受定期定額影響不代表年化報酬">帳面損益</th>';
-    html += '<th style="text-align:right">佔比</th>';
-    html += '</tr></thead><tbody>';
-
-    rows.sort(function(a, b){ return b.market - a.market; });
-    var totalCost = 0, totalPnL = 0;
-    rows.forEach(function(r) {
-        var pct = totalMarket > 0 ? (r.market / totalMarket * 100) : 0;
-        var regionOpts = STOCK_REGIONS.map(function(rg){
-            return '<option value="'+rg+'"' + (rg===r.region?' selected':'') + '>'+rg+'</option>';
-        }).join('');
-        var cost = r.h.shares * r.h.cost;
-        var hasPrice = !!(stockData.prices[r.h.id] && stockData.prices[r.h.id].price);
-        var pnl = hasPrice ? (r.market - cost) : 0;
-        var pnlPct = (hasPrice && cost > 0) ? (pnl / cost * 100) : null;
-        totalCost += cost;
-        if (hasPrice) totalPnL += pnl;
-        var pnlColor = pnl > 0 ? 'var(--green)' : pnl < 0 ? 'var(--red)' : 'var(--muted)';
-        var pnlStr = hasPrice
-            ? '<b style="color:' + pnlColor + '">' + (pnl >= 0 ? '+' : '') + fmt(Math.round(pnl)) + '</b>' +
-              (pnlPct !== null ? ' <span style="color:' + pnlColor + ';font-size:11px">(' + (pnlPct >= 0 ? '+' : '') + pnlPct.toFixed(1) + '%)</span>' : '')
-            : '<span style="color:var(--muted);font-size:11px" title="無現價">—</span>';
-        html += '<tr>';
-        html += '<td><b style="cursor:pointer;color:var(--lux-navy);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px" onclick="showStockCalendarModal(\'' + esc(r.h.id) + '\')" title="點開看漲跌日曆">' + esc(r.h.id) + '</b> <span style="color:var(--muted);font-size:12px">' + esc(r.h.name || '') + '</span></td>';
-        html += '<td style="text-align:center"><select onchange="updateHoldingClassification(\'' + esc(r.h.id) + '\', \'assetType\', this.value)" style="padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px">' +
-            '<option value="stock"' + (r.assetType==='stock'?' selected':'') + '>股票</option>' +
-            '<option value="bond"' + (r.assetType==='bond'?' selected':'') + '>債券</option></select></td>';
-        html += '<td style="text-align:center"><select onchange="updateHoldingClassification(\'' + esc(r.h.id) + '\', \'region\', this.value)" style="padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px">' + regionOpts + '</select></td>';
-        html += '<td class="col-cost" style="text-align:right">' + fmt(Math.round(cost)) + '</td>';
-        html += '<td class="col-market" style="text-align:right">' + fmt(Math.round(r.market)) + '</td>';
-        html += '<td class="col-pnl" style="text-align:right">' + pnlStr + '</td>';
-        html += '<td style="text-align:right">' + pct.toFixed(1) + '%</td>';
-        html += '</tr>';
-    });
-    // 合計列
-    var totalPnlPct = totalCost > 0 ? (totalPnL / totalCost * 100) : null;
-    var totalPnlColor = totalPnL > 0 ? 'var(--green)' : totalPnL < 0 ? 'var(--red)' : 'var(--muted)';
-    html += '<tr style="border-top:2px solid var(--border);font-weight:700;background:rgba(0,0,0,0.02)">';
-    html += '<td colspan="3" style="text-align:left">合計</td>';
-    html += '<td class="col-cost" style="text-align:right">' + fmt(Math.round(totalCost)) + '</td>';
-    html += '<td class="col-market" style="text-align:right">' + fmt(Math.round(totalMarket)) + '</td>';
-    html += '<td class="col-pnl" style="text-align:right;color:' + totalPnlColor + '">' + (totalPnL >= 0 ? '+' : '') + fmt(Math.round(totalPnL)) +
-            (totalPnlPct !== null ? ' <span style="font-size:11px;font-weight:400">(' + (totalPnlPct >= 0 ? '+' : '') + totalPnlPct.toFixed(1) + '%)</span>' : '') + '</td>';
-    html += '<td style="text-align:right">100%</td>';
-    html += '</tr>';
-    html += '</tbody></table></div>';
-    html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">※ 帳面損益＝目前市值 − 總成本。若該檔有定期定額，數字反映現在賣出相對於平均成本的損益，並非年化報酬。</div>';
-    html += '</div></details>';
-
-    return html;
+    return '<div id="return-calendar-slot">' + renderReturnCalendar() + '</div>';
 }
 
 // ── 報酬日曆 ──
