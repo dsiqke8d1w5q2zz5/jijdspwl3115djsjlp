@@ -5421,6 +5421,14 @@ function renderStockHoldings() {
         // 股價 / 漲跌幅
         if (vis.price !== false) {
             var priceHtml = r.curPrice !== null ? r.curPrice.toFixed(2) : '<span style="color:var(--muted)">-</span>';
+            // 漲跌停徽章（台股 ±10%，閾值用 ±9.5% 容許浮點誤差）
+            if (r.changePct !== null && !isNaN(r.changePct)) {
+                if (r.changePct >= 9.5) {
+                    priceHtml += ' <span style="display:inline-block;font-size:10px;font-weight:700;color:#fff;background:var(--red);padding:1px 5px;border-radius:4px;vertical-align:1px" title="今日漲幅達 ±10%（漲停）">漲停</span>';
+                } else if (r.changePct <= -9.5) {
+                    priceHtml += ' <span style="display:inline-block;font-size:10px;font-weight:700;color:#fff;background:var(--green);padding:1px 5px;border-radius:4px;vertical-align:1px" title="今日跌幅達 ±10%（跌停）">跌停</span>';
+                }
+            }
             var pctHtml = '';
             if (r.changePct !== null && !isNaN(r.changePct)) {
                 var pctCls = r.changePct >= 0 ? 'pos' : 'neg';
