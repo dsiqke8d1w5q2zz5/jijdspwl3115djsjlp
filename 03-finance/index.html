@@ -5653,8 +5653,8 @@ function showStockDividendHistory(stockId) {
 function renderStockDividend() {
     var html = '';
 
-    // 卡片切換模式：'cumulative'（累積，預設）或 'thisYear'（本年）
-    if (!window._divCardMode) window._divCardMode = 'cumulative';
+    // 卡片切換模式：'thisYear'（本年，預設）或 'cumulative'（累積）
+    if (!window._divCardMode) window._divCardMode = 'thisYear';
     var mode = window._divCardMode;
     var thisYear = String(new Date().getFullYear());
 
