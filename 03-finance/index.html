@@ -5860,9 +5860,7 @@ function _localDateStr(d) {
 }
 
 // ── 分析子分頁 ──
-var _stockAssetChart = null;
-var _stockRegionChart = null;
-var _stockHoldingChart = null;
+var _stockPieChart = null;
 var _stockPriceTrendChart = null;
 
 // 把除權息事件寫入 stockData.dividendHistory 持久化（每筆 {stockId, exDate, cash, stockDiv}）
@@ -5983,23 +5981,27 @@ function renderStockAnalysis() {
     html += '<span class="as-count" style="color:var(--muted)">持股 ' + rows.length + ' 檔</span>';
     html += '</div>';
 
-    // 兩張圓餅圖
-    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:14px">';
+    // 上排：左 = 圓餅圖（可下拉切換）、右 = 報酬日曆
+    var pieMode = _pieMode || 'asset';
+    var pieOpts = [
+        { v: 'asset',   l: '股債配置' },
+        { v: 'region',  l: '區域分布' },
+        { v: 'holding', l: '持股佔比' }
+    ];
+    var pieSel = pieOpts.map(function(o){
+        return '<option value="' + o.v + '"' + (o.v === pieMode ? ' selected' : '') + '>' + o.l + '</option>';
+    }).join('');
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin-bottom:14px;align-items:start">';
+    // 左：圓餅
     html += '<div style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow)">';
-    html += '<div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px">股債配置</div>';
-    html += '<div style="position:relative;height:160px"><canvas id="chart-asset-type"></canvas></div>';
-    html += '<div class="chart-legend-wrap" style="margin-top:10px"><div id="chart-asset-legend" class="chart-legend-list" style="font-size:12px"></div></div>';
+    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">';
+    html += '<select id="pie-mode-select" onchange="onPieModeChange(this.value)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-weight:600;font-family:inherit;background:var(--card);color:var(--text)">' + pieSel + '</select>';
     html += '</div>';
-    html += '<div style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow)">';
-    html += '<div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px">區域分布</div>';
-    html += '<div style="position:relative;height:160px"><canvas id="chart-region"></canvas></div>';
-    html += '<div class="chart-legend-wrap" style="margin-top:10px"><div id="chart-region-legend" class="chart-legend-list" style="font-size:12px"></div></div>';
+    html += '<div style="position:relative;height:200px"><canvas id="chart-pie"></canvas></div>';
+    html += '<div class="chart-legend-wrap" style="margin-top:10px"><div id="chart-pie-legend" class="chart-legend-list" style="font-size:12px"></div></div>';
     html += '</div>';
-    html += '<div style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow)">';
-    html += '<div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px">持股佔比</div>';
-    html += '<div style="position:relative;height:160px"><canvas id="chart-holding"></canvas></div>';
-    html += '<div class="chart-legend-wrap" style="margin-top:10px"><div id="chart-holding-legend" class="chart-legend-list" style="font-size:12px"></div></div>';
-    html += '</div>';
+    // 右：報酬日曆
+    html += '<div id="return-calendar-slot">' + renderReturnCalendar() + '</div>';
     html += '</div>';
 
     // 行內分類編輯表
@@ -6063,6 +6065,166 @@ function renderStockAnalysis() {
     return html;
 }
 
+// ── 報酬日曆 ──
+// 用「今日持倉股數」回推每日市值，相鄰兩交易日相減＝日損益
+// 注意：期間內若有買賣，回推市值會與當天實際市值有偏差
+var _returnCalendarMonth = null; // 'YYYY-MM' 字串；null 表示「本月」
+function renderReturnCalendar() {
+    var ph = stockData.priceHistory || {};
+    var holdings = stockData.holdings || [];
+    if (holdings.length === 0) return '';
+
+    // 收集所有有資料的日期，找出最近的月份當預設
+    var allDates = {};
+    Object.keys(ph).forEach(function(id){
+        (ph[id] || []).forEach(function(e){ if (e.date) allDates[e.date] = true; });
+    });
+    var dateList = Object.keys(allDates).sort();
+    if (dateList.length === 0) {
+        return '<div style="background:var(--card);border-radius:var(--radius);padding:12px;box-shadow:var(--shadow);margin-top:14px;font-size:13px"><div style="font-weight:600;margin-bottom:6px">報酬日曆</div><div style="color:var(--muted);font-size:12px">尚無價格紀錄</div></div>';
+    }
+
+    // 月份選項：所有資料涵蓋的月份
+    var monthSet = {};
+    dateList.forEach(function(d){ monthSet[d.slice(0,7)] = true; });
+    var months = Object.keys(monthSet).sort().reverse();
+    var curMonth = _returnCalendarMonth || months[0];
+
+    // 計算每日市值：用今日持倉股數 × 該日收盤價（無紀錄則沿用前一日）
+    var lastPriceMap = {}; // {stockId: lastPrice}
+    var marketByDate = {}; // {date: market}
+    dateList.forEach(function(date){
+        var totalMarket = 0;
+        holdings.forEach(function(h){
+            var hist = ph[h.id] || [];
+            // 找該日（或之前最近一日）的價格
+            var price = lastPriceMap[h.id];
+            for (var i = 0; i < hist.length; i++) {
+                if (hist[i].date === date) { price = hist[i].price; break; }
+                if (hist[i].date > date) break;
+                price = hist[i].price;
+            }
+            if (typeof price === 'number') {
+                lastPriceMap[h.id] = price;
+                totalMarket += h.shares * price;
+            }
+        });
+        marketByDate[date] = totalMarket;
+    });
+
+    // 計算當月每天的日損益
+    var dailyPnL = {}; // {date: {pnl, pct}}
+    var prevMarket = null, prevDate = null;
+    for (var i = 0; i < dateList.length; i++) {
+        var d = dateList[i];
+        var m = marketByDate[d];
+        if (prevMarket !== null && prevMarket > 0) {
+            dailyPnL[d] = { pnl: m - prevMarket, pct: (m - prevMarket) / prevMarket * 100 };
+        }
+        prevMarket = m;
+        prevDate = d;
+    }
+
+    // 取當月資料
+    var monthDates = Object.keys(dailyPnL).filter(function(d){ return d.slice(0,7) === curMonth; }).sort();
+    var monthPnL = 0;
+    monthDates.forEach(function(d){ monthPnL += dailyPnL[d].pnl; });
+    // 月初市值：當月第一天前一日的市值，沒有就用該月第一天當基準
+    var monthFirstDay = curMonth + '-01';
+    var basisMarket = null;
+    for (var j = dateList.length - 1; j >= 0; j--) {
+        if (dateList[j] < monthFirstDay) { basisMarket = marketByDate[dateList[j]]; break; }
+    }
+    if (basisMarket === null && monthDates.length) basisMarket = marketByDate[monthDates[0]];
+    var monthPct = (basisMarket && basisMarket > 0) ? (monthPnL / basisMarket * 100) : 0;
+
+    // 月份下拉
+    var monthOpts = months.map(function(m){
+        return '<option value="' + m + '"' + (m === curMonth ? ' selected' : '') + '>' + m + '</option>';
+    }).join('');
+
+    var html = '<div style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);margin-top:14px">';
+    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">';
+    html += '<div style="font-size:14px;font-weight:600">報酬日曆</div>';
+    html += '<select id="return-cal-month" onchange="onReturnCalendarMonthChange(this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--card)">' + monthOpts + '</select>';
+    var monthColor = monthPnL > 0 ? 'var(--red)' : monthPnL < 0 ? 'var(--green)' : 'var(--muted)';
+    html += '<span style="margin-left:auto;font-size:13px;color:var(--muted)">當月合計 <b style="color:' + monthColor + ';font-size:16px">' + (monthPnL > 0 ? '+' : '') + fmt(Math.round(monthPnL)) + '</b>';
+    if (basisMarket && basisMarket > 0) {
+        html += ' <span style="color:' + monthColor + '">(' + (monthPct > 0 ? '+' : '') + monthPct.toFixed(2) + '%)</span>';
+    }
+    html += '</span>';
+    html += '</div>';
+
+    // 日曆網格（週一到週日，台股慣例週一起算；週六日只占位）
+    var ym = curMonth.split('-');
+    var year = parseInt(ym[0], 10), monthIdx = parseInt(ym[1], 10) - 1;
+    var firstDay = new Date(year, monthIdx, 1);
+    var lastDay = new Date(year, monthIdx + 1, 0);
+    var startWeekday = firstDay.getDay(); // 0=日, 1=一, ...
+    var startOffset = startWeekday === 0 ? 6 : (startWeekday - 1); // 週一起算的偏移
+
+    html += '<div style="display:grid;grid-template-columns:repeat(7,1fr) 70px;gap:4px;font-size:12px">';
+    ['一','二','三','四','五','六','日'].forEach(function(w){
+        html += '<div style="text-align:center;color:var(--muted);font-size:11px;padding:4px 0">' + w + '</div>';
+    });
+    html += '<div style="text-align:center;color:var(--muted);font-size:11px;padding:4px 0">週損益</div>';
+
+    var totalCells = startOffset + lastDay.getDate();
+    var totalRows = Math.ceil(totalCells / 7);
+    var dayCounter = 1 - startOffset;
+    for (var row = 0; row < totalRows; row++) {
+        var weekPnL = 0, weekHasData = false;
+        for (var col = 0; col < 7; col++) {
+            if (dayCounter < 1 || dayCounter > lastDay.getDate()) {
+                html += '<div style="min-height:54px"></div>';
+            } else {
+                var dStr = year + '-' + String(monthIdx + 1).padStart(2,'0') + '-' + String(dayCounter).padStart(2,'0');
+                var entry = dailyPnL[dStr];
+                if (entry) {
+                    weekPnL += entry.pnl;
+                    weekHasData = true;
+                    var cellColor = entry.pnl > 0 ? 'var(--red)' : entry.pnl < 0 ? 'var(--green)' : 'var(--muted)';
+                    var bg = entry.pnl > 0 ? 'rgba(239,68,68,0.08)' : entry.pnl < 0 ? 'rgba(22,163,74,0.08)' : 'transparent';
+                    html += '<div style="background:' + bg + ';border-radius:6px;padding:4px 6px;text-align:center;min-height:54px">' +
+                        '<div style="font-size:11px;color:var(--muted)">' + dayCounter + '</div>' +
+                        '<div style="font-size:12px;font-weight:600;color:' + cellColor + '">' + (entry.pnl > 0 ? '+' : '') + fmt(Math.round(entry.pnl)) + '</div>' +
+                        '<div style="font-size:10px;color:' + cellColor + '">' + (entry.pct > 0 ? '+' : '') + entry.pct.toFixed(2) + '%</div>' +
+                        '</div>';
+                } else {
+                    html += '<div style="border:1px dashed var(--border);border-radius:6px;padding:4px 6px;text-align:center;min-height:54px;color:var(--muted);font-size:11px">' + dayCounter + '</div>';
+                }
+            }
+            dayCounter++;
+        }
+        // 週合計
+        if (weekHasData) {
+            var wColor = weekPnL > 0 ? 'var(--red)' : weekPnL < 0 ? 'var(--green)' : 'var(--muted)';
+            html += '<div style="background:rgba(0,0,0,0.03);border-radius:6px;padding:4px 6px;text-align:center;min-height:54px;display:flex;flex-direction:column;justify-content:center">' +
+                '<div style="font-size:12px;font-weight:600;color:' + wColor + '">' + (weekPnL > 0 ? '+' : '') + fmt(Math.round(weekPnL)) + '</div>' +
+                '</div>';
+        } else {
+            html += '<div style="min-height:54px"></div>';
+        }
+    }
+    html += '</div>';
+
+    html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">※ 以「今日持倉股數」回推每日市值。期間內若有買賣，回推市值會與當日實際略有差距，但可看趨勢。</div>';
+    html += '</div>';
+    return html;
+}
+
+function onReturnCalendarMonthChange(m) {
+    _returnCalendarMonth = m;
+    var slot = document.getElementById('return-calendar-slot');
+    if (slot) slot.innerHTML = renderReturnCalendar();
+}
+
+var _pieMode = 'asset'; // 'asset' | 'region' | 'holding'
+function onPieModeChange(mode) {
+    _pieMode = mode;
+    drawStockAnalysisCharts();
+}
+
 function drawStockAnalysisCharts() {
     if (!stockData.holdings || stockData.holdings.length === 0) return;
 
@@ -6123,95 +6285,23 @@ function drawStockAnalysisCharts() {
         }).join('');
     }
 
-    // 股債圖
-    var assetCanvas = document.getElementById('chart-asset-type');
-    if (assetCanvas) {
-        if (_stockAssetChart) { _stockAssetChart.destroy(); _stockAssetChart = null; }
-        var assetColors = ['#c8a45a', '#1a3a5c'];
-        var assetLabels = ['股票', '債券'];
-        var assetDataArr = [Math.round(assetSum.stock), Math.round(assetSum.bond)];
-        _stockAssetChart = new Chart(assetCanvas.getContext('2d'), {
-            type: 'doughnut',
-            data: {
-                labels: assetLabels,
-                datasets: [{
-                    data: assetDataArr,
-                    backgroundColor: assetColors,
-                    borderWidth: 2,
-                    borderColor: '#fff'
-                }]
-            },
-            plugins: [pctLabelPlugin],
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: function(ctx) {
-                                var total = ctx.dataset.data.reduce(function(a, b){ return a + b; }, 0);
-                                var pct = total > 0 ? (ctx.parsed / total * 100).toFixed(1) : 0;
-                                return ctx.label + '：' + fmt(ctx.parsed) + ' (' + pct + '%)';
-                            }
-                        }
-                    }
-                }
-            }
-        });
-        renderHtmlLegend('chart-asset-legend', assetLabels, assetDataArr, assetColors);
-    }
+    // 共用 canvas：只畫 _pieMode 選中的那張
+    var canvas = document.getElementById('chart-pie');
+    if (!canvas) return;
+    if (_stockPieChart) { try { _stockPieChart.destroy(); } catch(_){} _stockPieChart = null; }
 
-    // 區域圖（過濾掉 0）
-    var regionCanvas = document.getElementById('chart-region');
-    if (regionCanvas) {
-        if (_stockRegionChart) { _stockRegionChart.destroy(); _stockRegionChart = null; }
-        // 按金額由大到小排序，扇形與 legend 順序一致
+    var labels, data, colors;
+    if (_pieMode === 'region') {
         var regionPairs = [];
         STOCK_REGIONS.forEach(function(r){
             if (regionSum[r] > 0) regionPairs.push({ label: r, value: Math.round(regionSum[r]) });
         });
         regionPairs.sort(function(a, b){ return b.value - a.value; });
-        var regionLabels = regionPairs.map(function(p){ return p.label; });
-        var regionData   = regionPairs.map(function(p){ return p.value; });
+        labels = regionPairs.map(function(p){ return p.label; });
+        data   = regionPairs.map(function(p){ return p.value; });
         var palette = ['#1a3a5c', '#c8a45a', '#dc2626', '#16a34a', '#7c3aed', '#0891b2', '#ea580c'];
-        var regionColors = regionLabels.map(function(_, i){ return palette[i % palette.length]; });
-        _stockRegionChart = new Chart(regionCanvas.getContext('2d'), {
-            type: 'doughnut',
-            data: {
-                labels: regionLabels,
-                datasets: [{
-                    data: regionData,
-                    backgroundColor: regionColors,
-                    borderWidth: 2,
-                    borderColor: '#fff'
-                }]
-            },
-            plugins: [pctLabelPlugin],
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: function(ctx) {
-                                var total = ctx.dataset.data.reduce(function(a, b){ return a + b; }, 0);
-                                var pct = total > 0 ? (ctx.parsed / total * 100).toFixed(1) : 0;
-                                return ctx.label + '：' + fmt(ctx.parsed) + ' (' + pct + '%)';
-                            }
-                        }
-                    }
-                }
-            }
-        });
-        renderHtmlLegend('chart-region-legend', regionLabels, regionData, regionColors);
-    }
-
-    // 持股佔比圖（每檔一塊）
-    var holdingCanvas = document.getElementById('chart-holding');
-    if (holdingCanvas) {
-        if (_stockHoldingChart) { _stockHoldingChart.destroy(); _stockHoldingChart = null; }
+        colors = labels.map(function(_, i){ return palette[i % palette.length]; });
+    } else if (_pieMode === 'holding') {
         var holdingRows = stockData.holdings.map(function(h) {
             var p = stockData.prices[h.id];
             var price = p ? p.price : null;
@@ -6219,58 +6309,57 @@ function drawStockAnalysisCharts() {
             return { id: h.id, name: h.name || h.id, market: Math.round(market), assetType: getHoldingAssetType(h) };
         }).filter(function(r){ return r.market > 0; });
         holdingRows.sort(function(a, b){ return b.market - a.market; });
-        // 只顯示前 3 大，其餘合併為「其他」
         var TOP_N = 3;
         var topRows = holdingRows.slice(0, TOP_N);
         var restRows = holdingRows.slice(TOP_N);
-        var hLabels = topRows.map(function(r){ return r.name + '（' + r.id + '）'; });
-        var hData = topRows.map(function(r){ return r.market; });
+        labels = topRows.map(function(r){ return r.name + '（' + r.id + '）'; });
+        data = topRows.map(function(r){ return r.market; });
         if (restRows.length > 0) {
             var restSum = restRows.reduce(function(s, r){ return s + r.market; }, 0);
-            hLabels.push('其他（' + restRows.length + ' 檔）');
-            hData.push(restSum);
+            labels.push('其他（' + restRows.length + ' 檔）');
+            data.push(restSum);
         }
-        // 配色規則：債券深藍當主軸、其他類別暖灰、股票輪用高對比鮮明色
         var BOND_COLOR = '#1a3a5c';
         var REST_COLOR = '#8C8578';
         var stockPalette = ['#c8a45a', '#dc2626', '#16a34a', '#7c3aed', '#0891b2', '#ea580c', '#db2777'];
         var stockColorIdx = 0;
-        var hPalette = topRows.map(function(r){
+        colors = topRows.map(function(r){
             if (r.assetType === 'bond') return BOND_COLOR;
             return stockPalette[(stockColorIdx++) % stockPalette.length];
         });
-        if (restRows.length > 0) hPalette.push(REST_COLOR);
-        _stockHoldingChart = new Chart(holdingCanvas.getContext('2d'), {
-            type: 'doughnut',
-            data: {
-                labels: hLabels,
-                datasets: [{
-                    data: hData,
-                    backgroundColor: hLabels.map(function(_, i){ return hPalette[i % hPalette.length]; }),
-                    borderWidth: 2,
-                    borderColor: '#fff'
-                }]
-            },
-            plugins: [pctLabelPlugin],
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: function(ctx) {
-                                var total = ctx.dataset.data.reduce(function(a, b){ return a + b; }, 0);
-                                var pct = total > 0 ? (ctx.parsed / total * 100).toFixed(1) : 0;
-                                return ctx.label + '：' + fmt(ctx.parsed) + ' (' + pct + '%)';
-                            }
+        if (restRows.length > 0) colors.push(REST_COLOR);
+    } else {
+        // asset (預設)
+        labels = ['股票', '債券'];
+        data = [Math.round(assetSum.stock), Math.round(assetSum.bond)];
+        colors = ['#c8a45a', '#1a3a5c'];
+    }
+
+    _stockPieChart = new Chart(canvas.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{ data: data, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }]
+        },
+        plugins: [pctLabelPlugin],
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            var total = ctx.dataset.data.reduce(function(a, b){ return a + b; }, 0);
+                            var pct = total > 0 ? (ctx.parsed / total * 100).toFixed(1) : 0;
+                            return ctx.label + '：' + fmt(ctx.parsed) + ' (' + pct + '%)';
                         }
                     }
                 }
             }
-        });
-        renderHtmlLegend('chart-holding-legend', hLabels, hData, hPalette);
-    }
+        }
+    });
+    renderHtmlLegend('chart-pie-legend', labels, data, colors);
 }
 
 // 點持股 → 顯示價格走勢 modal
