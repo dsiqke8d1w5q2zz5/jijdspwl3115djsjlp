@@ -5340,7 +5340,8 @@ function renderStock() {
     container.innerHTML = html;
 
     if (stockSubTab === 'analysis') {
-        setTimeout(drawStockAnalysisCharts, 0);
+        // 等瀏覽器完成 layout 後再畫，避免 canvas 大小變化造成抖動
+        requestAnimationFrame(function() { requestAnimationFrame(drawStockAnalysisCharts); });
     }
 }
 
@@ -6160,7 +6161,7 @@ function renderStockAnalysis() {
     html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex:none">';
     html += '<select id="pie-mode-select" onchange="onPieModeChange(this.value)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-weight:600;font-family:inherit;background:var(--card);color:var(--text)">' + pieSel + '</select>';
     html += '</div>';
-    html += '<div style="position:relative;flex:1;min-height:200px;display:flex;align-items:center;justify-content:center"><canvas id="chart-pie"></canvas></div>';
+    html += '<div style="position:relative;flex:1;min-height:200px"><canvas id="chart-pie"></canvas></div>';
     html += '<div class="chart-legend-wrap" style="margin-top:12px;flex:none"><div id="chart-pie-legend" class="chart-legend-list" style="font-size:12px"></div></div>';
     html += '</div>';
     // 右：報酬日曆
