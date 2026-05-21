@@ -4657,6 +4657,18 @@ function checkDividendAlerts() {
         return isNaN(n) ? 0 : n;
     }
 
+    // (0) Apps Script 快取（含 MoneyDJ + FinMind 合併，每日 04 點自動更新）
+    var cacheP = fetchWithTimeout(CLOUD_URL + '?action=dividends&format=json&t=' + Date.now())
+        .then(function(r){ return r.json(); })
+        .then(function(cache){
+            if (cache && cache.updatedAt) _dividendCacheUpdatedAt = cache.updatedAt;
+            var items = (cache && Array.isArray(cache.items)) ? cache.items : [];
+            return items.map(function(d){
+                return { stockId: d.stockId, exDate: d.exDate, cash: d.cash || 0, stockDiv: d.stockDiv || 0, payDate: d.payDate || '' };
+            });
+        })
+        .catch(function(){ return []; });
+
     // (A) 從前端直連 TWSE 抓上市股 + 上市 ETF 除權息預告
     var twseP = fetchWithTimeout('https://www.twse.com.tw/exchangeReport/TWT48U?response=json&t=' + Date.now())
         .then(function(r){ return r.json(); })
@@ -4694,10 +4706,9 @@ function checkDividendAlerts() {
         })
         .catch(function(){ return []; });
 
-    var cachePromise = Promise.all([twseP, tpexP]).then(function(both){
-        var allItems = both[0].concat(both[1]);
+    var cachePromise = Promise.all([cacheP, twseP, tpexP]).then(function(all){
+        var allItems = all[0].concat(all[1]).concat(all[2]);
         _dividendCacheItems = allItems.slice();
-        _dividendCacheUpdatedAt = _toROCDateTime(new Date());
         allItems.forEach(function(d) {
             var h = holdingIds[d.stockId];
             if (!h) return;
