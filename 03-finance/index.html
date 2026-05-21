@@ -6170,8 +6170,8 @@ function renderStockAnalysis() {
     html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex:none">';
     html += '<select id="pie-mode-select" onchange="onPieModeChange(this.value)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-weight:600;font-family:inherit;background:var(--card);color:var(--text)">' + pieSel + '</select>';
     html += '</div>';
-    html += '<div style="position:relative;flex:1;min-height:200px"><canvas id="chart-pie"></canvas></div>';
-    html += '<div class="chart-legend-wrap" style="margin-top:10px;flex:none"><div id="chart-pie-legend" class="chart-legend-list" style="font-size:12px"></div></div>';
+    html += '<div style="position:relative;flex:1;min-height:120px"><canvas id="chart-pie"></canvas></div>';
+    html += '<div class="chart-legend-wrap" style="margin-top:10px;flex:none"><div id="chart-pie-legend" class="chart-legend-list"></div></div>';
     html += '</div>';
     // 右：報酬日曆
     html += '<div id="return-calendar-slot" style="display:flex;flex-direction:column">' + renderReturnCalendar() + '</div>';
@@ -6435,12 +6435,18 @@ function drawStockAnalysisCharts() {
         var box = document.getElementById(boxId);
         if (!box) return;
         var total = data.reduce(function(a, b){ return a + b; }, 0);
+        // 依行數動態縮字：≤2 行用 12px，3 行 11px，≥4 行 10px、色塊也縮
+        var n = labels.length;
+        var fontSize = n <= 2 ? 12 : n === 3 ? 11 : 10;
+        var blockSize = n <= 2 ? 14 : n === 3 ? 12 : 10;
+        var rowGap = n <= 2 ? 8 : n === 3 ? 4 : 2;
+        box.style.fontSize = fontSize + 'px';
         box.innerHTML = labels.map(function(lbl, i) {
             var color = colors[i % colors.length];
             var v = data[i];
             var pct = total > 0 ? (v / total * 100).toFixed(1) : '0.0';
-            return '<div style="display:flex;align-items:center;gap:8px">' +
-                '<span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:' + color + ';flex:none"></span>' +
+            return '<div style="display:flex;align-items:center;gap:8px;margin-top:' + (i === 0 ? 0 : rowGap) + 'px">' +
+                '<span style="display:inline-block;width:' + blockSize + 'px;height:' + blockSize + 'px;border-radius:3px;background:' + color + ';flex:none"></span>' +
                 '<span style="color:var(--text)">' + esc(lbl) + '　<b>' + fmt(v) + '</b> <span style="color:var(--muted)">(' + pct + '%)</span></span>' +
                 '</div>';
         }).join('');
