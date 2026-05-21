@@ -4605,25 +4605,74 @@ function checkDividendAlerts() {
         });
     }
 
-    // 先抓 Apps Script 快取（含 TWSE + MoneyDJ 合併資料）→ 一回來就先顯示
-    var cachePromise = fetchWithTimeout(CLOUD_URL + '?action=dividends&format=json&t=' + Date.now())
-        .then(function(r) { return r.json(); })
-        .then(function(cache) {
-            if (cache && cache.updatedAt) _dividendCacheUpdatedAt = cache.updatedAt;
-            if (cache && Array.isArray(cache.items)) {
-                _dividendCacheItems = cache.items.slice();
-                cache.items.forEach(function(d) {
-                    var h = holdingIds[d.stockId];
-                    if (!h) return;
-                    pushAlert(h, d.exDate, d.cash, d.stockDiv, d.payDate);
-                });
-            }
-            // 快取先行顯示，後續 FinMind 補完會再次 renderStock
-            _dividendAlerts.sort(_sortByNextEvent);
-            _dividendAlertChecked = true;
-            renderStock();
+    // 民國年日期 → 西元 YYYY-MM-DD（"1150519" → "2026-05-19"）
+    function _rocToYmd(s) {
+        s = String(s || '').replace(/[\/\-\.]/g, '');
+        if (s.length !== 7) return '';
+        var y = parseInt(s.slice(0, 3), 10);
+        if (!y) return '';
+        return (y + 1911) + '-' + s.slice(3, 5) + '-' + s.slice(5, 7);
+    }
+    // 解析現金股利欄位（TWSE 有時帶 HTML 「待公告...」等字串）
+    function _parseCash(v) {
+        if (v == null) return 0;
+        var s = String(v);
+        var m = s.match(/-?\d+(\.\d+)?/);
+        if (!m) return 0;
+        var n = parseFloat(m[0]);
+        return isNaN(n) ? 0 : n;
+    }
+
+    // (A) 從前端直連 TWSE 抓上市股 + 上市 ETF 除權息預告
+    var twseP = fetchWithTimeout('https://www.twse.com.tw/exchangeReport/TWT48U?response=json&t=' + Date.now())
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+            var items = [];
+            if (!j || j.stat !== 'OK' || !Array.isArray(j.data)) return items;
+            j.data.forEach(function(row){
+                // [除權除息日期, 股票代號, 名稱, 除權息, 無償配股率, ..., 現金股利, ...]
+                var exDate = _rocToYmd(row[0]);
+                if (!exDate) return;
+                var stockId = String(row[1] || '').trim();
+                var cash = _parseCash(row[7]);
+                var stockDiv = _parseCash(row[4]); // 無償配股率 (每股配 N 股的 N)
+                items.push({ stockId: stockId, exDate: exDate, cash: cash, stockDiv: stockDiv, payDate: '' });
+            });
+            return items;
         })
-        .catch(function() {});
+        .catch(function(){ return []; });
+
+    // (B) 透過 Apps Script proxy 抓 TPEX 上櫃股 + 上櫃 ETF
+    var tpexP = fetchWithTimeout(CLOUD_URL + '?action=tpex_div&t=' + Date.now())
+        .then(function(r){ return r.json(); })
+        .then(function(arr){
+            var items = [];
+            if (!Array.isArray(arr)) return items;
+            arr.forEach(function(d){
+                var exDate = _rocToYmd(d.ExRrightsExDividendDate);
+                if (!exDate) return;
+                var stockId = String(d.SecuritiesCompanyCode || '').trim();
+                var cash = _parseCash(d.CashDividend);
+                var stockDiv = _parseCash(d.StockDividendRatio); // 每股配 N 股
+                items.push({ stockId: stockId, exDate: exDate, cash: cash, stockDiv: stockDiv, payDate: '' });
+            });
+            return items;
+        })
+        .catch(function(){ return []; });
+
+    var cachePromise = Promise.all([twseP, tpexP]).then(function(both){
+        var allItems = both[0].concat(both[1]);
+        _dividendCacheItems = allItems.slice();
+        _dividendCacheUpdatedAt = _toROCDateTime(new Date());
+        allItems.forEach(function(d) {
+            var h = holdingIds[d.stockId];
+            if (!h) return;
+            pushAlert(h, d.exDate, d.cash, d.stockDiv, d.payDate);
+        });
+        _dividendAlerts.sort(_sortByNextEvent);
+        _dividendAlertChecked = true;
+        renderStock();
+    }).catch(function() {});
 
     cachePromise.then(function() {
         stockData.holdings.forEach(function(h) {
