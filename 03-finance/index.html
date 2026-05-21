@@ -6164,17 +6164,17 @@ function renderStockAnalysis() {
     var pieSel = pieOpts.map(function(o){
         return '<option value="' + o.v + '"' + (o.v === pieMode ? ' selected' : '') + '>' + o.l + '</option>';
     }).join('');
-    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin-bottom:14px;align-items:start">';
-    // 左：圓餅卡（餅圖固定 220×220，legend 自然撐高）
-    html += '<div style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow)">';
-    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin-bottom:14px;align-items:stretch">';
+    // 左：圓餅卡（高度跟著右邊日曆，餅圖填滿中央空間）
+    html += '<div style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);display:flex;flex-direction:column">';
+    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex:none">';
     html += '<select id="pie-mode-select" onchange="onPieModeChange(this.value)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-weight:600;font-family:inherit;background:var(--card);color:var(--text)">' + pieSel + '</select>';
     html += '</div>';
-    html += '<div style="position:relative;width:220px;height:220px;margin:0 auto"><canvas id="chart-pie"></canvas></div>';
-    html += '<div class="chart-legend-wrap" style="margin-top:12px"><div id="chart-pie-legend" class="chart-legend-list" style="font-size:12px"></div></div>';
+    html += '<div style="position:relative;flex:1;min-height:200px;display:flex;align-items:center;justify-content:center"><canvas id="chart-pie"></canvas></div>';
+    html += '<div class="chart-legend-wrap" style="margin-top:12px;flex:none"><div id="chart-pie-legend" class="chart-legend-list" style="font-size:12px"></div></div>';
     html += '</div>';
     // 右：報酬日曆
-    html += '<div id="return-calendar-slot">' + renderReturnCalendar() + '</div>';
+    html += '<div id="return-calendar-slot" style="display:flex;flex-direction:column">' + renderReturnCalendar() + '</div>';
     html += '</div>';
 
     // 行內分類編輯表
@@ -6242,66 +6242,33 @@ function renderStockAnalysis() {
 // 讀 stockData.marketHistory（每日真實整體市值快照），相鄰兩日相減＝日損益。
 // 快照由 maybeAutoSnapshot 自動寫入；買賣後當天的快照已反映真實部位變化。
 var _returnCalendarMonth = null; // 'YYYY-MM' 字串；null 表示「最近一個有資料的月份」
-var _returnCalendarStock = ''; // '' = 全部（看 marketHistory）；'XXXX' = 個股（看 priceHistory，只顯示價格 %）
 function _stockCalendarEmpty(msg) {
     return '<div style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);flex:1;display:flex;flex-direction:column"><div style="font-size:14px;font-weight:600;margin-bottom:6px">報酬日曆</div><div style="color:var(--muted);font-size:12px;line-height:1.6">' + msg + '</div></div>';
 }
 function renderReturnCalendar() {
     var holdings = stockData.holdings || [];
     if (holdings.length === 0) return '';
-    var isStockMode = !!_returnCalendarStock;
 
-    // ── 建立 dailyPnL（依模式不同來源）──
-    var dailyPnL = {}; // 全部: {date: {pnl, pct}}；個股: {date: {pct}}
+    var dailyPnL = {}; // {date: {pnl, pct}}
     var allMonthSet = {};
     var marketByDate = {}, dateListAll = [];
 
-    if (isStockMode) {
-        var ph = (stockData.priceHistory || {})[_returnCalendarStock] || [];
-        ph = ph.slice().sort(function(a, b){ return (a.date || '').localeCompare(b.date || ''); });
-        // priceHistory 有 2 筆以上：用相鄰相減（最準）
-        for (var i = 1; i < ph.length; i++) {
-            var prevP = ph[i - 1], curP = ph[i];
-            if (prevP.price > 0) {
-                dailyPnL[curP.date] = { pct: (curP.price - prevP.price) / prevP.price * 100 };
-            }
-        }
-        ph.forEach(function(e){ if (e.date) allMonthSet[e.date.slice(0,7)] = true; });
-        // 補：若今天還沒有 dailyPnL（priceHistory 不足或還沒到 13:30），用當前 Yahoo 即時 change 推算
-        var todayP = stockData.prices && stockData.prices[_returnCalendarStock];
-        if (todayP && typeof todayP.price === 'number' && typeof todayP.change === 'number') {
-            var prevClose = todayP.price - todayP.change;
-            // 推算「今天」對應的交易日
-            var twNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
-            var dCheck = new Date(twNow.getFullYear(), twNow.getMonth(), twNow.getDate());
-            while (dCheck.getDay() === 0 || dCheck.getDay() === 6) dCheck.setDate(dCheck.getDate() - 1);
-            var todayKey = dCheck.getFullYear() + '-' + String(dCheck.getMonth()+1).padStart(2,'0') + '-' + String(dCheck.getDate()).padStart(2,'0');
-            if (!dailyPnL[todayKey] && prevClose > 0) {
-                dailyPnL[todayKey] = { pct: todayP.change / prevClose * 100 };
-                allMonthSet[todayKey.slice(0,7)] = true;
-            }
-        }
-        if (Object.keys(dailyPnL).length === 0) {
-            return _stockCalendarEmpty('此股票尚無價格紀錄。');
-        }
-    } else {
-        var mh = Array.isArray(stockData.marketHistory) ? stockData.marketHistory.slice() : [];
-        mh.sort(function(a, b){ return (a.date || '').localeCompare(b.date || ''); });
-        if (mh.length === 0) {
-            return _stockCalendarEmpty('尚無市值快照紀錄。<br>每次打開頁面（且有抓到股價）就會自動記一筆，過幾天累積後就能看到每日損益。');
-        }
-        for (var k = 1; k < mh.length; k++) {
-            var pM = mh[k - 1], cM = mh[k];
-            if (pM.market > 0) {
-                dailyPnL[cM.date] = { pnl: cM.market - pM.market, pct: (cM.market - pM.market) / pM.market * 100 };
-            }
-        }
-        mh.forEach(function(e){
-            if (e.date) allMonthSet[e.date.slice(0,7)] = true;
-            marketByDate[e.date] = e.market;
-            dateListAll.push(e.date);
-        });
+    var mh = Array.isArray(stockData.marketHistory) ? stockData.marketHistory.slice() : [];
+    mh.sort(function(a, b){ return (a.date || '').localeCompare(b.date || ''); });
+    if (mh.length === 0) {
+        return _stockCalendarEmpty('尚無市值快照紀錄。<br>每次打開頁面（且有抓到股價）就會自動記一筆，過幾天累積後就能看到每日損益。');
     }
+    for (var k = 1; k < mh.length; k++) {
+        var pM = mh[k - 1], cM = mh[k];
+        if (pM.market > 0) {
+            dailyPnL[cM.date] = { pnl: cM.market - pM.market, pct: (cM.market - pM.market) / pM.market * 100 };
+        }
+    }
+    mh.forEach(function(e){
+        if (e.date) allMonthSet[e.date.slice(0,7)] = true;
+        marketByDate[e.date] = e.market;
+        dateListAll.push(e.date);
+    });
 
     var months = Object.keys(allMonthSet).sort().reverse();
     if (months.length === 0) return _stockCalendarEmpty('暫無資料');
@@ -6310,46 +6277,28 @@ function renderReturnCalendar() {
     // ── 月合計 ──
     var monthDates = Object.keys(dailyPnL).filter(function(d){ return d.slice(0,7) === curMonth; }).sort();
     var monthPnL = 0, monthPct = 0, basisMarket = null;
-    if (isStockMode) {
-        // 個股：日 pct 用複利累加
-        var acc = 1;
-        monthDates.forEach(function(d){ acc *= (1 + dailyPnL[d].pct / 100); });
-        monthPct = (acc - 1) * 100;
-    } else {
-        monthDates.forEach(function(d){ monthPnL += dailyPnL[d].pnl; });
-        var monthFirstDay = curMonth + '-01';
-        for (var j = dateListAll.length - 1; j >= 0; j--) {
-            if (dateListAll[j] < monthFirstDay) { basisMarket = marketByDate[dateListAll[j]]; break; }
-        }
-        if (basisMarket === null && monthDates.length) basisMarket = marketByDate[monthDates[0]];
-        monthPct = (basisMarket && basisMarket > 0) ? (monthPnL / basisMarket * 100) : 0;
+    monthDates.forEach(function(d){ monthPnL += dailyPnL[d].pnl; });
+    var monthFirstDay = curMonth + '-01';
+    for (var j = dateListAll.length - 1; j >= 0; j--) {
+        if (dateListAll[j] < monthFirstDay) { basisMarket = marketByDate[dateListAll[j]]; break; }
     }
+    if (basisMarket === null && monthDates.length) basisMarket = marketByDate[monthDates[0]];
+    monthPct = (basisMarket && basisMarket > 0) ? (monthPnL / basisMarket * 100) : 0;
 
-    // ── 下拉選項 ──
+    // ── 月份下拉 ──
     var monthOpts = months.map(function(m){
         return '<option value="' + m + '"' + (m === curMonth ? ' selected' : '') + '>' + m + '</option>';
     }).join('');
-    var stockOpts = '<option value=""' + (!isStockMode ? ' selected' : '') + '>全部</option>' +
-        holdings.slice().sort(function(a, b){
-            return String(a.id || '').localeCompare(String(b.id || ''));
-        }).map(function(h){
-            return '<option value="' + esc(h.id) + '"' + (h.id === _returnCalendarStock ? ' selected' : '') + '>' + esc(h.id) + '</option>';
-        }).join('');
 
     var html = '<div style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);flex:1;display:flex;flex-direction:column">';
     html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">';
     html += '<div style="font-size:14px;font-weight:600">報酬日曆</div>';
     html += '<select id="return-cal-month" onchange="onReturnCalendarMonthChange(this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--card)">' + monthOpts + '</select>';
-    html += '<select id="return-cal-stock" onchange="onReturnCalendarStockChange(this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--card)">' + stockOpts + '</select>';
-    var monthColor = (isStockMode ? monthPct : monthPnL) > 0 ? 'var(--red)' : (isStockMode ? monthPct : monthPnL) < 0 ? 'var(--green)' : 'var(--muted)';
+    var monthColor = monthPnL > 0 ? 'var(--red)' : monthPnL < 0 ? 'var(--green)' : 'var(--muted)';
     html += '<span style="margin-left:auto;font-size:13px;color:var(--muted)">當月合計 ';
-    if (isStockMode) {
-        html += '<b style="color:' + monthColor + ';font-size:16px">' + (monthPct > 0 ? '+' : '') + monthPct.toFixed(2) + '%</b>';
-    } else {
-        html += '<b style="color:' + monthColor + ';font-size:16px">' + (monthPnL > 0 ? '+' : '') + fmt(Math.round(monthPnL)) + '</b>';
-        if (basisMarket && basisMarket > 0) {
-            html += ' <span style="color:' + monthColor + '">(' + (monthPct > 0 ? '+' : '') + monthPct.toFixed(2) + '%)</span>';
-        }
+    html += '<b style="color:' + monthColor + ';font-size:16px">' + (monthPnL > 0 ? '+' : '') + fmt(Math.round(monthPnL)) + '</b>';
+    if (basisMarket && basisMarket > 0) {
+        html += ' <span style="color:' + monthColor + '">(' + (monthPct > 0 ? '+' : '') + monthPct.toFixed(2) + '%)</span>';
     }
     html += '</span>';
     html += '</div>';
@@ -6387,7 +6336,7 @@ function renderReturnCalendar() {
         var daysInWeek = weeks[wk];
         var byDow = {}; // 1=一 ... 5=五
         daysInWeek.forEach(function(it){ byDow[it.dow] = it.day; });
-        var weekPnL = 0, weekHasData = false, weekAcc = 1;
+        var weekPnL = 0, weekHasData = false;
         for (var dow = 1; dow <= 5; dow++) {
             var dayNum = byDow[dow];
             if (!dayNum) {
@@ -6397,66 +6346,38 @@ function renderReturnCalendar() {
             var dStr = year + '-' + String(monthIdx + 1).padStart(2,'0') + '-' + String(dayNum).padStart(2,'0');
             var entry = dailyPnL[dStr];
             if (entry) {
-                var pnlVal = isStockMode ? entry.pct : entry.pnl;
-                if (isStockMode) weekAcc *= (1 + entry.pct / 100);
-                else weekPnL += entry.pnl;
+                weekPnL += entry.pnl;
                 weekHasData = true;
-                var cellColor = pnlVal > 0 ? 'var(--red)' : pnlVal < 0 ? 'var(--green)' : 'var(--muted)';
-                var bg = pnlVal > 0 ? 'rgba(239,68,68,0.08)' : pnlVal < 0 ? 'rgba(22,163,74,0.08)' : 'transparent';
-                if (isStockMode) {
-                    html += '<div style="background:' + bg + ';border-radius:6px;padding:4px 6px;text-align:center;min-height:54px;display:flex;flex-direction:column;justify-content:center">' +
-                        '<div style="font-size:11px;color:var(--muted)">' + dayNum + '</div>' +
-                        '<div style="font-size:13px;font-weight:600;color:' + cellColor + '">' + (entry.pct > 0 ? '+' : '') + entry.pct.toFixed(2) + '%</div>' +
-                        '</div>';
-                } else {
-                    html += '<div style="background:' + bg + ';border-radius:6px;padding:4px 6px;text-align:center;min-height:54px">' +
-                        '<div style="font-size:11px;color:var(--muted)">' + dayNum + '</div>' +
-                        '<div style="font-size:12px;font-weight:600;color:' + cellColor + '">' + (entry.pnl > 0 ? '+' : '') + fmt(Math.round(entry.pnl)) + '</div>' +
-                        '<div style="font-size:10px;color:' + cellColor + '">' + (entry.pct > 0 ? '+' : '') + entry.pct.toFixed(2) + '%</div>' +
-                        '</div>';
-                }
+                var cellColor = entry.pnl > 0 ? 'var(--red)' : entry.pnl < 0 ? 'var(--green)' : 'var(--muted)';
+                var bg = entry.pnl > 0 ? 'rgba(239,68,68,0.08)' : entry.pnl < 0 ? 'rgba(22,163,74,0.08)' : 'transparent';
+                html += '<div style="background:' + bg + ';border-radius:6px;padding:4px 6px;text-align:center;min-height:54px">' +
+                    '<div style="font-size:11px;color:var(--muted)">' + dayNum + '</div>' +
+                    '<div style="font-size:12px;font-weight:600;color:' + cellColor + '">' + (entry.pnl > 0 ? '+' : '') + fmt(Math.round(entry.pnl)) + '</div>' +
+                    '<div style="font-size:10px;color:' + cellColor + '">' + (entry.pct > 0 ? '+' : '') + entry.pct.toFixed(2) + '%</div>' +
+                    '</div>';
             } else {
                 html += '<div style="border:1px dashed var(--border);border-radius:6px;padding:4px 6px;text-align:center;min-height:54px;color:var(--muted);font-size:11px">' + dayNum + '</div>';
             }
         }
         // 週合計
         if (weekHasData) {
-            if (isStockMode) {
-                var wPct = (weekAcc - 1) * 100;
-                var wColor = wPct > 0 ? 'var(--red)' : wPct < 0 ? 'var(--green)' : 'var(--muted)';
-                html += '<div style="background:rgba(0,0,0,0.03);border-radius:6px;padding:4px 6px;text-align:center;min-height:54px;display:flex;flex-direction:column;justify-content:center">' +
-                    '<div style="font-size:12px;font-weight:600;color:' + wColor + '">' + (wPct > 0 ? '+' : '') + wPct.toFixed(2) + '%</div>' +
-                    '</div>';
-            } else {
-                var wColor2 = weekPnL > 0 ? 'var(--red)' : weekPnL < 0 ? 'var(--green)' : 'var(--muted)';
-                html += '<div style="background:rgba(0,0,0,0.03);border-radius:6px;padding:4px 6px;text-align:center;min-height:54px;display:flex;flex-direction:column;justify-content:center">' +
-                    '<div style="font-size:12px;font-weight:600;color:' + wColor2 + '">' + (weekPnL > 0 ? '+' : '') + fmt(Math.round(weekPnL)) + '</div>' +
-                    '</div>';
-            }
+            var wColor = weekPnL > 0 ? 'var(--red)' : weekPnL < 0 ? 'var(--green)' : 'var(--muted)';
+            html += '<div style="background:rgba(0,0,0,0.03);border-radius:6px;padding:4px 6px;text-align:center;min-height:54px;display:flex;flex-direction:column;justify-content:center">' +
+                '<div style="font-size:12px;font-weight:600;color:' + wColor + '">' + (weekPnL > 0 ? '+' : '') + fmt(Math.round(weekPnL)) + '</div>' +
+                '</div>';
         } else {
             html += '<div style="min-height:54px"></div>';
         }
     });
     html += '</div>';
 
-    if (isStockMode) {
-        html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">※ 個股模式：純價格漲跌（不含股數），相鄰兩交易日收盤價相減。週／月為複利累加。</div>';
-    } else {
-        html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">※ 收盤後（台灣時間 13:30 之後）打開頁面才會自動記當日快照；同日多次開以最後一次為主。相鄰兩日快照相減＝當日損益。</div>';
-    }
+    html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">※ 收盤後（台灣時間 13:30 之後）打開頁面才會自動記當日快照；同日多次開以最後一次為主。相鄰兩日快照相減＝當日損益。</div>';
     html += '</div>';
     return html;
 }
 
 function onReturnCalendarMonthChange(m) {
     _returnCalendarMonth = m;
-    var slot = document.getElementById('return-calendar-slot');
-    if (slot) slot.innerHTML = renderReturnCalendar();
-}
-
-function onReturnCalendarStockChange(id) {
-    _returnCalendarStock = id || '';
-    _returnCalendarMonth = null; // 切股票時月份重設為最新
     var slot = document.getElementById('return-calendar-slot');
     if (slot) slot.innerHTML = renderReturnCalendar();
 }
@@ -6643,7 +6564,10 @@ function showStockPriceTrend(stockId) {
             '<div style="font-size:11px;color:var(--muted);margin-top:4px">※ 漲跌已自動還原權息／股票股利／分割（資料來源：除權息提醒）</div>';
     }
     ov.innerHTML = '<div class="modal" style="width:560px;max-width:94vw">' +
-        '<h3><i class="ti ti-chart-line"></i> ' + esc(stockId) + ' ' + esc(name) + ' 價格走勢</h3>' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">' +
+            '<h3 style="margin:0;flex:1"><i class="ti ti-chart-line"></i> ' + esc(stockId) + ' ' + esc(name) + ' 價格走勢</h3>' +
+            '<button type="button" onclick="showStockCalendarModal(\'' + esc(stockId) + '\')" style="padding:6px 12px;border:1px solid var(--border);border-radius:6px;background:var(--card);cursor:pointer;font-family:inherit;font-size:12px"><i class="ti ti-calendar-month"></i> 看日曆</button>' +
+        '</div>' +
         body +
         '<div class="modal-btns" style="margin-top:12px"><button onclick="this.closest(\'.overlay\').remove()" style="flex:1">關閉</button></div>' +
         '</div>';
@@ -6739,6 +6663,162 @@ function showStockPriceTrend(stockId) {
             _draw(arr);
         };
     }
+}
+
+// 個股漲跌日曆 modal（純價格 %，獨立於整體報酬日曆）
+var _stockCalModalState = { stockId: '', month: null };
+function showStockCalendarModal(stockId) {
+    // 關掉走勢 modal
+    var trendOv = document.querySelector('.stock-price-trend-overlay');
+    if (trendOv) trendOv.remove();
+    if (_stockPriceTrendChart) { try { _stockPriceTrendChart.destroy(); } catch(_){} _stockPriceTrendChart = null; }
+
+    var holding = stockData.holdings.find(function(h){ return h.id === stockId; });
+    var name = holding ? (holding.name || stockId) : stockId;
+    _stockCalModalState.stockId = stockId;
+    _stockCalModalState.month = null;
+
+    var ov = document.createElement('div');
+    ov.className = 'overlay stock-cal-modal-overlay';
+    ov.innerHTML = '<div class="modal" style="width:680px;max-width:94vw">' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">' +
+            '<h3 style="margin:0;flex:1"><i class="ti ti-calendar-month"></i> ' + esc(stockId) + ' ' + esc(name) + ' 漲跌日曆</h3>' +
+            '<button type="button" onclick="this.closest(\'.overlay\').remove();showStockPriceTrend(\'' + esc(stockId) + '\')" style="padding:6px 12px;border:1px solid var(--border);border-radius:6px;background:var(--card);cursor:pointer;font-family:inherit;font-size:12px"><i class="ti ti-chart-line"></i> 看走勢</button>' +
+        '</div>' +
+        '<div id="stock-cal-modal-body"></div>' +
+        '<div class="modal-btns" style="margin-top:12px"><button onclick="this.closest(\'.overlay\').remove()" style="flex:1">關閉</button></div>' +
+        '</div>';
+    document.body.appendChild(ov);
+    var _md = false;
+    ov.addEventListener('mousedown', function(e){ _md = (e.target === ov); });
+    ov.addEventListener('click', function(e){ if (e.target === ov && _md) ov.remove(); _md = false; });
+
+    _renderStockCalModalBody();
+}
+
+function _renderStockCalModalBody() {
+    var box = document.getElementById('stock-cal-modal-body');
+    if (!box) return;
+    box.innerHTML = _buildStockCalendarHtml(_stockCalModalState.stockId, _stockCalModalState.month);
+}
+
+function onStockCalMonthChange(m) {
+    _stockCalModalState.month = m;
+    _renderStockCalModalBody();
+}
+
+// 建立個股漲跌日曆 HTML（純價格 %、複利累加）
+function _buildStockCalendarHtml(stockId, curMonthOpt) {
+    var ph = (stockData.priceHistory || {})[stockId] || [];
+    ph = ph.slice().sort(function(a, b){ return (a.date || '').localeCompare(b.date || ''); });
+    var dailyPnL = {};
+    var allMonthSet = {};
+    for (var i = 1; i < ph.length; i++) {
+        var prevP = ph[i - 1], curP = ph[i];
+        if (prevP.price > 0) {
+            dailyPnL[curP.date] = { pct: (curP.price - prevP.price) / prevP.price * 100 };
+        }
+    }
+    ph.forEach(function(e){ if (e.date) allMonthSet[e.date.slice(0,7)] = true; });
+    // 補今天（用 Yahoo change 推算）
+    var todayP = stockData.prices && stockData.prices[stockId];
+    if (todayP && typeof todayP.price === 'number' && typeof todayP.change === 'number') {
+        var prevClose = todayP.price - todayP.change;
+        var twNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+        var dCheck = new Date(twNow.getFullYear(), twNow.getMonth(), twNow.getDate());
+        while (dCheck.getDay() === 0 || dCheck.getDay() === 6) dCheck.setDate(dCheck.getDate() - 1);
+        var todayKey = dCheck.getFullYear() + '-' + String(dCheck.getMonth()+1).padStart(2,'0') + '-' + String(dCheck.getDate()).padStart(2,'0');
+        if (!dailyPnL[todayKey] && prevClose > 0) {
+            dailyPnL[todayKey] = { pct: todayP.change / prevClose * 100 };
+            allMonthSet[todayKey.slice(0,7)] = true;
+        }
+    }
+    if (Object.keys(dailyPnL).length === 0) {
+        return '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">尚無價格紀錄。</div>';
+    }
+    var months = Object.keys(allMonthSet).sort().reverse();
+    var curMonth = (curMonthOpt && allMonthSet[curMonthOpt]) ? curMonthOpt : months[0];
+
+    // 月合計（複利）
+    var monthDates = Object.keys(dailyPnL).filter(function(d){ return d.slice(0,7) === curMonth; }).sort();
+    var acc = 1;
+    monthDates.forEach(function(d){ acc *= (1 + dailyPnL[d].pct / 100); });
+    var monthPct = (acc - 1) * 100;
+
+    var monthOpts = months.map(function(m){
+        return '<option value="' + m + '"' + (m === curMonth ? ' selected' : '') + '>' + m + '</option>';
+    }).join('');
+
+    var html = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">';
+    html += '<select onchange="onStockCalMonthChange(this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--card)">' + monthOpts + '</select>';
+    var monthColor = monthPct > 0 ? 'var(--red)' : monthPct < 0 ? 'var(--green)' : 'var(--muted)';
+    html += '<span style="margin-left:auto;font-size:13px;color:var(--muted)">當月合計 <b style="color:' + monthColor + ';font-size:16px">' + (monthPct > 0 ? '+' : '') + monthPct.toFixed(2) + '%</b></span>';
+    html += '</div>';
+
+    // 日曆網格（一~五 + 週合計）
+    var ym = curMonth.split('-');
+    var year = parseInt(ym[0], 10), monthIdx = parseInt(ym[1], 10) - 1;
+    var lastDay = new Date(year, monthIdx + 1, 0).getDate();
+
+    html += '<div style="display:grid;grid-template-columns:repeat(5,1fr) 70px;gap:4px;font-size:12px">';
+    ['一','二','三','四','五'].forEach(function(w){
+        html += '<div style="text-align:center;color:var(--muted);font-size:11px;padding:4px 0">' + w + '</div>';
+    });
+    html += '<div style="text-align:center;color:var(--muted);font-size:11px;padding:4px 0">週合計</div>';
+
+    function _isoWeekKey(d) {
+        var dow = d.getDay() || 7;
+        var mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - (dow - 1));
+        return mon.getFullYear() + '-' + (mon.getMonth()+1) + '-' + mon.getDate();
+    }
+    var weeks = {}, weekOrder = [];
+    for (var day = 1; day <= lastDay; day++) {
+        var d = new Date(year, monthIdx, day);
+        var dow = d.getDay();
+        if (dow === 0 || dow === 6) continue;
+        var wk = _isoWeekKey(d);
+        if (!weeks[wk]) { weeks[wk] = []; weekOrder.push(wk); }
+        weeks[wk].push({ day: day, dow: dow });
+    }
+    weekOrder.forEach(function(wk) {
+        var daysInWeek = weeks[wk];
+        var byDow = {};
+        daysInWeek.forEach(function(it){ byDow[it.dow] = it.day; });
+        var weekAcc = 1, weekHasData = false;
+        for (var dow = 1; dow <= 5; dow++) {
+            var dayNum = byDow[dow];
+            if (!dayNum) {
+                html += '<div style="min-height:54px"></div>';
+                continue;
+            }
+            var dStr = year + '-' + String(monthIdx + 1).padStart(2,'0') + '-' + String(dayNum).padStart(2,'0');
+            var entry = dailyPnL[dStr];
+            if (entry) {
+                weekAcc *= (1 + entry.pct / 100);
+                weekHasData = true;
+                var cellColor = entry.pct > 0 ? 'var(--red)' : entry.pct < 0 ? 'var(--green)' : 'var(--muted)';
+                var bg = entry.pct > 0 ? 'rgba(239,68,68,0.08)' : entry.pct < 0 ? 'rgba(22,163,74,0.08)' : 'transparent';
+                html += '<div style="background:' + bg + ';border-radius:6px;padding:4px 6px;text-align:center;min-height:54px;display:flex;flex-direction:column;justify-content:center">' +
+                    '<div style="font-size:11px;color:var(--muted)">' + dayNum + '</div>' +
+                    '<div style="font-size:13px;font-weight:600;color:' + cellColor + '">' + (entry.pct > 0 ? '+' : '') + entry.pct.toFixed(2) + '%</div>' +
+                    '</div>';
+            } else {
+                html += '<div style="border:1px dashed var(--border);border-radius:6px;padding:4px 6px;text-align:center;min-height:54px;color:var(--muted);font-size:11px">' + dayNum + '</div>';
+            }
+        }
+        if (weekHasData) {
+            var wPct = (weekAcc - 1) * 100;
+            var wColor = wPct > 0 ? 'var(--red)' : wPct < 0 ? 'var(--green)' : 'var(--muted)';
+            html += '<div style="background:rgba(0,0,0,0.03);border-radius:6px;padding:4px 6px;text-align:center;min-height:54px;display:flex;flex-direction:column;justify-content:center">' +
+                '<div style="font-size:12px;font-weight:600;color:' + wColor + '">' + (wPct > 0 ? '+' : '') + wPct.toFixed(2) + '%</div>' +
+                '</div>';
+        } else {
+            html += '<div style="min-height:54px"></div>';
+        }
+    });
+    html += '</div>';
+    html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">※ 個股漲跌：純價格 % 漲跌（不含股數）。週／月為複利累加。</div>';
+    return html;
 }
 
 function updateHoldingClassification(stockId, field, value) {
