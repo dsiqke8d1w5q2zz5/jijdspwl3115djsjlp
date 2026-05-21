@@ -5491,7 +5491,7 @@ function renderStockHoldings() {
         // 庫存股：代號／名稱點擊看走勢，右側鉛筆編輯持股
         html += '<td class="stock-name-cell">' +
             '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px">' +
-                '<span style="cursor:pointer;flex:1;min-width:0" onclick="showStockPriceTrend(\'' + esc(h.id) + '\')" title="點看價格走勢">' +
+                '<span style="cursor:pointer;flex:1;min-width:0" onclick="showStockCalendarModal(\'' + esc(h.id) + '\')" title="點看漲跌日曆">' +
                     '<b style="text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;color:var(--lux-navy)">' + esc(h.id) + '</b>' +
                     '<br><span class="stock-name-sub" style="font-size:12px;color:var(--muted);font-weight:400">' + esc(h.name) + '</span>' +
                 '</span>' +
@@ -6145,11 +6145,11 @@ function renderStockAnalysis() {
     html += '</div>';
 
     // 上排：左 = 圓餅圖（可下拉切換）、右 = 報酬日曆
-    var pieMode = _pieMode || 'asset';
+    // 之前選過 holding 但已移除時，自動回到 asset
+    var pieMode = _pieMode === 'holding' ? 'asset' : (_pieMode || 'asset');
     var pieOpts = [
         { v: 'asset',   l: '股債配置' },
-        { v: 'region',  l: '區域分布' },
-        { v: 'holding', l: '持股佔比' }
+        { v: 'region',  l: '區域分布' }
     ];
     var pieSel = pieOpts.map(function(o){
         return '<option value="' + o.v + '"' + (o.v === pieMode ? ' selected' : '') + '>' + o.l + '</option>';
@@ -6199,7 +6199,7 @@ function renderStockAnalysis() {
               (pnlPct !== null ? ' <span style="color:' + pnlColor + ';font-size:11px">(' + (pnlPct >= 0 ? '+' : '') + pnlPct.toFixed(1) + '%)</span>' : '')
             : '<span style="color:var(--muted);font-size:11px" title="無現價">—</span>';
         html += '<tr>';
-        html += '<td><b style="cursor:pointer;color:var(--lux-navy);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px" onclick="showStockPriceTrend(\'' + esc(r.h.id) + '\')" title="點開看價格走勢">' + esc(r.h.id) + '</b> <span style="color:var(--muted);font-size:12px">' + esc(r.h.name || '') + '</span></td>';
+        html += '<td><b style="cursor:pointer;color:var(--lux-navy);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px" onclick="showStockCalendarModal(\'' + esc(r.h.id) + '\')" title="點開看漲跌日曆">' + esc(r.h.id) + '</b> <span style="color:var(--muted);font-size:12px">' + esc(r.h.name || '') + '</span></td>';
         html += '<td style="text-align:center"><select onchange="updateHoldingClassification(\'' + esc(r.h.id) + '\', \'assetType\', this.value)" style="padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px">' +
             '<option value="stock"' + (r.assetType==='stock'?' selected':'') + '>股票</option>' +
             '<option value="bond"' + (r.assetType==='bond'?' selected':'') + '>債券</option></select></td>';
@@ -6454,33 +6454,6 @@ function drawStockAnalysisCharts() {
         data   = regionPairs.map(function(p){ return p.value; });
         var palette = ['#1a3a5c', '#c8a45a', '#dc2626', '#16a34a', '#7c3aed', '#0891b2', '#ea580c'];
         colors = labels.map(function(_, i){ return palette[i % palette.length]; });
-    } else if (_pieMode === 'holding') {
-        var holdingRows = stockData.holdings.map(function(h) {
-            var p = stockData.prices[h.id];
-            var price = p ? p.price : null;
-            var market = price ? h.shares * price : h.shares * h.cost;
-            return { id: h.id, name: h.name || h.id, market: Math.round(market), assetType: getHoldingAssetType(h) };
-        }).filter(function(r){ return r.market > 0; });
-        holdingRows.sort(function(a, b){ return b.market - a.market; });
-        var TOP_N = 3;
-        var topRows = holdingRows.slice(0, TOP_N);
-        var restRows = holdingRows.slice(TOP_N);
-        labels = topRows.map(function(r){ return r.name + '（' + r.id + '）'; });
-        data = topRows.map(function(r){ return r.market; });
-        if (restRows.length > 0) {
-            var restSum = restRows.reduce(function(s, r){ return s + r.market; }, 0);
-            labels.push('其他（' + restRows.length + ' 檔）');
-            data.push(restSum);
-        }
-        var BOND_COLOR = '#1a3a5c';
-        var REST_COLOR = '#8C8578';
-        var stockPalette = ['#c8a45a', '#dc2626', '#16a34a', '#7c3aed', '#0891b2', '#ea580c', '#db2777'];
-        var stockColorIdx = 0;
-        colors = topRows.map(function(r){
-            if (r.assetType === 'bond') return BOND_COLOR;
-            return stockPalette[(stockColorIdx++) % stockPalette.length];
-        });
-        if (restRows.length > 0) colors.push(REST_COLOR);
     } else {
         // asset (預設)
         labels = ['股票', '債券'];
