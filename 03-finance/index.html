@@ -7283,7 +7283,7 @@ function showCalDaySnapshot(dateStr) {
             else if (!r.priceExact) priceCell = r.price.toFixed(2) + ' <span style="font-size:10px;color:var(--muted)">(' + r.priceDate + ')</span>';
             else priceCell = r.price.toFixed(2);
             html += '<tr>' +
-                '<td><b>' + esc(r.id) + '</b><br><span style="font-size:12px;color:var(--muted)">' + esc(r.name) + '</span></td>' +
+                '<td><b>' + esc(r.id) + '</b> <span style="font-size:12px;color:var(--muted)">' + esc(r.name) + '</span></td>' +
                 '<td style="text-align:right">' + fmt(r.shares) + '</td>' +
                 '<td style="text-align:right">' + priceCell + '</td>' +
                 '<td style="text-align:right;font-weight:600">' + (r.market !== null ? fmt(r.market) : '-') + '</td>' +
