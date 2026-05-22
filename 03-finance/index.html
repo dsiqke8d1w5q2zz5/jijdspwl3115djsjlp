@@ -6810,7 +6810,7 @@ function renderReturnCalendar() {
     });
     html += '</div>';
 
-    html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">※ 上方數字為「未實現」（純股價漲跌）含 %；下方「已實現」為當日賣出實際入袋。今日格：昨天就有的部位×今日漲跌 + 今天買進的部位×(現價−買價)。台灣時間 14:00 後自動寫入當日快照。</div>';
+    html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">※ 上方數字為「未實現」（純股價漲跌）含 %；下方「已實現」為當日賣出實際入袋。今日格：昨天就有的部位×今日漲跌 + 今天買進的部位×(現價−買價)。台灣時間 14:05 自動抓盤後最終價並寫入當日快照。</div>';
     html += '</div>';
 
     // ── 已實現損益紀錄（賣出明細） ──
@@ -7870,15 +7870,26 @@ function stopStockAutoRefresh() {
     if (_stockAutoTimer) { clearInterval(_stockAutoTimer); _stockAutoTimer = null; }
 }
 
-// 排定下一個「台灣時間 14:00」執行 maybeAutoSnapshot，跑完再排下一次
-// 用意：使用者長時間掛網頁不關、不切分頁，仍能每天記一筆市值/股價/淨資產快照
+// 排定下一個「台灣時間 14:05」執行：先抓一次盤後最終價，再寫當日快照
+// 用 14:05 是給 Yahoo 5 分鐘清算緩衝；自動更新本身在 13:30 就停了
 function scheduleDailySnapshot() {
     var tw = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
-    var next = new Date(tw.getFullYear(), tw.getMonth(), tw.getDate(), 14, 0, 0);
-    if (next <= tw) next.setDate(next.getDate() + 1); // 今天 14:00 已過 → 明天 14:00
+    var next = new Date(tw.getFullYear(), tw.getMonth(), tw.getDate(), 14, 5, 0);
+    if (next <= tw) next.setDate(next.getDate() + 1); // 今天 14:05 已過 → 明天 14:05
     var delay = next.getTime() - tw.getTime();
     setTimeout(function() {
-        try { maybeAutoSnapshot(); } catch(e) { console.error('[scheduleDailySnapshot]', e); }
+        try {
+            // 先抓一次盤後最終價（不論是不是工作日，maybeAutoSnapshot 自己會擋週末）
+            if (stockData && stockData.holdings && stockData.holdings.length > 0) {
+                refreshPrices(true);
+                // 抓完再寫快照（refreshPrices 是非同步，等 1.5 秒讓它跑完）
+                setTimeout(function(){
+                    try { maybeAutoSnapshot(); } catch(e) { console.error('[scheduleDailySnapshot snapshot]', e); }
+                }, 1500);
+            } else {
+                maybeAutoSnapshot();
+            }
+        } catch(e) { console.error('[scheduleDailySnapshot]', e); }
         scheduleDailySnapshot(); // 排下一次
     }, delay);
 }
@@ -8026,8 +8037,9 @@ function snapshotPortfolioMarket() {
     var tw = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
     var weekday = tw.getDay(); // 0=日, 6=六
     if (weekday === 0 || weekday === 6) return; // 週末不寫
-    var afterClose = tw.getHours() >= 14;
-    if (!afterClose) return; // 14:00 前不寫
+    // 14:05 後才寫（給 Yahoo 5 分鐘清算緩衝，避免拿到非最終價）
+    var afterClose = (tw.getHours() > 14) || (tw.getHours() === 14 && tw.getMinutes() >= 5);
+    if (!afterClose) return;
     var tradeDate = tw.getFullYear() + '-' +
         String(tw.getMonth()+1).padStart(2,'0') + '-' +
         String(tw.getDate()).padStart(2,'0');
@@ -8067,7 +8079,8 @@ function snapshotStockPrices(today) {
     var tw = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
     var weekday = tw.getDay();
     if (weekday === 0 || weekday === 6) return;
-    var afterClose = tw.getHours() >= 14;
+    // 14:05 後才寫（給 Yahoo 5 分鐘清算緩衝）
+    var afterClose = (tw.getHours() > 14) || (tw.getHours() === 14 && tw.getMinutes() >= 5);
     if (!afterClose) return;
     var tradeDate = tw.getFullYear() + '-' +
         String(tw.getMonth()+1).padStart(2,'0') + '-' +
