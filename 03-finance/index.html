@@ -7399,7 +7399,7 @@ function _renderStockCalModalTabs() {
         return '<button type="button" onclick="switchStockCalTab(\'' + key + '\')" style="' + style + '">' + label +
             (badge ? '<span style="margin-left:6px;font-size:11px;color:var(--muted)">' + badge + '</span>' : '') + '</button>';
     }
-    tabsBox.innerHTML = _tab('calendar', '漲跌日曆') + _tab('trades', '交易紀錄', tradeCount > 0 ? tradeCount : '') + _tab('trend', '走勢');
+    tabsBox.innerHTML = _tab('calendar', '漲跌日曆') + _tab('trend', '走勢') + _tab('trades', '交易紀錄', tradeCount > 0 ? tradeCount : '');
 }
 
 function switchStockCalTab(tab) {
