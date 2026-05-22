@@ -7223,6 +7223,19 @@ function showCalDaySnapshot(dateStr) {
         var market = price !== null ? shares * price : null;
         var costBasis = (h && typeof h.cost === 'number') ? shares * h.cost : null;
         var pl = (market !== null && costBasis !== null) ? market - costBasis : null;
+        // 當日損益：用 priceHistory 找該日的前一筆價格，計算當日漲跌 × 股數
+        var dayPL = null;
+        var arr = (stockData.priceHistory && stockData.priceHistory[id]) || [];
+        if (arr.length >= 2 && pInfo && pInfo.exact) {
+            // 找該日之前最近一筆
+            var prevEntry = null;
+            for (var i = arr.length - 1; i >= 0; i--) {
+                if (arr[i].date < dateStr) { prevEntry = arr[i]; break; }
+            }
+            if (prevEntry && typeof prevEntry.price === 'number' && typeof pInfo.price === 'number') {
+                dayPL = shares * (pInfo.price - prevEntry.price);
+            }
+        }
         rows.push({
             id: id,
             name: h.name || id,
@@ -7232,7 +7245,8 @@ function showCalDaySnapshot(dateStr) {
             priceExact: pInfo ? pInfo.exact : false,
             market: market,
             costBasis: costBasis,
-            pl: pl
+            pl: pl,
+            dayPL: dayPL
         });
     });
     // 排序：市值大到小
@@ -7242,11 +7256,12 @@ function showCalDaySnapshot(dateStr) {
     var todayTrades = (stockData.trades || []).filter(function(t){ return t.date === dateStr; });
 
     // 總計
-    var totalMarket = 0, totalCost = 0, totalPL = 0;
+    var totalMarket = 0, totalCost = 0, totalPL = 0, totalDayPL = 0, hasDayPL = false;
     rows.forEach(function(r){
         if (r.market !== null) totalMarket += r.market;
         if (r.costBasis !== null) totalCost += r.costBasis;
         if (r.pl !== null) totalPL += r.pl;
+        if (r.dayPL !== null) { totalDayPL += r.dayPL; hasDayPL = true; }
     });
 
     var ov = document.createElement('div');
@@ -7267,6 +7282,9 @@ function showCalDaySnapshot(dateStr) {
             var rate = totalPL / totalCost * 100;
             html += '<span style="color:var(--muted)">報酬率 <b style="color:' + plColor + '">' + signPrefix(rate) + rate.toFixed(2) + '%</b></span>';
         }
+        if (hasDayPL) {
+            html += '<span style="color:var(--muted)">當日損益 <b style="color:' + signColor(totalDayPL) + '">' + signedFmt(totalDayPL) + '</b></span>';
+        }
         html += '</div>';
 
         // 持股表
@@ -7274,18 +7292,23 @@ function showCalDaySnapshot(dateStr) {
             '<th style="text-align:left">代號／名稱</th>' +
             '<th style="text-align:right">股數</th>' +
             '<th style="text-align:right">當日股價</th>' +
+            '<th style="text-align:right">當日損益</th>' +
             '<th style="text-align:right">市值</th>' +
-            '<th style="text-align:right">損益</th>' +
+            '<th style="text-align:right">總損益</th>' +
             '</tr></thead><tbody>';
         rows.forEach(function(r){
             var priceCell;
             if (r.price === null) priceCell = '<span style="color:var(--muted)">無紀錄</span>';
             else if (!r.priceExact) priceCell = r.price.toFixed(2) + ' <span style="font-size:10px;color:var(--muted)">(' + r.priceDate + ')</span>';
             else priceCell = r.price.toFixed(2);
+            var dayPLCell = (r.dayPL !== null) ?
+                '<span style="color:' + signColor(r.dayPL) + ';font-weight:600">' + signedFmt(r.dayPL) + '</span>' :
+                '<span style="color:var(--muted)">-</span>';
             html += '<tr>' +
                 '<td><b>' + esc(r.id) + '</b> <span style="font-size:12px;color:var(--muted)">' + esc(r.name) + '</span></td>' +
                 '<td style="text-align:right">' + fmt(r.shares) + '</td>' +
                 '<td style="text-align:right">' + priceCell + '</td>' +
+                '<td style="text-align:right">' + dayPLCell + '</td>' +
                 '<td style="text-align:right;font-weight:600">' + (r.market !== null ? fmt(r.market) : '-') + '</td>' +
                 '<td style="text-align:right;font-weight:600;color:' + signColor(r.pl) + '">' + (r.pl !== null ? signedFmt(r.pl) : '-') + '</td>' +
                 '</tr>';
