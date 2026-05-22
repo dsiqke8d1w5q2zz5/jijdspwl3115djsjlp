@@ -594,6 +594,11 @@ tfoot td:first-child { text-align: left; position: sticky; left: 0; background: 
     font-size: 12px;
     color: var(--muted);
 }
+.stock-refresh-bar .btn-drop-calc { margin-left: auto; }
+.holdings-table .pin-check { width: 16px; height: 16px; cursor: pointer; accent-color: var(--lux-gold); flex-shrink: 0; }
+.holdings-table tbody tr.row-pinned { background: rgba(212, 175, 55, 0.08); }
+.holdings-table tbody tr.row-dim { opacity: 0.35; }
+.holdings-table tbody tr.row-dim:hover { opacity: 0.7; }
 .btn-refresh {
     padding: 9px 18px;
     border: 1px solid var(--lux-gold);
@@ -969,7 +974,7 @@ th.sortable.sort-active .sort-arrow { color: var(--lux-gold); font-weight: 700; 
     .stock-sub-tabs { gap: 8px; }
     .stock-sub-tab { padding: 5px 0; text-align: center; min-width: 84px; }
     .stock-refresh-bar .btn-refresh { padding: 4px 16px; text-align: center; min-width: 84px; }
-    .stock-refresh-bar .last-update { flex-basis: auto; font-size: 11px; margin-left: auto; align-self: flex-end; }
+    .stock-refresh-bar .last-update { flex-basis: auto; font-size: 11px; align-self: center; }
     .last-update .lbl-full, .stock-summary-bar .lbl-full { display: none; }
     .last-update .lbl-short, .stock-summary-bar .lbl-short { display: inline; }
     /* 質押頁「＋ 新增質押」按鈕對齊子分頁大小、上下間距縮小 */
@@ -4284,7 +4289,7 @@ function deleteHolding(idx) {
 function showDropCalcModal() {
     var ov = document.createElement('div');
     ov.className = 'overlay';
-    ov.innerHTML = '<div class="modal" style="width:420px;max-width:94vw">' +
+    ov.innerHTML = '<div class="modal" style="width:480px;max-width:94vw">' +
         '<h3 style="margin:0 0 12px"><i class="ti ti-calculator"></i> 跌幅分批試算</h3>' +
         '<label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">基準股價</label>' +
         '<input type="number" id="drop-calc-input" placeholder="輸入股價，例如 100" step="0.01" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:16px">' +
@@ -4298,28 +4303,53 @@ function showDropCalcModal() {
     var input = document.getElementById('drop-calc-input');
     var resBox = document.getElementById('drop-calc-result');
     input.focus();
+    // 台股檔位：依股價區間決定最小跳動單位
+    function _tickSize(price) {
+        if (price < 10) return 0.01;
+        if (price < 50) return 0.05;
+        if (price < 100) return 0.1;
+        if (price < 500) return 0.5;
+        if (price < 1000) return 1;
+        return 5;
+    }
+    // 向下取到最接近的合法檔位
+    function _floorToTick(price) {
+        var t = _tickSize(price);
+        // 用整數運算避免浮點誤差（t 最小 0.01，乘 100 後為整數）
+        var scale = 100;
+        return Math.floor((price * scale) / (t * scale)) * t;
+    }
+    function _fmtTick(price) {
+        return price < 10 ? price.toFixed(2) : (price < 100 ? price.toFixed(2) : price.toFixed(1));
+    }
     input.addEventListener('input', function(){
         var p = parseFloat(input.value);
         if (!p || p <= 0) { resBox.innerHTML = ''; return; }
         var html = '<table style="width:100%;border-collapse:collapse;font-size:14px">' +
             '<thead><tr style="background:rgba(0,0,0,0.03);color:var(--muted);font-size:12px">' +
-                '<th style="text-align:left;padding:6px 10px">跌幅</th>' +
-                '<th style="text-align:right;padding:6px 10px">股價</th>' +
-                '<th style="text-align:right;padding:6px 10px">差額</th>' +
+                '<th style="text-align:left;padding:6px 8px">跌幅</th>' +
+                '<th style="text-align:right;padding:6px 8px">股價</th>' +
+                '<th style="text-align:right;padding:6px 8px">可下單價</th>' +
+                '<th style="text-align:right;padding:6px 8px">差額</th>' +
             '</tr></thead><tbody>';
         for (var i = 1; i <= 10; i++) {
             var price = p * (1 - i / 100);
-            var diff = price - p;
+            var orderPrice = _floorToTick(price);
+            var diff = orderPrice - p;
             var isLimit = (i === 10);
             var bg = isLimit ? 'background:var(--green);color:#fff;font-weight:700' : '';
             var subColor = isLimit ? '#fff' : 'var(--green)';
             html += '<tr style="border-top:1px solid var(--border);' + bg + '">' +
-                '<td style="padding:8px 10px">-' + i + '%' + (isLimit ? '（跌停）' : '') + '</td>' +
-                '<td style="text-align:right;padding:8px 10px;font-weight:600">' + price.toFixed(2) + '</td>' +
-                '<td style="text-align:right;padding:8px 10px;color:' + subColor + '">' + diff.toFixed(2) + '</td>' +
+                '<td style="padding:8px 8px">-' + i + '%' + (isLimit ? '（跌停）' : '') + '</td>' +
+                '<td style="text-align:right;padding:8px 8px;color:' + (isLimit ? '#fff' : 'var(--muted)') + '">' + price.toFixed(2) + '</td>' +
+                '<td style="text-align:right;padding:8px 8px;font-weight:700">' + _fmtTick(orderPrice) + '</td>' +
+                '<td style="text-align:right;padding:8px 8px;color:' + subColor + '">' + diff.toFixed(2) + '</td>' +
                 '</tr>';
         }
-        html += '</tbody></table>';
+        html += '</tbody></table>' +
+            '<div style="margin-top:8px;font-size:11px;color:var(--muted);line-height:1.5">' +
+            '檔位：<10 元 0.01／<50 元 0.05／<100 元 0.1／<500 元 0.5／<1000 元 1／≥1000 元 5。可下單價皆向下取整。' +
+            '</div>';
         resBox.innerHTML = html;
     });
 }
@@ -5393,8 +5423,8 @@ function renderStockHoldings() {
     html += '<button class="btn-refresh" id="btn-fetch-price" onclick="refreshPrices()"><i class="ti ti-antenna-bars-5"></i> <span class="lbl-full">更新股價</span><span class="lbl-short">更新</span></button>';
     html += '<button class="btn-refresh" style="background:linear-gradient(135deg,#0f2847 0%,#1a3a5c 50%,#2a5a8c 100%);border:1px solid var(--lux-gold)" onclick="toggleStockColumn()"><i class="ti ti-columns"></i> 欄位</button>';
     html += '<button class="btn-refresh" onclick="manageHoldings()"><i class="ti ti-list-details"></i> <span class="lbl-full">管理持股</span><span class="lbl-short">管理</span></button>';
-    html += '<button class="btn-refresh" onclick="showDropCalcModal()" title="跌幅分批試算"><i class="ti ti-calculator"></i> <span class="lbl-full">跌幅試算</span><span class="lbl-short">試算</span></button>';
     html += '<span class="last-update" style="color:var(--muted)">' + _stockPriceFreshnessLabel() + '</span>';
+    html += '<button class="btn-refresh btn-drop-calc" onclick="showDropCalcModal()" title="跌幅分批試算"><i class="ti ti-calculator"></i> <span class="lbl-full">跌幅試算</span><span class="lbl-short">試算</span></button>';
     html += '</div>';
 
     // 券商過濾後的持股清單（保留原 stockData.holdings 索引以便 editHolding 對應）
@@ -5512,6 +5542,16 @@ function renderStockHoldings() {
         });
     }
 
+    // 勾選的股票置頂（穩定排序，保留先前排序順序）
+    var pinned = window._stockPinned || {};
+    var hasPinned = false;
+    for (var _k in pinned) { if (pinned[_k]) { hasPinned = true; break; } }
+    if (hasPinned) {
+        rows = rows.map(function(r, i){ return { r:r, i:i, pin: pinned[r.h.id] ? 1 : 0 }; })
+                   .sort(function(a, b){ return (b.pin - a.pin) || (a.i - b.i); })
+                   .map(function(x){ return x.r; });
+    }
+
     html += '<div class="table-wrap"><table class="stock-table holdings-table"><thead><tr>';
     html += '<th class="col-holdings-name" style="cursor:pointer;user-select:none" onclick="toggleStockSort(\'name\')">庫存股' + _sArr('name') + '</th>';
     if (vis.dayPL !== false) html += '<th class="col-daypl" style="cursor:pointer;user-select:none" onclick="toggleStockSort(\'dayPL\')">今日損益' + _sArr('dayPL') + '</th>';
@@ -5529,10 +5569,13 @@ function renderStockHoldings() {
 
     rows.forEach(function(r) {
         var h = r.h;
-        html += '<tr>';
-        // 庫存股：代號／名稱點擊看走勢，右側鉛筆編輯持股
+        var isPinned = !!(window._stockPinned && window._stockPinned[h.id]);
+        var trCls = isPinned ? 'row-pinned' : (hasPinned ? 'row-dim' : '');
+        html += '<tr' + (trCls ? ' class="' + trCls + '"' : '') + '>';
+        // 庫存股：左側 checkbox 置頂、中間代號／名稱點擊看走勢、右側鉛筆編輯
         html += '<td class="stock-name-cell">' +
             '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px">' +
+                '<input type="checkbox" class="pin-check"' + (isPinned ? ' checked' : '') + ' onclick="event.stopPropagation();toggleStockPin(\'' + esc(h.id) + '\')" title="勾選置頂、用於兩檔以上比較">' +
                 '<span style="cursor:pointer;flex:1;min-width:0" onclick="showStockCalendarModal(\'' + esc(h.id) + '\')" title="點看漲跌日曆">' +
                     '<b style="text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;color:var(--lux-navy)">' + esc(h.id) + '</b>' +
                     '<br><span class="stock-name-sub" style="font-size:12px;color:var(--muted);font-weight:400">' + esc(h.name) + '</span>' +
@@ -5613,6 +5656,14 @@ function toggleStockSort(col) {
         ss.col = col;
         ss.dir = 'desc';
     }
+    renderStock();
+}
+
+// 切換持股置頂（用於兩檔以上比較）。狀態僅本次瀏覽有效，重整即清空。
+function toggleStockPin(stockId) {
+    if (!window._stockPinned) window._stockPinned = {};
+    if (window._stockPinned[stockId]) delete window._stockPinned[stockId];
+    else window._stockPinned[stockId] = true;
     renderStock();
 }
 
