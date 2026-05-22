@@ -214,6 +214,31 @@ body {
 .pos { color: var(--green); }
 .neg { color: var(--red); }
 
+/* ── 日曆格子（報酬日曆、個股漲跌日曆共用） ── */
+.cal-cell {
+    border-radius: 6px;
+    padding: 4px 4px;
+    text-align: center;
+    min-height: 64px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1px;
+}
+.cal-cell--sm { min-height: 54px; gap: 0; padding: 4px 6px; }
+.cal-cell-empty { background: transparent; padding: 0; }
+.cal-cell-blank { border: 1px dashed var(--border); color: var(--muted); font-size: 11px; align-items: center; }
+.cal-cell-today { border: 1.5px solid var(--lux-gold); }
+.cal-cell-today-empty { background: rgba(212,175,55,0.05); color: var(--muted); font-size: 11px; align-items: center; }
+.cal-cell-today-label { color: var(--lux-gold); font-weight: 600; }
+.cal-cell-week-total { background: rgba(0,0,0,0.03); }
+.cal-cell-day { font-size: 11px; color: var(--muted); }
+.cal-cell-main { font-size: 12px; font-weight: 600; }
+.cal-cell--sm .cal-cell-main { font-size: 13px; }
+.cal-cell-sub { font-size: 11px; font-weight: 600; }
+.cal-cell-pct { font-size: 10px; font-weight: 500; }
+
+
 .table-wrap {
     background: var(--card);
     border: 1px solid var(--border);
@@ -2198,7 +2223,7 @@ function calcDailyRate(section, cat, years, viewYear) {
     function _dayOfY(year, mm, dd) {
         var d = new Date(year, mm - 1, dd);
         var start = new Date(year, 0, 0);
-        return Math.floor((d - start) / 86400000);
+        return Math.floor((d - start) / MS_PER_DAY);
     }
     function _daysInYear(year) {
         return ((year % 4 === 0 && year % 100 !== 0) || year % 400 === 0) ? 366 : 365;
@@ -2258,6 +2283,46 @@ function fmtRate(r) {
 function rateClass(r) {
     if (r === null || r === undefined) return '';
     return r >= 0 ? 'pos' : 'neg';
+}
+
+// ── 共用 helper：正負號顏色／前綴／格式化 ──
+// signColor(+5) → 'var(--red)'；signColor(-3) → 'var(--green)'；0 → 'var(--muted)'
+function signColor(v) {
+    if (v == null || isNaN(v) || v === 0) return 'var(--muted)';
+    return v > 0 ? 'var(--red)' : 'var(--green)';
+}
+// signPrefix(+5) → '+'；signPrefix(-3) → ''（負號 toLocaleString 會帶上）
+function signPrefix(v) {
+    return (v != null && v > 0) ? '+' : '';
+}
+// signedFmt(+5000) → '+5,000'；signedFmt(-3000) → '-3,000'；0 → '0'
+function signedFmt(v) {
+    if (v == null || isNaN(v)) return '-';
+    return signPrefix(v) + fmt(v);
+}
+
+const MS_PER_DAY = 86400000;
+
+// ── 月曆網格 helper ──
+// 把一個 Date 對應到「該週週一」的 key（用來分組）
+function _isoWeekKey(d) {
+    var dow = d.getDay() || 7; // 1=一 ... 7=日
+    var mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - (dow - 1));
+    return mon.getFullYear() + '-' + (mon.getMonth()+1) + '-' + mon.getDate();
+}
+// 把某月所有平日依週分組，回傳 [{ wk, byDow: {1:day, 2:day, ...} }, ...]
+function _groupMonthByWeeks(year, monthIdx) {
+    var lastDay = new Date(year, monthIdx + 1, 0).getDate();
+    var weeks = {}, weekOrder = [];
+    for (var day = 1; day <= lastDay; day++) {
+        var d = new Date(year, monthIdx, day);
+        var dow = d.getDay();
+        if (dow === 0 || dow === 6) continue; // 跳過六日
+        var wk = _isoWeekKey(d);
+        if (!weeks[wk]) { weeks[wk] = { wk: wk, byDow: {} }; weekOrder.push(wk); }
+        weeks[wk].byDow[dow] = day;
+    }
+    return weekOrder.map(function(k){ return weeks[k]; });
 }
 
 // ── 切換頁籤 ──
@@ -4452,7 +4517,7 @@ function sellHolding(idx) {
         saveStockData();
         ov.remove();
         renderStock();
-        toast('已賣出 ' + sh + ' 股，' + (realized >= 0 ? '獲利 +' : '虧損 ') + fmt(Math.round(realized)));
+        toast('已賣出 ' + sh + ' 股，' + (realized >= 0 ? '獲利 +' : '虧損 ') + fmt(realized));
     };
 }
 
@@ -4469,7 +4534,7 @@ function buyHolding(idx) {
     ov.className = 'overlay';
     var title = isNew ? '買入（新增持股）' : '加碼 - ' + esc(h.name) + '（' + esc(h.id) + '）';
     var curInfo = h
-        ? '<div style="font-size:12px;color:var(--muted);margin-bottom:8px">目前持有 <b style="color:var(--text)">' + fmt(h.shares) + '</b> 股，均價 <b style="color:var(--text)">' + h.cost.toFixed(2) + '</b>，總成本 <b style="color:var(--text)">' + fmt(Math.round(h.shares * h.cost)) + '</b></div>'
+        ? '<div style="font-size:12px;color:var(--muted);margin-bottom:8px">目前持有 <b style="color:var(--text)">' + fmt(h.shares) + '</b> 股，均價 <b style="color:var(--text)">' + h.cost.toFixed(2) + '</b>，總成本 <b style="color:var(--text)">' + fmt(h.shares * h.cost) + '</b></div>'
         : '';
 
     var html = '<div class="modal"><h3>' + title + '</h3>' + curInfo;
@@ -4514,7 +4579,7 @@ function buyHolding(idx) {
                 $preview.innerHTML = '本次均價 <b style="color:var(--text)">' + thisAvg.toFixed(2) + '</b><br>' +
                     '新總股數 <b style="color:var(--text)">' + fmt(newShares) + '</b>　新均價 <b style="color:var(--text)">' + newCost.toFixed(2) + '</b>';
             } else {
-                $preview.innerHTML = '本次金額 <b style="color:var(--text)">' + fmt(Math.round(amount)) + '</b>　均價 <b style="color:var(--text)">' + thisAvg.toFixed(2) + '</b>';
+                $preview.innerHTML = '本次金額 <b style="color:var(--text)">' + fmt(amount) + '</b>　均價 <b style="color:var(--text)">' + thisAvg.toFixed(2) + '</b>';
             }
         } else {
             $preview.innerHTML = '<span style="color:var(--muted)">填股數與成本以預覽結果</span>';
@@ -4607,7 +4672,7 @@ function buyHolding(idx) {
         saveStockData();
         ov.remove();
         renderStock();
-        toast((isNew ? '已新增' : '已加碼') + ' ' + fmt(sh) + ' 股，成本 ' + fmt(Math.round(amount)));
+        toast((isNew ? '已新增' : '已加碼') + ' ' + fmt(sh) + ' 股，成本 ' + fmt(amount));
     };
 }
 
@@ -5000,7 +5065,7 @@ function checkDividendAlerts() {
         var parts = norm.split('-');
         if (parts.length !== 3) return null;
         var d = new Date(+parts[0], +parts[1] - 1, +parts[2]);
-        return Math.round((d - today) / 86400000);
+        return Math.round((d - today) / MS_PER_DAY);
     }
     // 把任何日期字串歸一成 YYYY-MM-DD（兼容 2026-4-20 / 2026/4/20 / 2026-04-20T00:00 等格式）
     function _normDate(s) {
@@ -5257,7 +5322,7 @@ function showDividendAlertModal() {
         var estCash = shares * (a.cash || 0);
         var estStockShares = shares * (a.stockDiv || 0);
         var estParts = [];
-        if (estCash > 0) estParts.push('現金 $' + fmt(Math.round(estCash)));
+        if (estCash > 0) estParts.push('現金 $' + fmt(estCash));
         if (estStockShares > 0) estParts.push('股票 ' + estStockShares.toFixed(2) + ' 股');
         var estText = estParts.length ? estParts.join('　') : '—';
 
@@ -6482,7 +6547,7 @@ function getStockPriceChange(stockId, daysBack) {
     var latest = arr[arr.length - 1];
     var target = new Date();
     target.setDate(target.getDate() - daysBack);
-    var tStr = target.getFullYear() + '-' + String(target.getMonth()+1).padStart(2,'0') + '-' + String(target.getDate()).padStart(2,'0');
+    var tStr = _localDateStr(target);
     var startEntry = null;
     for (var i = arr.length - 1; i >= 0; i--) {
         if (arr[i].date <= tStr) { startEntry = arr[i]; break; }
@@ -6643,14 +6708,10 @@ function renderReturnCalendar() {
     html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">';
     html += '<div style="font-size:14px;font-weight:600">報酬日曆</div>';
     html += '<select id="return-cal-month" onchange="onReturnCalendarMonthChange(this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--card)">' + monthOpts + '</select>';
-    var totalColor = monthTotal > 0 ? 'var(--red)' : monthTotal < 0 ? 'var(--green)' : 'var(--muted)';
-    var unrColor = monthUnrealized > 0 ? 'var(--red)' : monthUnrealized < 0 ? 'var(--green)' : 'var(--muted)';
-    var rzColor  = monthRealized > 0 ? 'var(--red)' : monthRealized < 0 ? 'var(--green)' : 'var(--muted)';
     html += '<span style="margin-left:auto;display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;align-items:baseline">';
-    // 月合計：未實現 + 已實現
-    html += '<span>月損益 <b style="color:' + totalColor + ';font-size:16px">' + (monthTotal > 0 ? '+' : '') + fmt(Math.round(monthTotal)) + '</b></span>';
-    html += '<span style="font-size:12px">未實現 <b style="color:' + unrColor + '">' + (monthUnrealized > 0 ? '+' : '') + fmt(Math.round(monthUnrealized)) + '</b></span>';
-    html += '<span style="font-size:12px">已實現 <b style="color:' + rzColor + '">' + (monthRealized > 0 ? '+' : '') + fmt(Math.round(monthRealized)) + '</b></span>';
+    html += '<span>月損益 <b style="color:' + signColor(monthTotal) + ';font-size:16px">' + signedFmt(monthTotal) + '</b></span>';
+    html += '<span style="font-size:12px">未實現 <b style="color:' + signColor(monthUnrealized) + '">' + signedFmt(monthUnrealized) + '</b></span>';
+    html += '<span style="font-size:12px">已實現 <b style="color:' + signColor(monthRealized) + '">' + signedFmt(monthRealized) + '</b></span>';
     html += '</span>';
     html += '</div>';
 
@@ -6665,27 +6726,12 @@ function renderReturnCalendar() {
     });
     html += '<div style="text-align:center;color:var(--muted);font-size:11px;padding:4px 0">週損益</div>';
 
-    // 把當月所有「平日」依「ISO 週」分組（週一起算）
-    function _isoWeekKey(d) {
-        // 找該日所屬週的「週一」當作 key
-        var dow = d.getDay() || 7; // 1=一 ... 7=日
-        var mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - (dow - 1));
-        return mon.getFullYear() + '-' + (mon.getMonth()+1) + '-' + mon.getDate();
-    }
-    var weeks = {};
-    var weekOrder = [];
-    for (var day = 1; day <= lastDay; day++) {
-        var d = new Date(year, monthIdx, day);
-        var dow = d.getDay();
-        if (dow === 0 || dow === 6) continue; // 跳過六日
-        var wk = _isoWeekKey(d);
-        if (!weeks[wk]) { weeks[wk] = []; weekOrder.push(wk); }
-        weeks[wk].push({ day: day, dow: dow });
-    }
+    // 用全域 helper 分組
+    var weekList = _groupMonthByWeeks(year, monthIdx);
 
     // 判斷今天（台灣時區、YYYY-MM-DD）
     var twNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
-    var todayStr = twNow.getFullYear() + '-' + String(twNow.getMonth()+1).padStart(2,'0') + '-' + String(twNow.getDate()).padStart(2,'0');
+    var todayStr = _localDateStr(twNow);
 
     // 今日「未實現損益」公式：
     //   Σ(昨天就有的部位 × 今日漲跌) + Σ(今天買入的部位 × (收盤價 − 買入價))
@@ -6734,41 +6780,42 @@ function renderReturnCalendar() {
         if (t.type === 'sell' && t.date === todayStr) todayLiveRz += (t.realized || 0);
     });
 
-    weekOrder.forEach(function(wk) {
-        var daysInWeek = weeks[wk];
-        var byDow = {}; // 1=一 ... 5=五
-        daysInWeek.forEach(function(it){ byDow[it.dow] = it.day; });
+    // 計算當前週的 cell bg 色（依正/負/0）
+    function _cellBg(v) {
+        return v > 0 ? 'rgba(239,68,68,0.08)' : v < 0 ? 'rgba(22,163,74,0.08)' : 'transparent';
+    }
+
+    weekList.forEach(function(week) {
+        var byDow = week.byDow;
         var weekUnr = 0, weekRz = 0, weekHasData = false;
         for (var dow = 1; dow <= 5; dow++) {
             var dayNum = byDow[dow];
             if (!dayNum) {
-                html += '<div style="min-height:64px"></div>';
+                html += '<div class="cal-cell cal-cell-empty"></div>';
                 continue;
             }
             var dStr = year + '-' + String(monthIdx + 1).padStart(2,'0') + '-' + String(dayNum).padStart(2,'0');
             var isToday = (dStr === todayStr);
             var entry = dailyPnL[dStr];
 
-            // 今日特殊處理：用即時算法（Σ股數×漲跌）+ trades 當日 realized
+            // 今日特殊處理：用即時算法
             if (isToday) {
                 var hasLiveData = (todayLiveUnr !== 0 || todayLiveRz !== 0);
                 if (hasLiveData) {
                     weekUnr += todayLiveUnr;
                     weekRz  += todayLiveRz;
                     weekHasData = true;
-                    var tBg = (todayLiveUnr + todayLiveRz) > 0 ? 'rgba(239,68,68,0.08)' : (todayLiveUnr + todayLiveRz) < 0 ? 'rgba(22,163,74,0.08)' : 'transparent';
-                    var tUnrC = todayLiveUnr > 0 ? 'var(--red)' : todayLiveUnr < 0 ? 'var(--green)' : 'var(--muted)';
-                    var tRzC  = todayLiveRz > 0 ? 'var(--red)' : todayLiveRz < 0 ? 'var(--green)' : 'var(--muted)';
+                    var tBg = _cellBg(todayLiveUnr + todayLiveRz);
                     var pctNum = todayLivePct.toFixed(2);
-                    html += '<div style="border:1.5px solid var(--lux-gold);background:' + tBg + ';border-radius:6px;padding:4px 4px;text-align:center;min-height:64px;display:flex;flex-direction:column;justify-content:center;gap:1px">' +
-                        '<div style="font-size:11px;color:var(--muted)">' + dayNum + ' <span style="color:var(--lux-gold);font-weight:600">今</span></div>' +
-                        '<div style="font-size:12px;font-weight:600;color:' + tUnrC + '" title="昨天就有的部位×今日漲跌 + 今天買進的部位×(現價−買價)">' + (todayLiveUnr > 0 ? '+' : '') + fmt(Math.round(todayLiveUnr)) + ' <span style="font-size:10px;font-weight:500">(' + pctNum + '%)</span></div>';
+                    html += '<div class="cal-cell cal-cell-today" style="background:' + tBg + '">' +
+                        '<div class="cal-cell-day">' + dayNum + ' <span class="cal-cell-today-label">今</span></div>' +
+                        '<div class="cal-cell-main" style="color:' + signColor(todayLiveUnr) + '" title="昨天就有的部位×今日漲跌 + 今天買進的部位×(現價−買價)">' + signedFmt(todayLiveUnr) + ' <span class="cal-cell-pct">(' + pctNum + '%)</span></div>';
                     if (todayLiveRz !== 0) {
-                        html += '<div style="font-size:11px;font-weight:600;color:' + tRzC + '" title="今日已實現損益">已實現 ' + (todayLiveRz > 0 ? '+' : '') + fmt(Math.round(todayLiveRz)) + '</div>';
+                        html += '<div class="cal-cell-sub" style="color:' + signColor(todayLiveRz) + '" title="今日已實現損益">已實現 ' + signedFmt(todayLiveRz) + '</div>';
                     }
                     html += '</div>';
                 } else {
-                    html += '<div style="border:1.5px solid var(--lux-gold);background:rgba(212,175,55,0.05);border-radius:6px;padding:4px 6px;text-align:center;min-height:64px;color:var(--muted);font-size:11px;display:flex;align-items:center;justify-content:center">' + dayNum + ' <span style="color:var(--lux-gold);font-weight:600">今</span></div>';
+                    html += '<div class="cal-cell cal-cell-today cal-cell-today-empty">' + dayNum + ' <span class="cal-cell-today-label">今</span></div>';
                 }
                 continue;
             }
@@ -6777,35 +6824,29 @@ function renderReturnCalendar() {
                 weekUnr += entry.unrealized;
                 weekRz  += entry.realized;
                 weekHasData = true;
-                var total = entry.unrealized + entry.realized;
-                var bg = total > 0 ? 'rgba(239,68,68,0.08)' : total < 0 ? 'rgba(22,163,74,0.08)' : 'transparent';
-                var unrC = entry.unrealized > 0 ? 'var(--red)' : entry.unrealized < 0 ? 'var(--green)' : 'var(--muted)';
-                var rzC  = entry.realized > 0 ? 'var(--red)' : entry.realized < 0 ? 'var(--green)' : 'var(--muted)';
+                var bg = _cellBg(entry.unrealized + entry.realized);
                 var pctNumStr = entry.pct.toFixed(2);
-                html += '<div style="background:' + bg + ';border-radius:6px;padding:4px 4px;text-align:center;min-height:64px;display:flex;flex-direction:column;justify-content:center;gap:1px">' +
-                    '<div style="font-size:11px;color:var(--muted)">' + dayNum + '</div>';
-                // 未實現：「+1,111 (1.00%)」格式
+                html += '<div class="cal-cell" style="background:' + bg + '">' +
+                    '<div class="cal-cell-day">' + dayNum + '</div>';
                 if (entry.unrealized !== 0 || entry.realized === 0) {
-                    html += '<div style="font-size:12px;font-weight:600;color:' + unrC + '" title="未實現（純股價漲跌）">' + (entry.unrealized > 0 ? '+' : '') + fmt(Math.round(entry.unrealized)) + ' <span style="font-size:10px;font-weight:500">(' + pctNumStr + '%)</span></div>';
+                    html += '<div class="cal-cell-main" style="color:' + signColor(entry.unrealized) + '" title="未實現（純股價漲跌）">' + signedFmt(entry.unrealized) + ' <span class="cal-cell-pct">(' + pctNumStr + '%)</span></div>';
                 }
-                // 已實現
                 if (entry.realized !== 0) {
-                    html += '<div style="font-size:11px;font-weight:600;color:' + rzC + '" title="已實現損益">已實現 ' + (entry.realized > 0 ? '+' : '') + fmt(Math.round(entry.realized)) + '</div>';
+                    html += '<div class="cal-cell-sub" style="color:' + signColor(entry.realized) + '" title="已實現損益">已實現 ' + signedFmt(entry.realized) + '</div>';
                 }
                 html += '</div>';
             } else {
-                html += '<div style="border:1px dashed var(--border);border-radius:6px;padding:4px 6px;text-align:center;min-height:64px;color:var(--muted);font-size:11px;display:flex;align-items:center;justify-content:center">' + dayNum + '</div>';
+                html += '<div class="cal-cell cal-cell-blank">' + dayNum + '</div>';
             }
         }
         // 週合計（未實現 + 已實現 合計）
         if (weekHasData) {
             var weekTotal = weekUnr + weekRz;
-            var wColor = weekTotal > 0 ? 'var(--red)' : weekTotal < 0 ? 'var(--green)' : 'var(--muted)';
-            html += '<div style="background:rgba(0,0,0,0.03);border-radius:6px;padding:4px 6px;text-align:center;min-height:64px;display:flex;flex-direction:column;justify-content:center">' +
-                '<div style="font-size:12px;font-weight:600;color:' + wColor + '">' + (weekTotal > 0 ? '+' : '') + fmt(Math.round(weekTotal)) + '</div>' +
+            html += '<div class="cal-cell cal-cell-week-total">' +
+                '<div class="cal-cell-main" style="color:' + signColor(weekTotal) + '">' + signedFmt(weekTotal) + '</div>' +
                 '</div>';
         } else {
-            html += '<div style="min-height:64px"></div>';
+            html += '<div class="cal-cell cal-cell-empty"></div>';
         }
     });
     html += '</div>';
@@ -6866,8 +6907,8 @@ function _buildRealizedTradesHtml() {
     var tCls = totalAll >= 0 ? 'pos' : 'neg';
     var yCls = yearTotal >= 0 ? 'pos' : 'neg';
     html += '<div style="display:flex;gap:16px;font-size:13px;margin-bottom:10px;padding:8px 10px;background:var(--bg);border-radius:6px;flex-wrap:wrap">';
-    html += '<span style="color:var(--muted)">累積 <b class="' + tCls + '">' + (totalAll >= 0 ? '+' : '') + fmt(Math.round(totalAll)) + '</b></span>';
-    html += '<span style="color:var(--muted)">' + thisYear + ' 年 <b class="' + yCls + '">' + (yearTotal >= 0 ? '+' : '') + fmt(Math.round(yearTotal)) + '</b></span>';
+    html += '<span style="color:var(--muted)">累積 <b class="' + tCls + '">' + (totalAll >= 0 ? '+' : '') + fmt(totalAll) + '</b></span>';
+    html += '<span style="color:var(--muted)">' + thisYear + ' 年 <b class="' + yCls + '">' + (yearTotal >= 0 ? '+' : '') + fmt(yearTotal) + '</b></span>';
     html += '</div>';
 
     if (filtered.length === 0) {
@@ -6892,9 +6933,9 @@ function _buildRealizedTradesHtml() {
             '<div style="min-width:90px;color:var(--muted);font-size:12px">' + esc(t.date || '') + '</div>' +
             '<div style="flex:1;min-width:0">' +
                 '<div><b style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;color:var(--lux-navy)" onclick="showStockCalendarModal(\'' + esc(t.id || '') + '\');setTimeout(function(){switchStockCalTab(\'trades\')},0)" title="看此股完整交易歷程">' + esc(t.id || '') + '</b> <span style="color:var(--muted);font-size:12px">' + esc(t.name || '') + '</span></div>' +
-                '<div style="font-size:11px;color:var(--muted)">' + fmt(t.shares || 0) + ' 股 × ' + perShare + '　成本 ' + (t.cost != null ? fmt(Math.round(t.cost)) : '-') + '</div>' +
+                '<div style="font-size:11px;color:var(--muted)">' + fmt(t.shares || 0) + ' 股 × ' + perShare + '　成本 ' + (t.cost != null ? fmt(t.cost) : '-') + '</div>' +
             '</div>' +
-            '<div class="' + cls + '" style="font-weight:600;text-align:right;min-width:80px">' + (realized >= 0 ? '+' : '') + fmt(Math.round(realized)) + '</div>' +
+            '<div class="' + cls + '" style="font-weight:600;text-align:right;min-width:80px">' + (realized >= 0 ? '+' : '') + fmt(realized) + '</div>' +
             '<button onclick="editTrade(' + x.i + ')" title="編輯" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;font-size:13px"><i class="ti ti-pencil"></i></button>' +
             '<button onclick="deleteTrade(' + x.i + ')" title="刪除" style="background:none;border:none;cursor:pointer;color:var(--red);padding:4px;font-size:13px"><i class="ti ti-trash"></i></button>' +
         '</div>';
@@ -6991,7 +7032,7 @@ function editTrade(idx) {
         if (isBuy) {
             var $n = document.getElementById('et-pl-num');
             if (sh > 0 && !isNaN(pr) && pr > 0) {
-                $n.textContent = fmt(Math.round(sh * pr));
+                $n.textContent = fmt(sh * pr);
                 $n.style.color = 'var(--text)';
             } else {
                 $n.textContent = '-';
@@ -7047,9 +7088,9 @@ function deleteTrade(idx) {
     var summary;
     if (isBuy) {
         var amt = (typeof t.amount === 'number') ? t.amount : (t.shares || 0) * (t.price || 0);
-        summary = '買 ' + esc(t.id || '') + ' ' + esc(t.date || '') + '　金額 ' + fmt(Math.round(amt));
+        summary = '買 ' + esc(t.id || '') + ' ' + esc(t.date || '') + '　金額 ' + fmt(amt);
     } else {
-        summary = '賣 ' + esc(t.id || '') + ' ' + esc(t.date || '') + '　' + (t.realized >= 0 ? '+' : '') + fmt(Math.round(t.realized || 0));
+        summary = '賣 ' + esc(t.id || '') + ' ' + esc(t.date || '') + '　' + (t.realized >= 0 ? '+' : '') + fmt(t.realized || 0);
     }
     showConfirm2('確定刪除這筆交易紀錄？\n\n' + summary + '\n\n注意：刪除不會回算持股均價／股數，如果是誤刪請手動「編輯持股」修正。', function() {
         stockData.trades.splice(idx, 1);
@@ -7218,9 +7259,16 @@ function _stockModalNavBar(stockId, kind) {
     return html;
 }
 
-// 點持股 → 直接開單股 modal 並切到「走勢」分頁
-function showStockPriceTrend(stockId) {
-    showStockCalendarModal(stockId, 'trend');
+// 走勢預設區間：最後一日往前 30 天（不早於 priceHistory 首筆）
+function _trendDefaultRange(arr) {
+    if (!arr || arr.length < 1) return null;
+    var first = arr[0], last = arr[arr.length - 1];
+    var lp = last.date.split('-');
+    var d = new Date(+lp[0], +lp[1]-1, +lp[2]);
+    d.setDate(d.getDate() - 30);
+    var startDate = _localDateStr(d);
+    if (startDate < first.date) startDate = first.date;
+    return { start: startDate, end: last.date, first: first, last: last };
 }
 
 // 走勢分頁的 HTML
@@ -7233,13 +7281,8 @@ function _buildStockTrendHtml(stockId) {
     }
     var first = arr[0], last = arr[arr.length - 1];
     var totalChg = first.price > 0 ? (last.price - first.price) / first.price * 100 : 0;
-    var defaultStartDate = (function(){
-        var lp = last.date.split('-');
-        var d = new Date(+lp[0], +lp[1]-1, +lp[2]);
-        d.setDate(d.getDate() - 30);
-        return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-    })();
-    if (defaultStartDate < first.date) defaultStartDate = first.date;
+    var rng = _trendDefaultRange(arr);
+    var defaultStartDate = rng.start;
     var c7   = getStockPriceChange(stockId, 7);
     var c30  = getStockPriceChange(stockId, 30);
     var c90  = getStockPriceChange(stockId, 90);
@@ -7268,14 +7311,9 @@ function _buildStockTrendHtml(stockId) {
 function _initStockTrendChart(stockId) {
     var arr = (stockData.priceHistory && stockData.priceHistory[stockId]) || [];
     if (arr.length < 2) return;
-    var first = arr[0], last = arr[arr.length - 1];
-    var defaultStartDate = (function(){
-        var lp = last.date.split('-');
-        var d = new Date(+lp[0], +lp[1]-1, +lp[2]);
-        d.setDate(d.getDate() - 30);
-        return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-    })();
-    if (defaultStartDate < first.date) defaultStartDate = first.date;
+    var rng = _trendDefaultRange(arr);
+    var first = rng.first, last = rng.last;
+    var defaultStartDate = rng.start;
     var defaultSubset = arr.filter(function(e){ return e.date >= defaultStartDate; });
 
     var canvas = document.getElementById('stock-price-trend-chart');
@@ -7477,7 +7515,7 @@ function _buildStockTradesHtml(stockId) {
     if (sellCount > 0) {
         var rCls = totalRealized >= 0 ? 'pos' : 'neg';
         html += '<div style="display:flex;gap:14px;font-size:13px;margin-bottom:10px;padding:8px 10px;background:var(--bg);border-radius:6px;flex-wrap:wrap">';
-        html += '<span style="color:var(--muted)">累積已實現 <b class="' + rCls + '">' + (totalRealized >= 0 ? '+' : '') + fmt(Math.round(totalRealized)) + '</b></span>';
+        html += '<span style="color:var(--muted)">累積已實現 <b class="' + rCls + '">' + (totalRealized >= 0 ? '+' : '') + fmt(totalRealized) + '</b></span>';
         html += '<span style="color:var(--muted)">買 <b style="color:var(--text)">' + buyCount + '</b> 筆／賣 <b style="color:var(--text)">' + sellCount + '</b> 筆</span>';
         html += '</div>';
     } else {
@@ -7494,11 +7532,11 @@ function _buildStockTradesHtml(stockId) {
         var rightCell;
         if (isBuy) {
             var amount = (typeof t.amount === 'number') ? t.amount : (t.shares || 0) * (t.price || 0);
-            rightCell = '<div style="font-weight:600;text-align:right;min-width:80px;color:var(--muted)">' + fmt(Math.round(amount)) + '</div>';
+            rightCell = '<div style="font-weight:600;text-align:right;min-width:80px;color:var(--muted)">' + fmt(amount) + '</div>';
         } else {
             var realized = t.realized || 0;
             var cls = realized >= 0 ? 'pos' : 'neg';
-            rightCell = '<div class="' + cls + '" style="font-weight:600;text-align:right;min-width:80px">' + (realized >= 0 ? '+' : '') + fmt(Math.round(realized)) + '</div>';
+            rightCell = '<div class="' + cls + '" style="font-weight:600;text-align:right;min-width:80px">' + (realized >= 0 ? '+' : '') + fmt(realized) + '</div>';
         }
         html += '<div style="display:flex;align-items:center;gap:8px;padding:8px 6px;border-bottom:1px solid var(--border);font-size:13px">' +
             '<div style="flex:1;min-width:0">' +
@@ -7534,7 +7572,7 @@ function _buildStockCalendarHtml(stockId, curMonthOpt) {
         var twNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
         var dCheck = new Date(twNow.getFullYear(), twNow.getMonth(), twNow.getDate());
         while (dCheck.getDay() === 0 || dCheck.getDay() === 6) dCheck.setDate(dCheck.getDate() - 1);
-        var todayKey = dCheck.getFullYear() + '-' + String(dCheck.getMonth()+1).padStart(2,'0') + '-' + String(dCheck.getDate()).padStart(2,'0');
+        var todayKey = _localDateStr(dCheck);
         if (!dailyPnL[todayKey] && prevClose > 0) {
             dailyPnL[todayKey] = { pct: todayP.change / prevClose * 100 };
             allMonthSet[todayKey.slice(0,7)] = true;
@@ -7558,14 +7596,12 @@ function _buildStockCalendarHtml(stockId, curMonthOpt) {
 
     var html = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">';
     html += '<select onchange="onStockCalMonthChange(this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--card)">' + monthOpts + '</select>';
-    var monthColor = monthPct > 0 ? 'var(--red)' : monthPct < 0 ? 'var(--green)' : 'var(--muted)';
-    html += '<span style="margin-left:auto;font-size:13px;color:var(--muted)">當月合計 <b style="color:' + monthColor + ';font-size:16px">' + (monthPct > 0 ? '+' : '') + monthPct.toFixed(2) + '%</b></span>';
+    html += '<span style="margin-left:auto;font-size:13px;color:var(--muted)">當月合計 <b style="color:' + signColor(monthPct) + ';font-size:16px">' + signPrefix(monthPct) + monthPct.toFixed(2) + '%</b></span>';
     html += '</div>';
 
     // 日曆網格（一~五 + 週合計）
     var ym = curMonth.split('-');
     var year = parseInt(ym[0], 10), monthIdx = parseInt(ym[1], 10) - 1;
-    var lastDay = new Date(year, monthIdx + 1, 0).getDate();
 
     html += '<div style="display:grid;grid-template-columns:repeat(5,1fr) 70px;gap:4px;font-size:12px">';
     ['一','二','三','四','五'].forEach(function(w){
@@ -7573,29 +7609,17 @@ function _buildStockCalendarHtml(stockId, curMonthOpt) {
     });
     html += '<div style="text-align:center;color:var(--muted);font-size:11px;padding:4px 0">週合計</div>';
 
-    function _isoWeekKey(d) {
-        var dow = d.getDay() || 7;
-        var mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - (dow - 1));
-        return mon.getFullYear() + '-' + (mon.getMonth()+1) + '-' + mon.getDate();
+    function _pctBg(p) {
+        return p > 0 ? 'rgba(239,68,68,0.08)' : p < 0 ? 'rgba(22,163,74,0.08)' : 'transparent';
     }
-    var weeks = {}, weekOrder = [];
-    for (var day = 1; day <= lastDay; day++) {
-        var d = new Date(year, monthIdx, day);
-        var dow = d.getDay();
-        if (dow === 0 || dow === 6) continue;
-        var wk = _isoWeekKey(d);
-        if (!weeks[wk]) { weeks[wk] = []; weekOrder.push(wk); }
-        weeks[wk].push({ day: day, dow: dow });
-    }
-    weekOrder.forEach(function(wk) {
-        var daysInWeek = weeks[wk];
-        var byDow = {};
-        daysInWeek.forEach(function(it){ byDow[it.dow] = it.day; });
+    var weekList2 = _groupMonthByWeeks(year, monthIdx);
+    weekList2.forEach(function(week) {
+        var byDow = week.byDow;
         var weekAcc = 1, weekHasData = false;
         for (var dow = 1; dow <= 5; dow++) {
             var dayNum = byDow[dow];
             if (!dayNum) {
-                html += '<div style="min-height:54px"></div>';
+                html += '<div class="cal-cell cal-cell-empty cal-cell--sm"></div>';
                 continue;
             }
             var dStr = year + '-' + String(monthIdx + 1).padStart(2,'0') + '-' + String(dayNum).padStart(2,'0');
@@ -7603,24 +7627,21 @@ function _buildStockCalendarHtml(stockId, curMonthOpt) {
             if (entry) {
                 weekAcc *= (1 + entry.pct / 100);
                 weekHasData = true;
-                var cellColor = entry.pct > 0 ? 'var(--red)' : entry.pct < 0 ? 'var(--green)' : 'var(--muted)';
-                var bg = entry.pct > 0 ? 'rgba(239,68,68,0.08)' : entry.pct < 0 ? 'rgba(22,163,74,0.08)' : 'transparent';
-                html += '<div style="background:' + bg + ';border-radius:6px;padding:4px 6px;text-align:center;min-height:54px;display:flex;flex-direction:column;justify-content:center">' +
-                    '<div style="font-size:11px;color:var(--muted)">' + dayNum + '</div>' +
-                    '<div style="font-size:13px;font-weight:600;color:' + cellColor + '">' + (entry.pct > 0 ? '+' : '') + entry.pct.toFixed(2) + '%</div>' +
+                html += '<div class="cal-cell cal-cell--sm" style="background:' + _pctBg(entry.pct) + '">' +
+                    '<div class="cal-cell-day">' + dayNum + '</div>' +
+                    '<div class="cal-cell-main" style="color:' + signColor(entry.pct) + '">' + signPrefix(entry.pct) + entry.pct.toFixed(2) + '%</div>' +
                     '</div>';
             } else {
-                html += '<div style="border:1px dashed var(--border);border-radius:6px;padding:4px 6px;text-align:center;min-height:54px;color:var(--muted);font-size:11px">' + dayNum + '</div>';
+                html += '<div class="cal-cell cal-cell-blank cal-cell--sm">' + dayNum + '</div>';
             }
         }
         if (weekHasData) {
             var wPct = (weekAcc - 1) * 100;
-            var wColor = wPct > 0 ? 'var(--red)' : wPct < 0 ? 'var(--green)' : 'var(--muted)';
-            html += '<div style="background:rgba(0,0,0,0.03);border-radius:6px;padding:4px 6px;text-align:center;min-height:54px;display:flex;flex-direction:column;justify-content:center">' +
-                '<div style="font-size:12px;font-weight:600;color:' + wColor + '">' + (wPct > 0 ? '+' : '') + wPct.toFixed(2) + '%</div>' +
+            html += '<div class="cal-cell cal-cell-week-total cal-cell--sm">' +
+                '<div class="cal-cell-main" style="color:' + signColor(wPct) + '">' + signPrefix(wPct) + wPct.toFixed(2) + '%</div>' +
                 '</div>';
         } else {
-            html += '<div style="min-height:54px"></div>';
+            html += '<div class="cal-cell cal-cell-empty cal-cell--sm"></div>';
         }
     });
     html += '</div>';
@@ -7702,11 +7723,11 @@ function _renderPledgeSection(rows) {
             html += '<div class="stock-summary-bar pledge-summary-bar" style="display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;padding:6px 12px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border-left:3px solid var(--lux-navy)">';
             html += '<span style="color:var(--lux-navy);font-weight:700">' + esc(b) + '</span>';
             html += '<span class="ps-total" style="color:var(--muted)">借款 <b style="color:var(--red)">' + fmt(g.amount) + '</b></span>';
-            html += '<span class="ps-collateral" style="color:var(--muted)">現值 <b style="color:var(--lux-gold)">' + fmt(Math.round(g.collateral)) + '</b></span>';
+            html += '<span class="ps-collateral" style="color:var(--muted)">現值 <b style="color:var(--lux-gold)">' + fmt(g.collateral) + '</b></span>';
             html += '<span class="ps-ratio" style="color:var(--muted)">維持率 <b style="color:' + (r >= 130 || g.amount === 0 ? 'var(--green)' : 'var(--red)') + '">' + (g.amount === 0 ? '∞' : r.toFixed(1) + '%') + '</b></span>';
             html += '<span class="ps-spacer" style="flex:1"></span>';
-            html += '<span class="ps-daily" style="color:var(--muted)">日息 <b style="color:var(--red)">' + fmt(Math.round(g.daily)) + '</b></span>';
-            html += '<span class="ps-monthly" style="color:var(--muted)">月息 <b style="color:var(--red)">' + fmt(Math.round(monthly)) + '</b></span>';
+            html += '<span class="ps-daily" style="color:var(--muted)">日息 <b style="color:var(--red)">' + fmt(g.daily) + '</b></span>';
+            html += '<span class="ps-monthly" style="color:var(--muted)">月息 <b style="color:var(--red)">' + fmt(monthly) + '</b></span>';
             html += '</div>';
         });
         html += '</div>';
@@ -7715,11 +7736,11 @@ function _renderPledgeSection(rows) {
     html += '<div class="stock-summary-bar pledge-summary-bar" style="display:flex;flex-wrap:wrap;gap:6px 20px;font-size:14px;margin-bottom:10px;padding:8px 12px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow)">';
     html += (brokerNames.length > 1 ? '<span style="color:var(--lux-navy);font-weight:700">合計</span>' : '');
     html += '<span class="ps-total" style="color:var(--muted)">總借款 <b style="color:var(--red)">' + fmt(totalAmount) + '</b></span>';
-    html += '<span class="ps-collateral" style="color:var(--muted)">擔保現值 <b style="color:var(--lux-gold)">' + fmt(Math.round(totalCollateral)) + '</b></span>';
+    html += '<span class="ps-collateral" style="color:var(--muted)">擔保現值 <b style="color:var(--lux-gold)">' + fmt(totalCollateral) + '</b></span>';
     html += '<span class="ps-ratio" style="color:var(--muted)">維持率 <b style="color:' + (totalRatio >= 130 ? 'var(--green)' : 'var(--red)') + '">' + totalRatio.toFixed(1) + '%</b></span>';
     html += '<span class="ps-spacer" style="flex:1"></span>';
-    html += '<span class="pledge-interest pledge-interest-daily ps-daily" style="color:var(--muted)">日息 <b style="color:var(--red)">' + fmt(Math.round(totalDailyInterest)) + '</b></span>';
-    html += '<span class="pledge-interest ps-monthly" style="color:var(--muted)">月息 <b style="color:var(--red)">' + fmt(Math.round(totalMonthlyInterest)) + '</b></span>';
+    html += '<span class="pledge-interest pledge-interest-daily ps-daily" style="color:var(--muted)">日息 <b style="color:var(--red)">' + fmt(totalDailyInterest) + '</b></span>';
+    html += '<span class="pledge-interest ps-monthly" style="color:var(--muted)">月息 <b style="color:var(--red)">' + fmt(totalMonthlyInterest) + '</b></span>';
     html += '</div>';
 
     var today = new Date();
@@ -7729,7 +7750,7 @@ function _renderPledgeSection(rows) {
         if (!p.date) return;
         if (!p.amount || p.amount <= 0) return;
         var due = calcPledgeDue(p);
-        var daysLeft = Math.ceil((due - today) / 86400000);
+        var daysLeft = Math.ceil((due - today) / MS_PER_DAY);
         if (daysLeft <= 30) dueAlerts.push({ p: p, dueStr: _localDateStr(due), daysLeft: daysLeft });
     });
     if (dueAlerts.length > 0) {
@@ -7763,7 +7784,7 @@ function _renderPledgeSection(rows) {
         if (p.date) {
             var due = calcPledgeDue(p);
             dueStr = _localDateStr(due);
-            var daysLeft = Math.ceil((due - today) / 86400000);
+            var daysLeft = Math.ceil((due - today) / MS_PER_DAY);
             if (daysLeft <= 30) {
                 dueColor = 'color:#DC2626;font-weight:700';
                 dueDaysLabel = '<br><span style="font-size:11px">' +
@@ -7778,7 +7799,7 @@ function _renderPledgeSection(rows) {
         html += '<td>' + fmt(p.shares) + '</td>';
         html += '<td style="color:var(--red);font-weight:600">' + fmt(p.amount) + '</td>';
         html += '<td>' + (p.rate||0).toFixed(2) + '%</td>';
-        html += '<td style="font-weight:600">' + (collateral ? fmt(Math.round(collateral)) : '-') + '</td>';
+        html += '<td style="font-weight:600">' + (collateral ? fmt(collateral) : '-') + '</td>';
         html += '<td style="font-weight:700;color:' + ratioColor + '">' + (noDebt ? '∞' : (ratio ? ratio.toFixed(1) + '%' : '-')) + '</td>';
         html += '<td style="font-size:12px">' + esc(_toROCDate(p.date || '')) + '</td>';
         html += '<td style="font-size:12px;' + (noDebt ? '' : dueColor) + '">' + (noDebt ? '-' : _toROCDate(dueStr) + dueDaysLabel) + '</td>';
@@ -7909,7 +7930,7 @@ var _assetTrendChart = null;
 var _assetFxFetching = false;
 
 function _assetUid() { return 'a_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7); }
-function _todayStr() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function _todayStr() { return _localDateStr(new Date()); }
 
 function getFxRate(currency) {
     if (currency === 'TWD' || !currency) return 1;
@@ -8040,9 +8061,7 @@ function snapshotPortfolioMarket() {
     // 14:05 後才寫（給 Yahoo 5 分鐘清算緩衝，避免拿到非最終價）
     var afterClose = (tw.getHours() > 14) || (tw.getHours() === 14 && tw.getMinutes() >= 5);
     if (!afterClose) return;
-    var tradeDate = tw.getFullYear() + '-' +
-        String(tw.getMonth()+1).padStart(2,'0') + '-' +
-        String(tw.getDate()).padStart(2,'0');
+    var tradeDate = _localDateStr(tw);
 
     var total = 0;
     var hasAny = false;
@@ -8082,9 +8101,7 @@ function snapshotStockPrices(today) {
     // 14:05 後才寫（給 Yahoo 5 分鐘清算緩衝）
     var afterClose = (tw.getHours() > 14) || (tw.getHours() === 14 && tw.getMinutes() >= 5);
     if (!afterClose) return;
-    var tradeDate = tw.getFullYear() + '-' +
-        String(tw.getMonth()+1).padStart(2,'0') + '-' +
-        String(tw.getDate()).padStart(2,'0');
+    var tradeDate = _localDateStr(tw);
     var dirty = false;
     stockData.holdings.forEach(function(h) {
         var p = stockData.prices[h.id];
@@ -8179,7 +8196,7 @@ function renderAssets() {
         var p = String(rates.updatedAt).split('-');
         if (p.length !== 3) return true;
         var d = new Date(+p[0], +p[1]-1, +p[2]);
-        return (Date.now() - d.getTime()) > 3 * 86400000;
+        return (Date.now() - d.getTime()) > 3 * MS_PER_DAY;
     })();
     var staleBadge = rateStale
         ? '<span title="匯率已過期或未載入" style="background:#F59E0B;color:#fff;font-size:10px;padding:1px 6px;border-radius:4px;margin-right:4px;font-weight:700">匯率未更新</span>'
@@ -8353,7 +8370,7 @@ function getSectionChange(key, period) {
     else if (period === 'quarter'){ baseline = new Date(today); baseline.setMonth(baseline.getMonth() - 3); }
     else if (period === 'ytd')    { baseline = new Date(today.getFullYear(), 0, 1); baseline.setDate(baseline.getDate() - 1); }
     else return null;
-    var bStr = baseline.getFullYear() + '-' + String(baseline.getMonth()+1).padStart(2,'0') + '-' + String(baseline.getDate()).padStart(2,'0');
+    var bStr = _localDateStr(baseline);
     // 找 date <= bStr 的最後一筆
     var startVal = null;
     for (var i = hist.length - 1; i >= 0; i--) {
@@ -8433,7 +8450,7 @@ function _drawSectionTrendChart(key) {
     if (months > 0) {
         var cutoff = new Date();
         cutoff.setMonth(cutoff.getMonth() - months);
-        var cutoffStr = cutoff.getFullYear() + '-' + String(cutoff.getMonth()+1).padStart(2,'0') + '-' + String(cutoff.getDate()).padStart(2,'0');
+        var cutoffStr = _localDateStr(cutoff);
         filtered = hist.filter(function(h){ return h.date >= cutoffStr; });
     }
     // 按鈕 active
