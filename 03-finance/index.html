@@ -711,6 +711,7 @@ tfoot td:first-child { text-align: left; position: sticky; left: 0; background: 
     .analysis-summary .as-stock { grid-row: 2; grid-column: 1; }
     .analysis-summary .as-bond  { grid-row: 2; grid-column: 2; }
     .analysis-summary .as-pnl   { grid-row: 3; grid-column: 1 / span 2; padding-top:6px; border-top:1px dashed var(--border); }
+    .analysis-grid { grid-template-columns: 1fr !important; }
 }
 .analysis-summary { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: baseline; }
 .analysis-summary .as-count { margin-left: auto; }
@@ -2088,6 +2089,88 @@ function _syncPassiveSourceToIncome(rocYear, source) {
     }
 }
 
+// 把 stockData.trades 的已實現損益同步到 DATA.income['投資'] / DATA.expense['投資虧損']
+// 規則：每筆 trade 依日期歸到民國年/月；正損益累加到投資、負損益的絕對值累加到投資虧損
+// 用 snapshot 記錄上次同步的值，這樣編輯/刪除 trade 後重新呼叫也會正確更新（差額同步）
+function _syncTradesToCashflow() {
+    if (!stockData || !Array.isArray(stockData.trades)) return;
+    var INCOME_CAT = '投資';
+    var EXPENSE_CAT = '投資虧損';
+
+    // 確保分類存在
+    function _ensureCat(section, name) {
+        var listKey = section === 'income' ? 'incomeCategories' : 'expenseCategories';
+        var bucket = section === 'income' ? DATA.income : DATA.expense;
+        var cats = DATA.settings[listKey] || [];
+        var hasCat = cats.some(function(c){ return (typeof c === 'string' ? c : c.name) === name; });
+        if (!hasCat) {
+            DATA.settings[listKey].push(name);
+            (DATA.settings.years || []).forEach(function(y){
+                if (!bucket[y]) bucket[y] = {};
+                if (bucket[y][name] === undefined) bucket[y][name] = _emptyMonths();
+            });
+        }
+    }
+
+    // 把每筆 trade 依年月加總
+    var byYM = {}; // { 'rocY-m': { income: 正損益總和, expense: 負損益絕對值總和 } }
+    stockData.trades.forEach(function(t){
+        if (t.type !== 'sell' || !t.date || typeof t.realized !== 'number') return;
+        var m = String(t.date).match(/^(\d{4})-(\d{2})-/);
+        if (!m) return;
+        var rocY = String(parseInt(m[1], 10) - 1911);
+        var mo = parseInt(m[2], 10);
+        var key = rocY + '-' + mo;
+        if (!byYM[key]) byYM[key] = { income: 0, expense: 0 };
+        if (t.realized >= 0) byYM[key].income += t.realized;
+        else byYM[key].expense += -t.realized;
+    });
+
+    // 同步並維護 snapshot
+    if (!stockData._tradesSyncSnapshot) stockData._tradesSyncSnapshot = {};
+    var snap = stockData._tradesSyncSnapshot;
+
+    // 收集所有需要處理的 key（含 snapshot 裡有但現在沒有的 → 代表那一格 trade 被刪光）
+    var allKeys = {};
+    Object.keys(byYM).forEach(function(k){ allKeys[k] = true; });
+    Object.keys(snap).forEach(function(k){ allKeys[k] = true; });
+
+    Object.keys(allKeys).forEach(function(key) {
+        var parts = key.split('-');
+        var rocY = parts[0], mo = parseInt(parts[1], 10);
+        var cur = byYM[key] || { income: 0, expense: 0 };
+        var prev = snap[key] || { income: 0, expense: 0 };
+        var dIncome = cur.income - prev.income;
+        var dExpense = cur.expense - prev.expense;
+        if (dIncome === 0 && dExpense === 0) return;
+
+        // 年份不在 settings.years 裡就跳過（避免新建奇怪年份）
+        var years = DATA.settings.years || [];
+        if (years.indexOf(rocY) < 0) return;
+
+        if (dIncome !== 0) {
+            _ensureCat('income', INCOME_CAT);
+            if (!DATA.income[rocY]) DATA.income[rocY] = {};
+            DATA.income[rocY][INCOME_CAT] = _ensureMonths(DATA.income[rocY][INCOME_CAT]);
+            var v = Number(DATA.income[rocY][INCOME_CAT][mo]) || 0;
+            var nv = Math.round(v + dIncome);
+            if (nv < 0) nv = 0;
+            DATA.income[rocY][INCOME_CAT][mo] = nv;
+        }
+        if (dExpense !== 0) {
+            _ensureCat('expense', EXPENSE_CAT);
+            if (!DATA.expense[rocY]) DATA.expense[rocY] = {};
+            DATA.expense[rocY][EXPENSE_CAT] = _ensureMonths(DATA.expense[rocY][EXPENSE_CAT]);
+            var ev = Number(DATA.expense[rocY][EXPENSE_CAT][mo]) || 0;
+            var nev = Math.round(ev + dExpense);
+            if (nev < 0) nev = 0;
+            DATA.expense[rocY][EXPENSE_CAT][mo] = nev;
+        }
+
+        snap[key] = { income: cur.income, expense: cur.expense };
+    });
+}
+
 function calcDailyRate(section, cat, years, viewYear) {
     var ys = years.slice().sort();
     var last = viewYear || ys[ys.length - 1];
@@ -3213,6 +3296,7 @@ function importData(e) {
                 if (!stockData.dividends) stockData.dividends = [];
                 if (!stockData.pledges) stockData.pledges = [];
                 if (!stockData.prices) stockData.prices = {};
+                if (!stockData.trades) stockData.trades = [];
                 delete stockData._loadFailed;
                 _healDataStructure();
                 saveData();
@@ -3408,6 +3492,7 @@ var STOCK_COLUMNS = [
     { key: 'dayPL',   label: '今日損益',            default: true },
     { key: 'price',   label: '股價（含漲跌幅）',     default: true },
     { key: 'pl',      label: '總損益（含報酬率）',   default: true },
+    { key: 'realized',label: '已實現損益',           default: true },
     { key: 'shares',  label: '股數（含質押／借券）', default: true },
     { key: 'cost',    label: '均價（含總成本）',     default: true },
     { key: 'market',  label: '市值（含佔比）',       default: true },
@@ -3478,7 +3563,7 @@ function loadStockData() {
     var raw = localStorage.getItem(STOCK_KEY);
     // 空值 → 初次使用，給預設值（不寫回、不覆蓋任何東西）
     if (!raw) {
-        stockData = { holdings: [], dividends: [], pledges: [], lastUpdate: null, prices: {} };
+        stockData = { holdings: [], dividends: [], pledges: [], lastUpdate: null, prices: {}, trades: [] };
         return;
     }
     // 有資料 → 嘗試解析
@@ -3499,7 +3584,7 @@ function loadStockData() {
                   '為了避免覆寫，台股功能將暫時顯示空白。', '<i class="ti ti-alert-triangle"></i> 資料讀取失敗');
         });
         // 給一個暫時的空資料，但標記為「未安全載入」，後續 save 會被阻擋
-        stockData = { holdings: [], dividends: [], pledges: [], lastUpdate: null, prices: {}, _loadFailed: true };
+        stockData = { holdings: [], dividends: [], pledges: [], lastUpdate: null, prices: {}, trades: [], _loadFailed: true };
         return;
     }
     stockData = parsed;
@@ -3507,6 +3592,7 @@ function loadStockData() {
     if (!stockData.dividends) stockData.dividends = [];
     if (!stockData.pledges) stockData.pledges = [];
     if (!stockData.prices) stockData.prices = {};
+    if (!stockData.trades) stockData.trades = [];
     // 自動修正舊格式日期 YYYYMMDD → YYYY-MM-DD
     function fixDate(s) {
         if (!s) return s;
@@ -3634,6 +3720,7 @@ function showRestoreDialog() {
                     if (!stockData.dividends) stockData.dividends = [];
                     if (!stockData.pledges) stockData.pledges = [];
                     if (!stockData.prices) stockData.prices = {};
+                    if (!stockData.trades) stockData.trades = [];
                     delete stockData._loadFailed;
                     saveStockData();
                     render();
@@ -4277,6 +4364,99 @@ function deleteHolding(idx) {
     });
 }
 
+// 賣出持股 modal：填股數、股價、日期、成本（預設帶入「賣出股數 × 目前均價」可改），即時算已實現損益
+function sellHolding(idx) {
+    var h = stockData.holdings[idx];
+    if (!h) return;
+    if (!h.shares || h.shares <= 0) {
+        toast('沒有可賣出的股數');
+        return;
+    }
+    var p = stockData.prices && stockData.prices[h.id];
+    var defaultPrice = (p && typeof p.price === 'number') ? p.price.toFixed(2) : '';
+    var today = new Date();
+    var todayStr = today.getFullYear() + '-' +
+        String(today.getMonth()+1).padStart(2,'0') + '-' +
+        String(today.getDate()).padStart(2,'0');
+    var defaultCost = Math.round(h.shares * h.cost);
+
+    var ov = document.createElement('div');
+    ov.className = 'overlay';
+    ov.innerHTML = '<div class="modal"><h3>賣出 - ' + esc(h.name) + '（' + esc(h.id) + '）</h3>' +
+        '<div style="font-size:12px;color:var(--muted);margin-bottom:8px">目前持有 <b style="color:var(--text)">' + fmt(h.shares) + '</b> 股，均價 <b style="color:var(--text)">' + h.cost.toFixed(2) + '</b></div>' +
+        '<label style="font-size:12px;color:var(--muted)">賣出股數</label>' +
+        '<input type="number" id="sell-shares" value="' + h.shares + '" min="1" max="' + h.shares + '" step="1">' +
+        '<label style="font-size:12px;color:var(--muted)">賣出股價</label>' +
+        '<input type="number" id="sell-price" value="' + defaultPrice + '" step="0.01" placeholder="例：50.5">' +
+        '<label style="font-size:12px;color:var(--muted)">賣出日期</label>' +
+        '<input type="date" id="sell-date" value="' + todayStr + '">' +
+        '<label style="font-size:12px;color:var(--muted)">成本（賣出部分對應的成本，可手動編輯）</label>' +
+        '<input type="number" id="sell-cost" value="' + defaultCost + '" step="1">' +
+        '<div id="sell-pl-preview" style="margin-top:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:13px;color:var(--muted)">已實現損益：<b id="sell-pl-num">-</b></div>' +
+        '<div class="modal-btns" style="margin-top:12px">' +
+            '<button onclick="this.closest(\'.overlay\').remove()">取消</button>' +
+            '<button class="btn-primary" id="sell-confirm">確認賣出</button>' +
+        '</div></div>';
+    document.body.appendChild(ov);
+
+    var $shares = document.getElementById('sell-shares');
+    var $price = document.getElementById('sell-price');
+    var $cost = document.getElementById('sell-cost');
+    var $plNum = document.getElementById('sell-pl-num');
+    var costEdited = false;
+    $cost.addEventListener('input', function(){ costEdited = true; updatePreview(); });
+    function updatePreview() {
+        var sh = parseInt($shares.value) || 0;
+        var pr = parseFloat($price.value);
+        // 成本未手動編輯時，自動跟著股數比例算
+        if (!costEdited) {
+            var autoCost = Math.round(sh * h.cost);
+            if (String(autoCost) !== $cost.value) $cost.value = autoCost;
+        }
+        var c = parseFloat($cost.value);
+        if (sh > 0 && !isNaN(pr) && !isNaN(c)) {
+            var realized = sh * pr - c;
+            $plNum.textContent = (realized >= 0 ? '+' : '') + fmt(Math.round(realized));
+            $plNum.style.color = realized >= 0 ? 'var(--red)' : 'var(--green)';
+        } else {
+            $plNum.textContent = '-';
+            $plNum.style.color = 'var(--muted)';
+        }
+    }
+    $shares.addEventListener('input', updatePreview);
+    $price.addEventListener('input', updatePreview);
+    updatePreview();
+
+    document.getElementById('sell-confirm').onclick = function() {
+        var sh = parseInt($shares.value) || 0;
+        var pr = parseFloat($price.value);
+        var c = parseFloat($cost.value);
+        var date = document.getElementById('sell-date').value || todayStr;
+        if (sh <= 0 || sh > h.shares) { toast('賣出股數錯誤'); return; }
+        if (isNaN(pr) || pr <= 0) { toast('請輸入賣出股價'); return; }
+        if (isNaN(c)) { toast('請輸入成本'); return; }
+        var realized = sh * pr - c;
+        if (!Array.isArray(stockData.trades)) stockData.trades = [];
+        stockData.trades.push({
+            date: date,
+            id: h.id,
+            name: h.name,
+            type: 'sell',
+            shares: sh,
+            price: pr,
+            cost: c,
+            realized: realized
+        });
+        h.shares -= sh;
+        // shares = 0 不刪除，靠渲染端隱藏；保留 cost 給未來統計
+        try { _syncTradesToCashflow(); saveData(true); } catch(e){ console.error('[syncTrades]', e); }
+        saveStockData();
+        ov.remove();
+        renderStock();
+        toast('已賣出 ' + sh + ' 股，' + (realized >= 0 ? '獲利 +' : '虧損 ') + fmt(Math.round(realized)));
+    };
+}
+
 // 跌幅分批試算 modal：輸入股價 → 列出 -1% ~ -10% 對應價
 function showDropCalcModal() {
     var ov = document.createElement('div');
@@ -4350,8 +4530,10 @@ function manageHoldings() {
     var ov = document.createElement('div');
     ov.className = 'overlay';
     // 取得依代號由小到大排序後的索引（保留原 index 給 deleteHolding 使用）
+    // 只顯示尚有持股的（shares > 0），已賣完的隱藏（trades 仍保留）
     var sorted = stockData.holdings
         .map(function(h, i){ return { h: h, i: i }; })
+        .filter(function(it){ return (it.h.shares || 0) > 0; })
         .sort(function(a, b){ return String(a.h.id || '').localeCompare(String(b.h.id || '')); });
     var rows = sorted.map(function(it) {
         var h = it.h, i = it.i;
@@ -5420,9 +5602,11 @@ function renderStockHoldings() {
     html += '</div>';
 
     // 券商過濾後的持股清單（保留原 stockData.holdings 索引以便 editHolding 對應）
-    var visibleHoldings = currentBroker
+    // 並過濾掉 shares <= 0 的持股（已賣完，但 trades 仍保留）
+    var visibleHoldings = (currentBroker
         ? stockData.holdings.filter(function(h){ return (h.broker || '') === currentBroker; })
-        : stockData.holdings;
+        : stockData.holdings
+    ).filter(function(h){ return (h.shares || 0) > 0; });
 
     // 計算總覽（用過濾後的範圍）
     var totalCost = 0, totalMarket = 0, todayPL = 0;
@@ -5436,6 +5620,12 @@ function renderStockHoldings() {
     });
     var totalPL = totalMarket - totalCost;
     var totalRate = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
+
+    // 累積已實現損益（全部 trades 加總，不分券商；之後可按券商過濾再優化）
+    var totalRealized = 0;
+    (stockData.trades || []).forEach(function(t){
+        if (t.type === 'sell' && typeof t.realized === 'number') totalRealized += t.realized;
+    });
 
     // 今年度股利
     var thisYear = new Date().getFullYear();
@@ -5452,6 +5642,9 @@ function renderStockHoldings() {
     html += '<span style="color:var(--muted)"><span class="lbl-full">損益</span><span class="lbl-short">累積損益</span> <b class="' + (totalPL>=0?'pos':'neg') + '">' + (totalPL>=0?'+':'') + fmt(totalPL) + ' (' + fmtRate(totalRate) + ')</b></span>';
     html += '<span style="color:var(--muted)">市值 <b style="color:var(--lux-gold)">' + fmt(totalMarket) + '</b></span>';
     html += '<span style="color:var(--muted)">今日損益 <b class="' + (todayPL>=0?'pos':'neg') + '">' + (todayPL>=0?'+':'') + fmt(todayPL) + '</b></span>';
+    if (totalRealized !== 0) {
+        html += '<span style="color:var(--muted)">已實現 <b class="' + (totalRealized>=0?'pos':'neg') + '">' + (totalRealized>=0?'+':'') + fmt(Math.round(totalRealized)) + '</b></span>';
+    }
     html += '<span class="year-dividend-cell" style="color:var(--muted)">今年股利 <b style="color:var(--lux-navy)">' + fmt(yearDividend) + '</b></span>';
     html += '</div>';
 
@@ -5475,6 +5668,14 @@ function renderStockHoldings() {
         return ' <span style="color:var(--lux-gold);font-size:11px">' + (ss.dir === 'desc' ? '▼' : '▲') + '</span>';
     }
 
+    // 每檔股票的累積已實現損益（從 trades 算）
+    var realizedById = {};
+    (stockData.trades || []).forEach(function(t){
+        if (t.type === 'sell' && t.id && typeof t.realized === 'number') {
+            realizedById[t.id] = (realizedById[t.id] || 0) + t.realized;
+        }
+    });
+
     // 每列預先計算（保留原索引讓 editHolding 仍能對應到 stockData.holdings）
     var rows = stockData.holdings.map(function(h, idx) {
         var p = stockData.prices[h.id];
@@ -5487,6 +5688,7 @@ function renderStockHoldings() {
         var rate = (pl !== null && cost > 0) ? (pl / cost) * 100 : null;
         var weight = totalMarket > 0 && market !== null ? (market / totalMarket) * 100 : null;
         var dayPL = change !== null ? h.shares * change : null;
+        var realized = realizedById[h.id] || 0;
         var pledgedShares = 0;
         var lentShares = 0;
         if (stockData.pledges) stockData.pledges.forEach(function(pp){
@@ -5499,12 +5701,14 @@ function renderStockHoldings() {
         var chg90d  = getStockPriceChange(h.id, 90);
         var chg180d = getStockPriceChange(h.id, 180);
         var chg365d = getStockPriceChange(h.id, 365);
-        return { h:h, idx:idx, curPrice:curPrice, change:change, changePct:changePct, cost:cost, market:market, pl:pl, rate:rate, weight:weight, dayPL:dayPL, pledgedShares:pledgedShares, lentShares:lentShares, chg7d:chg7d, chg30d:chg30d, chg90d:chg90d, chg180d:chg180d, chg365d:chg365d };
+        return { h:h, idx:idx, curPrice:curPrice, change:change, changePct:changePct, cost:cost, market:market, pl:pl, rate:rate, weight:weight, dayPL:dayPL, realized:realized, pledgedShares:pledgedShares, lentShares:lentShares, chg7d:chg7d, chg30d:chg30d, chg90d:chg90d, chg180d:chg180d, chg365d:chg365d };
     });
     // 套用券商過濾
     if (currentBroker) {
         rows = rows.filter(function(r){ return (r.h.broker || '') === currentBroker; });
     }
+    // 過濾已賣完的持股（shares <= 0），但 trades 紀錄仍保留在報酬日曆
+    rows = rows.filter(function(r){ return (r.h.shares || 0) > 0; });
 
     // 預設依代號由小到大排序
     rows.sort(function(a, b){ return String(a.h.id || '').localeCompare(String(b.h.id || '')); });
@@ -5520,6 +5724,7 @@ function renderStockHoldings() {
                 case 'dayPL':   va = a.dayPL !== null ? a.dayPL : nullLow; vb = b.dayPL !== null ? b.dayPL : nullLow; break;
                 case 'price':   va = a.curPrice !== null ? a.curPrice : nullLow; vb = b.curPrice !== null ? b.curPrice : nullLow; break;
                 case 'pl':      va = a.pl !== null ? a.pl : nullLow; vb = b.pl !== null ? b.pl : nullLow; break;
+                case 'realized':va = a.realized || 0; vb = b.realized || 0; break;
                 case 'shares':  va = a.h.shares || 0; vb = b.h.shares || 0; break;
                 case 'cost':    va = a.h.cost || 0; vb = b.h.cost || 0; break;
                 case 'market':  va = a.market !== null ? a.market : nullLow; vb = b.market !== null ? b.market : nullLow; break;
@@ -5549,6 +5754,7 @@ function renderStockHoldings() {
     if (vis.dayPL !== false) html += '<th class="col-daypl" style="cursor:pointer;user-select:none" onclick="toggleStockSort(\'dayPL\')">今日損益' + _sArr('dayPL') + '</th>';
     if (vis.price !== false) html += '<th class="col-price" style="cursor:pointer;user-select:none" onclick="toggleStockSort(\'price\')"><span class="col-title">股價</span><br><span class="stock-sub-label" style="font-size:11px;color:var(--muted);font-weight:400">漲跌幅</span>' + _sArr('price') + '</th>';
     if (vis.pl !== false) html += '<th class="col-pl" style="cursor:pointer;user-select:none" onclick="toggleStockSort(\'pl\')">總損益<br><span class="stock-sub-label" style="font-size:11px;color:var(--muted);font-weight:400">報酬率</span>' + _sArr('pl') + '</th>';
+    if (vis.realized !== false) html += '<th class="col-realized" style="cursor:pointer;user-select:none" title="此股票累積已實現損益（賣出實際賺賠）" onclick="toggleStockSort(\'realized\')">已實現' + _sArr('realized') + '</th>';
     if (vis.shares !== false) html += '<th class="col-shares" style="cursor:pointer;user-select:none" onclick="toggleStockSort(\'shares\')"><span class="col-title">股數</span>' + _sArr('shares') + '</th>';
     if (vis.cost !== false) html += '<th class="col-cost" style="cursor:pointer;user-select:none" onclick="toggleStockSort(\'cost\')"><span class="col-title">均價</span><br><span class="stock-sub-label" style="font-size:11px;color:var(--muted);font-weight:400">總成本</span>' + _sArr('cost') + '</th>';
     if (vis.market !== false) html += '<th class="col-market" style="cursor:pointer;user-select:none" onclick="toggleStockSort(\'market\')"><span class="col-title">市值</span><br><span class="stock-sub-label" style="font-size:11px;color:var(--muted);font-weight:400">佔比</span>' + _sArr('market') + '</th>';
@@ -5572,6 +5778,7 @@ function renderStockHoldings() {
                     '<b style="text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;color:var(--lux-navy)">' + esc(h.id) + '</b>' +
                     '<br><span class="stock-name-sub" style="font-size:12px;color:var(--muted);font-weight:400">' + esc(h.name) + '</span>' +
                 '</span>' +
+                '<button onclick="event.stopPropagation();sellHolding(' + r.idx + ')" title="賣出" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;flex-shrink:0;font-size:14px;line-height:1"><i class="ti ti-cash"></i></button>' +
                 '<button onclick="event.stopPropagation();editHolding(' + r.idx + ')" title="編輯持股" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;flex-shrink:0;font-size:14px;line-height:1"><i class="ti ti-pencil"></i></button>' +
             '</div></td>';
         // 今日損益
@@ -5606,6 +5813,15 @@ function renderStockHoldings() {
                 rateHtml = '<br><span class="stock-sub-val ' + plCls + '" style="font-size:11px;font-weight:400">' + (r.rate >= 0 ? '+' : '') + r.rate.toFixed(2) + '%</span>';
             }
             html += '<td class="' + plCls + '" style="font-weight:600">' + plHtml + rateHtml + '</td>';
+        }
+        // 已實現損益
+        if (vis.realized !== false) {
+            if (r.realized) {
+                var rCls = r.realized >= 0 ? 'pos' : 'neg';
+                html += '<td class="' + rCls + '" style="font-weight:600">' + (r.realized >= 0 ? '+' : '') + fmt(Math.round(r.realized)) + '</td>';
+            } else {
+                html += '<td style="color:var(--muted)">-</td>';
+            }
         }
         // 股數 / 質押 / 借券
         if (vis.shares !== false) {
@@ -6188,7 +6404,11 @@ function renderStockAnalysis() {
     if (!stockData.holdings || stockData.holdings.length === 0) {
         return '<div style="text-align:center;padding:40px;color:var(--muted)">尚未新增持股，無法分析</div>';
     }
-    return '<div id="return-calendar-slot">' + renderReturnCalendar() + '</div>';
+    // 桌面寬螢幕並排（日曆左、交易紀錄右）；手機自動換行
+    return '<div class="analysis-grid" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,360px);gap:12px;align-items:start">' +
+        '<div id="return-calendar-slot">' + renderReturnCalendar() + '</div>' +
+        '<div id="trades-list-slot">' + renderTradesList() + '</div>' +
+        '</div>';
 }
 
 // ── 報酬日曆 ──
@@ -6211,12 +6431,34 @@ function renderReturnCalendar() {
     if (mh.length === 0) {
         return _stockCalendarEmpty('尚無市值快照紀錄。<br>每次打開頁面（且有抓到股價）就會自動記一筆，過幾天累積後就能看到每日損益。');
     }
+    // 當日賣出資訊：sellGross = Σ(股數×價)，realized = Σ realized
+    // 加入「sellGross」是為了修正：賣出當天市值會憑空少一塊（因為股票變成現金不在快照裡），
+    // 所以日損益要把賣出總額加回，才能反映「真實的損益變化」。
+    var sellByDate = {}; // { date: { gross, realized } }
+    (stockData.trades || []).forEach(function(t){
+        if (t.type !== 'sell' || !t.date) return;
+        if (!sellByDate[t.date]) sellByDate[t.date] = { gross: 0, realized: 0 };
+        sellByDate[t.date].gross += (t.shares || 0) * (t.price || 0);
+        sellByDate[t.date].realized += t.realized || 0;
+    });
+
     for (var k = 1; k < mh.length; k++) {
         var pM = mh[k - 1], cM = mh[k];
         if (pM.market > 0) {
-            dailyPnL[cM.date] = { pnl: cM.market - pM.market, pct: (cM.market - pM.market) / pM.market * 100 };
+            var s = sellByDate[cM.date];
+            // 公式：日損益 = (今市值 − 昨市值) + 當日賣出總額
+            //       = 股票今日漲跌 + 已實現損益（若當日有賣出）
+            var rawDiff = cM.market - pM.market;
+            var pnl = rawDiff + (s ? s.gross : 0);
+            dailyPnL[cM.date] = { pnl: pnl, pct: pnl / pM.market * 100 };
         }
     }
+    // 補：有賣出但當天沒有 marketHistory 連續對（例如假日／第一天）時，至少把已實現損益記上去
+    Object.keys(sellByDate).forEach(function(d){
+        if (!dailyPnL[d] && sellByDate[d].realized) {
+            dailyPnL[d] = { pnl: sellByDate[d].realized, pct: 0 };
+        }
+    });
     mh.forEach(function(e){
         if (e.date) allMonthSet[e.date.slice(0,7)] = true;
         marketByDate[e.date] = e.market;
@@ -6254,7 +6496,7 @@ function renderReturnCalendar() {
     html += '<div style="font-size:14px;font-weight:600">報酬日曆</div>';
     html += '<select id="return-cal-month" onchange="onReturnCalendarMonthChange(this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--card)">' + monthOpts + '</select>';
     var monthColor = monthPnL > 0 ? 'var(--red)' : monthPnL < 0 ? 'var(--green)' : 'var(--muted)';
-    html += '<span style="margin-left:auto;font-size:13px;color:var(--muted)">當月合計 ';
+    html += '<span style="margin-left:auto;font-size:13px;color:var(--muted)">月損益 ';
     html += '<b style="color:' + monthColor + ';font-size:16px">' + (monthPnL > 0 ? '+' : '') + fmt(Math.round(monthPnL)) + '</b>';
     if (basisMarket && basisMarket > 0) {
         html += ' <span style="color:' + monthColor + '">(' + (monthPct > 0 ? '+' : '') + monthPct.toFixed(2) + '%)</span>';
@@ -6339,6 +6581,145 @@ function onReturnCalendarMonthChange(m) {
     _returnCalendarMonth = m;
     var slot = document.getElementById('return-calendar-slot');
     if (slot) slot.innerHTML = renderReturnCalendar();
+}
+
+// ── 交易紀錄（賣出明細） ──
+// 顯示所有 sell trades，依日期由新到舊；可編輯／刪除
+function renderTradesList() {
+    var trades = Array.isArray(stockData.trades) ? stockData.trades.slice() : [];
+    var sells = trades
+        .map(function(t, i){ return { t: t, i: i }; })
+        .filter(function(x){ return x.t.type === 'sell'; })
+        .sort(function(a, b){ return (b.t.date || '').localeCompare(a.t.date || ''); });
+
+    var totalRealized = 0;
+    var thisYear = String(new Date().getFullYear());
+    var yearRealized = 0;
+    sells.forEach(function(x){
+        var r = x.t.realized || 0;
+        totalRealized += r;
+        if ((x.t.date || '').slice(0,4) === thisYear) yearRealized += r;
+    });
+
+    var html = '<div style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;height:100%">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">';
+    html += '<div style="font-size:14px;font-weight:600">交易紀錄</div>';
+    html += '<span style="margin-left:auto;font-size:12px;color:var(--muted)">共 ' + sells.length + ' 筆</span>';
+    html += '</div>';
+
+    if (sells.length === 0) {
+        html += '<div style="color:var(--muted);font-size:12px;line-height:1.6;padding:8px 0">尚無賣出紀錄。<br>在「持股總覽」點任一檔股票名稱旁邊的 <i class="ti ti-cash"></i> 圖示就能賣出，並自動記在這裡。</div>';
+        html += '</div>';
+        return html;
+    }
+
+    // 摘要
+    var totalCls = totalRealized >= 0 ? 'pos' : 'neg';
+    var yearCls  = yearRealized  >= 0 ? 'pos' : 'neg';
+    html += '<div style="display:flex;gap:14px;font-size:13px;margin-bottom:8px;padding:6px 8px;background:var(--bg);border-radius:6px">';
+    html += '<span style="color:var(--muted)">累積 <b class="' + totalCls + '">' + (totalRealized >= 0 ? '+' : '') + fmt(Math.round(totalRealized)) + '</b></span>';
+    html += '<span style="color:var(--muted)">' + thisYear + ' <b class="' + yearCls + '">' + (yearRealized >= 0 ? '+' : '') + fmt(Math.round(yearRealized)) + '</b></span>';
+    html += '</div>';
+
+    // 列表
+    html += '<div style="flex:1;overflow-y:auto;max-height:560px">';
+    sells.forEach(function(x){
+        var t = x.t;
+        var realized = t.realized || 0;
+        var cls = realized >= 0 ? 'pos' : 'neg';
+        html += '<div style="display:flex;align-items:center;gap:8px;padding:8px 6px;border-bottom:1px solid var(--border);font-size:13px">' +
+            '<div style="flex:1;min-width:0">' +
+                '<div><b>' + esc(t.id || '') + '</b> <span style="color:var(--muted);font-size:12px">' + esc(t.name || '') + '</span></div>' +
+                '<div style="font-size:11px;color:var(--muted)">' + esc(t.date || '') + '　' + fmt(t.shares || 0) + ' 股 × ' + (typeof t.price === 'number' ? t.price.toFixed(2) : '-') + '</div>' +
+            '</div>' +
+            '<div class="' + cls + '" style="font-weight:600;text-align:right;min-width:70px">' + (realized >= 0 ? '+' : '') + fmt(Math.round(realized)) + '</div>' +
+            '<button onclick="editTrade(' + x.i + ')" title="編輯" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;font-size:13px"><i class="ti ti-pencil"></i></button>' +
+            '<button onclick="deleteTrade(' + x.i + ')" title="刪除" style="background:none;border:none;cursor:pointer;color:var(--red);padding:4px;font-size:13px"><i class="ti ti-trash"></i></button>' +
+        '</div>';
+    });
+    html += '</div>';
+
+    html += '</div>';
+    return html;
+}
+
+function _refreshTradesList() {
+    var slot = document.getElementById('trades-list-slot');
+    if (slot) slot.innerHTML = renderTradesList();
+    // 報酬日曆的當日損益會用到 trades，也順便重畫
+    var calSlot = document.getElementById('return-calendar-slot');
+    if (calSlot) calSlot.innerHTML = renderReturnCalendar();
+}
+
+function editTrade(idx) {
+    var t = stockData.trades && stockData.trades[idx];
+    if (!t) return;
+    var ov = document.createElement('div');
+    ov.className = 'overlay';
+    ov.innerHTML = '<div class="modal"><h3>編輯交易 - ' + esc(t.id || '') + '</h3>' +
+        '<label style="font-size:12px;color:var(--muted)">日期</label>' +
+        '<input type="date" id="et-date" value="' + esc(t.date || '') + '">' +
+        '<label style="font-size:12px;color:var(--muted)">股數</label>' +
+        '<input type="number" id="et-shares" value="' + (t.shares || 0) + '" step="1">' +
+        '<label style="font-size:12px;color:var(--muted)">賣出股價</label>' +
+        '<input type="number" id="et-price" value="' + (t.price != null ? t.price : '') + '" step="0.01">' +
+        '<label style="font-size:12px;color:var(--muted)">成本</label>' +
+        '<input type="number" id="et-cost" value="' + (t.cost != null ? Math.round(t.cost) : '') + '" step="1">' +
+        '<div id="et-pl-preview" style="margin-top:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:13px;color:var(--muted)">已實現損益：<b id="et-pl-num">-</b></div>' +
+        '<div class="modal-btns" style="margin-top:12px">' +
+            '<button onclick="this.closest(\'.overlay\').remove()">取消</button>' +
+            '<button class="btn-primary" id="et-save">儲存</button>' +
+        '</div></div>';
+    document.body.appendChild(ov);
+    function update() {
+        var sh = parseInt(document.getElementById('et-shares').value) || 0;
+        var pr = parseFloat(document.getElementById('et-price').value);
+        var c = parseFloat(document.getElementById('et-cost').value);
+        var $n = document.getElementById('et-pl-num');
+        if (sh > 0 && !isNaN(pr) && !isNaN(c)) {
+            var r = sh * pr - c;
+            $n.textContent = (r >= 0 ? '+' : '') + fmt(Math.round(r));
+            $n.style.color = r >= 0 ? 'var(--red)' : 'var(--green)';
+        } else {
+            $n.textContent = '-';
+            $n.style.color = 'var(--muted)';
+        }
+    }
+    ['et-shares','et-price','et-cost'].forEach(function(id){
+        document.getElementById(id).addEventListener('input', update);
+    });
+    update();
+    document.getElementById('et-save').onclick = function() {
+        var sh = parseInt(document.getElementById('et-shares').value) || 0;
+        var pr = parseFloat(document.getElementById('et-price').value);
+        var c = parseFloat(document.getElementById('et-cost').value);
+        var d = document.getElementById('et-date').value;
+        if (sh <= 0 || isNaN(pr) || pr <= 0 || isNaN(c) || !d) { toast('請填完整資訊'); return; }
+        t.date = d;
+        t.shares = sh;
+        t.price = pr;
+        t.cost = c;
+        t.realized = sh * pr - c;
+        try { _syncTradesToCashflow(); saveData(true); } catch(e){ console.error('[syncTrades]', e); }
+        saveStockData();
+        ov.remove();
+        _refreshTradesList();
+        renderStock();
+        toast('已更新交易紀錄');
+    };
+}
+
+function deleteTrade(idx) {
+    var t = stockData.trades && stockData.trades[idx];
+    if (!t) return;
+    showConfirm('確定刪除這筆交易紀錄？<br><span style="color:var(--muted);font-size:12px">' + esc(t.id || '') + ' ' + esc(t.date || '') + '　' + (t.realized >= 0 ? '+' : '') + fmt(Math.round(t.realized || 0)) + '</span><br><br><span style="color:var(--red);font-size:12px">注意：股數不會自動補回持股，如果這筆是誤刪請手動「編輯持股」加回。</span>', function() {
+        stockData.trades.splice(idx, 1);
+        try { _syncTradesToCashflow(); saveData(true); } catch(e){ console.error('[syncTrades]', e); }
+        saveStockData();
+        _refreshTradesList();
+        renderStock();
+        toast('已刪除交易紀錄');
+    });
 }
 
 var _pieMode = 'asset'; // 'asset' | 'region' | 'holding'
