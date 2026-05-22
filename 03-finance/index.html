@@ -6892,7 +6892,7 @@ function deleteTrade(idx) {
     } else {
         summary = '賣 ' + esc(t.id || '') + ' ' + esc(t.date || '') + '　' + (t.realized >= 0 ? '+' : '') + fmt(Math.round(t.realized || 0));
     }
-    showConfirm('確定刪除這筆交易紀錄？<br><span style="color:var(--muted);font-size:12px">' + summary + '</span><br><br><span style="color:var(--red);font-size:12px">注意：刪除不會回算持股均價／股數，如果是誤刪請手動「編輯持股」修正。</span>', function() {
+    showConfirm2('確定刪除這筆交易紀錄？\n\n' + summary + '\n\n注意：刪除不會回算持股均價／股數，如果是誤刪請手動「編輯持股」修正。', function() {
         stockData.trades.splice(idx, 1);
         if (!isBuy) {
             try { _syncTradesToCashflow(); saveData(true); } catch(e){ console.error('[syncTrades]', e); }
