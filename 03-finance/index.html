@@ -3492,7 +3492,6 @@ var STOCK_COLUMNS = [
     { key: 'dayPL',   label: '今日損益',            default: true },
     { key: 'price',   label: '股價（含漲跌幅）',     default: true },
     { key: 'pl',      label: '總損益（含報酬率）',   default: true },
-    { key: 'realized',label: '已實現損益',           default: true },
     { key: 'shares',  label: '股數（含質押／借券）', default: true },
     { key: 'cost',    label: '均價（含總成本）',     default: true },
     { key: 'market',  label: '市值（含佔比）',       default: true },
@@ -5756,12 +5755,6 @@ function renderStockHoldings() {
     var totalPL = totalMarket - totalCost;
     var totalRate = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
 
-    // 累積已實現損益（全部 trades 加總，不分券商；之後可按券商過濾再優化）
-    var totalRealized = 0;
-    (stockData.trades || []).forEach(function(t){
-        if (t.type === 'sell' && typeof t.realized === 'number') totalRealized += t.realized;
-    });
-
     // 今年度股利
     var thisYear = new Date().getFullYear();
     var yearDividend = 0;
@@ -5777,9 +5770,6 @@ function renderStockHoldings() {
     html += '<span style="color:var(--muted)"><span class="lbl-full">損益</span><span class="lbl-short">累積損益</span> <b class="' + (totalPL>=0?'pos':'neg') + '">' + (totalPL>=0?'+':'') + fmt(totalPL) + ' (' + fmtRate(totalRate) + ')</b></span>';
     html += '<span style="color:var(--muted)">市值 <b style="color:var(--lux-gold)">' + fmt(totalMarket) + '</b></span>';
     html += '<span style="color:var(--muted)">今日損益 <b class="' + (todayPL>=0?'pos':'neg') + '">' + (todayPL>=0?'+':'') + fmt(todayPL) + '</b></span>';
-    if (totalRealized !== 0) {
-        html += '<span style="color:var(--muted)">已實現 <b class="' + (totalRealized>=0?'pos':'neg') + '">' + (totalRealized>=0?'+':'') + fmt(Math.round(totalRealized)) + '</b></span>';
-    }
     html += '<span class="year-dividend-cell" style="color:var(--muted)">今年股利 <b style="color:var(--lux-navy)">' + fmt(yearDividend) + '</b></span>';
     html += '</div>';
 
@@ -5803,14 +5793,6 @@ function renderStockHoldings() {
         return ' <span style="color:var(--lux-gold);font-size:11px">' + (ss.dir === 'desc' ? '▼' : '▲') + '</span>';
     }
 
-    // 每檔股票的累積已實現損益（從 trades 算）
-    var realizedById = {};
-    (stockData.trades || []).forEach(function(t){
-        if (t.type === 'sell' && t.id && typeof t.realized === 'number') {
-            realizedById[t.id] = (realizedById[t.id] || 0) + t.realized;
-        }
-    });
-
     // 每列預先計算（保留原索引讓 editHolding 仍能對應到 stockData.holdings）
     var rows = stockData.holdings.map(function(h, idx) {
         var p = stockData.prices[h.id];
@@ -5823,7 +5805,6 @@ function renderStockHoldings() {
         var rate = (pl !== null && cost > 0) ? (pl / cost) * 100 : null;
         var weight = totalMarket > 0 && market !== null ? (market / totalMarket) * 100 : null;
         var dayPL = change !== null ? h.shares * change : null;
-        var realized = realizedById[h.id] || 0;
         var pledgedShares = 0;
         var lentShares = 0;
         if (stockData.pledges) stockData.pledges.forEach(function(pp){
@@ -5836,7 +5817,7 @@ function renderStockHoldings() {
         var chg90d  = getStockPriceChange(h.id, 90);
         var chg180d = getStockPriceChange(h.id, 180);
         var chg365d = getStockPriceChange(h.id, 365);
-        return { h:h, idx:idx, curPrice:curPrice, change:change, changePct:changePct, cost:cost, market:market, pl:pl, rate:rate, weight:weight, dayPL:dayPL, realized:realized, pledgedShares:pledgedShares, lentShares:lentShares, chg7d:chg7d, chg30d:chg30d, chg90d:chg90d, chg180d:chg180d, chg365d:chg365d };
+        return { h:h, idx:idx, curPrice:curPrice, change:change, changePct:changePct, cost:cost, market:market, pl:pl, rate:rate, weight:weight, dayPL:dayPL, pledgedShares:pledgedShares, lentShares:lentShares, chg7d:chg7d, chg30d:chg30d, chg90d:chg90d, chg180d:chg180d, chg365d:chg365d };
     });
     // 套用券商過濾
     if (currentBroker) {
@@ -5859,7 +5840,6 @@ function renderStockHoldings() {
                 case 'dayPL':   va = a.dayPL !== null ? a.dayPL : nullLow; vb = b.dayPL !== null ? b.dayPL : nullLow; break;
                 case 'price':   va = a.curPrice !== null ? a.curPrice : nullLow; vb = b.curPrice !== null ? b.curPrice : nullLow; break;
                 case 'pl':      va = a.pl !== null ? a.pl : nullLow; vb = b.pl !== null ? b.pl : nullLow; break;
-                case 'realized':va = a.realized || 0; vb = b.realized || 0; break;
                 case 'shares':  va = a.h.shares || 0; vb = b.h.shares || 0; break;
                 case 'cost':    va = a.h.cost || 0; vb = b.h.cost || 0; break;
                 case 'market':  va = a.market !== null ? a.market : nullLow; vb = b.market !== null ? b.market : nullLow; break;
@@ -5889,7 +5869,6 @@ function renderStockHoldings() {
     if (vis.dayPL !== false) html += '<th class="col-daypl" style="cursor:pointer;user-select:none" onclick="toggleStockSort(\'dayPL\')">今日損益' + _sArr('dayPL') + '</th>';
     if (vis.price !== false) html += '<th class="col-price" style="cursor:pointer;user-select:none" onclick="toggleStockSort(\'price\')"><span class="col-title">股價</span><br><span class="stock-sub-label" style="font-size:11px;color:var(--muted);font-weight:400">漲跌幅</span>' + _sArr('price') + '</th>';
     if (vis.pl !== false) html += '<th class="col-pl" style="cursor:pointer;user-select:none" onclick="toggleStockSort(\'pl\')">總損益<br><span class="stock-sub-label" style="font-size:11px;color:var(--muted);font-weight:400">報酬率</span>' + _sArr('pl') + '</th>';
-    if (vis.realized !== false) html += '<th class="col-realized" style="cursor:pointer;user-select:none" title="此股票累積已實現損益（賣出實際賺賠）" onclick="toggleStockSort(\'realized\')">已實現' + _sArr('realized') + '</th>';
     if (vis.shares !== false) html += '<th class="col-shares" style="cursor:pointer;user-select:none" onclick="toggleStockSort(\'shares\')"><span class="col-title">股數</span>' + _sArr('shares') + '</th>';
     if (vis.cost !== false) html += '<th class="col-cost" style="cursor:pointer;user-select:none" onclick="toggleStockSort(\'cost\')"><span class="col-title">均價</span><br><span class="stock-sub-label" style="font-size:11px;color:var(--muted);font-weight:400">總成本</span>' + _sArr('cost') + '</th>';
     if (vis.market !== false) html += '<th class="col-market" style="cursor:pointer;user-select:none" onclick="toggleStockSort(\'market\')"><span class="col-title">市值</span><br><span class="stock-sub-label" style="font-size:11px;color:var(--muted);font-weight:400">佔比</span>' + _sArr('market') + '</th>';
@@ -5949,15 +5928,6 @@ function renderStockHoldings() {
                 rateHtml = '<br><span class="stock-sub-val ' + plCls + '" style="font-size:11px;font-weight:400">' + (r.rate >= 0 ? '+' : '') + r.rate.toFixed(2) + '%</span>';
             }
             html += '<td class="' + plCls + '" style="font-weight:600">' + plHtml + rateHtml + '</td>';
-        }
-        // 已實現損益
-        if (vis.realized !== false) {
-            if (r.realized) {
-                var rCls = r.realized >= 0 ? 'pos' : 'neg';
-                html += '<td class="' + rCls + '" style="font-weight:600">' + (r.realized >= 0 ? '+' : '') + fmt(Math.round(r.realized)) + '</td>';
-            } else {
-                html += '<td style="color:var(--muted)">-</td>';
-            }
         }
         // 股數 / 質押 / 借券
         if (vis.shares !== false) {
