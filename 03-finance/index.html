@@ -6649,11 +6649,7 @@ function renderReturnCalendar() {
     html += '<span style="margin-left:auto;display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;align-items:baseline">';
     // 月合計：未實現 + 已實現
     html += '<span>月損益 <b style="color:' + totalColor + ';font-size:16px">' + (monthTotal > 0 ? '+' : '') + fmt(Math.round(monthTotal)) + '</b></span>';
-    html += '<span style="font-size:12px">未實現 <b style="color:' + unrColor + '">' + (monthUnrealized > 0 ? '+' : '') + fmt(Math.round(monthUnrealized)) + '</b>';
-    if (basisMarket && basisMarket > 0) {
-        html += ' <span style="color:' + unrColor + '">(' + (monthPct > 0 ? '+' : '') + monthPct.toFixed(2) + '%)</span>';
-    }
-    html += '</span>';
+    html += '<span style="font-size:12px">未實現 <b style="color:' + unrColor + '">' + (monthUnrealized > 0 ? '+' : '') + fmt(Math.round(monthUnrealized)) + '</b></span>';
     html += '<span style="font-size:12px">已實現 <b style="color:' + rzColor + '">' + (monthRealized > 0 ? '+' : '') + fmt(Math.round(monthRealized)) + '</b></span>';
     html += '</span>';
     html += '</div>';
@@ -6691,6 +6687,30 @@ function renderReturnCalendar() {
     var twNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
     var todayStr = twNow.getFullYear() + '-' + String(twNow.getMonth()+1).padStart(2,'0') + '-' + String(twNow.getDate()).padStart(2,'0');
 
+    // 今日「未實現損益」用即時算法（與持股總覽的「今日損益」一致）：Σ(股數 × 今日漲跌)
+    // 因為 14:00 前還沒有當日快照，而 14:00 後使用者通常已經想看「今天賺賠多少」即時數字
+    var todayLiveUnr = 0;
+    var todayLivePct = 0;
+    var todayLiveCost = 0;
+    if (Array.isArray(stockData.holdings)) {
+        var todayLiveBase = 0;
+        stockData.holdings.forEach(function(h){
+            if (!h || (h.shares || 0) <= 0) return;
+            var p = stockData.prices && stockData.prices[h.id];
+            if (!p || typeof p.price !== 'number') return;
+            var prevPrice = (typeof p.change === 'number') ? p.price - p.change : p.price;
+            if (typeof p.change === 'number') todayLiveUnr += h.shares * p.change;
+            todayLiveBase += h.shares * prevPrice;
+            todayLiveCost += h.shares * h.cost;
+        });
+        todayLivePct = todayLiveBase > 0 ? (todayLiveUnr / todayLiveBase * 100) : 0;
+    }
+    // 今日「已實現」用 trades 當日加總（即時，不依賴快照）
+    var todayLiveRz = 0;
+    (stockData.trades || []).forEach(function(t){
+        if (t.type === 'sell' && t.date === todayStr) todayLiveRz += (t.realized || 0);
+    });
+
     weekOrder.forEach(function(wk) {
         var daysInWeek = weeks[wk];
         var byDow = {}; // 1=一 ... 5=五
@@ -6705,6 +6725,31 @@ function renderReturnCalendar() {
             var dStr = year + '-' + String(monthIdx + 1).padStart(2,'0') + '-' + String(dayNum).padStart(2,'0');
             var isToday = (dStr === todayStr);
             var entry = dailyPnL[dStr];
+
+            // 今日特殊處理：用即時算法（Σ股數×漲跌）+ trades 當日 realized
+            if (isToday) {
+                var hasLiveData = (todayLiveUnr !== 0 || todayLiveRz !== 0);
+                if (hasLiveData) {
+                    weekUnr += todayLiveUnr;
+                    weekRz  += todayLiveRz;
+                    weekHasData = true;
+                    var tBg = (todayLiveUnr + todayLiveRz) > 0 ? 'rgba(239,68,68,0.08)' : (todayLiveUnr + todayLiveRz) < 0 ? 'rgba(22,163,74,0.08)' : 'transparent';
+                    var tUnrC = todayLiveUnr > 0 ? 'var(--red)' : todayLiveUnr < 0 ? 'var(--green)' : 'var(--muted)';
+                    var tRzC  = todayLiveRz > 0 ? 'var(--red)' : todayLiveRz < 0 ? 'var(--green)' : 'var(--muted)';
+                    var pctNum = todayLivePct.toFixed(2);
+                    html += '<div style="border:1.5px solid var(--lux-gold);background:' + tBg + ';border-radius:6px;padding:4px 4px;text-align:center;min-height:64px;display:flex;flex-direction:column;justify-content:center;gap:1px">' +
+                        '<div style="font-size:11px;color:var(--muted)">' + dayNum + ' <span style="color:var(--lux-gold);font-weight:600">今</span></div>' +
+                        '<div style="font-size:12px;font-weight:600;color:' + tUnrC + '" title="持股當日漲跌（Σ股數×漲跌）">' + (todayLiveUnr > 0 ? '+' : '') + fmt(Math.round(todayLiveUnr)) + ' <span style="font-size:10px;font-weight:500">(' + pctNum + '%)</span></div>';
+                    if (todayLiveRz !== 0) {
+                        html += '<div style="font-size:11px;font-weight:600;color:' + tRzC + '" title="今日已實現損益">已 ' + (todayLiveRz > 0 ? '+' : '') + fmt(Math.round(todayLiveRz)) + '</div>';
+                    }
+                    html += '</div>';
+                } else {
+                    html += '<div style="border:1.5px solid var(--lux-gold);background:rgba(212,175,55,0.05);border-radius:6px;padding:4px 6px;text-align:center;min-height:64px;color:var(--muted);font-size:11px;display:flex;align-items:center;justify-content:center">' + dayNum + ' <span style="color:var(--lux-gold);font-weight:600">今</span></div>';
+                }
+                continue;
+            }
+
             if (entry) {
                 weekUnr += entry.unrealized;
                 weekRz  += entry.realized;
@@ -6713,30 +6758,20 @@ function renderReturnCalendar() {
                 var bg = total > 0 ? 'rgba(239,68,68,0.08)' : total < 0 ? 'rgba(22,163,74,0.08)' : 'transparent';
                 var unrC = entry.unrealized > 0 ? 'var(--red)' : entry.unrealized < 0 ? 'var(--green)' : 'var(--muted)';
                 var rzC  = entry.realized > 0 ? 'var(--red)' : entry.realized < 0 ? 'var(--green)' : 'var(--muted)';
-                var totC = total > 0 ? 'var(--red)' : total < 0 ? 'var(--green)' : 'var(--muted)';
-                var pctStr = (entry.pct > 0 ? '+' : '') + entry.pct.toFixed(2) + '%';
-                // 今日邊框加粗醒目
-                var todayBorder = isToday ? 'border:1.5px solid var(--lux-gold);' : '';
-                html += '<div style="' + todayBorder + 'background:' + bg + ';border-radius:6px;padding:4px 4px;text-align:center;min-height:64px;display:flex;flex-direction:column;justify-content:center;gap:1px">' +
-                    '<div style="font-size:11px;color:var(--muted)">' + dayNum + (isToday ? ' <span style="color:var(--lux-gold);font-weight:600">今</span>' : '') + '</div>';
-                if (isToday) {
-                    // 今日格：合計 + %（未實現的 %）
-                    html += '<div style="font-size:13px;font-weight:700;color:' + totC + '" title="今日總損益（未實現+已實現）">' + (total > 0 ? '+' : '') + fmt(Math.round(total)) + '</div>';
-                    html += '<div style="font-size:11px;font-weight:600;color:' + unrC + '" title="未實現 %（純股價漲跌）">' + pctStr + '</div>';
-                } else {
-                    // 一般日：上下兩數字
-                    if (entry.unrealized !== 0 || entry.realized === 0) {
-                        html += '<div style="font-size:12px;font-weight:600;color:' + unrC + '" title="未實現">' + (entry.unrealized > 0 ? '+' : '') + fmt(Math.round(entry.unrealized)) + ' <span style="font-size:10px;font-weight:500">' + pctStr + '</span></div>';
-                    }
-                    if (entry.realized !== 0) {
-                        html += '<div style="font-size:11px;font-weight:600;color:' + rzC + '" title="已實現損益">已 ' + (entry.realized > 0 ? '+' : '') + fmt(Math.round(entry.realized)) + '</div>';
-                    }
+                var pctNumStr = entry.pct.toFixed(2);
+                html += '<div style="background:' + bg + ';border-radius:6px;padding:4px 4px;text-align:center;min-height:64px;display:flex;flex-direction:column;justify-content:center;gap:1px">' +
+                    '<div style="font-size:11px;color:var(--muted)">' + dayNum + '</div>';
+                // 未實現：「+1,111 (1.00%)」格式
+                if (entry.unrealized !== 0 || entry.realized === 0) {
+                    html += '<div style="font-size:12px;font-weight:600;color:' + unrC + '" title="未實現（純股價漲跌）">' + (entry.unrealized > 0 ? '+' : '') + fmt(Math.round(entry.unrealized)) + ' <span style="font-size:10px;font-weight:500">(' + pctNumStr + '%)</span></div>';
+                }
+                // 已實現
+                if (entry.realized !== 0) {
+                    html += '<div style="font-size:11px;font-weight:600;color:' + rzC + '" title="已實現損益">已 ' + (entry.realized > 0 ? '+' : '') + fmt(Math.round(entry.realized)) + '</div>';
                 }
                 html += '</div>';
             } else {
-                var todayBorderNoData = isToday ? 'border:1.5px solid var(--lux-gold);background:rgba(212,175,55,0.05);' : 'border:1px dashed var(--border);';
-                var todayLabel = isToday ? ' <span style="color:var(--lux-gold);font-weight:600">今</span>' : '';
-                html += '<div style="' + todayBorderNoData + 'border-radius:6px;padding:4px 6px;text-align:center;min-height:64px;color:var(--muted);font-size:11px;display:flex;align-items:center;justify-content:center">' + dayNum + todayLabel + '</div>';
+                html += '<div style="border:1px dashed var(--border);border-radius:6px;padding:4px 6px;text-align:center;min-height:64px;color:var(--muted);font-size:11px;display:flex;align-items:center;justify-content:center">' + dayNum + '</div>';
             }
         }
         // 週合計（未實現 + 已實現 合計）
@@ -6752,7 +6787,7 @@ function renderReturnCalendar() {
     });
     html += '</div>';
 
-    html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">※ 上方數字為「未實現」（純股價漲跌）含 %（佔前日市值）；下方「已」開頭為「已實現」（賣出實際入袋）。今日格顯示合計。台灣時間 14:00 後自動寫入快照（等 Yahoo 清算完）。</div>';
+    html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">※ 上方數字為「未實現」（純股價漲跌）含 %；下方「已」開頭為「已實現」（賣出實際入袋）。今日格用即時持股漲跌（Σ股數×漲跌），與持股總覽「今日損益」一致。台灣時間 14:00 後自動寫入當日快照。</div>';
     html += '</div>';
 
     // ── 已實現損益紀錄（賣出明細） ──
