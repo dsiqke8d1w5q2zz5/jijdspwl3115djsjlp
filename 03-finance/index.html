@@ -6687,6 +6687,10 @@ function renderReturnCalendar() {
         weeks[wk].push({ day: day, dow: dow });
     }
 
+    // 判斷今天（台灣時區、YYYY-MM-DD）
+    var twNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+    var todayStr = twNow.getFullYear() + '-' + String(twNow.getMonth()+1).padStart(2,'0') + '-' + String(twNow.getDate()).padStart(2,'0');
+
     weekOrder.forEach(function(wk) {
         var daysInWeek = weeks[wk];
         var byDow = {}; // 1=一 ... 5=五
@@ -6699,6 +6703,7 @@ function renderReturnCalendar() {
                 continue;
             }
             var dStr = year + '-' + String(monthIdx + 1).padStart(2,'0') + '-' + String(dayNum).padStart(2,'0');
+            var isToday = (dStr === todayStr);
             var entry = dailyPnL[dStr];
             if (entry) {
                 weekUnr += entry.unrealized;
@@ -6708,19 +6713,30 @@ function renderReturnCalendar() {
                 var bg = total > 0 ? 'rgba(239,68,68,0.08)' : total < 0 ? 'rgba(22,163,74,0.08)' : 'transparent';
                 var unrC = entry.unrealized > 0 ? 'var(--red)' : entry.unrealized < 0 ? 'var(--green)' : 'var(--muted)';
                 var rzC  = entry.realized > 0 ? 'var(--red)' : entry.realized < 0 ? 'var(--green)' : 'var(--muted)';
-                html += '<div style="background:' + bg + ';border-radius:6px;padding:4px 4px;text-align:center;min-height:64px;display:flex;flex-direction:column;justify-content:center;gap:1px">' +
-                    '<div style="font-size:11px;color:var(--muted)">' + dayNum + '</div>';
-                // 未實現
-                if (entry.unrealized !== 0 || entry.realized === 0) {
-                    html += '<div style="font-size:12px;font-weight:600;color:' + unrC + '" title="未實現">' + (entry.unrealized > 0 ? '+' : '') + fmt(Math.round(entry.unrealized)) + '</div>';
-                }
-                // 已實現
-                if (entry.realized !== 0) {
-                    html += '<div style="font-size:11px;font-weight:600;color:' + rzC + '" title="已實現損益">已 ' + (entry.realized > 0 ? '+' : '') + fmt(Math.round(entry.realized)) + '</div>';
+                var totC = total > 0 ? 'var(--red)' : total < 0 ? 'var(--green)' : 'var(--muted)';
+                var pctStr = (entry.pct > 0 ? '+' : '') + entry.pct.toFixed(2) + '%';
+                // 今日邊框加粗醒目
+                var todayBorder = isToday ? 'border:1.5px solid var(--lux-gold);' : '';
+                html += '<div style="' + todayBorder + 'background:' + bg + ';border-radius:6px;padding:4px 4px;text-align:center;min-height:64px;display:flex;flex-direction:column;justify-content:center;gap:1px">' +
+                    '<div style="font-size:11px;color:var(--muted)">' + dayNum + (isToday ? ' <span style="color:var(--lux-gold);font-weight:600">今</span>' : '') + '</div>';
+                if (isToday) {
+                    // 今日格：合計 + %（未實現的 %）
+                    html += '<div style="font-size:13px;font-weight:700;color:' + totC + '" title="今日總損益（未實現+已實現）">' + (total > 0 ? '+' : '') + fmt(Math.round(total)) + '</div>';
+                    html += '<div style="font-size:11px;font-weight:600;color:' + unrC + '" title="未實現 %（純股價漲跌）">' + pctStr + '</div>';
+                } else {
+                    // 一般日：上下兩數字
+                    if (entry.unrealized !== 0 || entry.realized === 0) {
+                        html += '<div style="font-size:12px;font-weight:600;color:' + unrC + '" title="未實現">' + (entry.unrealized > 0 ? '+' : '') + fmt(Math.round(entry.unrealized)) + ' <span style="font-size:10px;font-weight:500">' + pctStr + '</span></div>';
+                    }
+                    if (entry.realized !== 0) {
+                        html += '<div style="font-size:11px;font-weight:600;color:' + rzC + '" title="已實現損益">已 ' + (entry.realized > 0 ? '+' : '') + fmt(Math.round(entry.realized)) + '</div>';
+                    }
                 }
                 html += '</div>';
             } else {
-                html += '<div style="border:1px dashed var(--border);border-radius:6px;padding:4px 6px;text-align:center;min-height:64px;color:var(--muted);font-size:11px;display:flex;align-items:center;justify-content:center">' + dayNum + '</div>';
+                var todayBorderNoData = isToday ? 'border:1.5px solid var(--lux-gold);background:rgba(212,175,55,0.05);' : 'border:1px dashed var(--border);';
+                var todayLabel = isToday ? ' <span style="color:var(--lux-gold);font-weight:600">今</span>' : '';
+                html += '<div style="' + todayBorderNoData + 'border-radius:6px;padding:4px 6px;text-align:center;min-height:64px;color:var(--muted);font-size:11px;display:flex;align-items:center;justify-content:center">' + dayNum + todayLabel + '</div>';
             }
         }
         // 週合計（未實現 + 已實現 合計）
@@ -6736,7 +6752,7 @@ function renderReturnCalendar() {
     });
     html += '</div>';
 
-    html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">※ 上方數字為「未實現」（純股價漲跌）；下方「已」開頭為「已實現」（賣出實際入袋）。月損益＝兩者合計。</div>';
+    html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">※ 上方數字為「未實現」（純股價漲跌）含 %（佔前日市值）；下方「已」開頭為「已實現」（賣出實際入袋）。今日格顯示合計。台灣時間 14:00 後自動寫入快照（等 Yahoo 清算完）。</div>';
     html += '</div>';
 
     // ── 已實現損益紀錄（賣出明細） ──
@@ -7909,17 +7925,21 @@ function maybeAutoSnapshot() {
         // 快照整體持倉市值（給報酬日曆用）
         try { snapshotPortfolioMarket(); } catch(_){}
         saveData(true);
+        // 如果使用者剛好開著報酬日曆，自動刷新（讓今日那格立刻反映新快照）
+        try {
+            var calSlot = document.getElementById('return-calendar-slot');
+            if (calSlot) calSlot.innerHTML = renderReturnCalendar();
+        } catch(_){}
     } catch(e) { console.error('[maybeAutoSnapshot]', e); }
 }
 
 // 推算 TWSE 回傳的價格實際對應的交易日（考慮收盤時間 + 週末）
-// 規則：台灣時間 13:30 後 → 今天；之前 / 週末 → 上一個交易日（往前找最近的工作日）
+// 規則：台灣時間 14:00 後 → 今天；之前 / 週末 → 上一個交易日（往前找最近的工作日）
 function _inferTradeDate() {
     // 用台灣時區
     var now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
     var hour = now.getHours();
-    var minute = now.getMinutes();
-    var afterClose = (hour > 13) || (hour === 13 && minute >= 30);
+    var afterClose = hour >= 14;
     var d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     if (!afterClose) d.setDate(d.getDate() - 1);
     // 倒退到最近的工作日（跳過週末）
@@ -7931,18 +7951,18 @@ function _inferTradeDate() {
 }
 
 // 將當日「整體持倉市值」寫入 stockData.marketHistory = [{date, market}, ...]
-// 規則：只在「台灣時間收盤後（≥ 13:30）」且當天是工作日才寫入；同日多次開頁面以最後一次為主。
-// 盤前/盤中/週末打開不寫，避免拿到非收盤價誤覆蓋前一個交易日的快照。
+// 規則：只在「台灣時間 14:00 後」且當天是工作日才寫入；同日多次開頁面以最後一次為主。
+// 盤前/盤中/週末打開不寫；14:00 才寫是為了等 Yahoo 把當日收盤價清算完，避免拿到延遲價誤覆蓋。
 function snapshotPortfolioMarket() {
     if (!stockData) return;
     if (!Array.isArray(stockData.holdings) || stockData.holdings.length === 0) return;
     if (!stockData.prices) return;
-    // 收盤後判斷：台灣時間
+    // 收盤後判斷：台灣時間 14:00 之後才寫（等 Yahoo 清算完）
     var tw = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
     var weekday = tw.getDay(); // 0=日, 6=六
     if (weekday === 0 || weekday === 6) return; // 週末不寫
-    var afterClose = (tw.getHours() > 13) || (tw.getHours() === 13 && tw.getMinutes() >= 30);
-    if (!afterClose) return; // 盤前/盤中不寫
+    var afterClose = tw.getHours() >= 14;
+    if (!afterClose) return; // 14:00 前不寫
     var tradeDate = tw.getFullYear() + '-' +
         String(tw.getMonth()+1).padStart(2,'0') + '-' +
         String(tw.getDate()).padStart(2,'0');
@@ -7978,11 +7998,11 @@ function snapshotStockPrices(today) {
     if (!stockData) return;
     if (!stockData.priceHistory) stockData.priceHistory = {};
     if (!stockData.holdings || !stockData.prices) return;
-    // 只在「台灣時間收盤後（≥ 13:30）」且工作日寫入；盤中/週末不寫，避免拿即時延遲價誤覆蓋。
+    // 只在「台灣時間 14:00 後」且工作日寫入；之前不寫，避免拿 Yahoo 還未清算完的延遲價誤覆蓋。
     var tw = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
     var weekday = tw.getDay();
     if (weekday === 0 || weekday === 6) return;
-    var afterClose = (tw.getHours() > 13) || (tw.getHours() === 13 && tw.getMinutes() >= 30);
+    var afterClose = tw.getHours() >= 14;
     if (!afterClose) return;
     var tradeDate = tw.getFullYear() + '-' +
         String(tw.getMonth()+1).padStart(2,'0') + '-' +
