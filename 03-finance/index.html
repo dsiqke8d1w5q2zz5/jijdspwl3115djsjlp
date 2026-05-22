@@ -4529,6 +4529,30 @@ function buyHolding(idx) {
     // 焦點預設給第一個輸入框
     (isNew ? document.getElementById('buy-id') : $shares).focus();
 
+    // 新增模式：輸入代號後自動帶入股票名稱（沿用 addHolding 的查詢邏輯）
+    if (isNew) {
+        var $id = document.getElementById('buy-id');
+        var $name = document.getElementById('buy-name');
+        var _lookupTimer = null;
+        $id.addEventListener('input', function() {
+            clearTimeout(_lookupTimer);
+            var val = $id.value.trim();
+            if (val.length >= 4) {
+                $name.value = '查詢中...';
+                _lookupTimer = setTimeout(function() {
+                    lookupStockName(val, function(err, name) {
+                        if (!err && name) {
+                            $name.value = name;
+                        } else {
+                            $name.value = '';
+                            $name.placeholder = '查無代號，請手動輸入';
+                        }
+                    });
+                }, 300);
+            }
+        });
+    }
+
     document.getElementById('buy-confirm').onclick = function() {
         var sh = parseInt($shares.value) || 0;
         var pr = parseFloat($price.value);
