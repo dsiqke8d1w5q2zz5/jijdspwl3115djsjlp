@@ -4457,6 +4457,140 @@ function sellHolding(idx) {
     };
 }
 
+// 買入／加碼 modal：填股數、股價、日期，自動算新均價；可選擇是否寫入交易紀錄（ETF 加碼可取消勾）
+// idx 為 stockData.holdings 中的索引；null 表示新增持股
+function buyHolding(idx) {
+    var h = (idx != null) ? stockData.holdings[idx] : null;
+    var isNew = !h;
+    var today = new Date();
+    var todayStr = today.getFullYear() + '-' +
+        String(today.getMonth()+1).padStart(2,'0') + '-' +
+        String(today.getDate()).padStart(2,'0');
+    var p = (h && stockData.prices) ? stockData.prices[h.id] : null;
+    var defaultPrice = (p && typeof p.price === 'number') ? p.price.toFixed(2) : '';
+
+    var ov = document.createElement('div');
+    ov.className = 'overlay';
+    var title = isNew ? '買入（新增持股）' : '加碼 - ' + esc(h.name) + '（' + esc(h.id) + '）';
+    var curInfo = h
+        ? '<div style="font-size:12px;color:var(--muted);margin-bottom:8px">目前持有 <b style="color:var(--text)">' + fmt(h.shares) + '</b> 股，均價 <b style="color:var(--text)">' + h.cost.toFixed(2) + '</b>，總成本 <b style="color:var(--text)">' + fmt(Math.round(h.shares * h.cost)) + '</b></div>'
+        : '';
+
+    var html = '<div class="modal"><h3>' + title + '</h3>' + curInfo;
+    if (isNew) {
+        html += '<input type="text" id="buy-id" placeholder="股票代號（如 2330）">' +
+                '<input type="text" id="buy-name" placeholder="股票名稱（如 台積電）">';
+    }
+    html += '<label style="font-size:12px;color:var(--muted)">買入股數</label>' +
+            '<input type="number" id="buy-shares" placeholder="例：1000" step="1">' +
+            '<label style="font-size:12px;color:var(--muted)">買入股價</label>' +
+            '<input type="number" id="buy-price" value="' + defaultPrice + '" step="0.01" placeholder="例：50.5">' +
+            '<label style="font-size:12px;color:var(--muted)">買入日期</label>' +
+            '<input type="date" id="buy-date" value="' + todayStr + '">';
+    if (isNew) {
+        html += '<label style="font-size:12px;color:var(--muted);margin-top:6px;display:block">券商（可空白）</label>' +
+                '<input type="text" id="buy-broker" list="broker-list-buy" placeholder="例：永豐、富邦" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px">' +
+                '<datalist id="broker-list-buy">' + getKnownBrokers().map(function(b){ return '<option value="'+esc(b)+'">'; }).join('') + '</datalist>';
+    }
+    html += '<label style="display:flex;align-items:center;gap:6px;margin-top:10px;font-size:13px;cursor:pointer;color:var(--text)">' +
+                '<input type="checkbox" id="buy-record-trade" checked>' +
+                '<span>記入交易紀錄（ETF 定期定額加碼可取消勾）</span>' +
+            '</label>' +
+            '<div id="buy-preview" style="margin-top:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:13px;color:var(--muted);line-height:1.6"></div>' +
+            '<div class="modal-btns" style="margin-top:12px">' +
+                '<button onclick="this.closest(\'.overlay\').remove()">取消</button>' +
+                '<button class="btn-primary" id="buy-confirm">確認買入</button>' +
+            '</div></div>';
+    ov.innerHTML = html;
+    document.body.appendChild(ov);
+
+    var $shares = document.getElementById('buy-shares');
+    var $price = document.getElementById('buy-price');
+    var $preview = document.getElementById('buy-preview');
+    function update() {
+        var sh = parseInt($shares.value) || 0;
+        var pr = parseFloat($price.value);
+        if (sh > 0 && !isNaN(pr) && pr > 0) {
+            var amount = sh * pr;
+            if (h) {
+                var newShares = h.shares + sh;
+                var newCost = (h.shares * h.cost + amount) / newShares;
+                $preview.innerHTML = '本次金額 <b style="color:var(--text)">' + fmt(Math.round(amount)) + '</b><br>' +
+                    '新總股數 <b style="color:var(--text)">' + fmt(newShares) + '</b>　新均價 <b style="color:var(--text)">' + newCost.toFixed(2) + '</b>';
+            } else {
+                $preview.innerHTML = '本次金額 <b style="color:var(--text)">' + fmt(Math.round(amount)) + '</b>　均價 <b style="color:var(--text)">' + pr.toFixed(2) + '</b>';
+            }
+        } else {
+            $preview.innerHTML = '<span style="color:var(--muted)">填股數與股價以預覽結果</span>';
+        }
+    }
+    $shares.addEventListener('input', update);
+    $price.addEventListener('input', update);
+    update();
+    // 焦點預設給第一個輸入框
+    (isNew ? document.getElementById('buy-id') : $shares).focus();
+
+    document.getElementById('buy-confirm').onclick = function() {
+        var sh = parseInt($shares.value) || 0;
+        var pr = parseFloat($price.value);
+        var date = document.getElementById('buy-date').value || todayStr;
+        var recordTrade = document.getElementById('buy-record-trade').checked;
+
+        if (sh <= 0) { toast('請輸入買入股數'); return; }
+        if (isNaN(pr) || pr <= 0) { toast('請輸入買入股價'); return; }
+
+        var targetHolding = h;
+        if (isNew) {
+            var id = (document.getElementById('buy-id').value || '').trim();
+            var name = (document.getElementById('buy-name').value || '').trim();
+            var broker = (document.getElementById('buy-broker').value || '').trim();
+            if (!id) { toast('請輸入股票代號'); return; }
+            // 若已存在同 id 持股就直接加碼（避免重複建檔）
+            var existIdx = stockData.holdings.findIndex(function(x){ return x.id === id; });
+            if (existIdx >= 0) {
+                targetHolding = stockData.holdings[existIdx];
+            } else {
+                targetHolding = {
+                    id: id,
+                    name: name || id,
+                    shares: 0,
+                    cost: 0,
+                    broker: broker,
+                    assetType: (typeof guessAssetType === 'function' ? guessAssetType(id) : 'stock'),
+                    region: '台灣'
+                };
+                stockData.holdings.push(targetHolding);
+            }
+        }
+
+        // 加碼：算新均價
+        var amount = sh * pr;
+        var newShares = targetHolding.shares + sh;
+        var newCost = newShares > 0 ? (targetHolding.shares * targetHolding.cost + amount) / newShares : pr;
+        targetHolding.shares = newShares;
+        targetHolding.cost = newCost;
+
+        // 寫 trades（買入不記 realized，買入金額存 amount 方便未來統計）
+        if (recordTrade) {
+            if (!Array.isArray(stockData.trades)) stockData.trades = [];
+            stockData.trades.push({
+                date: date,
+                id: targetHolding.id,
+                name: targetHolding.name,
+                type: 'buy',
+                shares: sh,
+                price: pr,
+                amount: amount
+            });
+        }
+
+        saveStockData();
+        ov.remove();
+        renderStock();
+        toast((isNew ? '已新增' : '已加碼') + ' ' + fmt(sh) + ' 股 × ' + pr.toFixed(2));
+    };
+}
+
 // 跌幅分批試算 modal：輸入股價 → 列出 -1% ~ -10% 對應價
 function showDropCalcModal() {
     var ov = document.createElement('div');
@@ -5596,6 +5730,7 @@ function renderStockHoldings() {
     html += '<div class="stock-refresh-bar">';
     html += '<button class="btn-refresh" id="btn-fetch-price" onclick="refreshPrices()"><i class="ti ti-antenna-bars-5"></i> <span class="lbl-full">更新股價</span><span class="lbl-short">更新</span></button>';
     html += '<button class="btn-refresh" style="background:linear-gradient(135deg,#0f2847 0%,#1a3a5c 50%,#2a5a8c 100%);border:1px solid var(--lux-gold)" onclick="toggleStockColumn()"><i class="ti ti-columns"></i> 欄位</button>';
+    html += '<button class="btn-refresh" onclick="buyHolding(null)" title="買入（可選擇是否記入交易紀錄）"><i class="ti ti-plus"></i> <span class="lbl-full">買入</span><span class="lbl-short">買</span></button>';
     html += '<button class="btn-refresh" onclick="manageHoldings()"><i class="ti ti-list-details"></i> <span class="lbl-full">管理持股</span><span class="lbl-short">管理</span></button>';
     html += '<span class="last-update" style="color:var(--muted)">' + _stockPriceFreshnessLabel() + '</span>';
     html += '<button class="btn-refresh btn-drop-calc" onclick="showDropCalcModal()" title="跌幅分批試算"><i class="ti ti-calculator"></i> <span class="lbl-full">跌幅試算</span><span class="lbl-short">試算</span></button>';
@@ -5778,6 +5913,7 @@ function renderStockHoldings() {
                     '<b style="text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;color:var(--lux-navy)">' + esc(h.id) + '</b>' +
                     '<br><span class="stock-name-sub" style="font-size:12px;color:var(--muted);font-weight:400">' + esc(h.name) + '</span>' +
                 '</span>' +
+                '<button onclick="event.stopPropagation();buyHolding(' + r.idx + ')" title="買入／加碼" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;flex-shrink:0;font-size:14px;line-height:1"><i class="ti ti-plus"></i></button>' +
                 '<button onclick="event.stopPropagation();sellHolding(' + r.idx + ')" title="賣出" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;flex-shrink:0;font-size:14px;line-height:1"><i class="ti ti-cash"></i></button>' +
                 '<button onclick="event.stopPropagation();editHolding(' + r.idx + ')" title="編輯持股" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;flex-shrink:0;font-size:14px;line-height:1"><i class="ti ti-pencil"></i></button>' +
             '</div></td>';
@@ -6583,19 +6719,20 @@ function onReturnCalendarMonthChange(m) {
     if (slot) slot.innerHTML = renderReturnCalendar();
 }
 
-// ── 交易紀錄（賣出明細） ──
-// 顯示所有 sell trades，依日期由新到舊；可編輯／刪除
+// ── 交易紀錄（買賣明細） ──
+// 顯示所有 trades（buy + sell），依日期由新到舊；可編輯／刪除
 function renderTradesList() {
     var trades = Array.isArray(stockData.trades) ? stockData.trades.slice() : [];
-    var sells = trades
+    var items = trades
         .map(function(t, i){ return { t: t, i: i }; })
-        .filter(function(x){ return x.t.type === 'sell'; })
+        .filter(function(x){ return x.t.type === 'sell' || x.t.type === 'buy'; })
         .sort(function(a, b){ return (b.t.date || '').localeCompare(a.t.date || ''); });
 
     var totalRealized = 0;
     var thisYear = String(new Date().getFullYear());
     var yearRealized = 0;
-    sells.forEach(function(x){
+    items.forEach(function(x){
+        if (x.t.type !== 'sell') return;
         var r = x.t.realized || 0;
         totalRealized += r;
         if ((x.t.date || '').slice(0,4) === thisYear) yearRealized += r;
@@ -6604,35 +6741,48 @@ function renderTradesList() {
     var html = '<div style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;height:100%">';
     html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">';
     html += '<div style="font-size:14px;font-weight:600">交易紀錄</div>';
-    html += '<span style="margin-left:auto;font-size:12px;color:var(--muted)">共 ' + sells.length + ' 筆</span>';
+    html += '<span style="margin-left:auto;font-size:12px;color:var(--muted)">共 ' + items.length + ' 筆</span>';
     html += '</div>';
 
-    if (sells.length === 0) {
-        html += '<div style="color:var(--muted);font-size:12px;line-height:1.6;padding:8px 0">尚無賣出紀錄。<br>在「持股總覽」點任一檔股票名稱旁邊的 <i class="ti ti-cash"></i> 圖示就能賣出，並自動記在這裡。</div>';
+    if (items.length === 0) {
+        html += '<div style="color:var(--muted);font-size:12px;line-height:1.6;padding:8px 0">尚無交易紀錄。<br>在「持股總覽」點 <i class="ti ti-plus"></i> 買入或 <i class="ti ti-cash"></i> 賣出，會自動記在這裡。</div>';
         html += '</div>';
         return html;
     }
 
-    // 摘要
-    var totalCls = totalRealized >= 0 ? 'pos' : 'neg';
-    var yearCls  = yearRealized  >= 0 ? 'pos' : 'neg';
-    html += '<div style="display:flex;gap:14px;font-size:13px;margin-bottom:8px;padding:6px 8px;background:var(--bg);border-radius:6px">';
-    html += '<span style="color:var(--muted)">累積 <b class="' + totalCls + '">' + (totalRealized >= 0 ? '+' : '') + fmt(Math.round(totalRealized)) + '</b></span>';
-    html += '<span style="color:var(--muted)">' + thisYear + ' <b class="' + yearCls + '">' + (yearRealized >= 0 ? '+' : '') + fmt(Math.round(yearRealized)) + '</b></span>';
-    html += '</div>';
+    // 摘要（只算賣出已實現損益）
+    if (totalRealized !== 0 || yearRealized !== 0) {
+        var totalCls = totalRealized >= 0 ? 'pos' : 'neg';
+        var yearCls  = yearRealized  >= 0 ? 'pos' : 'neg';
+        html += '<div style="display:flex;gap:14px;font-size:13px;margin-bottom:8px;padding:6px 8px;background:var(--bg);border-radius:6px">';
+        html += '<span style="color:var(--muted)">累積已實現 <b class="' + totalCls + '">' + (totalRealized >= 0 ? '+' : '') + fmt(Math.round(totalRealized)) + '</b></span>';
+        html += '<span style="color:var(--muted)">' + thisYear + ' <b class="' + yearCls + '">' + (yearRealized >= 0 ? '+' : '') + fmt(Math.round(yearRealized)) + '</b></span>';
+        html += '</div>';
+    }
 
     // 列表
     html += '<div style="flex:1;overflow-y:auto;max-height:560px">';
-    sells.forEach(function(x){
+    items.forEach(function(x){
         var t = x.t;
-        var realized = t.realized || 0;
-        var cls = realized >= 0 ? 'pos' : 'neg';
+        var isBuy = t.type === 'buy';
+        var typeLabel = isBuy
+            ? '<span style="display:inline-block;background:rgba(22,163,74,0.12);color:var(--green);padding:1px 6px;border-radius:4px;font-size:11px;font-weight:600;margin-right:6px">買</span>'
+            : '<span style="display:inline-block;background:rgba(239,68,68,0.12);color:var(--red);padding:1px 6px;border-radius:4px;font-size:11px;font-weight:600;margin-right:6px">賣</span>';
+        var rightCell = '';
+        if (isBuy) {
+            var amount = (typeof t.amount === 'number') ? t.amount : (t.shares || 0) * (t.price || 0);
+            rightCell = '<div style="font-weight:600;text-align:right;min-width:70px;color:var(--muted)">' + fmt(Math.round(amount)) + '</div>';
+        } else {
+            var realized = t.realized || 0;
+            var cls = realized >= 0 ? 'pos' : 'neg';
+            rightCell = '<div class="' + cls + '" style="font-weight:600;text-align:right;min-width:70px">' + (realized >= 0 ? '+' : '') + fmt(Math.round(realized)) + '</div>';
+        }
         html += '<div style="display:flex;align-items:center;gap:8px;padding:8px 6px;border-bottom:1px solid var(--border);font-size:13px">' +
             '<div style="flex:1;min-width:0">' +
-                '<div><b>' + esc(t.id || '') + '</b> <span style="color:var(--muted);font-size:12px">' + esc(t.name || '') + '</span></div>' +
+                '<div>' + typeLabel + '<b>' + esc(t.id || '') + '</b> <span style="color:var(--muted);font-size:12px">' + esc(t.name || '') + '</span></div>' +
                 '<div style="font-size:11px;color:var(--muted)">' + esc(t.date || '') + '　' + fmt(t.shares || 0) + ' 股 × ' + (typeof t.price === 'number' ? t.price.toFixed(2) : '-') + '</div>' +
             '</div>' +
-            '<div class="' + cls + '" style="font-weight:600;text-align:right;min-width:70px">' + (realized >= 0 ? '+' : '') + fmt(Math.round(realized)) + '</div>' +
+            rightCell +
             '<button onclick="editTrade(' + x.i + ')" title="編輯" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;font-size:13px"><i class="ti ti-pencil"></i></button>' +
             '<button onclick="deleteTrade(' + x.i + ')" title="刪除" style="background:none;border:none;cursor:pointer;color:var(--red);padding:4px;font-size:13px"><i class="ti ti-trash"></i></button>' +
         '</div>';
@@ -6654,28 +6804,46 @@ function _refreshTradesList() {
 function editTrade(idx) {
     var t = stockData.trades && stockData.trades[idx];
     if (!t) return;
+    var isBuy = t.type === 'buy';
     var ov = document.createElement('div');
     ov.className = 'overlay';
-    ov.innerHTML = '<div class="modal"><h3>編輯交易 - ' + esc(t.id || '') + '</h3>' +
+    var title = isBuy ? '編輯買入 - ' : '編輯賣出 - ';
+    var html = '<div class="modal"><h3>' + title + esc(t.id || '') + '</h3>' +
         '<label style="font-size:12px;color:var(--muted)">日期</label>' +
         '<input type="date" id="et-date" value="' + esc(t.date || '') + '">' +
         '<label style="font-size:12px;color:var(--muted)">股數</label>' +
         '<input type="number" id="et-shares" value="' + (t.shares || 0) + '" step="1">' +
-        '<label style="font-size:12px;color:var(--muted)">賣出股價</label>' +
-        '<input type="number" id="et-price" value="' + (t.price != null ? t.price : '') + '" step="0.01">' +
-        '<label style="font-size:12px;color:var(--muted)">成本</label>' +
-        '<input type="number" id="et-cost" value="' + (t.cost != null ? Math.round(t.cost) : '') + '" step="1">' +
-        '<div id="et-pl-preview" style="margin-top:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:13px;color:var(--muted)">已實現損益：<b id="et-pl-num">-</b></div>' +
-        '<div class="modal-btns" style="margin-top:12px">' +
-            '<button onclick="this.closest(\'.overlay\').remove()">取消</button>' +
-            '<button class="btn-primary" id="et-save">儲存</button>' +
-        '</div></div>';
+        '<label style="font-size:12px;color:var(--muted)">' + (isBuy ? '買入' : '賣出') + '股價</label>' +
+        '<input type="number" id="et-price" value="' + (t.price != null ? t.price : '') + '" step="0.01">';
+    if (!isBuy) {
+        html += '<label style="font-size:12px;color:var(--muted)">成本</label>' +
+                '<input type="number" id="et-cost" value="' + (t.cost != null ? Math.round(t.cost) : '') + '" step="1">' +
+                '<div id="et-pl-preview" style="margin-top:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:13px;color:var(--muted)">已實現損益：<b id="et-pl-num">-</b></div>';
+    } else {
+        html += '<div id="et-pl-preview" style="margin-top:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:13px;color:var(--muted)">買入金額：<b id="et-pl-num">-</b></div>' +
+                '<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5">※ 編輯買入只會修改交易紀錄本身，<b>不會自動回算持股均價</b>。如果這筆是誤填，請額外用「編輯持股」修正持股資料。</div>';
+    }
+    html += '<div class="modal-btns" style="margin-top:12px">' +
+                '<button onclick="this.closest(\'.overlay\').remove()">取消</button>' +
+                '<button class="btn-primary" id="et-save">儲存</button>' +
+            '</div></div>';
+    ov.innerHTML = html;
     document.body.appendChild(ov);
     function update() {
         var sh = parseInt(document.getElementById('et-shares').value) || 0;
         var pr = parseFloat(document.getElementById('et-price').value);
-        var c = parseFloat(document.getElementById('et-cost').value);
         var $n = document.getElementById('et-pl-num');
+        if (isBuy) {
+            if (sh > 0 && !isNaN(pr) && pr > 0) {
+                $n.textContent = fmt(Math.round(sh * pr));
+                $n.style.color = 'var(--text)';
+            } else {
+                $n.textContent = '-';
+                $n.style.color = 'var(--muted)';
+            }
+            return;
+        }
+        var c = parseFloat(document.getElementById('et-cost').value);
         if (sh > 0 && !isNaN(pr) && !isNaN(c)) {
             var r = sh * pr - c;
             $n.textContent = (r >= 0 ? '+' : '') + fmt(Math.round(r));
@@ -6685,22 +6853,29 @@ function editTrade(idx) {
             $n.style.color = 'var(--muted)';
         }
     }
-    ['et-shares','et-price','et-cost'].forEach(function(id){
-        document.getElementById(id).addEventListener('input', update);
-    });
+    var ids = isBuy ? ['et-shares','et-price'] : ['et-shares','et-price','et-cost'];
+    ids.forEach(function(id){ document.getElementById(id).addEventListener('input', update); });
     update();
     document.getElementById('et-save').onclick = function() {
         var sh = parseInt(document.getElementById('et-shares').value) || 0;
         var pr = parseFloat(document.getElementById('et-price').value);
-        var c = parseFloat(document.getElementById('et-cost').value);
         var d = document.getElementById('et-date').value;
-        if (sh <= 0 || isNaN(pr) || pr <= 0 || isNaN(c) || !d) { toast('請填完整資訊'); return; }
-        t.date = d;
-        t.shares = sh;
-        t.price = pr;
-        t.cost = c;
-        t.realized = sh * pr - c;
-        try { _syncTradesToCashflow(); saveData(true); } catch(e){ console.error('[syncTrades]', e); }
+        if (sh <= 0 || isNaN(pr) || pr <= 0 || !d) { toast('請填完整資訊'); return; }
+        if (isBuy) {
+            t.date = d;
+            t.shares = sh;
+            t.price = pr;
+            t.amount = sh * pr;
+        } else {
+            var c = parseFloat(document.getElementById('et-cost').value);
+            if (isNaN(c)) { toast('請填成本'); return; }
+            t.date = d;
+            t.shares = sh;
+            t.price = pr;
+            t.cost = c;
+            t.realized = sh * pr - c;
+            try { _syncTradesToCashflow(); saveData(true); } catch(e){ console.error('[syncTrades]', e); }
+        }
         saveStockData();
         ov.remove();
         _refreshTradesList();
@@ -6712,9 +6887,19 @@ function editTrade(idx) {
 function deleteTrade(idx) {
     var t = stockData.trades && stockData.trades[idx];
     if (!t) return;
-    showConfirm('確定刪除這筆交易紀錄？<br><span style="color:var(--muted);font-size:12px">' + esc(t.id || '') + ' ' + esc(t.date || '') + '　' + (t.realized >= 0 ? '+' : '') + fmt(Math.round(t.realized || 0)) + '</span><br><br><span style="color:var(--red);font-size:12px">注意：股數不會自動補回持股，如果這筆是誤刪請手動「編輯持股」加回。</span>', function() {
+    var isBuy = t.type === 'buy';
+    var summary;
+    if (isBuy) {
+        var amt = (typeof t.amount === 'number') ? t.amount : (t.shares || 0) * (t.price || 0);
+        summary = '買 ' + esc(t.id || '') + ' ' + esc(t.date || '') + '　金額 ' + fmt(Math.round(amt));
+    } else {
+        summary = '賣 ' + esc(t.id || '') + ' ' + esc(t.date || '') + '　' + (t.realized >= 0 ? '+' : '') + fmt(Math.round(t.realized || 0));
+    }
+    showConfirm('確定刪除這筆交易紀錄？<br><span style="color:var(--muted);font-size:12px">' + summary + '</span><br><br><span style="color:var(--red);font-size:12px">注意：刪除不會回算持股均價／股數，如果是誤刪請手動「編輯持股」修正。</span>', function() {
         stockData.trades.splice(idx, 1);
-        try { _syncTradesToCashflow(); saveData(true); } catch(e){ console.error('[syncTrades]', e); }
+        if (!isBuy) {
+            try { _syncTradesToCashflow(); saveData(true); } catch(e){ console.error('[syncTrades]', e); }
+        }
         saveStockData();
         _refreshTradesList();
         renderStock();
