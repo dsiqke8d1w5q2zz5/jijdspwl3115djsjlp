@@ -4157,19 +4157,11 @@ function getHoldingRegion(h) {
 function addHolding() {
     var ov = document.createElement('div');
     ov.className = 'overlay';
-    var regionOpts = STOCK_REGIONS.map(function(r){ return '<option value="'+r+'">'+r+'</option>'; }).join('');
     ov.innerHTML = '<div class="modal"><h3>新增持股</h3>' +
         '<input type="text" id="stock-id" placeholder="股票代號（如 2330）">' +
         '<input type="text" id="stock-name" placeholder="股票名稱（如 台積電）">' +
         '<input type="number" id="stock-shares" placeholder="持有股數">' +
-        '<input type="number" id="stock-cost" placeholder="買入均價" step="0.01">' +
-        '<div style="display:flex;gap:8px;margin-top:6px">' +
-            '<div style="flex:1"><label style="font-size:12px;color:var(--muted)">類型</label>' +
-                '<select id="stock-asset-type" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px">' +
-                '<option value="stock">股票</option><option value="bond">債券</option></select></div>' +
-            '<div style="flex:1"><label style="font-size:12px;color:var(--muted)">區域</label>' +
-                '<select id="stock-region" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px">' + regionOpts + '</select></div>' +
-        '</div>' +
+        '<input type="number" id="stock-cost" placeholder="付出成本（總額，會自動算均價）" step="1">' +
         '<label style="font-size:12px;color:var(--muted);margin-top:6px;display:block">券商（可空白）</label>' +
         '<input type="text" id="stock-broker" list="broker-list-add" placeholder="例：永豐、富邦" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px">' +
         '<datalist id="broker-list-add">' + getKnownBrokers().map(function(b){ return '<option value="'+esc(b)+'">'; }).join('') + '</datalist>' +
@@ -4204,9 +4196,7 @@ function addHolding() {
         var id = document.getElementById('stock-id').value.trim();
         var name = document.getElementById('stock-name').value.trim();
         var shares = parseInt(document.getElementById('stock-shares').value) || 0;
-        var cost = parseFloat(document.getElementById('stock-cost').value) || 0;
-        var assetType = document.getElementById('stock-asset-type').value || 'stock';
-        var region = document.getElementById('stock-region').value || '台灣';
+        var totalCost = parseFloat(document.getElementById('stock-cost').value) || 0;
         var broker = (document.getElementById('stock-broker').value || '').trim();
         if (!id) { toast('請輸入股票代號', true); return; }
         if (!name) { toast('請輸入股票名稱', true); return; }
@@ -4214,7 +4204,9 @@ function addHolding() {
         // 檢查是否已存在
         var exists = stockData.holdings.find(function(h){ return h.id === id; });
         if (exists) { toast('持股已存在，請直接編輯', true); return; }
-        stockData.holdings.push({ id: id, name: name, shares: shares, cost: cost, assetType: assetType, region: region, broker: broker });
+        var cost = shares > 0 ? totalCost / shares : 0;
+        var assetType = guessAssetType(id);
+        stockData.holdings.push({ id: id, name: name, shares: shares, cost: cost, assetType: assetType, region: '台灣', broker: broker });
         saveStockData();
         ov.remove();
         renderStock();
