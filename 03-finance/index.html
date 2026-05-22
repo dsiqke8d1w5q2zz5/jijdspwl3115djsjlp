@@ -219,27 +219,27 @@ body {
 
 /* ── 日曆格子（報酬日曆、個股漲跌日曆共用） ── */
 .cal-cell {
-    border-radius: 6px;
-    padding: 4px 4px;
+    border-radius: 5px;
+    padding: 2px 4px;
     text-align: center;
-    min-height: 64px;
+    min-height: 48px;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 1px;
+    gap: 0;
 }
-.cal-cell--sm { min-height: 54px; gap: 0; padding: 4px 6px; }
+.cal-cell--sm { min-height: 42px; padding: 2px 4px; }
 .cal-cell-empty { background: transparent; padding: 0; }
 .cal-cell-blank { border: 1px dashed var(--border); color: var(--muted); font-size: 11px; align-items: center; }
 .cal-cell-today { border: 1.5px solid var(--lux-gold); }
 .cal-cell-today-empty { background: rgba(212,175,55,0.05); color: var(--muted); font-size: 11px; align-items: center; }
 .cal-cell-today-label { color: var(--lux-gold); font-weight: 600; }
 .cal-cell-week-total { background: rgba(0,0,0,0.03); }
-.cal-cell-day { font-size: 11px; color: var(--muted); }
-.cal-cell-main { font-size: 12px; font-weight: 600; }
-.cal-cell--sm .cal-cell-main { font-size: 13px; }
-.cal-cell-sub { font-size: 11px; font-weight: 600; }
-.cal-cell-pct { font-size: 10px; font-weight: 500; }
+.cal-cell-day { font-size: 10px; color: var(--muted); line-height: 1.2; }
+.cal-cell-main { font-size: 11px; font-weight: 600; line-height: 1.25; }
+.cal-cell--sm .cal-cell-main { font-size: 12px; }
+.cal-cell-sub { font-size: 10px; font-weight: 600; line-height: 1.2; }
+.cal-cell-pct { font-size: 9px; font-weight: 500; }
 
 
 .table-wrap {
