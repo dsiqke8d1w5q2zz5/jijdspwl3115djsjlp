@@ -4391,7 +4391,8 @@ function sellHolding(idx) {
         '<input type="date" id="sell-date" value="' + todayStr + '">' +
         '<label style="font-size:12px;color:var(--muted)">成本（賣出部分對應的成本，可手動編輯）</label>' +
         '<input type="number" id="sell-cost" value="' + defaultCost + '" step="1">' +
-        '<div id="sell-pl-preview" style="margin-top:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:13px;color:var(--muted)">已實現損益：<b id="sell-pl-num">-</b></div>' +
+        '<label style="font-size:12px;color:var(--muted)">已實現損益（自動算「股數×價 − 成本」，可手動覆寫填扣完手續費／證交稅的實際數）</label>' +
+        '<input type="number" id="sell-realized" step="1">' +
         '<div class="modal-btns" style="margin-top:12px">' +
             '<button onclick="this.closest(\'.overlay\').remove()">取消</button>' +
             '<button class="btn-primary" id="sell-confirm">確認賣出</button>' +
@@ -4401,9 +4402,11 @@ function sellHolding(idx) {
     var $shares = document.getElementById('sell-shares');
     var $price = document.getElementById('sell-price');
     var $cost = document.getElementById('sell-cost');
-    var $plNum = document.getElementById('sell-pl-num');
+    var $realized = document.getElementById('sell-realized');
     var costEdited = false;
+    var realizedEdited = false;
     $cost.addEventListener('input', function(){ costEdited = true; updatePreview(); });
+    $realized.addEventListener('input', function(){ realizedEdited = true; });
     function updatePreview() {
         var sh = parseInt($shares.value) || 0;
         var pr = parseFloat($price.value);
@@ -4413,13 +4416,10 @@ function sellHolding(idx) {
             if (String(autoCost) !== $cost.value) $cost.value = autoCost;
         }
         var c = parseFloat($cost.value);
-        if (sh > 0 && !isNaN(pr) && !isNaN(c)) {
-            var realized = sh * pr - c;
-            $plNum.textContent = (realized >= 0 ? '+' : '') + fmt(Math.round(realized));
-            $plNum.style.color = realized >= 0 ? 'var(--red)' : 'var(--green)';
-        } else {
-            $plNum.textContent = '-';
-            $plNum.style.color = 'var(--muted)';
+        // 已實現損益未手動編輯時，自動跟著「股數×價 − 成本」算
+        if (!realizedEdited && sh > 0 && !isNaN(pr) && !isNaN(c)) {
+            var autoR = Math.round(sh * pr - c);
+            if (String(autoR) !== $realized.value) $realized.value = autoR;
         }
     }
     $shares.addEventListener('input', updatePreview);
@@ -4430,11 +4430,12 @@ function sellHolding(idx) {
         var sh = parseInt($shares.value) || 0;
         var pr = parseFloat($price.value);
         var c = parseFloat($cost.value);
+        var realized = parseFloat($realized.value);
         var date = document.getElementById('sell-date').value || todayStr;
         if (sh <= 0 || sh > h.shares) { toast('賣出股數錯誤'); return; }
         if (isNaN(pr) || pr <= 0) { toast('請輸入賣出股價'); return; }
         if (isNaN(c)) { toast('請輸入成本'); return; }
-        var realized = sh * pr - c;
+        if (isNaN(realized)) { toast('請輸入已實現損益'); return; }
         if (!Array.isArray(stockData.trades)) stockData.trades = [];
         stockData.trades.push({
             date: date,
@@ -6809,7 +6810,8 @@ function editTrade(idx) {
     if (!isBuy) {
         html += '<label style="font-size:12px;color:var(--muted)">成本</label>' +
                 '<input type="number" id="et-cost" value="' + (t.cost != null ? Math.round(t.cost) : '') + '" step="1">' +
-                '<div id="et-pl-preview" style="margin-top:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:13px;color:var(--muted)">已實現損益：<b id="et-pl-num">-</b></div>';
+                '<label style="font-size:12px;color:var(--muted)">已實現損益（可手動編輯填扣完手續費／證交稅的實際數）</label>' +
+                '<input type="number" id="et-realized" value="' + (t.realized != null ? Math.round(t.realized) : '') + '" step="1">';
     } else {
         html += '<div id="et-pl-preview" style="margin-top:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:13px;color:var(--muted)">買入金額：<b id="et-pl-num">-</b></div>' +
                 '<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5">※ 編輯買入只會修改交易紀錄本身，<b>不會自動回算持股均價</b>。如果這筆是誤填，請額外用「編輯持股」修正持股資料。</div>';
@@ -6820,11 +6822,15 @@ function editTrade(idx) {
             '</div></div>';
     ov.innerHTML = html;
     document.body.appendChild(ov);
+    var realizedEdited = false;
+    if (!isBuy) {
+        document.getElementById('et-realized').addEventListener('input', function(){ realizedEdited = true; });
+    }
     function update() {
         var sh = parseInt(document.getElementById('et-shares').value) || 0;
         var pr = parseFloat(document.getElementById('et-price').value);
-        var $n = document.getElementById('et-pl-num');
         if (isBuy) {
+            var $n = document.getElementById('et-pl-num');
             if (sh > 0 && !isNaN(pr) && pr > 0) {
                 $n.textContent = fmt(Math.round(sh * pr));
                 $n.style.color = 'var(--text)';
@@ -6834,14 +6840,12 @@ function editTrade(idx) {
             }
             return;
         }
+        // sell：已實現未手動編輯時自動跟著「股數×價 − 成本」算
         var c = parseFloat(document.getElementById('et-cost').value);
-        if (sh > 0 && !isNaN(pr) && !isNaN(c)) {
-            var r = sh * pr - c;
-            $n.textContent = (r >= 0 ? '+' : '') + fmt(Math.round(r));
-            $n.style.color = r >= 0 ? 'var(--red)' : 'var(--green)';
-        } else {
-            $n.textContent = '-';
-            $n.style.color = 'var(--muted)';
+        var $r = document.getElementById('et-realized');
+        if (!realizedEdited && sh > 0 && !isNaN(pr) && !isNaN(c)) {
+            var auto = Math.round(sh * pr - c);
+            if (String(auto) !== $r.value) $r.value = auto;
         }
     }
     var ids = isBuy ? ['et-shares','et-price'] : ['et-shares','et-price','et-cost'];
@@ -6859,12 +6863,14 @@ function editTrade(idx) {
             t.amount = sh * pr;
         } else {
             var c = parseFloat(document.getElementById('et-cost').value);
+            var rz = parseFloat(document.getElementById('et-realized').value);
             if (isNaN(c)) { toast('請填成本'); return; }
+            if (isNaN(rz)) { toast('請填已實現損益'); return; }
             t.date = d;
             t.shares = sh;
             t.price = pr;
             t.cost = c;
-            t.realized = sh * pr - c;
+            t.realized = rz;
             try { _syncTradesToCashflow(); saveData(true); } catch(e){ console.error('[syncTrades]', e); }
         }
         saveStockData();
