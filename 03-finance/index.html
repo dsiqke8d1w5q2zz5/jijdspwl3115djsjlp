@@ -214,6 +214,9 @@ body {
 .pos { color: var(--green); }
 .neg { color: var(--red); }
 
+/* 必填欄位星號 */
+.req::after { content: ' *'; color: var(--red); font-weight: 700; }
+
 /* ── 日曆格子（報酬日曆、個股漲跌日曆共用） ── */
 .cal-cell {
     border-radius: 6px;
@@ -2010,15 +2013,26 @@ document.addEventListener('click', function(e) {
     m.style.display = 'none';
 });
 
-// ===== 全域 ENTER 鍵：所有 overlay 按 Enter = 觸發 .btn-primary =====
+// ===== 全域 ENTER／ESC 鍵：所有 overlay 統一處理 =====
+// Enter：觸發 .btn-primary（但 data-danger="1" 或紅底的危險按鈕不觸發）
+// ESC：關閉最上層 overlay
 document.addEventListener('keydown', function(e) {
-    if (e.key !== 'Enter') return;
-    if (e.target && e.target.tagName === 'TEXTAREA') return;
     var overlays = document.querySelectorAll('.overlay');
     if (!overlays.length) return;
     var ov = overlays[overlays.length - 1];
+    if (e.key === 'Escape') {
+        // 給 overlay 一個機會自訂 ESC 行為（用 data-allow-esc-close="0" 禁止）
+        if (ov.getAttribute('data-allow-esc-close') === '0') return;
+        e.preventDefault();
+        ov.remove();
+        return;
+    }
+    if (e.key !== 'Enter') return;
+    if (e.target && (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT')) return;
     var btn = ov.querySelector('.modal-btns .btn-primary') || ov.querySelector('.btn-primary');
     if (!btn) return;
+    // 危險按鈕判斷：data-danger 屬性優先；其次看背景色含 red
+    if (btn.getAttribute('data-danger') === '1') return;
     var bg = btn.style.background || btn.style.backgroundColor || '';
     if (bg.indexOf('red') >= 0 || bg.indexOf('--red') >= 0) return;
     e.preventDefault();
@@ -4308,10 +4322,14 @@ function addHolding() {
     var ov = document.createElement('div');
     ov.className = 'overlay';
     ov.innerHTML = '<div class="modal"><h3>新增持股</h3>' +
-        '<input type="text" id="stock-id" placeholder="股票代號（如 2330）">' +
-        '<input type="text" id="stock-name" placeholder="股票名稱（如 台積電）">' +
-        '<input type="number" id="stock-shares" placeholder="持有股數">' +
-        '<input type="number" id="stock-cost" placeholder="付出成本（總額，會自動算均價）" step="1">' +
+        '<label class="req" style="font-size:12px;color:var(--muted)">股票代號</label>' +
+        '<input type="text" id="stock-id" placeholder="例：2330">' +
+        '<label class="req" style="font-size:12px;color:var(--muted)">股票名稱（代號輸入後會自動帶入）</label>' +
+        '<input type="text" id="stock-name" placeholder="例：台積電">' +
+        '<label class="req" style="font-size:12px;color:var(--muted)">持有股數</label>' +
+        '<input type="number" id="stock-shares" placeholder="例：1000">' +
+        '<label class="req" style="font-size:12px;color:var(--muted)">付出成本（總額，會自動算均價）</label>' +
+        '<input type="number" id="stock-cost" placeholder="例：650000" step="1">' +
         '<label style="font-size:12px;color:var(--muted);margin-top:6px;display:block">券商（可空白）</label>' +
         '<input type="text" id="stock-broker" list="broker-list-add" placeholder="例：永豐、富邦" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px">' +
         '<datalist id="broker-list-add">' + getKnownBrokers().map(function(b){ return '<option value="'+esc(b)+'">'; }).join('') + '</datalist>' +
@@ -4447,15 +4465,15 @@ function sellHolding(idx) {
     ov.className = 'overlay';
     ov.innerHTML = '<div class="modal"><h3>賣出 - ' + esc(h.name) + '（' + esc(h.id) + '）</h3>' +
         '<div style="font-size:12px;color:var(--muted);margin-bottom:8px">目前持有 <b style="color:var(--text)">' + fmt(h.shares) + '</b> 股，均價 <b style="color:var(--text)">' + h.cost.toFixed(2) + '</b></div>' +
-        '<label style="font-size:12px;color:var(--muted)">賣出股數</label>' +
+        '<label class="req" style="font-size:12px;color:var(--muted)">賣出股數</label>' +
         '<input type="number" id="sell-shares" value="' + h.shares + '" min="1" max="' + h.shares + '" step="1">' +
-        '<label style="font-size:12px;color:var(--muted)">賣出股價</label>' +
+        '<label class="req" style="font-size:12px;color:var(--muted)">賣出股價</label>' +
         '<input type="number" id="sell-price" value="' + defaultPrice + '" step="0.01" placeholder="例：50.5">' +
-        '<label style="font-size:12px;color:var(--muted)">賣出日期</label>' +
+        '<label class="req" style="font-size:12px;color:var(--muted)">賣出日期</label>' +
         '<input type="date" id="sell-date" value="' + todayStr + '">' +
-        '<label style="font-size:12px;color:var(--muted)">成本（賣出部分對應的成本，可手動編輯）</label>' +
+        '<label class="req" style="font-size:12px;color:var(--muted)">成本（賣出部分對應的成本，可手動編輯）</label>' +
         '<input type="number" id="sell-cost" value="' + defaultCost + '" step="1">' +
-        '<label style="font-size:12px;color:var(--muted)">已實現損益（自動算「股數×價 − 成本」，可手動覆寫填扣完手續費／證交稅的實際數）</label>' +
+        '<label class="req" style="font-size:12px;color:var(--muted)">已實現損益（自動算「股數×價 − 成本」，可手動覆寫填扣完手續費／證交稅的實際數）</label>' +
         '<input type="number" id="sell-realized" step="1">' +
         '<div class="modal-btns" style="margin-top:12px">' +
             '<button onclick="this.closest(\'.overlay\').remove()">取消</button>' +
@@ -4500,24 +4518,31 @@ function sellHolding(idx) {
         if (isNaN(pr) || pr <= 0) { toast('請輸入賣出股價'); return; }
         if (isNaN(c)) { toast('請輸入成本'); return; }
         if (isNaN(realized)) { toast('請輸入已實現損益'); return; }
-        if (!Array.isArray(stockData.trades)) stockData.trades = [];
-        stockData.trades.push({
-            date: date,
-            id: h.id,
-            name: h.name,
-            type: 'sell',
-            shares: sh,
-            price: pr,
-            cost: c,
-            realized: realized
-        });
-        h.shares -= sh;
-        // shares = 0 不刪除，靠渲染端隱藏；保留 cost 給未來統計
-        try { _syncTradesToCashflow(); saveData(true); } catch(e){ console.error('[syncTrades]', e); }
-        saveStockData();
-        ov.remove();
-        renderStock();
-        toast('已賣出 ' + sh + ' 股，' + (realized >= 0 ? '獲利 +' : '虧損 ') + fmt(realized));
+        var msg = '確認賣出 ' + esc(h.name) + '（' + esc(h.id) + '）？\n\n' +
+            '股數：' + fmt(sh) + ' 股\n' +
+            '股價：' + pr.toFixed(2) + '\n' +
+            '日期：' + date + '\n' +
+            '已實現損益：' + (realized >= 0 ? '+' : '') + fmt(realized) + '\n\n' +
+            (sh === h.shares ? '⚠ 將清空此持股部位（trades 紀錄保留）' : '剩餘股數：' + fmt(h.shares - sh));
+        showConfirm2(msg, function() {
+            if (!Array.isArray(stockData.trades)) stockData.trades = [];
+            stockData.trades.push({
+                date: date,
+                id: h.id,
+                name: h.name,
+                type: 'sell',
+                shares: sh,
+                price: pr,
+                cost: c,
+                realized: realized
+            });
+            h.shares -= sh;
+            try { _syncTradesToCashflow(); saveData(true); } catch(e){ console.error('[syncTrades]', e); }
+            saveStockData();
+            ov.remove();
+            renderStock();
+            toast('已賣出 ' + sh + ' 股，' + (realized >= 0 ? '獲利 +' : '虧損 ') + fmt(realized));
+        }, null, { title: '確認賣出', okText: '確認賣出', okStyle: 'background:var(--red)' });
     };
 }
 
@@ -4539,14 +4564,16 @@ function buyHolding(idx) {
 
     var html = '<div class="modal"><h3>' + title + '</h3>' + curInfo;
     if (isNew) {
-        html += '<input type="text" id="buy-id" placeholder="股票代號（如 2330）">' +
-                '<input type="text" id="buy-name" placeholder="股票名稱（如 台積電）">';
+        html += '<label class="req" style="font-size:12px;color:var(--muted)">股票代號</label>' +
+                '<input type="text" id="buy-id" placeholder="例：2330">' +
+                '<label style="font-size:12px;color:var(--muted)">股票名稱（代號輸入後會自動帶入）</label>' +
+                '<input type="text" id="buy-name" placeholder="例：台積電">';
     }
-    html += '<label style="font-size:12px;color:var(--muted)">買入股數</label>' +
+    html += '<label class="req" style="font-size:12px;color:var(--muted)">買入股數</label>' +
             '<input type="number" id="buy-shares" placeholder="例：1000" step="1">' +
-            '<label style="font-size:12px;color:var(--muted)">買入成本（總額，含手續費，會自動算均價）</label>' +
+            '<label class="req" style="font-size:12px;color:var(--muted)">買入成本（總額，含手續費，會自動算均價）</label>' +
             '<input type="number" id="buy-cost" step="1" placeholder="例：50500">' +
-            '<label style="font-size:12px;color:var(--muted)">買入日期</label>' +
+            '<label class="req" style="font-size:12px;color:var(--muted)">買入日期</label>' +
             '<input type="date" id="buy-date" value="' + todayStr + '">';
     if (isNew) {
         html += '<label style="font-size:12px;color:var(--muted);margin-top:6px;display:block">券商（可空白）</label>' +
