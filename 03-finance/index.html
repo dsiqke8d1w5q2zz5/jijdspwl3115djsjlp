@@ -3590,7 +3590,7 @@ function esc(s) {
 // 把字串安全包成「可放進 onclick 屬性內的 JS 字串字面值」
 // 用法：'onclick="renameCat(' + escJs(name) + ')"'
 // 兩層防禦：先 \\、\\'、\\" 把 JS 特殊字元跳脫；再對 HTML 屬性的特殊字元 esc
-// 這樣即使 name 含 ' 或 </script>，瀏覽器解析屬性、JS 引擎解析字串字面值都不會破壞語法
+// 這樣即使 name 含 ' 或 HTML 標籤，瀏覽器解析屬性、JS 引擎解析字串字面值都不會破壞語法
 function escJs(s) {
     if (s === null || s === undefined) return "''";
     var jsStr = String(s)
