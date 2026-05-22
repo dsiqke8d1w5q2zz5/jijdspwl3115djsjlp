@@ -6993,18 +6993,26 @@ function _buildRealizedTradesHtml() {
         })
         : sells;
 
+    // 外層卡片：永遠包住搜尋框，避免 input 被重建中斷輸入法
     var html = '<div id="realized-trades-slot" style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);margin-top:12px">';
     html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">';
     html += '<div style="font-size:14px;font-weight:600">已實現損益紀錄</div>';
-    // 搜尋框：用 textContent 取值（避免 oninput 字串拼接 XSS），事件在 init 函式綁
     html += '<input type="text" id="realized-search" placeholder="搜尋代號或股名" value="' + esc(_realizedSearchKw) + '" ' +
         'style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--card);width:160px">';
-    html += '<span style="margin-left:auto;font-size:12px;color:var(--muted)">共 ' + sells.length + ' 筆' + (kw ? '（過濾後 ' + filtered.length + '）' : '') + '</span>';
+    html += '<span id="realized-count-label" style="margin-left:auto;font-size:12px;color:var(--muted)">共 ' + sells.length + ' 筆' + (kw ? '（過濾後 ' + filtered.length + '）' : '') + '</span>';
     html += '</div>';
+    // 內層 slot：只有列表本身會被重畫，搜尋框永遠不動
+    html += '<div id="realized-trades-body">' + _buildRealizedBodyHtml(sells, filtered, kw, totalAll, yearTotal, thisYear) + '</div>';
+    html += '</div>';
+    return html;
+}
+
+// 內層 body：摘要 + 列表（會被搜尋觸發重畫；不含搜尋框本身）
+function _buildRealizedBodyHtml(sells, filtered, kw, totalAll, yearTotal, thisYear) {
+    var html = '';
 
     if (sells.length === 0) {
         html += '<div style="color:var(--muted);font-size:12px;line-height:1.6;padding:8px 0">尚無賣出紀錄。買入歷程請到單股「漲跌日曆」的「交易紀錄」分頁看。</div>';
-        html += '</div>';
         return html;
     }
 
@@ -7018,7 +7026,6 @@ function _buildRealizedTradesHtml() {
 
     if (filtered.length === 0) {
         html += '<div style="color:var(--muted);font-size:12px;padding:14px 0;text-align:center">沒有符合「' + esc(_realizedSearchKw) + '」的紀錄</div>';
-        html += '</div>';
         return html;
     }
 
@@ -7090,7 +7097,6 @@ function _buildRealizedTradesHtml() {
             html += '<div style="text-align:center;margin-top:8px"><button onclick="toggleRealizedShowAll()" style="padding:6px 14px;border:1px solid var(--border);border-radius:6px;background:var(--card);cursor:pointer;font-family:inherit;font-size:12px;color:var(--lux-navy)">顯示全部 ' + filtered.length + ' 筆</button></div>';
         }
     }
-    html += '</div>';
     return html;
 }
 
@@ -7098,20 +7104,41 @@ function toggleRealizedShowAll() {
     _realizedShowAll = !_realizedShowAll;
     _refreshRealizedTradesOnly();
 }
-// 只重畫「已實現紀錄」區塊本身（不動報酬日曆、不重建搜尋框）
+// 只重畫「已實現紀錄」的 body（不動搜尋 input，保持輸入法狀態）
 function _refreshRealizedTradesOnly() {
-    var slot = document.getElementById('realized-trades-slot');
-    if (!slot) return;
-    // _buildRealizedTradesHtml 回傳的 HTML 第一層就是 #realized-trades-slot 那個 div
-    // 直接 outerHTML 替換，input 重新建立 → 失焦；所以下面重新 bind 並 restore focus
-    slot.outerHTML = _buildRealizedTradesHtml();
-    _bindRealizedSearchEvents();
+    var body = document.getElementById('realized-trades-body');
+    var countLabel = document.getElementById('realized-count-label');
+    if (!body) return;
+    // 重新計算
+    var sells = (stockData.trades || [])
+        .map(function(t, i){ return { t: t, i: i }; })
+        .filter(function(x){ return x.t.type === 'sell'; })
+        .sort(function(a, b){ return (b.t.date || '').localeCompare(a.t.date || ''); });
+    var totalAll = 0;
+    var thisYear = String(new Date().getFullYear());
+    var yearTotal = 0;
+    sells.forEach(function(x){
+        var r = x.t.realized || 0;
+        totalAll += r;
+        if ((x.t.date || '').slice(0,4) === thisYear) yearTotal += r;
+    });
+    var kw = (_realizedSearchKw || '').trim().toLowerCase();
+    var filtered = kw
+        ? sells.filter(function(x){
+            return (x.t.id || '').toLowerCase().indexOf(kw) >= 0
+                || (x.t.name || '').toLowerCase().indexOf(kw) >= 0;
+        })
+        : sells;
+    body.innerHTML = _buildRealizedBodyHtml(sells, filtered, kw, totalAll, yearTotal, thisYear);
+    if (countLabel) countLabel.textContent = '共 ' + sells.length + ' 筆' + (kw ? '（過濾後 ' + filtered.length + '）' : '');
 }
 
-// 把搜尋框的事件綁好（含 IME composition 處理，避免中文輸入被中斷）
+// 綁定搜尋框事件（首次渲染後呼叫一次，之後 input 永遠不重建）
+// 用 _isBound 旗標避免重複綁
 function _bindRealizedSearchEvents() {
     var $s = document.getElementById('realized-search');
-    if (!$s) return;
+    if (!$s || $s.dataset.bound === '1') return;
+    $s.dataset.bound = '1';
     var composing = false;
     $s.addEventListener('compositionstart', function(){ composing = true; });
     $s.addEventListener('compositionend', function(){
