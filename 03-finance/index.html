@@ -711,7 +711,6 @@ tfoot td:first-child { text-align: left; position: sticky; left: 0; background: 
     .analysis-summary .as-stock { grid-row: 2; grid-column: 1; }
     .analysis-summary .as-bond  { grid-row: 2; grid-column: 2; }
     .analysis-summary .as-pnl   { grid-row: 3; grid-column: 1 / span 2; padding-top:6px; border-top:1px dashed var(--border); }
-    .analysis-grid { grid-template-columns: 1fr !important; }
 }
 .analysis-summary { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: baseline; }
 .analysis-summary .as-count { margin-left: auto; }
@@ -6532,11 +6531,7 @@ function renderStockAnalysis() {
     if (!stockData.holdings || stockData.holdings.length === 0) {
         return '<div style="text-align:center;padding:40px;color:var(--muted)">尚未新增持股，無法分析</div>';
     }
-    // 桌面寬螢幕並排（日曆左、交易紀錄右）；手機自動換行
-    return '<div class="analysis-grid" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,360px);gap:12px;align-items:start">' +
-        '<div id="return-calendar-slot">' + renderReturnCalendar() + '</div>' +
-        '<div id="trades-list-slot">' + renderTradesList() + '</div>' +
-        '</div>';
+    return '<div id="return-calendar-slot">' + renderReturnCalendar() + '</div>';
 }
 
 // ── 報酬日曆 ──
@@ -6550,47 +6545,72 @@ function renderReturnCalendar() {
     var holdings = stockData.holdings || [];
     if (holdings.length === 0) return '';
 
-    var dailyPnL = {}; // {date: {pnl, pct}}
+    // dailyPnL[date] = { unrealized, realized, pct }
+    //   unrealized = 純股價漲跌損益（含當日有買賣的修正）
+    //   realized   = 當日所有 sell trades 的 realized 總和
+    //   pct        = unrealized 對昨日市值的比例（純股價變化的 %）
+    var dailyPnL = {};
     var allMonthSet = {};
     var marketByDate = {}, dateListAll = [];
 
     var mh = Array.isArray(stockData.marketHistory) ? stockData.marketHistory.slice() : [];
     mh.sort(function(a, b){ return (a.date || '').localeCompare(b.date || ''); });
-    if (mh.length === 0) {
-        return _stockCalendarEmpty('尚無市值快照紀錄。<br>每次打開頁面（且有抓到股價）就會自動記一筆，過幾天累積後就能看到每日損益。');
-    }
-    // 當日賣出資訊：sellGross = Σ(股數×價)，realized = Σ realized
-    // 加入「sellGross」是為了修正：賣出當天市值會憑空少一塊（因為股票變成現金不在快照裡），
-    // 所以日損益要把賣出總額加回，才能反映「真實的損益變化」。
-    var sellByDate = {}; // { date: { gross, realized } }
+
+    // 當日交易：buyGross = Σ(股數×價)，sellGross = Σ(股數×價)，sellRealized = Σ realized
+    // 市值差會被買賣污染：買入會讓市值多出買入金額，賣出會讓市值少掉賣出金額
+    // 所以「純股價漲跌損益」= 市值差 − 買入總額 + 賣出總額
+    var tradesByDate = {}; // { date: { buyGross, sellGross, sellRealized } }
     (stockData.trades || []).forEach(function(t){
-        if (t.type !== 'sell' || !t.date) return;
-        if (!sellByDate[t.date]) sellByDate[t.date] = { gross: 0, realized: 0 };
-        sellByDate[t.date].gross += (t.shares || 0) * (t.price || 0);
-        sellByDate[t.date].realized += t.realized || 0;
+        if (!t.date) return;
+        if (!tradesByDate[t.date]) tradesByDate[t.date] = { buyGross: 0, sellGross: 0, sellRealized: 0 };
+        if (t.type === 'sell') {
+            tradesByDate[t.date].sellGross += (t.shares || 0) * (t.price || 0);
+            tradesByDate[t.date].sellRealized += t.realized || 0;
+        } else if (t.type === 'buy') {
+            var amt = (typeof t.amount === 'number') ? t.amount : (t.shares || 0) * (t.price || 0);
+            tradesByDate[t.date].buyGross += amt;
+        }
     });
+
+    if (mh.length === 0) {
+        // 沒有市值快照時，至少把有 realized 的日子顯示出來
+        var hasRealized = Object.keys(tradesByDate).some(function(d){ return tradesByDate[d].sellRealized; });
+        if (!hasRealized) {
+            return _stockCalendarEmpty('尚無市值快照紀錄。<br>每次打開頁面（且有抓到股價）就會自動記一筆，過幾天累積後就能看到每日損益。');
+        }
+    }
 
     for (var k = 1; k < mh.length; k++) {
         var pM = mh[k - 1], cM = mh[k];
         if (pM.market > 0) {
-            var s = sellByDate[cM.date];
-            // 公式：日損益 = (今市值 − 昨市值) + 當日賣出總額
-            //       = 股票今日漲跌 + 已實現損益（若當日有賣出）
+            var s = tradesByDate[cM.date];
+            // 純股價漲跌損益（未實現）= 市值差 − 買入總額 + 賣出總額
             var rawDiff = cM.market - pM.market;
-            var pnl = rawDiff + (s ? s.gross : 0);
-            dailyPnL[cM.date] = { pnl: pnl, pct: pnl / pM.market * 100 };
+            var unrealized = rawDiff - (s ? s.buyGross : 0) + (s ? s.sellGross : 0);
+            var realized = s ? s.sellRealized : 0;
+            dailyPnL[cM.date] = {
+                unrealized: unrealized,
+                realized: realized,
+                pct: pM.market > 0 ? unrealized / pM.market * 100 : 0
+            };
         }
     }
     // 補：有賣出但當天沒有 marketHistory 連續對（例如假日／第一天）時，至少把已實現損益記上去
-    Object.keys(sellByDate).forEach(function(d){
-        if (!dailyPnL[d] && sellByDate[d].realized) {
-            dailyPnL[d] = { pnl: sellByDate[d].realized, pct: 0 };
+    Object.keys(tradesByDate).forEach(function(d){
+        if (!dailyPnL[d] && tradesByDate[d].sellRealized) {
+            dailyPnL[d] = { unrealized: 0, realized: tradesByDate[d].sellRealized, pct: 0 };
         }
     });
     mh.forEach(function(e){
         if (e.date) allMonthSet[e.date.slice(0,7)] = true;
         marketByDate[e.date] = e.market;
         dateListAll.push(e.date);
+    });
+    // 把交易紀錄的月份也納入月份下拉（萬一某月只有交易沒有市值快照）
+    Object.keys(tradesByDate).forEach(function(d){
+        if (tradesByDate[d].sellRealized || tradesByDate[d].buyGross || tradesByDate[d].sellGross) {
+            allMonthSet[d.slice(0,7)] = true;
+        }
     });
 
     var months = Object.keys(allMonthSet).sort().reverse();
@@ -6599,20 +6619,20 @@ function renderReturnCalendar() {
 
     // ── 月合計 ──
     var monthDates = Object.keys(dailyPnL).filter(function(d){ return d.slice(0,7) === curMonth; }).sort();
-    var monthPnL = 0, monthPct = 0, basisMarket = null;
-    monthDates.forEach(function(d){ monthPnL += dailyPnL[d].pnl; });
-    var monthFirstDay = curMonth + '-01';
+    var monthUnrealized = 0, monthRealized = 0, monthPct = 0, basisMarket = null;
+    monthDates.forEach(function(d){
+        monthUnrealized += dailyPnL[d].unrealized;
+        monthRealized   += dailyPnL[d].realized;
+    });
     // 基準市值：取「該月第一筆 dailyPnL 之前一筆 marketHistory」當分母
-    // 例：5 月只有 5/20 跟 5/21 兩筆 marketHistory，5/21 是當月第一筆 dailyPnL，
-    //     基準應該用 5/20（前一筆）；這樣月合計 % 跟單日 % 一致。
     if (monthDates.length) {
         var firstDailyDate = monthDates[0];
         var firstIdx = dateListAll.indexOf(firstDailyDate);
         if (firstIdx > 0) basisMarket = marketByDate[dateListAll[firstIdx - 1]];
     }
-    // 退路：若找不到（理論上不會），用該月第一筆 dailyPnL 那天的市值
     if (basisMarket === null && monthDates.length) basisMarket = marketByDate[monthDates[0]];
-    monthPct = (basisMarket && basisMarket > 0) ? (monthPnL / basisMarket * 100) : 0;
+    monthPct = (basisMarket && basisMarket > 0) ? (monthUnrealized / basisMarket * 100) : 0;
+    var monthTotal = monthUnrealized + monthRealized;
 
     // ── 月份下拉 ──
     var monthOpts = months.map(function(m){
@@ -6623,12 +6643,18 @@ function renderReturnCalendar() {
     html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">';
     html += '<div style="font-size:14px;font-weight:600">報酬日曆</div>';
     html += '<select id="return-cal-month" onchange="onReturnCalendarMonthChange(this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--card)">' + monthOpts + '</select>';
-    var monthColor = monthPnL > 0 ? 'var(--red)' : monthPnL < 0 ? 'var(--green)' : 'var(--muted)';
-    html += '<span style="margin-left:auto;font-size:13px;color:var(--muted)">月損益 ';
-    html += '<b style="color:' + monthColor + ';font-size:16px">' + (monthPnL > 0 ? '+' : '') + fmt(Math.round(monthPnL)) + '</b>';
+    var totalColor = monthTotal > 0 ? 'var(--red)' : monthTotal < 0 ? 'var(--green)' : 'var(--muted)';
+    var unrColor = monthUnrealized > 0 ? 'var(--red)' : monthUnrealized < 0 ? 'var(--green)' : 'var(--muted)';
+    var rzColor  = monthRealized > 0 ? 'var(--red)' : monthRealized < 0 ? 'var(--green)' : 'var(--muted)';
+    html += '<span style="margin-left:auto;display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;align-items:baseline">';
+    // 月合計：未實現 + 已實現
+    html += '<span>月損益 <b style="color:' + totalColor + ';font-size:16px">' + (monthTotal > 0 ? '+' : '') + fmt(Math.round(monthTotal)) + '</b></span>';
+    html += '<span style="font-size:12px">未實現 <b style="color:' + unrColor + '">' + (monthUnrealized > 0 ? '+' : '') + fmt(Math.round(monthUnrealized)) + '</b>';
     if (basisMarket && basisMarket > 0) {
-        html += ' <span style="color:' + monthColor + '">(' + (monthPct > 0 ? '+' : '') + monthPct.toFixed(2) + '%)</span>';
+        html += ' <span style="color:' + unrColor + '">(' + (monthPct > 0 ? '+' : '') + monthPct.toFixed(2) + '%)</span>';
     }
+    html += '</span>';
+    html += '<span style="font-size:12px">已實現 <b style="color:' + rzColor + '">' + (monthRealized > 0 ? '+' : '') + fmt(Math.round(monthRealized)) + '</b></span>';
     html += '</span>';
     html += '</div>';
 
@@ -6665,42 +6691,52 @@ function renderReturnCalendar() {
         var daysInWeek = weeks[wk];
         var byDow = {}; // 1=一 ... 5=五
         daysInWeek.forEach(function(it){ byDow[it.dow] = it.day; });
-        var weekPnL = 0, weekHasData = false;
+        var weekUnr = 0, weekRz = 0, weekHasData = false;
         for (var dow = 1; dow <= 5; dow++) {
             var dayNum = byDow[dow];
             if (!dayNum) {
-                html += '<div style="min-height:54px"></div>';
+                html += '<div style="min-height:64px"></div>';
                 continue;
             }
             var dStr = year + '-' + String(monthIdx + 1).padStart(2,'0') + '-' + String(dayNum).padStart(2,'0');
             var entry = dailyPnL[dStr];
             if (entry) {
-                weekPnL += entry.pnl;
+                weekUnr += entry.unrealized;
+                weekRz  += entry.realized;
                 weekHasData = true;
-                var cellColor = entry.pnl > 0 ? 'var(--red)' : entry.pnl < 0 ? 'var(--green)' : 'var(--muted)';
-                var bg = entry.pnl > 0 ? 'rgba(239,68,68,0.08)' : entry.pnl < 0 ? 'rgba(22,163,74,0.08)' : 'transparent';
-                html += '<div style="background:' + bg + ';border-radius:6px;padding:4px 6px;text-align:center;min-height:54px">' +
-                    '<div style="font-size:11px;color:var(--muted)">' + dayNum + '</div>' +
-                    '<div style="font-size:12px;font-weight:600;color:' + cellColor + '">' + (entry.pnl > 0 ? '+' : '') + fmt(Math.round(entry.pnl)) + '</div>' +
-                    '<div style="font-size:10px;color:' + cellColor + '">' + (entry.pct > 0 ? '+' : '') + entry.pct.toFixed(2) + '%</div>' +
-                    '</div>';
+                var total = entry.unrealized + entry.realized;
+                var bg = total > 0 ? 'rgba(239,68,68,0.08)' : total < 0 ? 'rgba(22,163,74,0.08)' : 'transparent';
+                var unrC = entry.unrealized > 0 ? 'var(--red)' : entry.unrealized < 0 ? 'var(--green)' : 'var(--muted)';
+                var rzC  = entry.realized > 0 ? 'var(--red)' : entry.realized < 0 ? 'var(--green)' : 'var(--muted)';
+                html += '<div style="background:' + bg + ';border-radius:6px;padding:4px 4px;text-align:center;min-height:64px;display:flex;flex-direction:column;justify-content:center;gap:1px">' +
+                    '<div style="font-size:11px;color:var(--muted)">' + dayNum + '</div>';
+                // 未實現
+                if (entry.unrealized !== 0 || entry.realized === 0) {
+                    html += '<div style="font-size:12px;font-weight:600;color:' + unrC + '" title="未實現">' + (entry.unrealized > 0 ? '+' : '') + fmt(Math.round(entry.unrealized)) + '</div>';
+                }
+                // 已實現
+                if (entry.realized !== 0) {
+                    html += '<div style="font-size:11px;font-weight:600;color:' + rzC + '" title="已實現損益">已 ' + (entry.realized > 0 ? '+' : '') + fmt(Math.round(entry.realized)) + '</div>';
+                }
+                html += '</div>';
             } else {
-                html += '<div style="border:1px dashed var(--border);border-radius:6px;padding:4px 6px;text-align:center;min-height:54px;color:var(--muted);font-size:11px">' + dayNum + '</div>';
+                html += '<div style="border:1px dashed var(--border);border-radius:6px;padding:4px 6px;text-align:center;min-height:64px;color:var(--muted);font-size:11px;display:flex;align-items:center;justify-content:center">' + dayNum + '</div>';
             }
         }
-        // 週合計
+        // 週合計（未實現 + 已實現 合計）
         if (weekHasData) {
-            var wColor = weekPnL > 0 ? 'var(--red)' : weekPnL < 0 ? 'var(--green)' : 'var(--muted)';
-            html += '<div style="background:rgba(0,0,0,0.03);border-radius:6px;padding:4px 6px;text-align:center;min-height:54px;display:flex;flex-direction:column;justify-content:center">' +
-                '<div style="font-size:12px;font-weight:600;color:' + wColor + '">' + (weekPnL > 0 ? '+' : '') + fmt(Math.round(weekPnL)) + '</div>' +
+            var weekTotal = weekUnr + weekRz;
+            var wColor = weekTotal > 0 ? 'var(--red)' : weekTotal < 0 ? 'var(--green)' : 'var(--muted)';
+            html += '<div style="background:rgba(0,0,0,0.03);border-radius:6px;padding:4px 6px;text-align:center;min-height:64px;display:flex;flex-direction:column;justify-content:center">' +
+                '<div style="font-size:12px;font-weight:600;color:' + wColor + '">' + (weekTotal > 0 ? '+' : '') + fmt(Math.round(weekTotal)) + '</div>' +
                 '</div>';
         } else {
-            html += '<div style="min-height:54px"></div>';
+            html += '<div style="min-height:64px"></div>';
         }
     });
     html += '</div>';
 
-    html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">※ 收盤後（台灣時間 13:30 之後）打開頁面才會自動記當日快照；同日多次開以最後一次為主。相鄰兩日快照相減＝當日損益。</div>';
+    html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">※ 上方數字為「未實現」（純股價漲跌）；下方「已」開頭為「已實現」（賣出實際入袋）。月損益＝兩者合計。</div>';
     html += '</div>';
     return html;
 }
@@ -6711,86 +6747,15 @@ function onReturnCalendarMonthChange(m) {
     if (slot) slot.innerHTML = renderReturnCalendar();
 }
 
-// ── 交易紀錄（買賣明細） ──
-// 顯示所有 trades（buy + sell），依日期由新到舊；可編輯／刪除
-function renderTradesList() {
-    var trades = Array.isArray(stockData.trades) ? stockData.trades.slice() : [];
-    var items = trades
-        .map(function(t, i){ return { t: t, i: i }; })
-        .filter(function(x){ return x.t.type === 'sell' || x.t.type === 'buy'; })
-        .sort(function(a, b){ return (b.t.date || '').localeCompare(a.t.date || ''); });
-
-    var totalRealized = 0;
-    var thisYear = String(new Date().getFullYear());
-    var yearRealized = 0;
-    items.forEach(function(x){
-        if (x.t.type !== 'sell') return;
-        var r = x.t.realized || 0;
-        totalRealized += r;
-        if ((x.t.date || '').slice(0,4) === thisYear) yearRealized += r;
-    });
-
-    var html = '<div style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;height:100%">';
-    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">';
-    html += '<div style="font-size:14px;font-weight:600">交易紀錄</div>';
-    html += '<span style="margin-left:auto;font-size:12px;color:var(--muted)">共 ' + items.length + ' 筆</span>';
-    html += '</div>';
-
-    if (items.length === 0) {
-        html += '<div style="color:var(--muted);font-size:12px;line-height:1.6;padding:8px 0">尚無交易紀錄。<br>在「持股總覽」點 <i class="ti ti-plus"></i> 買入或 <i class="ti ti-cash"></i> 賣出，會自動記在這裡。</div>';
-        html += '</div>';
-        return html;
-    }
-
-    // 摘要（只算賣出已實現損益）
-    if (totalRealized !== 0 || yearRealized !== 0) {
-        var totalCls = totalRealized >= 0 ? 'pos' : 'neg';
-        var yearCls  = yearRealized  >= 0 ? 'pos' : 'neg';
-        html += '<div style="display:flex;gap:14px;font-size:13px;margin-bottom:8px;padding:6px 8px;background:var(--bg);border-radius:6px">';
-        html += '<span style="color:var(--muted)">累積已實現 <b class="' + totalCls + '">' + (totalRealized >= 0 ? '+' : '') + fmt(Math.round(totalRealized)) + '</b></span>';
-        html += '<span style="color:var(--muted)">' + thisYear + ' <b class="' + yearCls + '">' + (yearRealized >= 0 ? '+' : '') + fmt(Math.round(yearRealized)) + '</b></span>';
-        html += '</div>';
-    }
-
-    // 列表
-    html += '<div style="flex:1;overflow-y:auto;max-height:560px">';
-    items.forEach(function(x){
-        var t = x.t;
-        var isBuy = t.type === 'buy';
-        var typeLabel = isBuy
-            ? '<span style="display:inline-block;background:rgba(22,163,74,0.12);color:var(--green);padding:1px 6px;border-radius:4px;font-size:11px;font-weight:600;margin-right:6px">買</span>'
-            : '<span style="display:inline-block;background:rgba(239,68,68,0.12);color:var(--red);padding:1px 6px;border-radius:4px;font-size:11px;font-weight:600;margin-right:6px">賣</span>';
-        var rightCell = '';
-        if (isBuy) {
-            var amount = (typeof t.amount === 'number') ? t.amount : (t.shares || 0) * (t.price || 0);
-            rightCell = '<div style="font-weight:600;text-align:right;min-width:70px;color:var(--muted)">' + fmt(Math.round(amount)) + '</div>';
-        } else {
-            var realized = t.realized || 0;
-            var cls = realized >= 0 ? 'pos' : 'neg';
-            rightCell = '<div class="' + cls + '" style="font-weight:600;text-align:right;min-width:70px">' + (realized >= 0 ? '+' : '') + fmt(Math.round(realized)) + '</div>';
-        }
-        html += '<div style="display:flex;align-items:center;gap:8px;padding:8px 6px;border-bottom:1px solid var(--border);font-size:13px">' +
-            '<div style="flex:1;min-width:0">' +
-                '<div>' + typeLabel + '<b>' + esc(t.id || '') + '</b> <span style="color:var(--muted);font-size:12px">' + esc(t.name || '') + '</span></div>' +
-                '<div style="font-size:11px;color:var(--muted)">' + esc(t.date || '') + '　' + fmt(t.shares || 0) + ' 股 × ' + (typeof t.price === 'number' ? t.price.toFixed(2) : '-') + '</div>' +
-            '</div>' +
-            rightCell +
-            '<button onclick="editTrade(' + x.i + ')" title="編輯" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;font-size:13px"><i class="ti ti-pencil"></i></button>' +
-            '<button onclick="deleteTrade(' + x.i + ')" title="刪除" style="background:none;border:none;cursor:pointer;color:var(--red);padding:4px;font-size:13px"><i class="ti ti-trash"></i></button>' +
-        '</div>';
-    });
-    html += '</div>';
-
-    html += '</div>';
-    return html;
-}
-
 function _refreshTradesList() {
-    var slot = document.getElementById('trades-list-slot');
-    if (slot) slot.innerHTML = renderTradesList();
-    // 報酬日曆的當日損益會用到 trades，也順便重畫
+    // 報酬日曆會用到 trades，重畫
     var calSlot = document.getElementById('return-calendar-slot');
     if (calSlot) calSlot.innerHTML = renderReturnCalendar();
+    // 單股漲跌日曆 modal 開著時，同步重畫其分頁（tab 標籤的徽章 + 內容）
+    if (document.querySelector('.stock-cal-modal-overlay')) {
+        _renderStockCalModalTabs();
+        _renderStockCalModalBody();
+    }
 }
 
 function editTrade(idx) {
@@ -7215,7 +7180,7 @@ function showStockPriceTrend(stockId) {
 }
 
 // 個股漲跌日曆 modal（純價格 %，獨立於整體報酬日曆）
-var _stockCalModalState = { stockId: '', month: null };
+var _stockCalModalState = { stockId: '', month: null, tab: 'calendar' }; // tab: 'calendar' | 'trades'
 function showStockCalendarModal(stockId) {
     // 關掉走勢 modal
     var trendOv = document.querySelector('.stock-price-trend-overlay');
@@ -7226,15 +7191,17 @@ function showStockCalendarModal(stockId) {
     var name = holding ? (holding.name || stockId) : stockId;
     _stockCalModalState.stockId = stockId;
     _stockCalModalState.month = null;
+    _stockCalModalState.tab = 'calendar';
 
     var ov = document.createElement('div');
     ov.className = 'overlay stock-cal-modal-overlay';
     ov.innerHTML = '<div class="modal" style="width:680px;max-width:94vw;min-height:560px;display:flex;flex-direction:column">' +
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;flex:none">' +
-            '<h3 style="margin:0;flex:1"><i class="ti ti-calendar-month"></i> ' + esc(stockId) + ' ' + esc(name) + ' 漲跌日曆</h3>' +
+            '<h3 style="margin:0;flex:1"><i class="ti ti-calendar-month"></i> ' + esc(stockId) + ' ' + esc(name) + '</h3>' +
             '<button type="button" onclick="this.closest(\'.overlay\').remove();showStockPriceTrend(\'' + esc(stockId) + '\')" style="padding:6px 12px;border:1px solid var(--border);border-radius:6px;background:var(--card);cursor:pointer;font-family:inherit;font-size:12px"><i class="ti ti-chart-line"></i> 看走勢</button>' +
         '</div>' +
         _stockModalNavBar(stockId, 'calendar') +
+        '<div id="stock-cal-modal-tabs" style="display:flex;gap:6px;margin:8px 0;border-bottom:1px solid var(--border)"></div>' +
         '<div id="stock-cal-modal-body"></div>' +
         '<div class="modal-btns" style="margin-top:12px"><button onclick="this.closest(\'.overlay\').remove()" style="flex:1">關閉</button></div>' +
         '</div>';
@@ -7243,18 +7210,107 @@ function showStockCalendarModal(stockId) {
     ov.addEventListener('mousedown', function(e){ _md = (e.target === ov); });
     ov.addEventListener('click', function(e){ if (e.target === ov && _md) ov.remove(); _md = false; });
 
+    _renderStockCalModalTabs();
+    _renderStockCalModalBody();
+}
+
+function _renderStockCalModalTabs() {
+    var tabsBox = document.getElementById('stock-cal-modal-tabs');
+    if (!tabsBox) return;
+    var stockId = _stockCalModalState.stockId;
+    var tradeCount = (stockData.trades || []).filter(function(t){
+        return (t.type === 'buy' || t.type === 'sell') && t.id === stockId;
+    }).length;
+    var cur = _stockCalModalState.tab;
+    function _tab(key, label, badge) {
+        var active = cur === key;
+        var style = 'padding:8px 14px;border:none;border-bottom:2px solid ' + (active ? 'var(--lux-navy)' : 'transparent') +
+            ';background:none;cursor:pointer;font-family:inherit;font-size:13px;font-weight:' + (active ? '600' : '400') +
+            ';color:' + (active ? 'var(--lux-navy)' : 'var(--muted)') + ';margin-bottom:-1px';
+        return '<button type="button" onclick="switchStockCalTab(\'' + key + '\')" style="' + style + '">' + label +
+            (badge ? '<span style="margin-left:6px;font-size:11px;color:var(--muted)">' + badge + '</span>' : '') + '</button>';
+    }
+    tabsBox.innerHTML = _tab('calendar', '漲跌日曆') + _tab('trades', '交易紀錄', tradeCount > 0 ? tradeCount : '');
+}
+
+function switchStockCalTab(tab) {
+    _stockCalModalState.tab = tab;
+    _renderStockCalModalTabs();
     _renderStockCalModalBody();
 }
 
 function _renderStockCalModalBody() {
     var box = document.getElementById('stock-cal-modal-body');
     if (!box) return;
-    box.innerHTML = _buildStockCalendarHtml(_stockCalModalState.stockId, _stockCalModalState.month);
+    if (_stockCalModalState.tab === 'trades') {
+        box.innerHTML = _buildStockTradesHtml(_stockCalModalState.stockId);
+    } else {
+        box.innerHTML = _buildStockCalendarHtml(_stockCalModalState.stockId, _stockCalModalState.month);
+    }
 }
 
 function onStockCalMonthChange(m) {
     _stockCalModalState.month = m;
     _renderStockCalModalBody();
+}
+
+// 單股交易紀錄（buy + sell）
+function _buildStockTradesHtml(stockId) {
+    var items = (stockData.trades || [])
+        .map(function(t, i){ return { t: t, i: i }; })
+        .filter(function(x){ return (x.t.type === 'buy' || x.t.type === 'sell') && x.t.id === stockId; })
+        .sort(function(a, b){ return (b.t.date || '').localeCompare(a.t.date || ''); });
+
+    if (items.length === 0) {
+        return '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">尚無交易紀錄。<br>在持股總覽用 <i class="ti ti-plus"></i> 買入或 <i class="ti ti-cash"></i> 賣出，會自動記在這裡。</div>';
+    }
+
+    // 摘要：累積已實現、買入次數、賣出次數
+    var totalRealized = 0, buyCount = 0, sellCount = 0;
+    items.forEach(function(x){
+        if (x.t.type === 'sell') { totalRealized += (x.t.realized || 0); sellCount++; }
+        else buyCount++;
+    });
+
+    var html = '';
+    if (sellCount > 0) {
+        var rCls = totalRealized >= 0 ? 'pos' : 'neg';
+        html += '<div style="display:flex;gap:14px;font-size:13px;margin-bottom:10px;padding:8px 10px;background:var(--bg);border-radius:6px;flex-wrap:wrap">';
+        html += '<span style="color:var(--muted)">累積已實現 <b class="' + rCls + '">' + (totalRealized >= 0 ? '+' : '') + fmt(Math.round(totalRealized)) + '</b></span>';
+        html += '<span style="color:var(--muted)">買 <b style="color:var(--text)">' + buyCount + '</b> 筆／賣 <b style="color:var(--text)">' + sellCount + '</b> 筆</span>';
+        html += '</div>';
+    } else {
+        html += '<div style="font-size:13px;margin-bottom:10px;padding:8px 10px;background:var(--bg);border-radius:6px;color:var(--muted)">買入 <b style="color:var(--text)">' + buyCount + '</b> 筆（尚未賣出）</div>';
+    }
+
+    html += '<div style="max-height:420px;overflow-y:auto">';
+    items.forEach(function(x){
+        var t = x.t;
+        var isBuy = t.type === 'buy';
+        var typeLabel = isBuy
+            ? '<span style="display:inline-block;background:rgba(22,163,74,0.12);color:var(--green);padding:1px 6px;border-radius:4px;font-size:11px;font-weight:600;margin-right:6px">買</span>'
+            : '<span style="display:inline-block;background:rgba(239,68,68,0.12);color:var(--red);padding:1px 6px;border-radius:4px;font-size:11px;font-weight:600;margin-right:6px">賣</span>';
+        var rightCell;
+        if (isBuy) {
+            var amount = (typeof t.amount === 'number') ? t.amount : (t.shares || 0) * (t.price || 0);
+            rightCell = '<div style="font-weight:600;text-align:right;min-width:80px;color:var(--muted)">' + fmt(Math.round(amount)) + '</div>';
+        } else {
+            var realized = t.realized || 0;
+            var cls = realized >= 0 ? 'pos' : 'neg';
+            rightCell = '<div class="' + cls + '" style="font-weight:600;text-align:right;min-width:80px">' + (realized >= 0 ? '+' : '') + fmt(Math.round(realized)) + '</div>';
+        }
+        html += '<div style="display:flex;align-items:center;gap:8px;padding:8px 6px;border-bottom:1px solid var(--border);font-size:13px">' +
+            '<div style="flex:1;min-width:0">' +
+                '<div>' + typeLabel + '<span style="color:var(--muted);font-size:12px">' + esc(t.date || '') + '</span></div>' +
+                '<div style="font-size:11px;color:var(--muted)">' + fmt(t.shares || 0) + ' 股 × ' + (typeof t.price === 'number' ? t.price.toFixed(2) : '-') + '</div>' +
+            '</div>' +
+            rightCell +
+            '<button onclick="editTrade(' + x.i + ')" title="編輯" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;font-size:13px"><i class="ti ti-pencil"></i></button>' +
+            '<button onclick="deleteTrade(' + x.i + ')" title="刪除" style="background:none;border:none;cursor:pointer;color:var(--red);padding:4px;font-size:13px"><i class="ti ti-trash"></i></button>' +
+        '</div>';
+    });
+    html += '</div>';
+    return html;
 }
 
 // 建立個股漲跌日曆 HTML（純價格 %、複利累加）
