@@ -4280,6 +4280,50 @@ function deleteHolding(idx) {
     });
 }
 
+// 跌幅分批試算 modal：輸入股價 → 列出 -1% ~ -10% 對應價
+function showDropCalcModal() {
+    var ov = document.createElement('div');
+    ov.className = 'overlay';
+    ov.innerHTML = '<div class="modal" style="width:420px;max-width:94vw">' +
+        '<h3 style="margin:0 0 12px"><i class="ti ti-calculator"></i> 跌幅分批試算</h3>' +
+        '<label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">基準股價</label>' +
+        '<input type="number" id="drop-calc-input" placeholder="輸入股價，例如 100" step="0.01" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:16px">' +
+        '<div id="drop-calc-result" style="margin-top:12px"></div>' +
+        '<div class="modal-btns" style="margin-top:12px"><button onclick="this.closest(\'.overlay\').remove()" style="flex:1">關閉</button></div>' +
+        '</div>';
+    document.body.appendChild(ov);
+    var _md = false;
+    ov.addEventListener('mousedown', function(e){ _md = (e.target === ov); });
+    ov.addEventListener('click', function(e){ if (e.target === ov && _md) ov.remove(); _md = false; });
+    var input = document.getElementById('drop-calc-input');
+    var resBox = document.getElementById('drop-calc-result');
+    input.focus();
+    input.addEventListener('input', function(){
+        var p = parseFloat(input.value);
+        if (!p || p <= 0) { resBox.innerHTML = ''; return; }
+        var html = '<table style="width:100%;border-collapse:collapse;font-size:14px">' +
+            '<thead><tr style="background:rgba(0,0,0,0.03);color:var(--muted);font-size:12px">' +
+                '<th style="text-align:left;padding:6px 10px">跌幅</th>' +
+                '<th style="text-align:right;padding:6px 10px">股價</th>' +
+                '<th style="text-align:right;padding:6px 10px">差額</th>' +
+            '</tr></thead><tbody>';
+        for (var i = 1; i <= 10; i++) {
+            var price = p * (1 - i / 100);
+            var diff = price - p;
+            var isLimit = (i === 10);
+            var bg = isLimit ? 'background:var(--green);color:#fff;font-weight:700' : '';
+            var subColor = isLimit ? '#fff' : 'var(--green)';
+            html += '<tr style="border-top:1px solid var(--border);' + bg + '">' +
+                '<td style="padding:8px 10px">-' + i + '%' + (isLimit ? '（跌停）' : '') + '</td>' +
+                '<td style="text-align:right;padding:8px 10px;font-weight:600">' + price.toFixed(2) + '</td>' +
+                '<td style="text-align:right;padding:8px 10px;color:' + subColor + '">' + diff.toFixed(2) + '</td>' +
+                '</tr>';
+        }
+        html += '</tbody></table>';
+        resBox.innerHTML = html;
+    });
+}
+
 function manageHoldings() {
     var ov = document.createElement('div');
     ov.className = 'overlay';
@@ -5349,6 +5393,7 @@ function renderStockHoldings() {
     html += '<button class="btn-refresh" id="btn-fetch-price" onclick="refreshPrices()"><i class="ti ti-antenna-bars-5"></i> <span class="lbl-full">更新股價</span><span class="lbl-short">更新</span></button>';
     html += '<button class="btn-refresh" style="background:linear-gradient(135deg,#0f2847 0%,#1a3a5c 50%,#2a5a8c 100%);border:1px solid var(--lux-gold)" onclick="toggleStockColumn()"><i class="ti ti-columns"></i> 欄位</button>';
     html += '<button class="btn-refresh" onclick="manageHoldings()"><i class="ti ti-list-details"></i> <span class="lbl-full">管理持股</span><span class="lbl-short">管理</span></button>';
+    html += '<button class="btn-refresh" onclick="showDropCalcModal()" title="跌幅分批試算"><i class="ti ti-calculator"></i> <span class="lbl-full">跌幅試算</span><span class="lbl-short">試算</span></button>';
     html += '<span class="last-update" style="color:var(--muted)">' + _stockPriceFreshnessLabel() + '</span>';
     html += '</div>';
 
