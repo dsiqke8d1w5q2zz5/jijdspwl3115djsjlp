@@ -7042,15 +7042,15 @@ function _buildRealizedTradesHtml() {
         return Math.max(0, Math.round((d2 - d1) / MS_PER_DAY));
     }
 
-    html += '<div style="max-height:520px;overflow-y:auto"><table class="stock-table" style="font-size:13px"><thead><tr>' +
-        '<th style="text-align:left;white-space:nowrap">日期</th>' +
-        '<th style="text-align:left">股票</th>' +
-        '<th style="text-align:right;white-space:nowrap">股數</th>' +
-        '<th style="text-align:right;white-space:nowrap" title="平均買入價＝賣出部分對應的成本÷股數">均價</th>' +
-        '<th style="text-align:right;white-space:nowrap">賣價</th>' +
-        '<th style="text-align:right;white-space:nowrap">已實現損益</th>' +
-        '<th style="text-align:right;white-space:nowrap" title="報酬率＝已實現損益÷成本">%</th>' +
-        '<th style="text-align:right;white-space:nowrap" title="從此股最早一筆買入到此次賣出">天數</th>' +
+    html += '<div style="max-height:520px;overflow-y:auto"><table class="realized-table" style="width:100%;font-size:13px;border-collapse:collapse"><thead><tr style="border-bottom:1px solid var(--border)">' +
+        '<th style="padding:8px 4px;white-space:nowrap;text-align:center">日期</th>' +
+        '<th style="padding:8px 4px;text-align:center">股票</th>' +
+        '<th style="padding:8px 4px;white-space:nowrap;text-align:center">股數</th>' +
+        '<th style="padding:8px 4px;white-space:nowrap;text-align:center" title="平均買入價＝賣出部分對應的成本÷股數">均價</th>' +
+        '<th style="padding:8px 4px;white-space:nowrap;text-align:center">賣價</th>' +
+        '<th style="padding:8px 4px;white-space:nowrap;text-align:center">已實現損益</th>' +
+        '<th style="padding:8px 4px;white-space:nowrap;text-align:center" title="報酬率＝已實現損益÷成本">損益 %</th>' +
+        '<th style="padding:8px 4px;white-space:nowrap;text-align:center" title="從此股最早一筆買入到此次賣出">天數</th>' +
         '<th style="width:60px"></th>' +
         '</tr></thead><tbody>';
     showList.forEach(function(x){
@@ -7063,17 +7063,17 @@ function _buildRealizedTradesHtml() {
         var days = _holdDays(t);
         var daysStr = days !== null ? days + ' 天' : '-';
         var plColor = signColor(realized);
-        html += '<tr>' +
-            '<td style="white-space:nowrap;color:var(--muted);font-size:12px">' + esc(t.date || '') + '</td>' +
-            '<td><b style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;color:var(--lux-navy)" onclick="showStockCalendarModal(' + escJs(t.id || '') + ');setTimeout(function(){switchStockCalTab(\'trades\')},0)" title="看此股完整交易歷程">' + esc(t.id || '') + '</b>' +
+        html += '<tr style="border-bottom:1px solid var(--border)">' +
+            '<td style="padding:8px 4px;text-align:center;white-space:nowrap;color:var(--muted);font-size:12px">' + esc(t.date || '') + '</td>' +
+            '<td style="padding:8px 4px;text-align:center"><b style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;color:var(--lux-navy)" onclick="showStockCalendarModal(' + escJs(t.id || '') + ');setTimeout(function(){switchStockCalTab(\'trades\')},0)" title="看此股完整交易歷程">' + esc(t.id || '') + '</b>' +
                 ' <span style="color:var(--muted);font-size:12px">' + esc(t.name || '') + '</span></td>' +
-            '<td style="text-align:right">' + fmt(t.shares || 0) + '</td>' +
-            '<td style="text-align:right;color:var(--muted)">' + avgBuyPrice + '</td>' +
-            '<td style="text-align:right">' + sellPrice + '</td>' +
-            '<td style="text-align:right;font-weight:600;color:' + plColor + '">' + signedFmt(realized) + '</td>' +
-            '<td style="text-align:right;font-weight:600;color:' + plColor + '">' + rateStr + '</td>' +
-            '<td style="text-align:right;color:var(--muted);font-size:12px;white-space:nowrap">' + daysStr + '</td>' +
-            '<td style="text-align:right;white-space:nowrap">' +
+            '<td style="padding:8px 4px;text-align:center">' + fmt(t.shares || 0) + '</td>' +
+            '<td style="padding:8px 4px;text-align:center;color:var(--muted)">' + avgBuyPrice + '</td>' +
+            '<td style="padding:8px 4px;text-align:center">' + sellPrice + '</td>' +
+            '<td style="padding:8px 4px;text-align:center;font-weight:600;color:' + plColor + '">' + signedFmt(realized) + '</td>' +
+            '<td style="padding:8px 4px;text-align:center;font-weight:600;color:' + plColor + '">' + rateStr + '</td>' +
+            '<td style="padding:8px 4px;text-align:center;color:var(--muted);font-size:12px;white-space:nowrap">' + daysStr + '</td>' +
+            '<td style="padding:8px 4px;text-align:center;white-space:nowrap">' +
                 '<button onclick="editTrade(' + x.i + ')" title="編輯" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:2px 4px;font-size:13px"><i class="ti ti-pencil"></i></button>' +
                 '<button onclick="deleteTrade(' + x.i + ')" title="刪除" style="background:none;border:none;cursor:pointer;color:var(--red);padding:2px 4px;font-size:13px"><i class="ti ti-trash"></i></button>' +
             '</td>' +
