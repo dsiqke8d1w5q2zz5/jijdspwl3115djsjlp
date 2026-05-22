@@ -7249,8 +7249,8 @@ function showCalDaySnapshot(dateStr) {
             dayPL: dayPL
         });
     });
-    // 排序：市值大到小
-    rows.sort(function(a, b){ return (b.market || 0) - (a.market || 0); });
+    // 排序：依代號由小到大
+    rows.sort(function(a, b){ return String(a.id || '').localeCompare(String(b.id || '')); });
 
     // 當日交易
     var todayTrades = (stockData.trades || []).filter(function(t){ return t.date === dateStr; });
