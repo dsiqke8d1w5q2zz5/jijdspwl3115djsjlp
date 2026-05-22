@@ -4877,8 +4877,7 @@ function manageHoldings() {
     if (stockData.holdings.length === 0) rows = '<div style="padding:16px;text-align:center;color:var(--muted)">尚無持股</div>';
     ov.innerHTML = '<div class="modal" style="max-height:80vh;overflow-y:auto"><h3>管理持股</h3>' +
         '<div>' + rows + '</div>' +
-        '<div style="margin-top:12px"><button onclick="this.closest(\'.overlay\').remove();addHolding()" style="width:100%;padding:10px;border:none;border-radius:8px;background:var(--lux-navy);color:white;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">＋ 新增持股</button></div>' +
-        '<div style="margin-top:8px"><button onclick="this.closest(\'.overlay\').remove()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card);font-size:14px;cursor:pointer;font-family:inherit">關閉</button></div></div>';
+        '<div style="margin-top:12px"><button onclick="this.closest(\'.overlay\').remove()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card);font-size:14px;cursor:pointer;font-family:inherit">關閉</button></div></div>';
     document.body.appendChild(ov);
 }
 
@@ -5926,7 +5925,7 @@ function renderStockHoldings() {
     html += '<div class="stock-refresh-bar">';
     html += '<button class="btn-refresh" id="btn-fetch-price" onclick="refreshPrices()"><i class="ti ti-antenna-bars-5"></i> <span class="lbl-full">更新股價</span><span class="lbl-short">更新</span></button>';
     html += '<button class="btn-refresh" style="background:linear-gradient(135deg,#0f2847 0%,#1a3a5c 50%,#2a5a8c 100%);border:1px solid var(--lux-gold)" onclick="toggleStockColumn()"><i class="ti ti-columns"></i> 欄位</button>';
-    html += '<button class="btn-refresh" onclick="buyHolding(null)" title="買入（可選擇是否記入交易紀錄）"><i class="ti ti-plus"></i> <span class="lbl-full">買入</span><span class="lbl-short">買</span></button>';
+    html += '<button class="btn-refresh" onclick="buyHolding(null)" title="新增持股（可選擇是否記入交易紀錄）"><i class="ti ti-plus"></i> <span class="lbl-full">新增持股</span><span class="lbl-short">新增</span></button>';
     html += '<button class="btn-refresh" onclick="manageHoldings()"><i class="ti ti-list-details"></i> <span class="lbl-full">管理持股</span><span class="lbl-short">管理</span></button>';
     html += '<span class="last-update" style="color:var(--muted)">' + _stockPriceFreshnessLabel() + '</span>';
     html += '<button class="btn-refresh btn-drop-calc" onclick="showDropCalcModal()" title="跌幅分批試算"><i class="ti ti-calculator"></i> <span class="lbl-full">跌幅試算</span><span class="lbl-short">試算</span></button>';
@@ -5972,7 +5971,7 @@ function renderStockHoldings() {
 
     // 持股明細表
     if (stockData.holdings.length === 0) {
-        html += '<div style="text-align:center;padding:40px;color:var(--muted)">尚未新增持股，請點擊「＋ 新增持股」開始</div>';
+        html += '<div style="text-align:center;padding:40px;color:var(--muted)">尚未新增持股，請點擊上方「＋ 新增持股」開始</div>';
         return html;
     }
     if (visibleHoldings.length === 0) {
@@ -6051,16 +6050,6 @@ function renderStockHoldings() {
         });
     }
 
-    // 勾選的股票置頂（穩定排序，保留先前排序順序）
-    var pinned = window._stockPinned || {};
-    var hasPinned = false;
-    for (var _k in pinned) { if (pinned[_k]) { hasPinned = true; break; } }
-    if (hasPinned) {
-        rows = rows.map(function(r, i){ return { r:r, i:i, pin: pinned[r.h.id] ? 1 : 0 }; })
-                   .sort(function(a, b){ return (b.pin - a.pin) || (a.i - b.i); })
-                   .map(function(x){ return x.r; });
-    }
-
     html += '<div class="table-wrap"><table class="stock-table holdings-table"><thead><tr>';
     html += '<th class="col-holdings-name" style="cursor:pointer;user-select:none" onclick="toggleStockSort(\'name\')">庫存股' + _sArr('name') + '</th>';
     if (vis.dayPL !== false) html += '<th class="col-daypl" style="cursor:pointer;user-select:none" onclick="toggleStockSort(\'dayPL\')">今日損益' + _sArr('dayPL') + '</th>';
@@ -6078,13 +6067,10 @@ function renderStockHoldings() {
 
     rows.forEach(function(r) {
         var h = r.h;
-        var isPinned = !!(window._stockPinned && window._stockPinned[h.id]);
-        var trCls = isPinned ? 'row-pinned' : (hasPinned ? 'row-dim' : '');
-        html += '<tr' + (trCls ? ' class="' + trCls + '"' : '') + '>';
-        // 庫存股：左側 checkbox 置頂、中間代號／名稱點擊看走勢、右側鉛筆編輯
+        html += '<tr>';
+        // 庫存股：代號／名稱點擊看走勢、右側按鈕區
         html += '<td class="stock-name-cell">' +
             '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px">' +
-                '<input type="checkbox" class="pin-check"' + (isPinned ? ' checked' : '') + ' onclick="event.stopPropagation();toggleStockPin(' + escJs(h.id) + ')" title="勾選置頂、用於兩檔以上比較">' +
                 '<span style="cursor:pointer;flex:1;min-width:0" onclick="showStockCalendarModal(' + escJs(h.id) + ')" title="點看漲跌日曆">' +
                     '<b style="text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;color:var(--lux-navy)">' + esc(h.id) + '</b>' +
                     '<br><span class="stock-name-sub" style="font-size:12px;color:var(--muted);font-weight:400">' + esc(h.name) + '</span>' +
@@ -7121,20 +7107,20 @@ function editTrade(idx) {
         '<label style="font-size:12px;color:var(--muted)">日期</label>' +
         '<input type="date" id="et-date" value="' + esc(t.date || '') + '">' +
         '<label style="font-size:12px;color:var(--muted)">股數</label>' +
-        '<input type="number" id="et-shares" value="' + (t.shares || 0) + '" step="1">' +
-        '<label style="font-size:12px;color:var(--muted)">' + (isBuy ? '買入' : '賣出') + '股價</label>' +
-        '<input type="number" id="et-price" value="' + (t.price != null ? t.price : '') + '" step="0.01">';
+        '<input type="number" id="et-shares" value="' + (t.shares || 0) + '" step="1">';
     if (!isBuy) {
-        html += '<label style="font-size:12px;color:var(--muted)">成本</label>' +
+        html += '<label style="font-size:12px;color:var(--muted)">賣出股價</label>' +
+                '<input type="number" id="et-price" value="' + (t.price != null ? t.price : '') + '" step="0.01">' +
+                '<label style="font-size:12px;color:var(--muted)">成本</label>' +
                 '<input type="number" id="et-cost" value="' + (t.cost != null ? Math.round(t.cost) : '') + '" step="1">' +
                 '<label style="font-size:12px;color:var(--muted)">已實現損益（可手動編輯填扣完手續費／證交稅的實際數）</label>' +
                 '<input type="number" id="et-realized" value="' + (t.realized != null ? Math.round(t.realized) : '') + '" step="1">';
     } else {
         // 預設帶入原本的 amount（含手續費）；如果沒有就退回 shares × price
         var defaultBuyAmount = (typeof t.amount === 'number') ? Math.round(t.amount) : Math.round((t.shares || 0) * (t.price || 0));
-        html += '<label style="font-size:12px;color:var(--muted)">買入總成本（含手續費，會自動算均價）</label>' +
+        html += '<label style="font-size:12px;color:var(--muted)">買入成本（總額，含手續費）</label>' +
                 '<input type="number" id="et-amount" value="' + defaultBuyAmount + '" step="1">' +
-                '<div id="et-pl-preview" style="margin-top:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:13px;color:var(--muted)">本次均價：<b id="et-pl-num">-</b></div>' +
+                '<div id="et-pl-preview" style="margin-top:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:13px;color:var(--muted)">本次均價（自動）：<b id="et-pl-num">-</b></div>' +
                 '<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5">※ 編輯買入只會修改交易紀錄本身，<b>不會自動回算持股均價</b>。如要同步請另用「編輯持股」修正。</div>';
     }
     html += '<div class="modal-btns" style="margin-top:12px">' +
@@ -7149,9 +7135,8 @@ function editTrade(idx) {
     }
     function update() {
         var sh = parseInt(document.getElementById('et-shares').value) || 0;
-        var pr = parseFloat(document.getElementById('et-price').value);
         if (isBuy) {
-            // 顯示本次均價（總成本 / 股數）
+            // 顯示本次均價（總成本 / 股數），不用 et-price 欄位（買入不需要單獨股價）
             var amt = parseFloat(document.getElementById('et-amount').value);
             var $n = document.getElementById('et-pl-num');
             if (sh > 0 && !isNaN(amt) && amt > 0) {
@@ -7164,6 +7149,7 @@ function editTrade(idx) {
             return;
         }
         // sell：已實現未手動編輯時自動跟著「股數×價 − 成本」算
+        var pr = parseFloat(document.getElementById('et-price').value);
         var c = parseFloat(document.getElementById('et-cost').value);
         var $r = document.getElementById('et-realized');
         if (!realizedEdited && sh > 0 && !isNaN(pr) && !isNaN(c)) {
@@ -7171,23 +7157,24 @@ function editTrade(idx) {
             if (String(auto) !== $r.value) $r.value = auto;
         }
     }
-    var ids = isBuy ? ['et-shares','et-price','et-amount'] : ['et-shares','et-price','et-cost'];
+    var ids = isBuy ? ['et-shares','et-amount'] : ['et-shares','et-price','et-cost'];
     ids.forEach(function(id){ document.getElementById(id).addEventListener('input', update); });
     update();
     document.getElementById('et-save').onclick = function() {
         var sh = parseInt(document.getElementById('et-shares').value) || 0;
-        var pr = parseFloat(document.getElementById('et-price').value);
         var d = document.getElementById('et-date').value;
-        if (sh <= 0 || isNaN(pr) || pr <= 0 || !d) { toast('請填完整資訊'); return; }
+        if (sh <= 0 || !d) { toast('請填完整資訊'); return; }
         if (isBuy) {
-            // 保留使用者手動填的 amount（含手續費），不再用 sh * pr 覆寫
+            // 買入：amount 是主要資料、price 從 amount/shares 反推
             var amt = parseFloat(document.getElementById('et-amount').value);
-            if (isNaN(amt) || amt <= 0) { toast('請填總成本'); return; }
+            if (isNaN(amt) || amt <= 0) { toast('請填買入成本'); return; }
             t.date = d;
             t.shares = sh;
-            t.price = pr;
+            t.price = amt / sh;
             t.amount = amt;
         } else {
+            var pr = parseFloat(document.getElementById('et-price').value);
+            if (isNaN(pr) || pr <= 0) { toast('請填賣出股價'); return; }
             var c = parseFloat(document.getElementById('et-cost').value);
             var rz = parseFloat(document.getElementById('et-realized').value);
             if (isNaN(c)) { toast('請填成本'); return; }
