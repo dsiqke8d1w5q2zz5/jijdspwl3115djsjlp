@@ -6687,21 +6687,32 @@ function renderReturnCalendar() {
     var twNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
     var todayStr = twNow.getFullYear() + '-' + String(twNow.getMonth()+1).padStart(2,'0') + '-' + String(twNow.getDate()).padStart(2,'0');
 
-    // 今日「未實現損益」用即時算法（與持股總覽的「今日損益」一致）：Σ(股數 × 今日漲跌)
-    // 因為 14:00 前還沒有當日快照，而 14:00 後使用者通常已經想看「今天賺賠多少」即時數字
+    // 今日「未實現損益」：只算「今天之前就持有」的部位 × 今日漲跌
+    // 公式：(目前股數 − 今天買入股數) × 今日漲跌
+    // 為什麼扣今天買入？因為今天剛買進的部位無法用「整天漲跌」估算其損益，
+    // 會把買價到收盤價之間的差也算成「今日損益」，造成虛胖。
+    // 今天賣出的部位不扣（因為其已實現損益會另外加進「已」那一格）。
+    var todayBuyShares = {}; // { stockId: 今天買入股數 }
+    (stockData.trades || []).forEach(function(t){
+        if (t.type === 'buy' && t.date === todayStr) {
+            todayBuyShares[t.id] = (todayBuyShares[t.id] || 0) + (t.shares || 0);
+        }
+    });
+
     var todayLiveUnr = 0;
     var todayLivePct = 0;
-    var todayLiveCost = 0;
     if (Array.isArray(stockData.holdings)) {
         var todayLiveBase = 0;
         stockData.holdings.forEach(function(h){
             if (!h || (h.shares || 0) <= 0) return;
             var p = stockData.prices && stockData.prices[h.id];
             if (!p || typeof p.price !== 'number') return;
+            // 扣掉今天才買的股數，剩下才是「昨天就有」的部位
+            var heldShares = h.shares - (todayBuyShares[h.id] || 0);
+            if (heldShares <= 0) return;
             var prevPrice = (typeof p.change === 'number') ? p.price - p.change : p.price;
-            if (typeof p.change === 'number') todayLiveUnr += h.shares * p.change;
-            todayLiveBase += h.shares * prevPrice;
-            todayLiveCost += h.shares * h.cost;
+            if (typeof p.change === 'number') todayLiveUnr += heldShares * p.change;
+            todayLiveBase += heldShares * prevPrice;
         });
         todayLivePct = todayLiveBase > 0 ? (todayLiveUnr / todayLiveBase * 100) : 0;
     }
@@ -6739,7 +6750,7 @@ function renderReturnCalendar() {
                     var pctNum = todayLivePct.toFixed(2);
                     html += '<div style="border:1.5px solid var(--lux-gold);background:' + tBg + ';border-radius:6px;padding:4px 4px;text-align:center;min-height:64px;display:flex;flex-direction:column;justify-content:center;gap:1px">' +
                         '<div style="font-size:11px;color:var(--muted)">' + dayNum + ' <span style="color:var(--lux-gold);font-weight:600">今</span></div>' +
-                        '<div style="font-size:12px;font-weight:600;color:' + tUnrC + '" title="持股當日漲跌（Σ股數×漲跌）">' + (todayLiveUnr > 0 ? '+' : '') + fmt(Math.round(todayLiveUnr)) + ' <span style="font-size:10px;font-weight:500">(' + pctNum + '%)</span></div>';
+                        '<div style="font-size:12px;font-weight:600;color:' + tUnrC + '" title="今日之前持有的部位 × 今日漲跌（不含今天剛買的）">' + (todayLiveUnr > 0 ? '+' : '') + fmt(Math.round(todayLiveUnr)) + ' <span style="font-size:10px;font-weight:500">(' + pctNum + '%)</span></div>';
                     if (todayLiveRz !== 0) {
                         html += '<div style="font-size:11px;font-weight:600;color:' + tRzC + '" title="今日已實現損益">已 ' + (todayLiveRz > 0 ? '+' : '') + fmt(Math.round(todayLiveRz)) + '</div>';
                     }
@@ -6787,7 +6798,7 @@ function renderReturnCalendar() {
     });
     html += '</div>';
 
-    html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">※ 上方數字為「未實現」（純股價漲跌）含 %；下方「已」開頭為「已實現」（賣出實際入袋）。今日格用即時持股漲跌（Σ股數×漲跌），與持股總覽「今日損益」一致。台灣時間 14:00 後自動寫入當日快照。</div>';
+    html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">※ 上方數字為「未實現」（純股價漲跌）含 %；下方「已」開頭為「已實現」（賣出實際入袋）。今日格只算「今天之前就持有」的部位 × 今日漲跌（不含今天剛買的）。台灣時間 14:00 後自動寫入當日快照。</div>';
     html += '</div>';
 
     // ── 已實現損益紀錄（賣出明細） ──
