@@ -6764,7 +6764,7 @@ function renderReturnCalendar() {
                         '<div style="font-size:11px;color:var(--muted)">' + dayNum + ' <span style="color:var(--lux-gold);font-weight:600">今</span></div>' +
                         '<div style="font-size:12px;font-weight:600;color:' + tUnrC + '" title="昨天就有的部位×今日漲跌 + 今天買進的部位×(現價−買價)">' + (todayLiveUnr > 0 ? '+' : '') + fmt(Math.round(todayLiveUnr)) + ' <span style="font-size:10px;font-weight:500">(' + pctNum + '%)</span></div>';
                     if (todayLiveRz !== 0) {
-                        html += '<div style="font-size:11px;font-weight:600;color:' + tRzC + '" title="今日已實現損益">已 ' + (todayLiveRz > 0 ? '+' : '') + fmt(Math.round(todayLiveRz)) + '</div>';
+                        html += '<div style="font-size:11px;font-weight:600;color:' + tRzC + '" title="今日已實現損益">已實現 ' + (todayLiveRz > 0 ? '+' : '') + fmt(Math.round(todayLiveRz)) + '</div>';
                     }
                     html += '</div>';
                 } else {
@@ -6790,7 +6790,7 @@ function renderReturnCalendar() {
                 }
                 // 已實現
                 if (entry.realized !== 0) {
-                    html += '<div style="font-size:11px;font-weight:600;color:' + rzC + '" title="已實現損益">已 ' + (entry.realized > 0 ? '+' : '') + fmt(Math.round(entry.realized)) + '</div>';
+                    html += '<div style="font-size:11px;font-weight:600;color:' + rzC + '" title="已實現損益">已實現 ' + (entry.realized > 0 ? '+' : '') + fmt(Math.round(entry.realized)) + '</div>';
                 }
                 html += '</div>';
             } else {
@@ -6810,7 +6810,7 @@ function renderReturnCalendar() {
     });
     html += '</div>';
 
-    html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">※ 上方數字為「未實現」（純股價漲跌）含 %；下方「已」開頭為「已實現」（賣出實際入袋）。今日格：昨天就有的部位×今日漲跌 + 今天買進的部位×(現價−買價)。台灣時間 14:00 後自動寫入當日快照。</div>';
+    html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">※ 上方數字為「未實現」（純股價漲跌）含 %；下方「已實現」為當日賣出實際入袋。今日格：昨天就有的部位×今日漲跌 + 今天買進的部位×(現價−買價)。台灣時間 14:00 後自動寫入當日快照。</div>';
     html += '</div>';
 
     // ── 已實現損益紀錄（賣出明細） ──
