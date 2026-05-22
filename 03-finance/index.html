@@ -1771,22 +1771,42 @@ function _healDataStructure() {
 }
 
 function loadData() {
-    try {
-        var raw = localStorage.getItem('finTracker');
-        if (raw) {
-            DATA = JSON.parse(raw);
-            _healDataStructure();
-            _migrateIncomeExpenseToMonthly();
-        } else {
-            DATA = getDefaults();
-            prefillData();
-        }
-    } catch(e) {
+    var raw = localStorage.getItem('finTracker');
+    if (!raw) {
+        // 初次使用：給預設值
         DATA = getDefaults();
+        prefillData();
+        return;
+    }
+    try {
+        DATA = JSON.parse(raw);
+        _healDataStructure();
+        _migrateIncomeExpenseToMonthly();
+        delete DATA._loadFailed;
+    } catch(e) {
+        // ★ JSON 解析失敗：不再清空！保留原始損壞資料於 localStorage 等待救援
+        console.error('[loadData] JSON 解析失敗，原始資料保留於 localStorage:', e);
+        _whenReady(function(){
+            showAlert('<i class="ti ti-alert-triangle"></i> 財務資料讀取失敗（JSON 損壞）！\n\n' +
+                '原始資料已保留在 localStorage，未被覆蓋。\n' +
+                '請立即：\n' +
+                '1. 不要繼續使用此頁面\n' +
+                '2. 開啟 Console（F12）檢查錯誤\n' +
+                '3. 嘗試從匯出檔還原\n\n' +
+                '為避免覆寫，財務寫入將暫時被阻擋。', '<i class="ti ti-alert-triangle"></i> 資料讀取失敗');
+        });
+        // 標記為「未安全載入」，後續 save 會被阻擋
+        DATA = getDefaults();
+        DATA._loadFailed = true;
     }
 }
 
 function saveData(skipEditStamp) {
+    // ★ 資料未安全載入時，禁止寫入（避免空白覆蓋原始損壞資料）
+    if (DATA && DATA._loadFailed) {
+        console.warn('[saveData] 已阻擋：財務資料未安全載入（_loadFailed）');
+        return;
+    }
     if (!skipEditStamp) {
         DATA._lastEditAt = new Date().toISOString();
     }
@@ -1803,6 +1823,41 @@ function _updateLastEditLabel() {
 
 // ===== 雲端同步（Apps Script + Google Drive JSON）=====
 var CLOUD_URL = 'https://script.google.com/macros/s/AKfycbyJ4E1nxlXeSgrXVrgaVUz6JGy5B7JXEWPMN98qw8mFN4QpzgDbyJ2qM3d00vVY46paAA/exec';
+
+// 驗證雲端拉下來的 finTracker 結構是否合理（最低門檻：應為物件且有必要欄位）
+// 回傳 true/false；不合理就拒絕寫入 localStorage（避免污染）
+function _isValidFinTrackerCloud(obj) {
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
+    // 至少要有 settings 或 income/expense/passive 任一
+    if (!obj.settings && !obj.income && !obj.expense && !obj.passive) return false;
+    return true;
+}
+function _isValidStockCloud(obj) {
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
+    // 至少要是個有 holdings/dividends/pledges/prices 任一欄的物件
+    if (!obj.holdings && !obj.dividends && !obj.pledges && !obj.prices && !obj.trades) return false;
+    return true;
+}
+// 安全地把雲端資料寫進 localStorage（驗證 + try/catch + 序列化失敗保護）
+function _safeWriteCloudToLocal(key, obj, validator) {
+    if (!validator(obj)) {
+        console.warn('[cloudSync] 拒絕寫入：雲端 ' + key + ' 結構驗證失敗');
+        return false;
+    }
+    try {
+        var json = JSON.stringify(obj);
+        // 二次驗證：序列化結果不能是空字串或 'null'
+        if (!json || json === 'null' || json.length < 10) {
+            console.warn('[cloudSync] 拒絕寫入：' + key + ' 序列化結果異常');
+            return false;
+        }
+        localStorage.setItem(key, json);
+        return true;
+    } catch(e) {
+        console.error('[cloudSync] 寫入 ' + key + ' 失敗:', e);
+        return false;
+    }
+}
 
 // 帶 timeout 的 fetch（預設 10 秒），避免 FinMind/TWSE 掛掉時 UI 卡死
 function fetchWithTimeout(url, opts, ms) {
@@ -1871,11 +1926,11 @@ function cloudSyncNow(opts) {
             if (cloudEdit > localEdit) {
                 // 雲端較新 → 反向拉，避免舊資料覆蓋
                 _clearPendingSync();
-                if (cloud.finTracker) {
-                    try { localStorage.setItem('finTracker', JSON.stringify(cloud.finTracker)); } catch(e) {}
-                }
-                if (cloud.finTracker_stock) {
-                    try { localStorage.setItem('finTracker_stock', JSON.stringify(cloud.finTracker_stock)); } catch(e) {}
+                var okFin = cloud.finTracker ? _safeWriteCloudToLocal('finTracker', cloud.finTracker, _isValidFinTrackerCloud) : true;
+                var okStock = cloud.finTracker_stock ? _safeWriteCloudToLocal('finTracker_stock', cloud.finTracker_stock, _isValidStockCloud) : true;
+                if (!okFin || !okStock) {
+                    _setCloudStatus('<span style="color:#EF4444">雲端資料異常，已拒絕同步</span>');
+                    return;
                 }
                 _setCloudStatus('<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22C55E;margin-right:4px;vertical-align:middle"></span>已同步雲端最新資料');
                 try { loadData(); } catch(e) { console.error('[cloudSyncNow loadData]', e); }
@@ -1927,11 +1982,11 @@ function cloudRestore(opts) {
                 if (!silent) _setCloudStatus('<span style="color:rgba(255,255,255,.6)">無新資料</span>');
                 return false;
             }
-            if (cloud.finTracker) {
-                try { localStorage.setItem('finTracker', JSON.stringify(cloud.finTracker)); } catch(e) {}
-            }
-            if (cloud.finTracker_stock) {
-                try { localStorage.setItem('finTracker_stock', JSON.stringify(cloud.finTracker_stock)); } catch(e) {}
+            var okFin = cloud.finTracker ? _safeWriteCloudToLocal('finTracker', cloud.finTracker, _isValidFinTrackerCloud) : true;
+            var okStock = cloud.finTracker_stock ? _safeWriteCloudToLocal('finTracker_stock', cloud.finTracker_stock, _isValidStockCloud) : true;
+            if (!okFin || !okStock) {
+                _setCloudStatus('<span style="color:#EF4444">雲端資料異常，已拒絕同步</span>');
+                return false;
             }
             // 真的拉到新東西，不管 silent 都要提示使用者
             _setCloudStatus('<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22C55E;margin-right:4px;vertical-align:middle"></span>已同步雲端最新資料');
@@ -2457,7 +2512,7 @@ function renderIncomeExpense(section) {
             if (yArch || catArch) {
                 html += '<td style="color:#999">' + (val ? fmt(val) : '-') + '</td>';
             } else {
-                html += '<td><span class="editable" onclick="editMonthCell(this,\'' + esc(section) + '\',\'' + esc(curY) + '\',\'' + esc(cat) + '\',' + m + ')">' + (val ? fmt(val) : '<span style="color:#666">-</span>') + '</span></td>';
+                html += '<td><span class="editable" onclick="editMonthCell(this,' + escJs(section) + ',' + escJs(curY) + ',' + escJs(cat) + ',' + m + ')">' + (val ? fmt(val) : '<span style="color:#666">-</span>') + '</span></td>';
             }
         }
         var yearTotal = sumCategoryYear(section, curY, cat);
@@ -2604,7 +2659,7 @@ function renderPassive() {
         html += '<tr><td style="text-align:center">' + MONTH_LABELS[m-1] + '</td>';
         sources.forEach(function(s) {
             var val = (DATA.passive[selY] && DATA.passive[selY][s] && DATA.passive[selY][s][m]) || 0;
-            html += '<td><span class="editable" onclick="editPassiveCell(this,\'' + esc(selY) + '\',\'' + esc(s) + '\',' + m + ')">' + fmt(val) + '</span></td>';
+            html += '<td><span class="editable" onclick="editPassiveCell(this,' + escJs(selY) + ',' + escJs(s) + ',' + m + ')">' + fmt(val) + '</span></td>';
         });
         html += '<td style="font-weight:600">' + fmt(sumPassiveMonth(selY, m)) + '</td>';
         html += '</tr>';
@@ -2803,14 +2858,14 @@ function manageCategories(section) {
                 '<span style="font-size:14px;' + (ca?'opacity:0.5;font-style:italic':'') + '">' + esc(cat) + (ca?' <span style="font-size:11px;color:var(--muted)">(已封存)</span>':'') + '</span>' +
             '</span>' +
             '<div style="display:flex;gap:6px">' +
-                '<button onclick="this.closest(\'.overlay\').remove();renameCategory(\'' + esc(section) + '\',\'' + esc(cat) + '\')" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;background:var(--card);font-family:inherit"><i class="ti ti-pencil" style="font-size:13px"></i> 改名</button>' +
-                '<button onclick="' + (ca?'unarchiveCategory':'archiveCategory') + '(\'' + esc(section) + '\',\'' + esc(cat) + '\');this.closest(\'.overlay\').remove();manageCategories(\'' + section + '\')" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;background:var(--card);font-family:inherit">' + (ca?'<i class="ti ti-lock-open" style="font-size:13px"></i> 取消封存':'<i class="ti ti-lock" style="font-size:13px"></i> 封存') + '</button>' +
-                '<button onclick="this.closest(\'.overlay\').remove();deleteCategory(\'' + esc(section) + '\',\'' + esc(cat) + '\')" style="padding:4px 10px;border:none;border-radius:6px;font-size:13px;cursor:pointer;background:var(--red);color:white;font-family:inherit"><i class="ti ti-x" style="font-size:14px"></i></button>' +
+                '<button onclick="this.closest(\'.overlay\').remove();renameCategory(' + escJs(section) + ',' + escJs(cat) + ')" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;background:var(--card);font-family:inherit"><i class="ti ti-pencil" style="font-size:13px"></i> 改名</button>' +
+                '<button onclick="' + (ca?'unarchiveCategory':'archiveCategory') + '(' + escJs(section) + ',' + escJs(cat) + ');this.closest(\'.overlay\').remove();manageCategories(' + escJs(section) + ')" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;background:var(--card);font-family:inherit">' + (ca?'<i class="ti ti-lock-open" style="font-size:13px"></i> 取消封存':'<i class="ti ti-lock" style="font-size:13px"></i> 封存') + '</button>' +
+                '<button onclick="this.closest(\'.overlay\').remove();deleteCategory(' + escJs(section) + ',' + escJs(cat) + ')" style="padding:4px 10px;border:none;border-radius:6px;font-size:13px;cursor:pointer;background:var(--red);color:white;font-family:inherit"><i class="ti ti-x" style="font-size:14px"></i></button>' +
             '</div></div>';
     }).join('');
     ov.innerHTML = '<div class="modal" style="max-height:80vh;overflow-y:auto"><h3>' + title + ' <span style="font-size:11px;color:var(--muted);font-weight:400">（拖曳左側 ⋮⋮ 可調順序）</span></h3>' +
         '<div class="cat-drag-list" data-section="' + esc(section) + '">' + rows + '</div>' +
-        '<div style="margin-top:12px"><button onclick="this.closest(\'.overlay\').remove();addCategory(\'' + section + '\')" style="width:100%;padding:10px;border:none;border-radius:8px;background:var(--lux-navy);color:white;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">＋ 新增項目</button></div>' +
+        '<div style="margin-top:12px"><button onclick="this.closest(\'.overlay\').remove();addCategory(' + escJs(section) + ')" style="width:100%;padding:10px;border:none;border-radius:8px;background:var(--lux-navy);color:white;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">＋ 新增項目</button></div>' +
         '<div style="margin-top:8px"><button onclick="this.closest(\'.overlay\').remove()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card);font-size:14px;cursor:pointer;font-family:inherit">關閉</button></div></div>';
     document.body.appendChild(ov);
     bindCategoryDrag(ov.querySelector('.cat-drag-list'), section);
@@ -2932,8 +2987,8 @@ function managePassiveSources() {
         return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">' +
             '<span style="font-size:14px">' + esc(s) + '</span>' +
             '<div style="display:flex;gap:6px">' +
-                '<button onclick="this.closest(\'.overlay\').remove();renamePassiveSource(\'' + esc(s) + '\')" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;background:var(--card);font-family:inherit"><i class="ti ti-pencil" style="font-size:13px"></i> 重命名</button>' +
-                '<button onclick="this.closest(\'.overlay\').remove();deletePassiveSource(\'' + esc(s) + '\')" style="padding:4px 10px;border:none;border-radius:6px;font-size:13px;cursor:pointer;background:var(--red);color:white;font-family:inherit"><i class="ti ti-x" style="font-size:14px"></i></button>' +
+                '<button onclick="this.closest(\'.overlay\').remove();renamePassiveSource(' + escJs(s) + ')" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;background:var(--card);font-family:inherit"><i class="ti ti-pencil" style="font-size:13px"></i> 重命名</button>' +
+                '<button onclick="this.closest(\'.overlay\').remove();deletePassiveSource(' + escJs(s) + ')" style="padding:4px 10px;border:none;border-radius:6px;font-size:13px;cursor:pointer;background:var(--red);color:white;font-family:inherit"><i class="ti ti-x" style="font-size:14px"></i></button>' +
             '</div></div>';
     }).join('');
     if (sources.length === 0) rows = '<div style="padding:16px;text-align:center;color:var(--muted)">尚無來源</div>';
@@ -3510,7 +3565,17 @@ function showModal(title, placeholder, defaultVal, onSave) {
 
 function toast(msg, isError) {
     var el = document.getElementById('toast');
-    el.innerHTML = msg;
+    // 安全考量：純文字訊息一律走 textContent；若呼叫端確定要 HTML（含圖示），用 toastHtml()
+    el.textContent = msg == null ? '' : String(msg);
+    el.style.background = isError ? '#DC2626' : '#333';
+    el.classList.add('show');
+    clearTimeout(window._toastTimer);
+    window._toastTimer = setTimeout(function(){ el.classList.remove('show'); }, 2000);
+}
+// 需要顯示圖示等 HTML 的場合（內部安全字串），用此版本
+function toastHtml(html, isError) {
+    var el = document.getElementById('toast');
+    el.innerHTML = html;
     el.style.background = isError ? '#DC2626' : '#333';
     el.classList.add('show');
     clearTimeout(window._toastTimer);
@@ -3520,6 +3585,25 @@ function toast(msg, isError) {
 function esc(s) {
     if (!s) return '';
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// 把字串安全包成「可放進 onclick 屬性內的 JS 字串字面值」
+// 用法：'onclick="renameCat(' + escJs(name) + ')"'
+// 兩層防禦：先 \\、\\'、\\" 把 JS 特殊字元跳脫；再對 HTML 屬性的特殊字元 esc
+// 這樣即使 name 含 ' 或 </script>，瀏覽器解析屬性、JS 引擎解析字串字面值都不會破壞語法
+function escJs(s) {
+    if (s === null || s === undefined) return "''";
+    var jsStr = String(s)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\u0027")
+        .replace(/"/g, '\\u0022')
+        .replace(/</g, '\\u003c')
+        .replace(/>/g, '\\u003e')
+        .replace(/&/g, '\\u0026')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r');
+    // 用 ' 包起來；裡頭已沒有 ' 也沒有 HTML 特殊字元
+    return "'" + jsStr + "'";
 }
 
 // 小型確認框（取代原生 confirm）。opts: { danger: true 會把確定鈕變紅 }
@@ -4861,7 +4945,7 @@ function _applyDividendToPassive(dateStr, cash, delta) {
     if (next < 0) {
         console.warn('[_applyDividendToPassive] 扣除會使被動收入股利變負，已停止同步。' +
                      '民國 ' + d.rocYear + '/' + d.month + ' 當前:' + cur + '，欲扣除:' + cash);
-        toast('<i class="ti ti-alert-triangle"></i> 被動收入股利已被手動調整，此次未同步反向扣除（避免數字錯亂）', true);
+        toastHtml('<i class="ti ti-alert-triangle"></i> 被動收入股利已被手動調整，此次未同步反向扣除（避免數字錯亂）', true);
         return false;
     }
     DATA.passive[d.rocYear]['股利'][d.month] = next;
@@ -4889,7 +4973,7 @@ function _applyDividendToIncome(dateStr, cash, delta) {
     var cur = DATA.income[d.rocYear]['股利'][d.month] || 0;
     var next = cur + delta * cash;
     if (next < 0) {
-        if (typeof toast === 'function') toast('<i class="ti ti-alert-triangle"></i> 收入股利已被手動調整，此次未同步反向扣除（避免數字錯亂）', true);
+        if (typeof toastHtml === 'function') toastHtml('<i class="ti ti-alert-triangle"></i> 收入股利已被手動調整，此次未同步反向扣除（避免數字錯亂）', true);
         return false;
     }
     DATA.income[d.rocYear]['股利'][d.month] = next;
@@ -6000,8 +6084,8 @@ function renderStockHoldings() {
         // 庫存股：左側 checkbox 置頂、中間代號／名稱點擊看走勢、右側鉛筆編輯
         html += '<td class="stock-name-cell">' +
             '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px">' +
-                '<input type="checkbox" class="pin-check"' + (isPinned ? ' checked' : '') + ' onclick="event.stopPropagation();toggleStockPin(\'' + esc(h.id) + '\')" title="勾選置頂、用於兩檔以上比較">' +
-                '<span style="cursor:pointer;flex:1;min-width:0" onclick="showStockCalendarModal(\'' + esc(h.id) + '\')" title="點看漲跌日曆">' +
+                '<input type="checkbox" class="pin-check"' + (isPinned ? ' checked' : '') + ' onclick="event.stopPropagation();toggleStockPin(' + escJs(h.id) + ')" title="勾選置頂、用於兩檔以上比較">' +
+                '<span style="cursor:pointer;flex:1;min-width:0" onclick="showStockCalendarModal(' + escJs(h.id) + ')" title="點看漲跌日曆">' +
                     '<b style="text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;color:var(--lux-navy)">' + esc(h.id) + '</b>' +
                     '<br><span class="stock-name-sub" style="font-size:12px;color:var(--muted);font-weight:400">' + esc(h.name) + '</span>' +
                 '</span>' +
@@ -6211,7 +6295,7 @@ function renderStockDividend() {
         var clickable = mode === 'cumulative';
         var cardStyle = 'padding:3px 14px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);font-size:13px';
         if (clickable) cardStyle += ';cursor:pointer';
-        var onClickAttr = clickable ? ' onclick="showStockDividendHistory(\'' + esc(h.id) + '\')" title="點看歷史股利紀錄"' : '';
+        var onClickAttr = clickable ? ' onclick="showStockDividendHistory(' + escJs(h.id) + ')" title="點看歷史股利紀錄"' : '';
         html += '<div style="' + cardStyle + '"' + onClickAttr + '>';
         html += '<div style="color:var(--muted);font-size:11px">' + esc(t.label) + '<span class="lbl-cum">' + cumLabel + '</span></div>';
         html += '<div style="font-weight:700;color:var(--lux-navy);font-size:15px">$' + fmt(t.sum) + '</div>';
@@ -6763,13 +6847,17 @@ function renderReturnCalendar() {
     // 今日「未實現損益」公式：
     //   Σ(昨天就有的部位 × 今日漲跌) + Σ(今天買入的部位 × (收盤價 − 買入價))
     // 第一項是原有持股的當日漲跌；第二項是今天剛買的「實際獲利」（買入價到現價的差）。
-    // 這樣才不會把「今天買進的整天漲跌」算成今日損益（虛胖），也不會漏掉它買進到收盤的真實獲利。
-    // 今天賣出的部位不另外扣（其已實現損益會加進「已」那一格）。
+    // 「昨天就有的部位」= 目前持股 − 今天買入 + 今天賣出（還原當沖場景）
+    // 今天賣出的已實現損益另外加進「已」那一格，不重複計入未實現。
     var todayBuyByStock = {}; // { stockId: [{ shares, price }, ...] }
+    var todaySellSharesByStock = {}; // { stockId: 今天賣出總股數 }
     (stockData.trades || []).forEach(function(t){
-        if (t.type === 'buy' && t.date === todayStr) {
+        if (!t.date || t.date !== todayStr) return;
+        if (t.type === 'buy') {
             if (!todayBuyByStock[t.id]) todayBuyByStock[t.id] = [];
             todayBuyByStock[t.id].push({ shares: t.shares || 0, price: t.price || 0 });
+        } else if (t.type === 'sell') {
+            todaySellSharesByStock[t.id] = (todaySellSharesByStock[t.id] || 0) + (t.shares || 0);
         }
     });
 
@@ -6787,8 +6875,10 @@ function renderReturnCalendar() {
 
             var todayBuys = todayBuyByStock[h.id] || [];
             var todayBuyTotalShares = todayBuys.reduce(function(a, b){ return a + b.shares; }, 0);
+            var todaySellShares = todaySellSharesByStock[h.id] || 0;
             // 第一項：昨天就有的部位 × 今日漲跌
-            var heldShares = h.shares - todayBuyTotalShares;
+            // 還原為「今天交易前的部位」= 目前股數 − 今天買入 + 今天賣出
+            var heldShares = Math.max(0, h.shares - todayBuyTotalShares + todaySellShares);
             if (heldShares > 0) {
                 todayLiveUnr += heldShares * change;
                 todayLiveBase += heldShares * prevPrice;
@@ -6959,7 +7049,7 @@ function _buildRealizedTradesHtml() {
         html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 6px;border-bottom:1px solid var(--border);font-size:13px">' +
             '<div style="min-width:90px;color:var(--muted);font-size:12px">' + esc(t.date || '') + '</div>' +
             '<div style="flex:1;min-width:0">' +
-                '<div><b style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;color:var(--lux-navy)" onclick="showStockCalendarModal(\'' + esc(t.id || '') + '\');setTimeout(function(){switchStockCalTab(\'trades\')},0)" title="看此股完整交易歷程">' + esc(t.id || '') + '</b> <span style="color:var(--muted);font-size:12px">' + esc(t.name || '') + '</span></div>' +
+                '<div><b style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;color:var(--lux-navy)" onclick="showStockCalendarModal(' + escJs(t.id || '') + ');setTimeout(function(){switchStockCalTab(\'trades\')},0)" title="看此股完整交易歷程">' + esc(t.id || '') + '</b> <span style="color:var(--muted);font-size:12px">' + esc(t.name || '') + '</span></div>' +
                 '<div style="font-size:11px;color:var(--muted)">' + fmt(t.shares || 0) + ' 股 × ' + perShare + '　成本 ' + (t.cost != null ? fmt(t.cost) : '-') + '</div>' +
             '</div>' +
             '<div class="' + cls + '" style="font-weight:600;text-align:right;min-width:80px">' + (realized >= 0 ? '+' : '') + fmt(realized) + '</div>' +
@@ -7040,8 +7130,12 @@ function editTrade(idx) {
                 '<label style="font-size:12px;color:var(--muted)">已實現損益（可手動編輯填扣完手續費／證交稅的實際數）</label>' +
                 '<input type="number" id="et-realized" value="' + (t.realized != null ? Math.round(t.realized) : '') + '" step="1">';
     } else {
-        html += '<div id="et-pl-preview" style="margin-top:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:13px;color:var(--muted)">買入金額：<b id="et-pl-num">-</b></div>' +
-                '<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5">※ 編輯買入只會修改交易紀錄本身，<b>不會自動回算持股均價</b>。如果這筆是誤填，請額外用「編輯持股」修正持股資料。</div>';
+        // 預設帶入原本的 amount（含手續費）；如果沒有就退回 shares × price
+        var defaultBuyAmount = (typeof t.amount === 'number') ? Math.round(t.amount) : Math.round((t.shares || 0) * (t.price || 0));
+        html += '<label style="font-size:12px;color:var(--muted)">買入總成本（含手續費，會自動算均價）</label>' +
+                '<input type="number" id="et-amount" value="' + defaultBuyAmount + '" step="1">' +
+                '<div id="et-pl-preview" style="margin-top:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:13px;color:var(--muted)">本次均價：<b id="et-pl-num">-</b></div>' +
+                '<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5">※ 編輯買入只會修改交易紀錄本身，<b>不會自動回算持股均價</b>。如要同步請另用「編輯持股」修正。</div>';
     }
     html += '<div class="modal-btns" style="margin-top:12px">' +
                 '<button onclick="this.closest(\'.overlay\').remove()">取消</button>' +
@@ -7057,9 +7151,11 @@ function editTrade(idx) {
         var sh = parseInt(document.getElementById('et-shares').value) || 0;
         var pr = parseFloat(document.getElementById('et-price').value);
         if (isBuy) {
+            // 顯示本次均價（總成本 / 股數）
+            var amt = parseFloat(document.getElementById('et-amount').value);
             var $n = document.getElementById('et-pl-num');
-            if (sh > 0 && !isNaN(pr) && pr > 0) {
-                $n.textContent = fmt(sh * pr);
+            if (sh > 0 && !isNaN(amt) && amt > 0) {
+                $n.textContent = (amt / sh).toFixed(2);
                 $n.style.color = 'var(--text)';
             } else {
                 $n.textContent = '-';
@@ -7075,7 +7171,7 @@ function editTrade(idx) {
             if (String(auto) !== $r.value) $r.value = auto;
         }
     }
-    var ids = isBuy ? ['et-shares','et-price'] : ['et-shares','et-price','et-cost'];
+    var ids = isBuy ? ['et-shares','et-price','et-amount'] : ['et-shares','et-price','et-cost'];
     ids.forEach(function(id){ document.getElementById(id).addEventListener('input', update); });
     update();
     document.getElementById('et-save').onclick = function() {
@@ -7084,10 +7180,13 @@ function editTrade(idx) {
         var d = document.getElementById('et-date').value;
         if (sh <= 0 || isNaN(pr) || pr <= 0 || !d) { toast('請填完整資訊'); return; }
         if (isBuy) {
+            // 保留使用者手動填的 amount（含手續費），不再用 sh * pr 覆寫
+            var amt = parseFloat(document.getElementById('et-amount').value);
+            if (isNaN(amt) || amt <= 0) { toast('請填總成本'); return; }
             t.date = d;
             t.shares = sh;
             t.price = pr;
-            t.amount = sh * pr;
+            t.amount = amt;
         } else {
             var c = parseFloat(document.getElementById('et-cost').value);
             var rz = parseFloat(document.getElementById('et-realized').value);
@@ -7119,15 +7218,60 @@ function deleteTrade(idx) {
     } else {
         summary = '賣 ' + esc(t.id || '') + ' ' + esc(t.date || '') + '　' + (t.realized >= 0 ? '+' : '') + fmt(t.realized || 0);
     }
-    showConfirm2('確定刪除這筆交易紀錄？\n\n' + summary + '\n\n注意：刪除不會回算持股均價／股數，如果是誤刪請手動「編輯持股」修正。', function() {
+    // 預先算出回算後的持股結果，讓使用者在確認對話框就能看到影響
+    var h = (stockData.holdings || []).find(function(x){ return x.id === t.id; });
+    var hChangeInfo = '';
+    if (h) {
+        if (isBuy) {
+            var newShares = h.shares - (t.shares || 0);
+            if (newShares < 0) {
+                hChangeInfo = '\n⚠ 刪除後持股股數會變負（' + fmt(newShares) + '），可能是交易紀錄與持股不同步。刪除時會自動修正為 0。';
+                newShares = 0;
+            }
+            var origCost = h.shares * h.cost;
+            var thisBuyAmount = (typeof t.amount === 'number') ? t.amount : (t.shares || 0) * (t.price || 0);
+            var newAvg = newShares > 0 ? (origCost - thisBuyAmount) / newShares : 0;
+            if (newAvg < 0) newAvg = 0;
+            hChangeInfo = '\n\n持股將自動回算：\n' +
+                '股數 ' + fmt(h.shares) + ' → ' + fmt(newShares) + '\n' +
+                '均價 ' + h.cost.toFixed(2) + ' → ' + newAvg.toFixed(2) + (hChangeInfo ? hChangeInfo : '');
+        } else {
+            // sell：股數加回
+            hChangeInfo = '\n\n持股將自動回算：\n' +
+                '股數 ' + fmt(h.shares) + ' → ' + fmt(h.shares + (t.shares || 0)) + '（均價不變）';
+        }
+    }
+    showConfirm2('確定刪除這筆交易紀錄？\n\n' + summary + hChangeInfo, function() {
+        // 在 splice 前先抓 trade 內容
+        var trade = stockData.trades[idx];
         stockData.trades.splice(idx, 1);
+        // 自動回算 holdings
+        var holding = (stockData.holdings || []).find(function(x){ return x.id === trade.id; });
+        if (holding) {
+            if (isBuy) {
+                var newShares = holding.shares - (trade.shares || 0);
+                var origCost = holding.shares * holding.cost;
+                var thisBuyAmount = (typeof trade.amount === 'number') ? trade.amount : (trade.shares || 0) * (trade.price || 0);
+                if (newShares <= 0) {
+                    holding.shares = 0;
+                    // 均價保留（之後若加碼會用 holding.shares * holding.cost = 0 重新計算）
+                } else {
+                    var newAvg = (origCost - thisBuyAmount) / newShares;
+                    holding.shares = newShares;
+                    holding.cost = newAvg > 0 ? newAvg : 0;
+                }
+            } else {
+                // sell：股數加回（均價不變）
+                holding.shares += (trade.shares || 0);
+            }
+        }
         if (!isBuy) {
             try { _syncTradesToCashflow(); saveData(true); } catch(e){ console.error('[syncTrades]', e); }
         }
         saveStockData();
         _refreshTradesList();
         renderStock();
-        toast('已刪除交易紀錄');
+        toast('已刪除交易紀錄並回算持股');
     });
 }
 
