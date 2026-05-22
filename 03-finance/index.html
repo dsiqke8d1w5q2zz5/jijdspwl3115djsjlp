@@ -5916,6 +5916,8 @@ function renderStock() {
 
     container.innerHTML = html;
 
+    // 報酬日曆分頁：搜尋框需要重新綁定 IME composition 事件
+    if (stockSubTab === 'analysis') _bindRealizedSearchEvents();
 }
 
 function renderStockHoldings() {
@@ -6991,11 +6993,11 @@ function _buildRealizedTradesHtml() {
         })
         : sells;
 
-    var html = '<div style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);margin-top:12px">';
+    var html = '<div id="realized-trades-slot" style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);margin-top:12px">';
     html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">';
     html += '<div style="font-size:14px;font-weight:600">已實現損益紀錄</div>';
+    // 搜尋框：用 textContent 取值（避免 oninput 字串拼接 XSS），事件在 init 函式綁
     html += '<input type="text" id="realized-search" placeholder="搜尋代號或股名" value="' + esc(_realizedSearchKw) + '" ' +
-        'oninput="onRealizedSearchInput(this.value)" ' +
         'style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--card);width:160px">';
     html += '<span style="margin-left:auto;font-size:12px;color:var(--muted)">共 ' + sells.length + ' 筆' + (kw ? '（過濾後 ' + filtered.length + '）' : '') + '</span>';
     html += '</div>';
@@ -7092,39 +7094,51 @@ function _buildRealizedTradesHtml() {
     return html;
 }
 
-function onRealizedSearchInput(v) {
-    _realizedSearchKw = v;
-    _refreshRealizedTradesOnly();
-}
 function toggleRealizedShowAll() {
     _realizedShowAll = !_realizedShowAll;
     _refreshRealizedTradesOnly();
 }
-// 只重畫已實現紀錄區塊，不重畫整個報酬日曆（避免捲動位置跳掉、輸入框失焦）
+// 只重畫「已實現紀錄」區塊本身（不動報酬日曆、不重建搜尋框）
 function _refreshRealizedTradesOnly() {
-    var slot = document.getElementById('return-calendar-slot');
+    var slot = document.getElementById('realized-trades-slot');
     if (!slot) return;
-    // 找到目前的 realized 區塊（卡片裡的最後一個 child 是 realized 區，但結構不穩；安全做法：整段重畫）
-    slot.innerHTML = renderReturnCalendar();
-    // 重畫後讓搜尋框保持焦點與游標位置
+    // _buildRealizedTradesHtml 回傳的 HTML 第一層就是 #realized-trades-slot 那個 div
+    // 直接 outerHTML 替換，input 重新建立 → 失焦；所以下面重新 bind 並 restore focus
+    slot.outerHTML = _buildRealizedTradesHtml();
+    _bindRealizedSearchEvents();
+}
+
+// 把搜尋框的事件綁好（含 IME composition 處理，避免中文輸入被中斷）
+function _bindRealizedSearchEvents() {
     var $s = document.getElementById('realized-search');
-    if ($s) {
-        $s.focus();
-        var v = $s.value;
-        $s.setSelectionRange(v.length, v.length);
-    }
+    if (!$s) return;
+    var composing = false;
+    $s.addEventListener('compositionstart', function(){ composing = true; });
+    $s.addEventListener('compositionend', function(){
+        composing = false;
+        _realizedSearchKw = $s.value;
+        _refreshRealizedTradesOnly();
+    });
+    $s.addEventListener('input', function(){
+        if (composing) return; // 組字中不重畫，避免輸入法被中斷
+        _realizedSearchKw = $s.value;
+        _refreshRealizedTradesOnly();
+    });
 }
 
 function onReturnCalendarMonthChange(m) {
     _returnCalendarMonth = m;
     var slot = document.getElementById('return-calendar-slot');
-    if (slot) slot.innerHTML = renderReturnCalendar();
+    if (slot) {
+        slot.innerHTML = renderReturnCalendar();
+        _bindRealizedSearchEvents();
+    }
 }
 
 function _refreshTradesList() {
     // 報酬日曆會用到 trades，重畫
     var calSlot = document.getElementById('return-calendar-slot');
-    if (calSlot) calSlot.innerHTML = renderReturnCalendar();
+    if (calSlot) { calSlot.innerHTML = renderReturnCalendar(); _bindRealizedSearchEvents(); }
     // 單股漲跌日曆 modal 開著時，同步重畫其分頁（tab 標籤的徽章 + 內容）
     if (document.querySelector('.stock-cal-modal-overlay')) {
         _renderStockCalModalTabs();
