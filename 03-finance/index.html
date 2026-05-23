@@ -8829,7 +8829,7 @@ function showSectionTrend(key) {
     var sec = (key === 'netWorth') ? NETWORTH_SECTION : ASSET_SECTIONS.find(function(s){ return s.key === key; });
     if (!sec) return;
     if (!_sectionTrendState[key]) _sectionTrendState[key] = 6;
-    if (!_sectionHistoryTab[key]) _sectionHistoryTab[key] = 'trend';
+    if (!_sectionHistoryTab[key]) _sectionHistoryTab[key] = 'calendar';
     var ov = document.createElement('div');
     ov.className = 'overlay section-trend-overlay';
     var isDebt = sec.key === 'debt';
@@ -8844,7 +8844,7 @@ function showSectionTrend(key) {
         '<h3><i class="ti ti-history"></i> ' + esc(sec.label) + ' 歷史</h3>' +
         kpiHtml +
         '<div style="display:flex;gap:6px;margin:10px 0;border-bottom:1px solid var(--border)" id="section-history-tabs"></div>' +
-        '<div id="section-history-body" style="min-height:300px"></div>' +
+        '<div id="section-history-body" style="height:480px;overflow-y:auto"></div>' +
         '<div class="modal-btns" style="margin-top:12px"><button onclick="this.closest(\'.overlay\').remove()" style="flex:1">關閉</button></div>' +
         '</div>';
     document.body.appendChild(ov);
