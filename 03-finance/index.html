@@ -7074,14 +7074,14 @@ function _buildRealizedBodyHtml(sells, filtered, kw, totalAll, yearTotal, thisYe
         var plColor = signColor(realized);
         html += '<tr style="border-bottom:1px solid var(--border)">' +
             '<td style="padding:8px 4px;text-align:center;white-space:nowrap;color:var(--muted);font-size:12px">' + esc(t.date || '') + '</td>' +
-            '<td style="padding:8px 8px;text-align:left;width:1%;white-space:nowrap"><b style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;color:var(--lux-navy)" onclick="showStockCalendarModal(' + escJs(t.id || '') + ');setTimeout(function(){switchStockCalTab(\'trades\')},0)" title="看此股完整交易歷程">' + esc(t.id || '') + '</b>' +
-                ' <span style="color:var(--muted);font-size:12px">' + esc(t.name || '') + '</span></td>' +
-            '<td style="padding:8px 4px;text-align:right">' + fmt(t.shares || 0) + '</td>' +
-            '<td style="padding:8px 4px;text-align:right;color:var(--muted)">' + avgBuyPrice + '</td>' +
-            '<td style="padding:8px 4px;text-align:right">' + sellPrice + '</td>' +
-            '<td style="padding:8px 4px;text-align:right;font-weight:600;color:' + plColor + '">' + signedFmt(realized) + '</td>' +
-            '<td style="padding:8px 4px;text-align:right;font-weight:600;color:' + plColor + '">' + rateStr + '</td>' +
-            '<td style="padding:8px 4px;text-align:right;color:var(--muted);font-size:12px;white-space:nowrap">' + daysStr + '</td>' +
+            '<td style="padding:8px 4px;text-align:center"><span style="display:inline-block;text-align:left;min-width:120px"><b style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;color:var(--lux-navy)" onclick="showStockCalendarModal(' + escJs(t.id || '') + ');setTimeout(function(){switchStockCalTab(\'trades\')},0)" title="看此股完整交易歷程">' + esc(t.id || '') + '</b>' +
+                ' <span style="color:var(--muted);font-size:12px">' + esc(t.name || '') + '</span></span></td>' +
+            '<td style="padding:8px 4px;text-align:center"><span style="display:inline-block;text-align:right;min-width:50px">' + fmt(t.shares || 0) + '</span></td>' +
+            '<td style="padding:8px 4px;text-align:center;color:var(--muted)"><span style="display:inline-block;text-align:right;min-width:60px">' + avgBuyPrice + '</span></td>' +
+            '<td style="padding:8px 4px;text-align:center"><span style="display:inline-block;text-align:right;min-width:60px">' + sellPrice + '</span></td>' +
+            '<td style="padding:8px 4px;text-align:center;font-weight:600;color:' + plColor + '"><span style="display:inline-block;text-align:right;min-width:70px">' + signedFmt(realized) + '</span></td>' +
+            '<td style="padding:8px 4px;text-align:center;font-weight:600;color:' + plColor + '"><span style="display:inline-block;text-align:right;min-width:60px">' + rateStr + '</span></td>' +
+            '<td style="padding:8px 4px;text-align:center;color:var(--muted);font-size:12px;white-space:nowrap"><span style="display:inline-block;text-align:right;min-width:40px">' + daysStr + '</span></td>' +
             '<td style="padding:8px 4px;text-align:center;white-space:nowrap">' +
                 '<button onclick="editTrade(' + x.i + ')" title="編輯" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:2px 4px;font-size:13px"><i class="ti ti-pencil"></i></button>' +
                 '<button onclick="deleteTrade(' + x.i + ')" title="刪除" style="background:none;border:none;cursor:pointer;color:var(--red);padding:2px 4px;font-size:13px"><i class="ti ti-trash"></i></button>' +
@@ -7341,10 +7341,10 @@ function showCalDaySnapshot(dateStr) {
             }
             html += '<tr style="border-bottom:1px solid var(--border)">' +
                 '<td style="padding:8px 4px;text-align:center">' + label + '</td>' +
-                '<td style="padding:8px 8px;text-align:left;width:1%;white-space:nowrap"><b>' + esc(t.id || '') + '</b> <span style="color:var(--muted);font-size:12px">' + esc(t.name || '') + '</span></td>' +
-                '<td style="padding:8px 4px;text-align:right">' + fmt(t.shares || 0) + '</td>' +
-                '<td style="padding:8px 4px;text-align:right">' + (typeof t.price === 'number' ? t.price.toFixed(2) : '-') + '</td>' +
-                '<td style="padding:8px 4px;text-align:right;font-weight:600">' + rightCell + '</td>' +
+                '<td style="padding:8px 4px;text-align:center"><span style="display:inline-block;text-align:left;min-width:120px"><b>' + esc(t.id || '') + '</b> <span style="color:var(--muted);font-size:12px">' + esc(t.name || '') + '</span></span></td>' +
+                '<td style="padding:8px 4px;text-align:center"><span style="display:inline-block;text-align:right;min-width:60px">' + fmt(t.shares || 0) + '</span></td>' +
+                '<td style="padding:8px 4px;text-align:center"><span style="display:inline-block;text-align:right;min-width:70px">' + (typeof t.price === 'number' ? t.price.toFixed(2) : '-') + '</span></td>' +
+                '<td style="padding:8px 4px;text-align:center;font-weight:600"><span style="display:inline-block;text-align:right;min-width:80px">' + rightCell + '</span></td>' +
                 '</tr>';
         });
         html += '</tbody></table>';
