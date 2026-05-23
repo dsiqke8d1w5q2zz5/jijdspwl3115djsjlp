@@ -241,6 +241,18 @@ body {
 .cal-cell-sub { font-size: 10px; font-weight: 600; line-height: 1.2; }
 .cal-cell-pct { font-size: 9px; font-weight: 500; }
 
+/* ── iOS 風格年月滾輪選擇器 ── */
+.wheel-picker-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9000; display: flex; align-items: flex-end; justify-content: center; }
+.wheel-picker-modal { width: 100%; max-width: 480px; background: #1c1c1e; color: #fff; border-radius: 16px 16px 0 0; padding: 0; }
+.wheel-picker-bar { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.wheel-picker-bar button { background: none; border: none; color: #0a84ff; font-size: 17px; font-family: inherit; cursor: pointer; padding: 4px 8px; }
+.wheel-picker-bar .wheel-picker-title { color: #fff; font-size: 16px; font-weight: 600; }
+.wheel-picker-body { display: flex; position: relative; height: 220px; overflow: hidden; }
+.wheel-picker-col { flex: 1; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; -ms-overflow-style: none; padding: 88px 0; }
+.wheel-picker-col::-webkit-scrollbar { display: none; }
+.wheel-picker-item { height: 44px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: rgba(255,255,255,0.4); scroll-snap-align: center; transition: color 0.15s, font-weight 0.15s; }
+.wheel-picker-item.selected { color: #fff; font-weight: 600; }
+.wheel-picker-highlight { position: absolute; left: 0; right: 0; top: 88px; height: 44px; background: rgba(255,255,255,0.08); border-radius: 8px; margin: 0 12px; pointer-events: none; }
 
 .table-wrap {
     background: var(--card);
@@ -6614,6 +6626,127 @@ function _localDateStr(d) {
     return y + '-' + m + '-' + dd;
 }
 
+// ── iOS 風格年月滾輪選擇器 ──
+// availableMonths: ['2026-05', '2026-04', ...]（不限順序）
+// currentYM: 預選的 'YYYY-MM'
+// onConfirm: function(ym) {}
+function showYearMonthWheelPicker(availableMonths, currentYM, onConfirm) {
+    if (!availableMonths || availableMonths.length === 0) return;
+    // 依年份分組
+    var byYear = {};
+    availableMonths.forEach(function(ym){
+        var y = ym.slice(0,4);
+        var m = parseInt(ym.slice(5,7), 10);
+        if (!byYear[y]) byYear[y] = [];
+        if (byYear[y].indexOf(m) < 0) byYear[y].push(m);
+    });
+    Object.keys(byYear).forEach(function(y){ byYear[y].sort(function(a,b){ return a-b; }); });
+    var years = Object.keys(byYear).sort(); // 由小到大
+
+    var curY = (currentYM && byYear[currentYM.slice(0,4)]) ? currentYM.slice(0,4) : years[years.length - 1];
+    var curM = (currentYM && byYear[curY].indexOf(parseInt(currentYM.slice(5,7), 10)) >= 0)
+        ? parseInt(currentYM.slice(5,7), 10)
+        : byYear[curY][byYear[curY].length - 1];
+
+    var ov = document.createElement('div');
+    ov.className = 'wheel-picker-overlay';
+    var yearItems = years.map(function(y){ return '<div class="wheel-picker-item" data-year="' + y + '">' + y + ' 年</div>'; }).join('');
+    var monthItems = byYear[curY].map(function(m){ return '<div class="wheel-picker-item" data-month="' + m + '">' + m + ' 月</div>'; }).join('');
+    ov.innerHTML =
+        '<div class="wheel-picker-modal">' +
+            '<div class="wheel-picker-bar">' +
+                '<button id="wp-cancel">取消</button>' +
+                '<span class="wheel-picker-title">選擇月份</span>' +
+                '<button id="wp-confirm">確定</button>' +
+            '</div>' +
+            '<div class="wheel-picker-body">' +
+                '<div class="wheel-picker-highlight"></div>' +
+                '<div class="wheel-picker-col" id="wp-year-col">' + yearItems + '</div>' +
+                '<div class="wheel-picker-col" id="wp-month-col">' + monthItems + '</div>' +
+            '</div>' +
+        '</div>';
+    document.body.appendChild(ov);
+
+    var $yearCol = document.getElementById('wp-year-col');
+    var $monthCol = document.getElementById('wp-month-col');
+    var ITEM_H = 44;
+
+    function _renderMonthCol() {
+        $monthCol.innerHTML = byYear[curY].map(function(m){ return '<div class="wheel-picker-item" data-month="' + m + '">' + m + ' 月</div>'; }).join('');
+        // 若 curM 不在新年的範圍裡，挑最近的
+        if (byYear[curY].indexOf(curM) < 0) curM = byYear[curY][byYear[curY].length - 1];
+        _scrollTo($monthCol, byYear[curY].indexOf(curM));
+        _updateHighlight();
+    }
+    function _scrollTo(col, idx) {
+        col.scrollTop = idx * ITEM_H;
+    }
+    function _updateHighlight() {
+        // 標記目前 highlight 的 item
+        var yearIdx = years.indexOf(curY);
+        $yearCol.querySelectorAll('.wheel-picker-item').forEach(function(it, i){
+            it.classList.toggle('selected', i === yearIdx);
+        });
+        var monthIdx = byYear[curY].indexOf(curM);
+        $monthCol.querySelectorAll('.wheel-picker-item').forEach(function(it, i){
+            it.classList.toggle('selected', i === monthIdx);
+        });
+    }
+    function _onScroll(col, getList, setVal) {
+        clearTimeout(col._scrollTimer);
+        col._scrollTimer = setTimeout(function(){
+            var idx = Math.round(col.scrollTop / ITEM_H);
+            var list = getList();
+            if (idx < 0) idx = 0;
+            if (idx >= list.length) idx = list.length - 1;
+            setVal(list[idx]);
+            _updateHighlight();
+        }, 80);
+    }
+    $yearCol.addEventListener('scroll', function(){
+        _onScroll($yearCol, function(){ return years; }, function(v){
+            if (curY !== v) {
+                curY = v;
+                _renderMonthCol();
+            }
+        });
+    });
+    $monthCol.addEventListener('scroll', function(){
+        _onScroll($monthCol, function(){ return byYear[curY]; }, function(v){ curM = v; });
+    });
+    // 點 item 直接跳到該項
+    $yearCol.addEventListener('click', function(e){
+        var item = e.target.closest('.wheel-picker-item');
+        if (!item) return;
+        var y = item.getAttribute('data-year');
+        var idx = years.indexOf(y);
+        if (idx >= 0) _scrollTo($yearCol, idx);
+    });
+    $monthCol.addEventListener('click', function(e){
+        var item = e.target.closest('.wheel-picker-item');
+        if (!item) return;
+        var m = parseInt(item.getAttribute('data-month'), 10);
+        var idx = byYear[curY].indexOf(m);
+        if (idx >= 0) _scrollTo($monthCol, idx);
+    });
+
+    document.getElementById('wp-cancel').onclick = function(){ ov.remove(); };
+    document.getElementById('wp-confirm').onclick = function(){
+        var ym = curY + '-' + String(curM).padStart(2,'0');
+        ov.remove();
+        if (onConfirm) onConfirm(ym);
+    };
+    // 點背景關閉
+    ov.addEventListener('click', function(e){ if (e.target === ov) ov.remove(); });
+
+    // 初始捲到當前位置
+    setTimeout(function(){
+        _scrollTo($yearCol, years.indexOf(curY));
+        _scrollTo($monthCol, byYear[curY].indexOf(curM));
+        _updateHighlight();
+    }, 0);
+}
+
 // ── 分析子分頁 ──
 var _stockPieChart = null;
 var _stockPriceTrendChart = null;
@@ -6806,7 +6939,7 @@ function renderReturnCalendar() {
     var html = '<div style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);flex:1;display:flex;flex-direction:column">';
     html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">';
     html += '<div style="font-size:14px;font-weight:600">報酬日曆</div>';
-    html += '<select id="return-cal-month" onchange="onReturnCalendarMonthChange(this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--card)">' + monthOpts + '</select>';
+    html += '<button onclick="openReturnCalendarMonthPicker()" style="padding:4px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--card);cursor:pointer;display:inline-flex;align-items:center;gap:6px"><span>' + curMonth + '</span><i class="ti ti-chevron-down" style="font-size:12px;color:var(--muted)"></i></button>';
     html += '<span style="margin-left:auto;display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;align-items:baseline">';
     html += '<span>月損益 <b style="color:' + signColor(monthTotal) + ';font-size:16px">' + signedFmt(monthTotal) + '</b></span>';
     html += '<span style="font-size:12px">未實現 <b style="color:' + signColor(monthUnrealized) + '">' + signedFmt(monthUnrealized) + '</b></span>';
@@ -7160,6 +7293,20 @@ function onReturnCalendarMonthChange(m) {
         slot.innerHTML = renderReturnCalendar();
         _bindRealizedSearchEvents();
     }
+}
+
+// 開啟報酬日曆的月份選擇器（iOS 滾輪風格）
+function openReturnCalendarMonthPicker() {
+    // 收集 marketHistory + trades 出現過的所有月份
+    var monthSet = {};
+    (stockData.marketHistory || []).forEach(function(e){ if (e.date) monthSet[e.date.slice(0,7)] = true; });
+    (stockData.trades || []).forEach(function(t){ if (t.date) monthSet[t.date.slice(0,7)] = true; });
+    var months = Object.keys(monthSet).sort();
+    if (months.length === 0) return;
+    var current = _returnCalendarMonth || months[months.length - 1];
+    showYearMonthWheelPicker(months, current, function(ym){
+        onReturnCalendarMonthChange(ym);
+    });
 }
 
 function _refreshTradesList() {
@@ -8957,7 +9104,7 @@ function _buildSectionCalendarHtml(key) {
     }).join('');
 
     var html = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">';
-    html += '<select onchange="onSectionCalendarMonthChange(\'' + key + '\',this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--card)">' + monthOpts + '</select>';
+    html += '<button onclick="openSectionCalendarMonthPicker(\'' + key + '\')" style="padding:4px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--card);cursor:pointer;display:inline-flex;align-items:center;gap:6px"><span>' + curMonth + '</span><i class="ti ti-chevron-down" style="font-size:12px;color:var(--muted)"></i></button>';
     // 對負債來說：增加 = 負面（綠/紅相反）
     var deltaColor = isDebt ? signColor(-monthDelta) : signColor(monthDelta);
     html += '<span style="margin-left:auto;font-size:13px;color:var(--muted)">月變化 <b style="color:' + deltaColor + ';font-size:16px">' + signedFmt(monthDelta) + '</b></span>';
@@ -9011,6 +9158,19 @@ function _buildSectionCalendarHtml(key) {
 function onSectionCalendarMonthChange(key, m) {
     _sectionCalendarMonth[key] = m;
     _renderSectionHistoryBody(key);
+}
+
+function openSectionCalendarMonthPicker(key) {
+    var monthSet = {};
+    (DATA.assets.history || []).forEach(function(h){
+        if (h.date) monthSet[h.date.slice(0,7)] = true;
+    });
+    var months = Object.keys(monthSet).sort();
+    if (months.length === 0) return;
+    var current = _sectionCalendarMonth[key] || months[months.length - 1];
+    showYearMonthWheelPicker(months, current, function(ym){
+        onSectionCalendarMonthChange(key, ym);
+    });
 }
 
 function setSectionTrendRange(key, months) {
