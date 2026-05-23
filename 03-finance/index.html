@@ -8873,7 +8873,7 @@ function _renderSectionHistoryTabs(key) {
             ';color:' + (active ? 'var(--lux-navy)' : 'var(--muted)') + ';margin-bottom:-1px';
         return '<button type="button" onclick="switchSectionHistoryTab(\'' + key + '\',\'' + tabKey + '\')" style="' + style + '">' + label + '</button>';
     }
-    tabsBox.innerHTML = _tab('trend', '走勢圖') + _tab('calendar', '日曆');
+    tabsBox.innerHTML = _tab('calendar', '日曆') + _tab('trend', '走勢圖');
 }
 
 function switchSectionHistoryTab(key, tab) {
