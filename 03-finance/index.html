@@ -8779,7 +8779,10 @@ function renderAssets() {
     html += '<div class="nw-hero">';
     html += '<div class="nw-hero-left">';
     html += '<div class="nw-label">我的淨資產 (TWD)</div>';
+    html += '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">';
     html += '<div class="nw-value">' + fmt(nw) + '</div>';
+    html += '<button class="nw-fx-refresh" onclick="showSectionTrend(\'netWorth\')"><i class="ti ti-history"></i> 歷史</button>';
+    html += '</div>';
     html += '</div>';
     html += '<div class="nw-hero-right">';
     if (staleBadge) html += staleBadge;
@@ -8790,7 +8793,6 @@ function renderAssets() {
     if (gold.twdPerTael) {
         html += '<span>金價 <b>' + fmt(gold.twdPerTael) + '</b>/兩</span>';
     }
-    html += '<button class="nw-fx-refresh" onclick="showSectionTrend(\'netWorth\')" title="查看淨資產歷史（走勢圖/日曆）" style="margin-right:6px"><i class="ti ti-history"></i> 歷史</button>';
     html += '<button class="nw-fx-refresh" onclick="manualRefreshMarket()">↻ 更新</button>';
     html += '</div>';
     html += '</div>';
