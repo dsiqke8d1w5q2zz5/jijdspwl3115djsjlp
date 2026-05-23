@@ -7074,14 +7074,14 @@ function _buildRealizedBodyHtml(sells, filtered, kw, totalAll, yearTotal, thisYe
         var plColor = signColor(realized);
         html += '<tr style="border-bottom:1px solid var(--border)">' +
             '<td style="padding:8px 4px;text-align:center;white-space:nowrap;color:var(--muted);font-size:12px">' + esc(t.date || '') + '</td>' +
-            '<td style="padding:8px 4px;text-align:center"><b style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;color:var(--lux-navy)" onclick="showStockCalendarModal(' + escJs(t.id || '') + ');setTimeout(function(){switchStockCalTab(\'trades\')},0)" title="看此股完整交易歷程">' + esc(t.id || '') + '</b>' +
+            '<td style="padding:8px 4px;text-align:left"><b style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;color:var(--lux-navy)" onclick="showStockCalendarModal(' + escJs(t.id || '') + ');setTimeout(function(){switchStockCalTab(\'trades\')},0)" title="看此股完整交易歷程">' + esc(t.id || '') + '</b>' +
                 ' <span style="color:var(--muted);font-size:12px">' + esc(t.name || '') + '</span></td>' +
-            '<td style="padding:8px 4px;text-align:center">' + fmt(t.shares || 0) + '</td>' +
-            '<td style="padding:8px 4px;text-align:center;color:var(--muted)">' + avgBuyPrice + '</td>' +
-            '<td style="padding:8px 4px;text-align:center">' + sellPrice + '</td>' +
-            '<td style="padding:8px 4px;text-align:center;font-weight:600;color:' + plColor + '">' + signedFmt(realized) + '</td>' +
-            '<td style="padding:8px 4px;text-align:center;font-weight:600;color:' + plColor + '">' + rateStr + '</td>' +
-            '<td style="padding:8px 4px;text-align:center;color:var(--muted);font-size:12px;white-space:nowrap">' + daysStr + '</td>' +
+            '<td style="padding:8px 4px;text-align:right">' + fmt(t.shares || 0) + '</td>' +
+            '<td style="padding:8px 4px;text-align:right;color:var(--muted)">' + avgBuyPrice + '</td>' +
+            '<td style="padding:8px 4px;text-align:right">' + sellPrice + '</td>' +
+            '<td style="padding:8px 4px;text-align:right;font-weight:600;color:' + plColor + '">' + signedFmt(realized) + '</td>' +
+            '<td style="padding:8px 4px;text-align:right;font-weight:600;color:' + plColor + '">' + rateStr + '</td>' +
+            '<td style="padding:8px 4px;text-align:right;color:var(--muted);font-size:12px;white-space:nowrap">' + daysStr + '</td>' +
             '<td style="padding:8px 4px;text-align:center;white-space:nowrap">' +
                 '<button onclick="editTrade(' + x.i + ')" title="編輯" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:2px 4px;font-size:13px"><i class="ti ti-pencil"></i></button>' +
                 '<button onclick="deleteTrade(' + x.i + ')" title="刪除" style="background:none;border:none;cursor:pointer;color:var(--red);padding:2px 4px;font-size:13px"><i class="ti ti-trash"></i></button>' +
@@ -7341,10 +7341,10 @@ function showCalDaySnapshot(dateStr) {
             }
             html += '<tr style="border-bottom:1px solid var(--border)">' +
                 '<td style="padding:8px 4px;text-align:center">' + label + '</td>' +
-                '<td style="padding:8px 4px;text-align:center"><b>' + esc(t.id || '') + '</b> <span style="color:var(--muted);font-size:12px">' + esc(t.name || '') + '</span></td>' +
-                '<td style="padding:8px 4px;text-align:center">' + fmt(t.shares || 0) + '</td>' +
-                '<td style="padding:8px 4px;text-align:center">' + (typeof t.price === 'number' ? t.price.toFixed(2) : '-') + '</td>' +
-                '<td style="padding:8px 4px;text-align:center;font-weight:600">' + rightCell + '</td>' +
+                '<td style="padding:8px 4px;text-align:left"><b>' + esc(t.id || '') + '</b> <span style="color:var(--muted);font-size:12px">' + esc(t.name || '') + '</span></td>' +
+                '<td style="padding:8px 4px;text-align:right">' + fmt(t.shares || 0) + '</td>' +
+                '<td style="padding:8px 4px;text-align:right">' + (typeof t.price === 'number' ? t.price.toFixed(2) : '-') + '</td>' +
+                '<td style="padding:8px 4px;text-align:right;font-weight:600">' + rightCell + '</td>' +
                 '</tr>';
         });
         html += '</tbody></table>';
