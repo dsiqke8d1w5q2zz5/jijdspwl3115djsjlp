@@ -8806,20 +8806,7 @@ function renderAssets() {
         html += '<div class="asset-card-head' + (expanded ? ' expanded' : '') + '" onclick="toggleAssetSection(\'' + sec.key + '\')" style="' + (expanded ? 'background:' + secColor + ';color:#fff;' : '') + '">';
         html += '<div style="display:flex;align-items:center;gap:8px">';
         html += '<div class="asset-card-title"' + (expanded ? ' style="color:#fff"' : '') + '>' + esc(sec.label) + '</div>';
-        html += '<button onclick="event.stopPropagation();showSectionTrend(\'' + sec.key + '\')" style="padding:3px 8px;border:1px solid ' + (expanded ? 'rgba(255,255,255,0.4)' : 'var(--border)') + ';border-radius:6px;background:' + (expanded ? 'rgba(255,255,255,0.15)' : 'var(--card)') + ';color:' + (expanded ? '#fff' : 'var(--muted)') + ';font-size:11px;cursor:pointer;font-family:inherit" title="查看歷史（走勢圖/日曆）"><i class="ti ti-history" style="font-size:12px"></i> 歷史</button>';
-        // 變化小指標（展開時不顯示）：優先近 30 日，無資料則 fallback 近 7 日
-        if (!expanded) {
-            var monthChange = getSectionChange(sec.key, 'month');
-            var changeData = monthChange;
-            var changeTitle = '近 30 日變化';
-            if (!monthChange) {
-                changeData = getSectionChange(sec.key, 'week');
-                changeTitle = '近 7 日變化（資料不足 30 日）';
-            }
-            if (changeData) {
-                html += '<span class="asset-card-change" title="' + changeTitle + '">' + formatSectionChange(changeData, isDebt) + '</span>';
-            }
-        }
+        html += '<button onclick="event.stopPropagation();showSectionTrend(\'' + sec.key + '\')" style="padding:3px 8px;border:1px solid ' + (expanded ? 'rgba(255,255,255,0.4)' : 'var(--border)') + ';border-radius:6px;background:' + (expanded ? 'rgba(255,255,255,0.15)' : 'var(--card)') + ';color:' + (expanded ? '#fff' : 'var(--muted)') + ';font-size:11px;cursor:pointer;font-family:inherit"><i class="ti ti-history" style="font-size:12px"></i> 歷史</button>';
         html += '</div>';
         html += '<div>';
         html += '<span class="asset-card-sum' + (isDebt ? ' debt' : '') + '"' + (expanded ? ' style="color:#fff"' : '') + '>' + (isDebt ? '- ' : '') + fmt(total) + '</span>';
