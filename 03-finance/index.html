@@ -7053,13 +7053,13 @@ function _buildRealizedBodyHtml(sells, filtered, kw, totalAll, yearTotal, thisYe
 
     html += '<div style="max-height:520px;overflow-y:auto"><table class="realized-table" style="width:100%;font-size:13px;border-collapse:collapse"><thead><tr style="border-bottom:1px solid var(--border)">' +
         '<th style="padding:8px 4px;white-space:nowrap;text-align:center">日期</th>' +
-        '<th style="padding:8px 4px;text-align:center">股票</th>' +
-        '<th style="padding:8px 4px;white-space:nowrap;text-align:center">股數</th>' +
-        '<th style="padding:8px 4px;white-space:nowrap;text-align:center" title="平均買入價＝賣出部分對應的成本÷股數">均價</th>' +
-        '<th style="padding:8px 4px;white-space:nowrap;text-align:center">賣價</th>' +
-        '<th style="padding:8px 4px;white-space:nowrap;text-align:center">已實現損益</th>' +
-        '<th style="padding:8px 4px;white-space:nowrap;text-align:center" title="報酬率＝已實現損益÷成本">損益 %</th>' +
-        '<th style="padding:8px 4px;white-space:nowrap;text-align:center" title="從此股最早一筆買入到此次賣出">天數</th>' +
+        '<th style="padding:8px 4px;text-align:center"><span style="display:inline-block;min-width:120px;text-align:center">股票</span></th>' +
+        '<th style="padding:8px 4px;white-space:nowrap;text-align:center"><span style="display:inline-block;min-width:50px;text-align:center">股數</span></th>' +
+        '<th style="padding:8px 4px;white-space:nowrap;text-align:center" title="平均買入價＝賣出部分對應的成本÷股數"><span style="display:inline-block;min-width:60px;text-align:center">均價</span></th>' +
+        '<th style="padding:8px 4px;white-space:nowrap;text-align:center"><span style="display:inline-block;min-width:60px;text-align:center">賣價</span></th>' +
+        '<th style="padding:8px 4px;white-space:nowrap;text-align:center"><span style="display:inline-block;min-width:70px;text-align:center">已實現損益</span></th>' +
+        '<th style="padding:8px 4px;white-space:nowrap;text-align:center" title="報酬率＝已實現損益÷成本"><span style="display:inline-block;min-width:60px;text-align:center">損益 %</span></th>' +
+        '<th style="padding:8px 4px;white-space:nowrap;text-align:center" title="從此股最早一筆買入到此次賣出"><span style="display:inline-block;min-width:40px;text-align:center">天數</span></th>' +
         '<th style="width:60px"></th>' +
         '</tr></thead><tbody>';
     showList.forEach(function(x){
@@ -7321,10 +7321,10 @@ function showCalDaySnapshot(dateStr) {
         html += '<h4 style="margin:16px 0 8px;font-size:14px">當日交易（' + todayTrades.length + ' 筆）</h4>';
         html += '<table class="realized-table" style="width:100%;font-size:13px;border-collapse:collapse"><thead><tr style="border-bottom:1px solid var(--border)">' +
             '<th style="padding:8px 4px;white-space:nowrap;text-align:center">類型</th>' +
-            '<th style="padding:8px 4px;text-align:center">股票</th>' +
-            '<th style="padding:8px 4px;white-space:nowrap;text-align:center">股數</th>' +
-            '<th style="padding:8px 4px;white-space:nowrap;text-align:center">價格</th>' +
-            '<th style="padding:8px 4px;white-space:nowrap;text-align:center">金額／已實現</th>' +
+            '<th style="padding:8px 4px;text-align:center"><span style="display:inline-block;min-width:120px;text-align:center">股票</span></th>' +
+            '<th style="padding:8px 4px;white-space:nowrap;text-align:center"><span style="display:inline-block;min-width:60px;text-align:center">股數</span></th>' +
+            '<th style="padding:8px 4px;white-space:nowrap;text-align:center"><span style="display:inline-block;min-width:70px;text-align:center">價格</span></th>' +
+            '<th style="padding:8px 4px;white-space:nowrap;text-align:center"><span style="display:inline-block;min-width:80px;text-align:center">金額／已實現</span></th>' +
             '</tr></thead><tbody>';
         todayTrades.forEach(function(t){
             var isBuy = t.type === 'buy';
