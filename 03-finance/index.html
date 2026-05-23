@@ -8905,7 +8905,7 @@ function _renderSectionHistoryBody(key) {
             '<button onclick="setSectionTrendRange(\'' + key + '\',0)" class="nw-range-btn">全部</button>' +
         '</div>' +
         '<div style="height:260px"><canvas id="section-trend-chart"></canvas></div>' +
-        '<div style="font-size:11px;color:var(--muted);margin-top:8px">共 ' + (DATA.assets.history || []).length + ' 筆快照</div>';
+        '<div style="font-size:11px;color:var(--muted);margin-top:8px">共 ' + (DATA.assets.history || []).length + ' 筆快照（近 6 月：每天一點；近 12 月：每週；近 24 月／全部：每月）</div>';
         _drawSectionTrendChart(key);
     }
 }
@@ -9019,15 +9019,8 @@ function setSectionTrendRange(key, months) {
 }
 
 function _drawSectionTrendChart(key) {
-    var hist = DATA.assets.history || [];
+    var hist = (DATA.assets.history || []).slice().sort(function(a,b){ return a.date < b.date ? -1 : 1; });
     var months = _sectionTrendState[key] || 6;
-    var filtered = hist;
-    if (months > 0) {
-        var cutoff = new Date();
-        cutoff.setMonth(cutoff.getMonth() - months);
-        var cutoffStr = _localDateStr(cutoff);
-        filtered = hist.filter(function(h){ return h.date >= cutoffStr; });
-    }
     // 按鈕 active
     var ov = document.querySelector('.section-trend-overlay');
     if (ov) {
@@ -9040,7 +9033,7 @@ function _drawSectionTrendChart(key) {
     var canvas = document.getElementById('section-trend-chart');
     if (!canvas) return;
     if (_sectionTrendChart) { try { _sectionTrendChart.destroy(); } catch(_){} }
-    if (filtered.length < 1) {
+    if (hist.length < 1) {
         var ctx0 = canvas.getContext('2d');
         ctx0.clearRect(0,0,canvas.width,canvas.height);
         ctx0.fillStyle = '#8C8578';
@@ -9049,11 +9042,60 @@ function _drawSectionTrendChart(key) {
         ctx0.fillText('此範圍內無資料', canvas.width/2, 40);
         return;
     }
-    var labels = filtered.map(function(h){ return _toROCDate(h.date); });
-    var values = filtered.map(function(h){
+
+    // 與主頁淨資產趨勢同套規則：依範圍決定聚合粒度
+    // 近 6 月 → 日；近 12 月 → 週；近 24 月／全部 → 月
+    var granularity = 'month';
+    if (months === 6) granularity = 'day';
+    else if (months === 12) granularity = 'week';
+
+    // 取值 helper（netWorth 與 section key 不同欄位）
+    function _valOf(h) {
         if (key === 'netWorth') return h.netWorth || 0;
         return (h.breakdown && h.breakdown[key]) || 0;
+    }
+    // ISO 週鍵 = 該週週一的日期
+    function _weekKey(dateStr) {
+        var d = new Date(dateStr);
+        var day = (d.getDay() + 6) % 7;
+        d.setDate(d.getDate() - day);
+        return _localDateStr(d);
+    }
+    // 聚合：同一桶取最後一筆
+    var bucket = {};
+    hist.forEach(function(h){
+        var k;
+        if (granularity === 'day') k = h.date;
+        else if (granularity === 'week') k = _weekKey(h.date);
+        else k = h.date.slice(0,7);
+        bucket[k] = h;
     });
+    var keys = Object.keys(bucket).sort();
+
+    // 範圍過濾
+    if (months > 0) {
+        var cutoff = new Date();
+        cutoff.setMonth(cutoff.getMonth() - months);
+        var cutoffStr = _localDateStr(cutoff);
+        keys = keys.filter(function(k){
+            var ref = (granularity === 'month') ? k + '-01' : k;
+            return ref >= cutoffStr;
+        });
+    }
+    if (keys.length < 1) {
+        var ctx1 = canvas.getContext('2d');
+        ctx1.clearRect(0,0,canvas.width,canvas.height);
+        ctx1.fillStyle = '#8C8578';
+        ctx1.font = '13px sans-serif';
+        ctx1.textAlign = 'center';
+        ctx1.fillText('此範圍內無資料', canvas.width/2, 40);
+        return;
+    }
+    var labels = keys.map(function(k){
+        // 月聚合的 key 是 YYYY-MM，補上 -01 給 _toROCDate；其他直接傳
+        return _toROCDate(granularity === 'month' ? (k + '-01') : k);
+    });
+    var values = keys.map(function(k){ return _valOf(bucket[k]); });
     var isDebt = key === 'debt';
     var color = isDebt ? '#DC2626' : '#059669';
     // Y 軸用「萬」當單位簡化顯示
