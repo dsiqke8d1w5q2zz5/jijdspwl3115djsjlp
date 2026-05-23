@@ -9056,6 +9056,17 @@ function _drawSectionTrendChart(key) {
     });
     var isDebt = key === 'debt';
     var color = isDebt ? '#DC2626' : '#059669';
+    // Y 軸用「萬」當單位簡化顯示
+    function _fmtAxisY(v) {
+        if (v === 0) return '0';
+        var absV = Math.abs(v);
+        if (absV >= 100000000) return (v / 100000000).toFixed(1) + ' 億';
+        if (absV >= 10000) {
+            var w = v / 10000;
+            return (Math.abs(w) >= 100 ? Math.round(w) : w.toFixed(1)) + ' 萬';
+        }
+        return fmt(v);
+    }
     _sectionTrendChart = new Chart(canvas.getContext('2d'), {
         type: 'line',
         data: {
@@ -9067,10 +9078,18 @@ function _drawSectionTrendChart(key) {
             animation: false,
             plugins: {
                 legend: { display: false },
-                tooltip: { callbacks: { label: function(ctx){ return fmt(ctx.parsed.y); } } }
+                tooltip: { callbacks: { label: function(ctx){ return fmt(ctx.parsed.y); } } } // tooltip 仍顯示完整金額
             },
             scales: {
-                y: { ticks: { callback: function(v){ return fmt(v); } } }
+                x: {
+                    ticks: {
+                        maxTicksLimit: 7,
+                        autoSkip: true,
+                        maxRotation: 30,
+                        minRotation: 0
+                    }
+                },
+                y: { ticks: { callback: function(v){ return _fmtAxisY(v); } } }
             }
         }
     });
@@ -9309,7 +9328,14 @@ function renderAssetTrendChart(rangeMonths) {
                 tooltip: { callbacks: { label: function(ctx){ return fmt(ctx.parsed.y); } } }
             },
             scales: {
-                y: { ticks: { callback: function(v){ return fmt(v); } } }
+                x: { ticks: { maxTicksLimit: 7, autoSkip: true, maxRotation: 30, minRotation: 0 } },
+                y: { ticks: { callback: function(v){
+                    if (v === 0) return '0';
+                    var absV = Math.abs(v);
+                    if (absV >= 100000000) return (v/100000000).toFixed(1) + ' 億';
+                    if (absV >= 10000) { var w = v/10000; return (Math.abs(w) >= 100 ? Math.round(w) : w.toFixed(1)) + ' 萬'; }
+                    return fmt(v);
+                } } }
             }
         }
     });
