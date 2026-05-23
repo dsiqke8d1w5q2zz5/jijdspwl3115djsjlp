@@ -7316,31 +7316,38 @@ function showCalDaySnapshot(dateStr) {
         html += '</tbody></table></div>';
     }
 
-    // 當日交易紀錄
+    // 當日交易紀錄（表格樣式）
     if (todayTrades.length > 0) {
         html += '<h4 style="margin:16px 0 8px;font-size:14px">當日交易（' + todayTrades.length + ' 筆）</h4>';
-        html += '<div style="display:flex;flex-direction:column;gap:6px">';
+        html += '<table class="realized-table" style="width:100%;font-size:13px;border-collapse:collapse"><thead><tr style="border-bottom:1px solid var(--border)">' +
+            '<th style="padding:8px 4px;white-space:nowrap;text-align:center">類型</th>' +
+            '<th style="padding:8px 4px;text-align:center">股票</th>' +
+            '<th style="padding:8px 4px;white-space:nowrap;text-align:center">股數</th>' +
+            '<th style="padding:8px 4px;white-space:nowrap;text-align:center">價格</th>' +
+            '<th style="padding:8px 4px;white-space:nowrap;text-align:center">金額／已實現</th>' +
+            '</tr></thead><tbody>';
         todayTrades.forEach(function(t){
             var isBuy = t.type === 'buy';
             var label = isBuy
-                ? '<span style="display:inline-block;background:rgba(22,163,74,0.12);color:var(--green);padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;margin-right:8px">買</span>'
-                : '<span style="display:inline-block;background:rgba(239,68,68,0.12);color:var(--red);padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;margin-right:8px">賣</span>';
-            var right;
+                ? '<span style="display:inline-block;background:rgba(22,163,74,0.12);color:var(--green);padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600">買</span>'
+                : '<span style="display:inline-block;background:rgba(239,68,68,0.12);color:var(--red);padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600">賣</span>';
+            var rightCell;
             if (isBuy) {
                 var amt = (typeof t.amount === 'number') ? t.amount : (t.shares || 0) * (t.price || 0);
-                right = '<span style="color:var(--muted)">' + fmt(amt) + '</span>';
+                rightCell = '<span style="color:var(--muted)">' + fmt(amt) + '</span>';
             } else {
                 var realized = t.realized || 0;
-                right = '<span style="color:' + signColor(realized) + ';font-weight:600">' + signedFmt(realized) + '</span>';
+                rightCell = '<span style="color:' + signColor(realized) + ';font-weight:600">' + signedFmt(realized) + '</span>';
             }
-            html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg);border-radius:6px;font-size:13px">' +
-                label +
-                '<div style="flex:1"><b>' + esc(t.id || '') + '</b> <span style="color:var(--muted);font-size:12px">' + esc(t.name || '') + '</span> ' +
-                '<span style="font-size:12px;color:var(--muted)">' + fmt(t.shares || 0) + ' 股 × ' + (typeof t.price === 'number' ? t.price.toFixed(2) : '-') + '</span></div>' +
-                right +
-                '</div>';
+            html += '<tr style="border-bottom:1px solid var(--border)">' +
+                '<td style="padding:8px 4px;text-align:center">' + label + '</td>' +
+                '<td style="padding:8px 4px;text-align:center"><b>' + esc(t.id || '') + '</b> <span style="color:var(--muted);font-size:12px">' + esc(t.name || '') + '</span></td>' +
+                '<td style="padding:8px 4px;text-align:center">' + fmt(t.shares || 0) + '</td>' +
+                '<td style="padding:8px 4px;text-align:center">' + (typeof t.price === 'number' ? t.price.toFixed(2) : '-') + '</td>' +
+                '<td style="padding:8px 4px;text-align:center;font-weight:600">' + rightCell + '</td>' +
+                '</tr>';
         });
-        html += '</div>';
+        html += '</tbody></table>';
     }
 
     html += '<div style="font-size:11px;color:var(--muted);margin-top:12px;line-height:1.6">※ 股數是從目前部位反推（之後的買賣紀錄回算），股價來自 priceHistory（若該日無快照則用前一筆，標註日期）。成本以目前均價估算，僅供參考。</div>';
