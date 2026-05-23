@@ -8840,22 +8840,25 @@ function showSectionTrend(key) {
             return '<div class="section-kpi"><div class="section-kpi-label">' + label + '</div><div class="section-kpi-val">' + formatSectionChange(c, isDebt) + '</div></div>';
         }).join('') +
         '</div>';
-    ov.innerHTML = '<div class="modal" style="width:680px;max-width:94vw">' +
+    ov.innerHTML = '<div class="modal" style="width:560px;max-width:94vw">' +
         '<h3><i class="ti ti-history"></i> ' + esc(sec.label) + ' 歷史</h3>' +
         kpiHtml +
         '<div style="display:flex;gap:6px;margin:10px 0;border-bottom:1px solid var(--border)" id="section-history-tabs"></div>' +
-        '<div id="section-history-body" style="height:480px;overflow-y:auto"></div>' +
-        '<div class="modal-btns" style="margin-top:12px"><button onclick="this.closest(\'.overlay\').remove()" style="flex:1">關閉</button></div>' +
+        '<div id="section-history-body" style="height:420px;overflow-y:auto"></div>' +
+        '<div class="modal-btns" style="margin-top:12px"><button id="section-history-close" style="flex:1">關閉</button></div>' +
         '</div>';
     document.body.appendChild(ov);
     ov.dataset.sectionKey = key;
+    function _closeSectionHistory() {
+        if (_sectionTrendChart) { try { _sectionTrendChart.destroy(); } catch(_){} _sectionTrendChart = null; }
+        ov.remove();
+    }
+    var $closeBtn = document.getElementById('section-history-close');
+    if ($closeBtn) $closeBtn.onclick = _closeSectionHistory;
     var _mdOnOvS = false;
     ov.addEventListener('mousedown', function(e){ _mdOnOvS = (e.target === ov); });
     ov.addEventListener('click', function(e){
-        if (e.target === ov && _mdOnOvS) {
-            ov.remove();
-            if (_sectionTrendChart) { try { _sectionTrendChart.destroy(); } catch(_){} _sectionTrendChart = null; }
-        }
+        if (e.target === ov && _mdOnOvS) _closeSectionHistory();
         _mdOnOvS = false;
     });
     _renderSectionHistoryTabs(key);
@@ -8966,12 +8969,12 @@ function _buildSectionCalendarHtml(key) {
     var lastDay = new Date(year, monthIdx + 1, 0).getDate();
     var firstDow = new Date(year, monthIdx, 1).getDay(); // 0=日
 
-    html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;font-size:12px">';
+    html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;font-size:11px">';
     ['日','一','二','三','四','五','六'].forEach(function(w){
-        html += '<div style="text-align:center;color:var(--muted);font-size:11px;padding:4px 0">' + w + '</div>';
+        html += '<div style="text-align:center;color:var(--muted);font-size:10px;padding:2px 0">' + w + '</div>';
     });
     // 月初前的空格
-    for (var k = 0; k < firstDow; k++) html += '<div class="cal-cell cal-cell-empty"></div>';
+    for (var k = 0; k < firstDow; k++) html += '<div class="cal-cell cal-cell--sm cal-cell-empty"></div>';
     // 判斷今天
     var twNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
     var todayStr = _localDateStr(twNow);
@@ -8983,21 +8986,21 @@ function _buildSectionCalendarHtml(key) {
             var color = isDebt ? signColor(-entry.delta) : signColor(entry.delta);
             var bg = (isDebt ? -entry.delta : entry.delta) > 0 ? 'rgba(239,68,68,0.08)' : (isDebt ? -entry.delta : entry.delta) < 0 ? 'rgba(22,163,74,0.08)' : 'transparent';
             var todayBorder = isToday ? 'border:1.5px solid var(--lux-gold);' : '';
-            html += '<div class="cal-cell" style="' + todayBorder + 'background:' + bg + '" title="' + dStr + '：金額 ' + fmt(entry.value) + '">' +
+            html += '<div class="cal-cell cal-cell--sm" style="' + todayBorder + 'background:' + bg + '" title="' + dStr + '：金額 ' + fmt(entry.value) + '">' +
                 '<div class="cal-cell-day">' + day + (isToday ? ' <span class="cal-cell-today-label">今</span>' : '') + '</div>' +
                 '<div class="cal-cell-main" style="color:' + color + '">' + signedFmt(entry.delta) + '</div>' +
                 '</div>';
         } else if (entry) {
             // 有資料但無變化
             var todayBorder2 = isToday ? 'border:1.5px solid var(--lux-gold);' : '';
-            html += '<div class="cal-cell" style="' + todayBorder2 + '" title="' + dStr + '：金額 ' + fmt(entry.value) + '">' +
+            html += '<div class="cal-cell cal-cell--sm" style="' + todayBorder2 + '" title="' + dStr + '：金額 ' + fmt(entry.value) + '">' +
                 '<div class="cal-cell-day">' + day + (isToday ? ' <span class="cal-cell-today-label">今</span>' : '') + '</div>' +
                 '<div class="cal-cell-main" style="color:var(--muted)">—</div>' +
                 '</div>';
         } else {
             var todayBorder3 = isToday ? 'border:1.5px solid var(--lux-gold);background:rgba(212,175,55,0.05);' : 'border:1px dashed var(--border);';
             var todayLbl = isToday ? ' <span class="cal-cell-today-label">今</span>' : '';
-            html += '<div class="cal-cell" style="' + todayBorder3 + 'color:var(--muted)">' + day + todayLbl + '</div>';
+            html += '<div class="cal-cell cal-cell--sm" style="' + todayBorder3 + 'color:var(--muted)">' + day + todayLbl + '</div>';
         }
     }
     html += '</div>';
