@@ -1290,6 +1290,17 @@ th.sortable.sort-active .sort-arrow { color: var(--lux-gold); font-weight: 700; 
     background: #FFFBF0;
 }
 
+/* ── 月記錄：左右兩欄佈局 ── */
+.trend-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    gap: 14px;
+    align-items: start;
+    margin-top: 10px;
+}
+.trend-grid-left { min-width: 0; position: sticky; top: 0; }
+.trend-grid-right { min-width: 0; }
+
 /* ── 淨資產：左右兩欄佈局 ── */
 .assets-grid {
     display: grid;
@@ -5528,8 +5539,12 @@ function renderTrend() {
         return;
     }
 
-    // 折線圖 + 顯示切換
-    html += '<div class="trend-chart-wrap" style="background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow)">';
+    // 左右兩欄外層
+    html += '<div class="trend-grid">';
+
+    // 左：折線圖 + 顯示切換
+    html += '<div class="trend-grid-left">';
+    html += '<div class="trend-chart-wrap" style="background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)">';
     html += '<div class="trend-toggle-row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">';
     [
         ['income',  '收入', '#16A34A'],
@@ -5540,8 +5555,12 @@ function renderTrend() {
         html += '<button class="trend-toggle-btn" onclick="toggleTrendLine(\'' + s[0] + '\')" style="padding:6px 14px;border:2px solid ' + s[2] + ';border-radius:6px;background:' + (on ? s[2] : 'var(--card)') + ';color:' + (on ? 'white' : s[2]) + ';font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">' + s[1] + '</button>';
     });
     html += '</div>';
-    html += '<canvas id="trend-chart" style="max-height:180px;display:block"></canvas>';
+    html += '<canvas id="trend-chart" style="max-height:280px;display:block"></canvas>';
     html += '</div>';
+    html += '</div>'; // trend-grid-left
+
+    // 右：年度表格列
+    html += '<div class="trend-grid-right">';
 
     // 歷史表格：按年分組、可收合
     // 先按年分組
@@ -5603,6 +5622,9 @@ function renderTrend() {
         }
         html += '</div>';
     });
+
+    html += '</div>'; // trend-grid-right
+    html += '</div>'; // trend-grid
 
     container.innerHTML = html;
 
