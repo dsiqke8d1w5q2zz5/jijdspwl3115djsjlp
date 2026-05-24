@@ -670,6 +670,10 @@ tfoot td:first-child { text-align: left; position: sticky; left: 0; background: 
 /* 持股總覽表：標題與資料對齊（第一欄庫存股靠左、其餘靠右） */
 .holdings-table th { text-align: right; }
 .holdings-table th:first-child { text-align: left; }
+/* 月記錄表：標題與資料對齊（第一欄月份靠左、其餘靠右） */
+.monthly-table th { text-align: right; }
+.monthly-table th:first-child { text-align: left; }
+.monthly-table th:last-child { text-align: center; }
 /* 持股表取消最後一欄（市值）sticky 固定 */
 .holdings-table thead th:last-child,
 .holdings-table tbody td:last-child,
@@ -5521,7 +5525,7 @@ function renderTrend() {
     // 頂端操作列
     html += '<div class="toolbar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">';
     html += '<button class="btn-refresh" style="background:var(--lux-navy)" onclick="addMonthly()">＋ 新增</button>';
-    html += '<span style="font-size:13px;color:var(--muted);margin-left:auto">範圍：</span>';
+    html += '<span style="font-size:13px;color:var(--muted);margin-left:12px">範圍：</span>';
     var customLabel = '自訂';
     if (_trendRange === -1 && _trendCustom.start && _trendCustom.end) {
         customLabel = _trendCustom.start + ' ~ ' + _trendCustom.end;
@@ -5603,7 +5607,7 @@ function renderTrend() {
 
         // 月份明細表
         if (open) {
-            html += '<div class="table-wrap"><table class="stock-table" style="margin:0"><thead><tr>';
+            html += '<div class="table-wrap"><table class="stock-table monthly-table" style="margin:0"><thead><tr>';
             html += '<th>月份</th><th>收入</th><th>支出</th><th>結餘</th><th></th>';
             html += '</tr></thead><tbody>';
             var rowsDesc = rows.slice().reverse();
