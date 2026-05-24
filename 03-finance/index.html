@@ -175,7 +175,7 @@ body {
     left: 50%;
     transform: translateX(-50%);
     width: calc(100% - 16px);
-    max-width: 1120px;
+    max-width: 1440px;
     bottom: 0;
     overflow-y: auto;
     overflow-x: hidden;
@@ -1288,80 +1288,50 @@ th.sortable.sort-active .sort-arrow { color: var(--lux-gold); font-weight: 700; 
     background: #FFFBF0;
 }
 
-.nw-trend-wrap {
+/* ── 淨資產：左右兩欄佈局 ── */
+.assets-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    gap: 14px;
+    align-items: start;
+}
+.assets-grid-left { min-width: 0; }
+.assets-grid-right {
+    min-width: 0;
     background: var(--card);
     border: 1px solid var(--border);
-    border-left: 3px solid var(--lux-navy);
+    border-top: 3px solid var(--lux-navy);
     border-radius: var(--radius);
-    padding: 12px 16px;
+    padding: 14px 16px;
     margin-top: 10px;
     box-shadow: var(--shadow);
-    transition: all .2s;
+    position: sticky;
+    top: 0;
 }
-.nw-trend-wrap:hover {
-    box-shadow: var(--shadow-hover);
-    border-left-color: var(--lux-gold);
-}
-.nw-trend-wrap .nw-trend-title {
-    font-size: 13px;
-    font-weight: 800;
-    margin-bottom: 8px;
-    color: var(--lux-navy);
-    letter-spacing: .5px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid var(--border);
-    position: relative;
-}
-.nw-trend-wrap .nw-trend-title::after {
-    content: '';
-    position: absolute;
-    left: 0; bottom: -1px;
-    width: 32px; height: 1px;
-    background: var(--lux-gold);
-}
-.nw-trend-wrap .nw-trend-arrow {
-    font-size: 10px;
-    color: var(--muted);
-    display: inline-block;
-    margin-left: 4px;
-    transition: transform .2s;
-}
-.nw-trend-wrap.expanded .nw-trend-arrow { transform: rotate(180deg); color: var(--lux-gold); }
-.nw-trend-wrap:not(.expanded) .nw-trend-title { margin-bottom: 0; border-bottom: none; }
-.nw-trend-wrap:not(.expanded) .nw-trend-title::after { display: none; }
-.nw-trend-stats {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin-bottom: 6px;
-    font-size: 12px;
-    color: var(--muted);
-}
-.nw-stats-row {
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-}
-.nw-stats-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-}
-.nw-stats-item b {
-    color: var(--text);
-    font-weight: 700;
-}
-.nw-stats-item small {
-    color: var(--muted);
-    font-size: 10px;
-}
-.nw-trend-wrap canvas { max-height: 180px; }
-.nw-trend-wrap .nw-trend-title {
+.assets-grid-right .pinned-history-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 8px;
+    margin-bottom: 10px;
+}
+.assets-grid-right .pinned-history-head h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--lux-navy);
+    letter-spacing: .5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.assets-grid-right .pinned-history-tabs {
+    display: flex;
+    gap: 6px;
+    margin: 10px 0;
+    border-bottom: 1px solid var(--border);
+}
+.assets-grid-right .pinned-history-body {
+    margin-top: 4px;
 }
 .nw-trend-range {
     display: flex;
@@ -1761,7 +1731,6 @@ function _healDataStructure() {
     ['liquid','invest','fixed','receivable','debt'].forEach(function(k){
         if (typeof DATA.assets.expanded[k] !== 'boolean') DATA.assets.expanded[k] = false;
     });
-    if (typeof DATA.assets.trendExpanded !== 'boolean') DATA.assets.trendExpanded = false;
     // 確保每個年份都有所有分類（月結構）
     DATA.settings.years.forEach(function(y) {
         if (!DATA.income[y]) DATA.income[y] = {};
@@ -8497,8 +8466,9 @@ var ASSET_SECTIONS = [
 ];
 // 淨資產特殊條目（不在 section 卡片內，但 showSectionTrend 可以用同樣邏輯）
 var NETWORTH_SECTION = { key: 'netWorth', label: '淨資產', sign: +1, color: '#0F2847', bg: '#F8F9FA' };
-var _assetTrendChart = null;
 var _assetFxFetching = false;
+// 右側常駐歷史面板目前顯示的分類 key（'netWorth' 或 ASSET_SECTIONS 的某 key）
+var _pinnedHistoryKey = 'netWorth';
 
 function _assetUid() { return 'a_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7); }
 function _todayStr() { return _localDateStr(new Date()); }
@@ -8775,13 +8745,17 @@ function renderAssets() {
 
     var html = '';
 
+    // 左右兩欄外層
+    html += '<div class="assets-grid">';
+    html += '<div class="assets-grid-left">';
+
     // 頂部 hero（精簡版）
     html += '<div class="nw-hero">';
     html += '<div class="nw-hero-left">';
     html += '<div class="nw-label">我的淨資產 (TWD)</div>';
     html += '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">';
     html += '<div class="nw-value">' + fmt(nw) + '</div>';
-    html += '<button class="nw-fx-refresh" onclick="showSectionTrend(\'netWorth\')"><i class="ti ti-history"></i> 歷史</button>';
+    html += '<button class="nw-fx-refresh" onclick="pinHistory(\'netWorth\')"><i class="ti ti-history"></i> 歷史</button>';
     html += '</div>';
     html += '</div>';
     html += '<div class="nw-hero-right">';
@@ -8808,7 +8782,7 @@ function renderAssets() {
         html += '<div class="asset-card-head' + (expanded ? ' expanded' : '') + '" onclick="toggleAssetSection(\'' + sec.key + '\')" style="' + (expanded ? 'background:' + secColor + ';color:#fff;' : '') + '">';
         html += '<div style="display:flex;align-items:center;gap:8px">';
         html += '<div class="asset-card-title"' + (expanded ? ' style="color:#fff"' : '') + '>' + esc(sec.label) + '</div>';
-        html += '<button onclick="event.stopPropagation();showSectionTrend(\'' + sec.key + '\')" style="padding:3px 8px;border:1px solid ' + (expanded ? 'rgba(255,255,255,0.4)' : 'var(--border)') + ';border-radius:6px;background:' + (expanded ? 'rgba(255,255,255,0.15)' : 'var(--card)') + ';color:' + (expanded ? '#fff' : 'var(--muted)') + ';font-size:11px;cursor:pointer;font-family:inherit"><i class="ti ti-history" style="font-size:12px"></i> 歷史</button>';
+        html += '<button onclick="event.stopPropagation();pinHistory(\'' + sec.key + '\')" style="padding:3px 8px;border:1px solid ' + (expanded ? 'rgba(255,255,255,0.4)' : 'var(--border)') + ';border-radius:6px;background:' + (expanded ? 'rgba(255,255,255,0.15)' : 'var(--card)') + ';color:' + (expanded ? '#fff' : 'var(--muted)') + ';font-size:11px;cursor:pointer;font-family:inherit"><i class="ti ti-history" style="font-size:12px"></i> 歷史</button>';
         html += '</div>';
         html += '<div>';
         html += '<span class="asset-card-sum' + (isDebt ? ' debt' : '') + '"' + (expanded ? ' style="color:#fff"' : '') + '>' + (isDebt ? '- ' : '') + fmt(total) + '</span>';
@@ -8886,34 +8860,88 @@ function renderAssets() {
         html += '</div>'; // card
     });
 
-    // 底部折線圖
-    var trendOpen = !!DATA.assets.trendExpanded;
-    html += '<div class="nw-trend-wrap' + (trendOpen ? ' expanded' : '') + '">';
-    html += '<div class="nw-trend-title" onclick="toggleNwTrend()" style="cursor:pointer">';
-    html += '<span><i class="ti ti-trending-up"></i> 淨資產趨勢 <span class="nw-trend-arrow">▼</span></span>';
-    html += '<span class="nw-trend-range" onclick="event.stopPropagation()">';
-    html += '<button onclick="renderAssetTrendChart(6)" class="nw-range-btn active">近 6 月</button>';
-    html += '<button onclick="renderAssetTrendChart(12)" class="nw-range-btn">近 12 月</button>';
-    html += '<button onclick="renderAssetTrendChart(24)" class="nw-range-btn">近 24 月</button>';
-    html += '<button onclick="renderAssetTrendChart(0)" class="nw-range-btn">全部</button>';
-    html += '<button onclick="showNwTrendCustomRange()" class="nw-range-btn">自訂</button>';
-    html += '</span>';
-    html += '</div>';
-    html += '<div class="nw-trend-body"' + (trendOpen ? '' : ' style="display:none"') + '>';
-    html += '<div id="nw-trend-stats" class="nw-trend-stats"></div>';
-    html += '<canvas id="nw-trend-chart"></canvas>';
-    html += '<div style="font-size:11px;color:var(--muted);margin-top:8px">已記錄 ' + (DATA.assets.history.length) + ' 筆快照（每天自動記錄一次）</div>';
-    html += '</div>';
-    html += '</div>';
+    html += '</div>'; // assets-grid-left
+
+    // 右側常駐歷史面板
+    html += '<aside class="assets-grid-right" id="pinned-history-panel"></aside>';
+    html += '</div>'; // assets-grid
 
     el.innerHTML = html;
-    if (trendOpen) renderAssetTrendChart();
+    renderPinnedHistory();
 }
 
-function toggleNwTrend() {
-    DATA.assets.trendExpanded = !DATA.assets.trendExpanded;
-    saveData();
-    renderAssets();
+// 點任何「歷史」按鈕：固定到右側面板
+function pinHistory(key) {
+    _pinnedHistoryKey = key;
+    // 切分類時重設歷史子分頁為日曆（與預設一致）
+    _sectionHistoryTab[key] = 'calendar';
+    renderPinnedHistory();
+}
+
+// 渲染右側常駐歷史面板（重用 _buildSectionCalendarHtml / _drawSectionTrendChart）
+function renderPinnedHistory() {
+    var box = document.getElementById('pinned-history-panel');
+    if (!box) return;
+    var key = _pinnedHistoryKey || 'netWorth';
+    var sec = (key === 'netWorth') ? NETWORTH_SECTION : ASSET_SECTIONS.find(function(s){ return s.key === key; });
+    if (!sec) { sec = NETWORTH_SECTION; key = 'netWorth'; _pinnedHistoryKey = key; }
+    if (!_sectionTrendState[key]) _sectionTrendState[key] = 6;
+    if (!_sectionHistoryTab[key]) _sectionHistoryTab[key] = 'calendar';
+    var tab = _sectionHistoryTab[key];
+
+    // 清掉舊圖
+    if (_sectionTrendChart) { try { _sectionTrendChart.destroy(); } catch(_){} _sectionTrendChart = null; }
+
+    var isDebt = key === 'debt';
+    var kpiHtml = '<div class="section-kpi-row">' +
+        ['week','month','quarter','ytd'].map(function(p) {
+            var label = p === 'week' ? '近 7 日' : p === 'month' ? '近 30 日' : p === 'quarter' ? '近 90 日' : '今年來';
+            var c = getSectionChange(key, p);
+            return '<div class="section-kpi"><div class="section-kpi-label">' + label + '</div><div class="section-kpi-val">' + formatSectionChange(c, isDebt) + '</div></div>';
+        }).join('') +
+        '</div>';
+
+    function _tabBtn(tabKey, label) {
+        var active = tab === tabKey;
+        var style = 'padding:8px 14px;border:none;border-bottom:2px solid ' + (active ? 'var(--lux-navy)' : 'transparent') +
+            ';background:none;cursor:pointer;font-family:inherit;font-size:13px;font-weight:' + (active ? '600' : '400') +
+            ';color:' + (active ? 'var(--lux-navy)' : 'var(--muted)') + ';margin-bottom:-1px';
+        return '<button type="button" onclick="switchPinnedHistoryTab(\'' + tabKey + '\')" style="' + style + '">' + label + '</button>';
+    }
+
+    var bodyHtml;
+    if (tab === 'calendar') {
+        bodyHtml = _buildSectionCalendarHtml(key);
+    } else {
+        bodyHtml = '<div class="nw-trend-range" style="margin-bottom:10px">' +
+            '<button onclick="setSectionTrendRange(\'' + key + '\',6)" class="nw-range-btn">近 6 月</button>' +
+            '<button onclick="setSectionTrendRange(\'' + key + '\',12)" class="nw-range-btn">近 12 月</button>' +
+            '<button onclick="setSectionTrendRange(\'' + key + '\',24)" class="nw-range-btn">近 24 月</button>' +
+            '<button onclick="setSectionTrendRange(\'' + key + '\',0)" class="nw-range-btn">全部</button>' +
+        '</div>' +
+        '<div style="height:260px"><canvas id="section-trend-chart"></canvas></div>' +
+        '<div style="font-size:11px;color:var(--muted);margin-top:8px">共 ' + (DATA.assets.history || []).length + ' 筆快照（近 6 月：每天一點；近 12 月：每週；近 24 月／全部：每月）</div>';
+    }
+
+    box.innerHTML =
+        '<div class="pinned-history-head">' +
+            '<h3><i class="ti ti-history"></i> ' + esc(sec.label) + ' 歷史</h3>' +
+        '</div>' +
+        kpiHtml +
+        '<div class="pinned-history-tabs">' + _tabBtn('calendar', '日曆') + _tabBtn('trend', '走勢圖') + '</div>' +
+        '<div class="pinned-history-body">' + bodyHtml + '</div>';
+
+    if (tab === 'trend') _drawSectionTrendChart(key);
+}
+
+function switchPinnedHistoryTab(tabKey) {
+    var key = _pinnedHistoryKey || 'netWorth';
+    _sectionHistoryTab[key] = tabKey;
+    if (tabKey !== 'trend' && _sectionTrendChart) {
+        try { _sectionTrendChart.destroy(); } catch(_){}
+        _sectionTrendChart = null;
+    }
+    renderPinnedHistory();
 }
 
 // 取得某分類在指定回顧期的變化（金額與百分比）
@@ -9146,7 +9174,11 @@ function _buildSectionCalendarHtml(key) {
 
 function onSectionCalendarMonthChange(key, m) {
     _sectionCalendarMonth[key] = m;
-    _renderSectionHistoryBody(key);
+    if (document.getElementById('pinned-history-panel') && _pinnedHistoryKey === key) {
+        renderPinnedHistory();
+    } else {
+        _renderSectionHistoryBody(key);
+    }
 }
 
 function openSectionCalendarMonthPicker(key) {
@@ -9170,10 +9202,10 @@ function setSectionTrendRange(key, months) {
 function _drawSectionTrendChart(key) {
     var hist = (DATA.assets.history || []).slice().sort(function(a,b){ return a.date < b.date ? -1 : 1; });
     var months = _sectionTrendState[key] || 6;
-    // 按鈕 active
-    var ov = document.querySelector('.section-trend-overlay');
-    if (ov) {
-        ov.querySelectorAll('.nw-range-btn').forEach(function(b){
+    // 按鈕 active：相容右側常駐面板與舊 modal
+    var scope = document.getElementById('pinned-history-panel') || document.querySelector('.section-trend-overlay');
+    if (scope) {
+        scope.querySelectorAll('.nw-range-btn').forEach(function(b){
             var m = b.textContent.trim().match(/\d+/);
             var val = m ? parseInt(m[0]) : 0;
             b.classList.toggle('active', val === months);
@@ -9295,46 +9327,6 @@ function toggleAssetSection(key) {
     renderAssets();
 }
 
-// 淨資產趨勢自訂範圍
-var _nwTrendCustomStart = '';
-var _nwTrendCustomEnd = '';
-function showNwTrendCustomRange() {
-    var hist = (DATA.assets.history || []);
-    var allMonths = {};
-    hist.forEach(function(h){ allMonths[h.date.slice(0,7)] = true; });
-    var sorted = Object.keys(allMonths).sort();
-    var minMonth = sorted[0] || _todayStr().slice(0,7);
-    var maxMonth = sorted[sorted.length-1] || _todayStr().slice(0,7);
-
-    var overlay = document.createElement('div');
-    overlay.className = 'asset-modal-overlay';
-    var html = '<div class="asset-modal" onclick="event.stopPropagation()">';
-    html += '<h3>自訂趨勢範圍</h3>';
-    html += '<div class="row2">';
-    html += '<div class="fld"><label>起始月份</label><input id="nwRangeStart" type="month" value="' + (_nwTrendCustomStart || minMonth) + '" min="' + minMonth + '" max="' + maxMonth + '"></div>';
-    html += '<div class="fld"><label>結束月份</label><input id="nwRangeEnd" type="month" value="' + (_nwTrendCustomEnd || maxMonth) + '" min="' + minMonth + '" max="' + maxMonth + '"></div>';
-    html += '</div>';
-    html += '<div class="btns">';
-    html += '<button class="btn-cancel" onclick="this.closest(\'.asset-modal-overlay\').remove()">取消</button>';
-    html += '<button class="btn-ok" onclick="applyNwTrendCustomRange()">確定</button>';
-    html += '</div></div>';
-    overlay.innerHTML = html;
-    overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
-    document.body.appendChild(overlay);
-}
-
-function applyNwTrendCustomRange() {
-    var start = document.getElementById('nwRangeStart').value;
-    var end = document.getElementById('nwRangeEnd').value;
-    if (!start || !end) { toast('請選擇起始和結束月份', true); return; }
-    _nwTrendCustomStart = start;
-    _nwTrendCustomEnd = end;
-    _nwTrendMonths = -1; // 標記為自訂模式
-    renderAssetTrendChart();
-    var overlay = document.querySelector('.asset-modal-overlay');
-    if (overlay) overlay.remove();
-}
-
 // 一鍵更新匯率、金價，並把所有黃金帳戶的單價同步到最新國際金價
 function manualRefreshMarket() {
     toast('更新中...');
@@ -9369,167 +9361,6 @@ function manualRefreshMarket() {
     }
     fetchFxRates(function(ok){ fxDone = true; fxOk = ok; finish(); });
     fetchGoldPrice(function(ok){ goldDone = true; goldOk = ok; finish(); });
-}
-
-// ── 折線圖 ──
-var _nwTrendMonths = 6; // 預設顯示近 6 個月
-function renderAssetTrendChart(rangeMonths) {
-    if (rangeMonths !== undefined) _nwTrendMonths = rangeMonths;
-    // 更新按鈕 active 狀態
-    document.querySelectorAll('.nw-range-btn').forEach(function(b){
-        var text = b.textContent.trim();
-        if (text === '自訂') {
-            b.classList.toggle('active', _nwTrendMonths === -1);
-        } else {
-            var m = text.match(/\d+/);
-            var val = m ? parseInt(m[0]) : 0;
-            b.classList.toggle('active', val === _nwTrendMonths);
-        }
-    });
-    var canvas = document.getElementById('nw-trend-chart');
-    if (!canvas || typeof Chart === 'undefined') return;
-    var hist = (DATA.assets.history || []).slice().sort(function(a,b){ return a.date < b.date ? -1 : 1; });
-
-    // 依範圍決定聚合粒度：近 6 月→日、近 12 月→週、近 24 月/全部→月
-    var granularity = 'month';
-    if (_nwTrendMonths === 6) granularity = 'day';
-    else if (_nwTrendMonths === 12) granularity = 'week';
-
-    // ISO 週鍵 YYYY-Www（用週一當基準）
-    function _weekKey(dateStr) {
-        var d = new Date(dateStr);
-        var day = (d.getDay() + 6) % 7; // 週一=0
-        d.setDate(d.getDate() - day);
-        var y = d.getFullYear();
-        var m = String(d.getMonth()+1).padStart(2,'0');
-        var dd = String(d.getDate()).padStart(2,'0');
-        return y + '-' + m + '-' + dd; // 週一的日期當標籤
-    }
-
-    var bucket = {};
-    hist.forEach(function(h) {
-        var k;
-        if (granularity === 'day') k = h.date;
-        else if (granularity === 'week') k = _weekKey(h.date);
-        else k = h.date.slice(0,7);
-        bucket[k] = h; // 後蓋前 = 該桶最後一筆
-    });
-    var keys = Object.keys(bucket).sort();
-
-    if (_nwTrendMonths === -1 && _nwTrendCustomStart && _nwTrendCustomEnd) {
-        // 自訂範圍：維持月聚合（上面 granularity 預設 month）
-        keys = keys.filter(function(k){ return k >= _nwTrendCustomStart && k <= _nwTrendCustomEnd; });
-    } else if (_nwTrendMonths > 0) {
-        // 用日期範圍過濾而非直接 slice，確保日/週聚合也只顯示 N 個月內
-        var cutoff = new Date();
-        cutoff.setMonth(cutoff.getMonth() - _nwTrendMonths);
-        var cutoffStr = cutoff.getFullYear() + '-' +
-            String(cutoff.getMonth()+1).padStart(2,'0') + '-' +
-            String(cutoff.getDate()).padStart(2,'0');
-        keys = keys.filter(function(k){
-            var ref = (granularity === 'month') ? k + '-01' : k;
-            return ref >= cutoffStr;
-        });
-    }
-    var labels = keys;
-    var values = keys.map(function(k){ return bucket[k].netWorth; });
-
-    // 統計列
-    var statsEl = document.getElementById('nw-trend-stats');
-    if (statsEl && values.length > 0) {
-        var curNW = values[values.length - 1];
-        var now = new Date();
-        // 給「月/季/年」比較用：不受顯示粒度影響，一律按月最後一筆
-        var _byMonthForStats = {};
-        hist.forEach(function(h) { _byMonthForStats[h.date.slice(0,7)] = h; });
-
-        // 輔助函式：找 N 個月前的淨資產
-        function _getNwMonthsAgo(n) {
-            var d = new Date(now.getFullYear(), now.getMonth() - n, 1);
-            var ym = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-            return _byMonthForStats[ym] ? _byMonthForStats[ym].netWorth : null;
-        }
-        function _fmtChange(prev) {
-            if (prev === null) return '<span style="color:var(--muted)">—</span>';
-            var diff = curNW - prev;
-            var pct = prev !== 0 ? (diff / Math.abs(prev)) * 100 : 0;
-            var isPos = diff >= 0;
-            var color = isPos ? 'var(--green)' : 'var(--red)';
-            var arrow = isPos ? '▲' : '▼';
-            var sign = isPos ? '+' : '';
-            var pctStr = prev !== 0 ? ' (' + sign + pct.toFixed(1) + '%)' : '';
-            return '<span style="color:' + color + ';font-weight:700">' + arrow + ' ' + sign + fmt(diff) + pctStr + '</span>';
-        }
-
-        // 時間維度變化
-        var sh = '<div class="nw-stats-row">';
-        sh += '<span class="nw-stats-item">月 ' + _fmtChange(_getNwMonthsAgo(1)) + '</span>';
-        sh += '<span class="nw-stats-item">季 ' + _fmtChange(_getNwMonthsAgo(3)) + '</span>';
-        sh += '<span class="nw-stats-item">年 ' + _fmtChange(_getNwMonthsAgo(12)) + '</span>';
-        sh += '</div>';
-
-        // 最高 / 最低 / 平均
-        var maxVal = -Infinity, minVal = Infinity, sum = 0, maxMonth = '', minMonth = '';
-        for (var vi = 0; vi < values.length; vi++) {
-            sum += values[vi];
-            if (values[vi] > maxVal) { maxVal = values[vi]; maxMonth = labels[vi]; }
-            if (values[vi] < minVal) { minVal = values[vi]; minMonth = labels[vi]; }
-        }
-        var avgVal = Math.round(sum / values.length);
-        sh += '<div class="nw-stats-row">';
-        sh += '<span class="nw-stats-item">最高 <b>' + fmt(maxVal) + '</b> <small>' + _toROCDate(maxMonth) + '</small></span>';
-        sh += '<span class="nw-stats-item">最低 <b>' + fmt(minVal) + '</b> <small>' + _toROCDate(minMonth) + '</small></span>';
-        sh += '<span class="nw-stats-item">平均 <b>' + fmt(avgVal) + '</b></span>';
-        sh += '</div>';
-        statsEl.innerHTML = sh;
-    } else if (statsEl) {
-        statsEl.innerHTML = '';
-    }
-
-    if (_assetTrendChart) { try { _assetTrendChart.destroy(); } catch(e){} }
-    if (labels.length === 0) {
-        var ctx0 = canvas.getContext('2d');
-        ctx0.clearRect(0,0,canvas.width,canvas.height);
-        ctx0.fillStyle = '#8C8578';
-        ctx0.font = '13px sans-serif';
-        ctx0.textAlign = 'center';
-        ctx0.fillText('尚無歷史快照，明天回來就會有第一筆資料', canvas.width/2, 40);
-        return;
-    }
-    _assetTrendChart = new Chart(canvas.getContext('2d'), {
-        type: 'line',
-        data: {
-            labels: labels.map(_toROCDate),
-            datasets: [{
-                label: '淨資產',
-                data: values,
-                borderColor: '#059669',
-                backgroundColor: 'rgba(5,150,105,.1)',
-                fill: true,
-                tension: 0.3,
-                pointRadius: 4,
-                pointBackgroundColor: '#059669'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: { callbacks: { label: function(ctx){ return fmt(ctx.parsed.y); } } }
-            },
-            scales: {
-                x: { ticks: { maxTicksLimit: 7, autoSkip: true, maxRotation: 30, minRotation: 0 } },
-                y: { ticks: { callback: function(v){
-                    if (v === 0) return '0';
-                    var absV = Math.abs(v);
-                    if (absV >= 100000000) return (v/100000000).toFixed(1) + ' 億';
-                    if (absV >= 10000) { var w = v/10000; return (Math.abs(w) >= 100 ? Math.round(w) : w.toFixed(1)) + ' 萬'; }
-                    return fmt(v);
-                } } }
-            }
-        }
-    });
 }
 
 // ── CRUD modal ──
