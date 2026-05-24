@@ -1295,6 +1295,13 @@ th.sortable.sort-active .sort-arrow { color: var(--lux-gold); font-weight: 700; 
 }
 
 /* ── 月記錄：左右兩欄佈局 ── */
+.trend-toolbar-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    gap: 14px;
+    align-items: center;
+    margin-top: 10px;
+}
 .trend-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
@@ -5522,7 +5529,8 @@ function renderTrend() {
 
     var html = '';
 
-    // 頂端操作列（只剩範圍按鈕，給左側折線圖用）
+    // 頂端操作列：與下方欄寬一致，左=範圍按鈕、右=新增按鈕
+    html += '<div class="trend-toolbar-grid">';
     html += '<div class="toolbar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">';
     html += '<span style="font-size:13px;color:var(--muted)">範圍：</span>';
     var customLabel = '自訂';
@@ -5534,6 +5542,8 @@ function renderTrend() {
         var onclick = r[0] === -1 ? 'onclick="openTrendCustomRange()"' : 'onclick="setTrendRange(' + r[0] + ')"';
         html += '<button class="trend-range-btn" ' + onclick + ' style="border:1px solid var(--border);border-radius:6px;background:' + (active?'var(--lux-navy)':'var(--card)') + ';color:' + (active?'white':'var(--text)') + ';cursor:pointer;font-family:inherit"><span class="lbl-full">' + esc(r[1]) + '</span><span class="lbl-short">' + esc(r[2]) + '</span></button>';
     });
+    html += '</div>';
+    html += '<div><button class="btn-refresh" style="background:var(--lux-navy)" onclick="addMonthly()">＋ 新增</button></div>';
     html += '</div>';
 
     if (all.length === 0) {
@@ -5564,7 +5574,6 @@ function renderTrend() {
 
     // 右：年度表格列
     html += '<div class="trend-grid-right">';
-    html += '<div style="margin-bottom:10px"><button class="btn-refresh" style="background:var(--lux-navy)" onclick="addMonthly()">＋ 新增</button></div>';
 
     // 歷史表格：按年分組、可收合
     // 先按年分組
