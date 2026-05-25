@@ -8140,17 +8140,19 @@ function _buildStockCalendarHtml(stockId, curMonthOpt) {
         }
     }
     ph.forEach(function(e){ if (e.date) allMonthSet[e.date.slice(0,7)] = true; });
-    // 補今天（用 Yahoo change 推算）
+    // 補今天（用 Yahoo change 推算）：與 snapshotStockPrices 同規則 — 僅在「平日 + 14:05 後」才補
     var todayP = stockData.prices && stockData.prices[stockId];
     if (todayP && typeof todayP.price === 'number' && typeof todayP.change === 'number') {
-        var prevClose = todayP.price - todayP.change;
         var twNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
-        var dCheck = new Date(twNow.getFullYear(), twNow.getMonth(), twNow.getDate());
-        while (dCheck.getDay() === 0 || dCheck.getDay() === 6) dCheck.setDate(dCheck.getDate() - 1);
-        var todayKey = _localDateStr(dCheck);
-        if (!dailyPnL[todayKey] && prevClose > 0) {
-            dailyPnL[todayKey] = { pct: todayP.change / prevClose * 100 };
-            allMonthSet[todayKey.slice(0,7)] = true;
+        var wd = twNow.getDay();
+        var afterClose = (twNow.getHours() > 14) || (twNow.getHours() === 14 && twNow.getMinutes() >= 5);
+        if (wd !== 0 && wd !== 6 && afterClose) {
+            var prevClose = todayP.price - todayP.change;
+            var todayKey = _localDateStr(twNow);
+            if (!dailyPnL[todayKey] && prevClose > 0) {
+                dailyPnL[todayKey] = { pct: todayP.change / prevClose * 100 };
+                allMonthSet[todayKey.slice(0,7)] = true;
+            }
         }
     }
     if (Object.keys(dailyPnL).length === 0) {
