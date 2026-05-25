@@ -6967,9 +6967,12 @@ function renderReturnCalendar() {
     // 用全域 helper 分組
     var weekList = _groupMonthByWeeks(year, monthIdx);
 
-    // 判斷今天（台灣時區、YYYY-MM-DD）
+    // 判斷今天（台灣時區、YYYY-MM-DD）；僅在「平日 + 14:05 後」才顯示今日即時資料
     var twNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
     var todayStr = _localDateStr(twNow);
+    var _wdNow = twNow.getDay();
+    var _afterClose = (twNow.getHours() > 14) || (twNow.getHours() === 14 && twNow.getMinutes() >= 5);
+    var todayShowsLive = (_wdNow !== 0 && _wdNow !== 6 && _afterClose);
 
     // 今日「未實現損益」公式：
     //   Σ(昨天就有的部位 × 今日漲跌) + Σ(今天買入的部位 × (收盤價 − 買入價))
@@ -7042,9 +7045,9 @@ function renderReturnCalendar() {
             var isToday = (dStr === todayStr);
             var entry = dailyPnL[dStr];
 
-            // 今日特殊處理：用即時算法
+            // 今日特殊處理：用即時算法（僅在平日 14:05 後）
             if (isToday) {
-                var hasLiveData = (todayLiveUnr !== 0 || todayLiveRz !== 0);
+                var hasLiveData = todayShowsLive && (todayLiveUnr !== 0 || todayLiveRz !== 0);
                 if (hasLiveData) {
                     weekUnr += todayLiveUnr;
                     weekRz  += todayLiveRz;
