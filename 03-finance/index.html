@@ -1319,9 +1319,8 @@ th.sortable.sort-active .sort-arrow { color: var(--lux-gold); font-weight: 700; 
     align-items: start;
     margin-top: 10px;
 }
-.assets-grid-left { min-width: 0; grid-column: 2; }
+.assets-grid-left { min-width: 0; }
 .assets-grid-right {
-    grid-column: 1;
     min-width: 0;
     background: var(--card);
     border: 1px solid var(--border);
@@ -8857,8 +8856,9 @@ function renderAssets() {
 
     var html = '';
 
-    // 左右兩欄外層
+    // 左右兩欄外層；左：歷史面板，右：資產卡片
     html += '<div class="assets-grid">';
+    html += '<aside class="assets-grid-right" id="pinned-history-panel"></aside>';
     html += '<div class="assets-grid-left">';
 
     // 頂部 hero（精簡版）
@@ -8973,9 +8973,6 @@ function renderAssets() {
     });
 
     html += '</div>'; // assets-grid-left
-
-    // 右側常駐歷史面板
-    html += '<aside class="assets-grid-right" id="pinned-history-panel"></aside>';
     html += '</div>'; // assets-grid
 
     el.innerHTML = html;
