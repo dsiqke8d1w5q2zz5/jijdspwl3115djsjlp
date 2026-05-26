@@ -1311,25 +1311,6 @@ th.sortable.sort-active .sort-arrow { color: var(--lux-gold); font-weight: 700; 
 .trend-grid-left { min-width: 0; position: sticky; top: 0; }
 .trend-grid-right { min-width: 0; }
 
-/* ── 報酬日曆：左日曆、右已實現明細 ── */
-.return-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 14px;
-    align-items: start;
-}
-.return-grid > * { min-width: 0; }
-.return-grid #realized-trades-slot { margin-top: 0; }
-/* 兩欄各半時，報酬日曆格子需要縮一點 */
-.return-grid #return-calendar-slot .cal-cell {
-    padding: 3px 4px;
-    min-height: 48px;
-}
-.return-grid #return-calendar-slot .cal-cell-day { font-size: 11px; }
-.return-grid #return-calendar-slot .cal-cell-main { font-size: 11px; }
-.return-grid #return-calendar-slot .cal-cell-sub { font-size: 10px; }
-.return-grid #return-calendar-slot .cal-cell-pct { font-size: 10px; }
-
 /* ── 淨資產：左右兩欄佈局（左為歷史日曆面板、右為資產卡片） ── */
 .assets-grid {
     display: grid;
@@ -6868,10 +6849,8 @@ function renderStockAnalysis() {
     if (!stockData.holdings || stockData.holdings.length === 0) {
         return '<div style="text-align:center;padding:40px;color:var(--muted)">尚未新增持股，無法分析</div>';
     }
-    return '<div class="return-grid">' +
-        '<div id="return-calendar-slot">' + renderReturnCalendar() + '</div>' +
-        '<div id="realized-trades-wrap">' + _buildRealizedTradesHtml() + '</div>' +
-    '</div>';
+    return '<div id="return-calendar-slot">' + renderReturnCalendar() + '</div>' +
+           '<div id="realized-trades-wrap">' + _buildRealizedTradesHtml() + '</div>';
 }
 
 // ── 報酬日曆 ──
