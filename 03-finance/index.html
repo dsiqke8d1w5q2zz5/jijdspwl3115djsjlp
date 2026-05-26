@@ -7123,60 +7123,89 @@ function renderReturnCalendar() {
 // 預設只顯示 15 筆；可用搜尋框（代號或股名）過濾；過濾後不限筆數
 var _realizedSearchKw = '';
 var _realizedShowAll = false;
+var _realizedYearFilter = 'all'; // 'all' | 'YYYY'
 function _buildRealizedTradesHtml() {
     var sells = (stockData.trades || [])
         .map(function(t, i){ return { t: t, i: i }; })
         .filter(function(x){ return x.t.type === 'sell'; })
         .sort(function(a, b){ return (b.t.date || '').localeCompare(a.t.date || ''); });
 
-    // 摘要（用全部、不受過濾影響）
-    var totalAll = 0;
-    var thisYear = String(new Date().getFullYear());
-    var yearTotal = 0;
+    // 蒐集年份清單（由新到舊）
+    var yearSet = {};
     sells.forEach(function(x){
-        var r = x.t.realized || 0;
-        totalAll += r;
-        if ((x.t.date || '').slice(0,4) === thisYear) yearTotal += r;
+        var y = (x.t.date || '').slice(0, 4);
+        if (y) yearSet[y] = true;
     });
+    var years = Object.keys(yearSet).sort().reverse();
+    // 若選中的年份已不存在，退回 all
+    if (_realizedYearFilter !== 'all' && !yearSet[_realizedYearFilter]) _realizedYearFilter = 'all';
 
-    // 套用搜尋過濾
+    // 套用年份篩選
+    var yearFiltered = (_realizedYearFilter === 'all')
+        ? sells
+        : sells.filter(function(x){ return (x.t.date || '').slice(0, 4) === _realizedYearFilter; });
+
+    // 摘要：累積 = 所有 sells；當選中年份 = 該年小計
+    var totalAll = 0, yearTotal = 0;
+    sells.forEach(function(x){ totalAll += (x.t.realized || 0); });
+    yearFiltered.forEach(function(x){ yearTotal += (x.t.realized || 0); });
+
+    // 套用搜尋過濾（在年份篩選之後）
     var kw = (_realizedSearchKw || '').trim().toLowerCase();
     var filtered = kw
-        ? sells.filter(function(x){
+        ? yearFiltered.filter(function(x){
             return (x.t.id || '').toLowerCase().indexOf(kw) >= 0
                 || (x.t.name || '').toLowerCase().indexOf(kw) >= 0;
         })
-        : sells;
+        : yearFiltered;
+
+    // 年份 select
+    var yearOpts = '<option value="all"' + (_realizedYearFilter === 'all' ? ' selected' : '') + '>全部年份</option>';
+    years.forEach(function(y){
+        yearOpts += '<option value="' + y + '"' + (_realizedYearFilter === y ? ' selected' : '') + '>' + y + ' 年</option>';
+    });
 
     // 外層卡片：永遠包住搜尋框，避免 input 被重建中斷輸入法
     var html = '<div id="realized-trades-slot" style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);margin-top:12px">';
     html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">';
     html += '<div style="font-size:14px;font-weight:600">已實現損益紀錄</div>';
+    html += '<select id="realized-year-filter" onchange="onRealizedYearFilterChange(this.value)" ' +
+        'style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--card);cursor:pointer">' + yearOpts + '</select>';
     html += '<input type="text" id="realized-search" placeholder="搜尋代號或股名" value="' + esc(_realizedSearchKw) + '" ' +
         'style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--card);width:160px">';
-    html += '<span id="realized-count-label" style="margin-left:auto;font-size:12px;color:var(--muted)">共 ' + sells.length + ' 筆' + (kw ? '（過濾後 ' + filtered.length + '）' : '') + '</span>';
+    html += '<span id="realized-count-label" style="margin-left:auto;font-size:12px;color:var(--muted)">共 ' + yearFiltered.length + ' 筆' + (kw ? '（過濾後 ' + filtered.length + '）' : '') + '</span>';
     html += '</div>';
     // 內層 slot：只有列表本身會被重畫，搜尋框永遠不動
-    html += '<div id="realized-trades-body">' + _buildRealizedBodyHtml(sells, filtered, kw, totalAll, yearTotal, thisYear) + '</div>';
+    html += '<div id="realized-trades-body">' + _buildRealizedBodyHtml(yearFiltered, filtered, kw, totalAll, yearTotal, _realizedYearFilter) + '</div>';
     html += '</div>';
     return html;
 }
 
+function onRealizedYearFilterChange(y) {
+    _realizedYearFilter = y;
+    _realizedShowAll = false; // 切年份重置「顯示全部」
+    _refreshRealizedTradesOnly();
+}
+
 // 內層 body：摘要 + 列表（會被搜尋觸發重畫；不含搜尋框本身）
-function _buildRealizedBodyHtml(sells, filtered, kw, totalAll, yearTotal, thisYear) {
+// sells 在此函式裡其實是「年份篩選後」的清單；filtered 是再經搜尋過濾的清單
+function _buildRealizedBodyHtml(sells, filtered, kw, totalAll, yearTotal, yearFilter) {
     var html = '';
 
     if (sells.length === 0) {
-        html += '<div style="color:var(--muted);font-size:12px;line-height:1.6;padding:8px 0">尚無賣出紀錄。買入歷程請到單股「漲跌日曆」的「交易紀錄」分頁看。</div>';
+        html += '<div style="color:var(--muted);font-size:12px;line-height:1.6;padding:8px 0">' +
+            (yearFilter && yearFilter !== 'all' ? yearFilter + ' 年無賣出紀錄。' : '尚無賣出紀錄。買入歷程請到單股「漲跌日曆」的「交易紀錄」分頁看。') +
+            '</div>';
         return html;
     }
 
-    // 摘要
+    // 摘要：累積 = 全部年份；右側 = 當前選中年份的小計（若選「全部」則顯示「全部年份」）
     var tCls = totalAll >= 0 ? 'pos' : 'neg';
     var yCls = yearTotal >= 0 ? 'pos' : 'neg';
+    var yLabel = (yearFilter && yearFilter !== 'all') ? (yearFilter + ' 年') : '全部年份';
     html += '<div style="display:flex;gap:16px;font-size:13px;margin-bottom:10px;padding:8px 10px;background:var(--bg);border-radius:6px;flex-wrap:wrap">';
     html += '<span style="color:var(--muted)">累積 <b class="' + tCls + '">' + (totalAll >= 0 ? '+' : '') + fmt(totalAll) + '</b></span>';
-    html += '<span style="color:var(--muted)">' + thisYear + ' 年 <b class="' + yCls + '">' + (yearTotal >= 0 ? '+' : '') + fmt(yearTotal) + '</b></span>';
+    html += '<span style="color:var(--muted)">' + yLabel + ' <b class="' + yCls + '">' + (yearTotal >= 0 ? '+' : '') + fmt(yearTotal) + '</b></span>';
     html += '</div>';
 
     if (filtered.length === 0) {
@@ -7269,23 +7298,24 @@ function _refreshRealizedTradesOnly() {
         .map(function(t, i){ return { t: t, i: i }; })
         .filter(function(x){ return x.t.type === 'sell'; })
         .sort(function(a, b){ return (b.t.date || '').localeCompare(a.t.date || ''); });
-    var totalAll = 0;
-    var thisYear = String(new Date().getFullYear());
-    var yearTotal = 0;
-    sells.forEach(function(x){
-        var r = x.t.realized || 0;
-        totalAll += r;
-        if ((x.t.date || '').slice(0,4) === thisYear) yearTotal += r;
-    });
+    // 年份篩選
+    var yearFiltered = (_realizedYearFilter === 'all')
+        ? sells
+        : sells.filter(function(x){ return (x.t.date || '').slice(0, 4) === _realizedYearFilter; });
+    // 摘要
+    var totalAll = 0, yearTotal = 0;
+    sells.forEach(function(x){ totalAll += (x.t.realized || 0); });
+    yearFiltered.forEach(function(x){ yearTotal += (x.t.realized || 0); });
+    // 搜尋過濾
     var kw = (_realizedSearchKw || '').trim().toLowerCase();
     var filtered = kw
-        ? sells.filter(function(x){
+        ? yearFiltered.filter(function(x){
             return (x.t.id || '').toLowerCase().indexOf(kw) >= 0
                 || (x.t.name || '').toLowerCase().indexOf(kw) >= 0;
         })
-        : sells;
-    body.innerHTML = _buildRealizedBodyHtml(sells, filtered, kw, totalAll, yearTotal, thisYear);
-    if (countLabel) countLabel.textContent = '共 ' + sells.length + ' 筆' + (kw ? '（過濾後 ' + filtered.length + '）' : '');
+        : yearFiltered;
+    body.innerHTML = _buildRealizedBodyHtml(yearFiltered, filtered, kw, totalAll, yearTotal, _realizedYearFilter);
+    if (countLabel) countLabel.textContent = '共 ' + yearFiltered.length + ' 筆' + (kw ? '（過濾後 ' + filtered.length + '）' : '');
 }
 
 // 綁定搜尋框事件（首次渲染後呼叫一次，之後 input 永遠不重建）
