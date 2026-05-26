@@ -1050,7 +1050,6 @@ th.sortable.sort-active .sort-arrow { color: var(--lux-gold); font-weight: 700; 
     color: #FAFAF9;
     padding: 14px 22px;
     border-radius: var(--radius);
-    margin-top: 10px;
     margin-bottom: 12px;
     display: flex;
     flex-direction: column;
@@ -1312,22 +1311,23 @@ th.sortable.sort-active .sort-arrow { color: var(--lux-gold); font-weight: 700; 
 .trend-grid-left { min-width: 0; position: sticky; top: 0; }
 .trend-grid-right { min-width: 0; }
 
-/* ── 淨資產：左右兩欄佈局 ── */
+/* ── 淨資產：左右兩欄佈局（左為歷史日曆面板、右為資產卡片） ── */
 .assets-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
     gap: 14px;
     align-items: start;
+    margin-top: 10px;
 }
-.assets-grid-left { min-width: 0; }
+.assets-grid-left { min-width: 0; grid-column: 2; }
 .assets-grid-right {
+    grid-column: 1;
     min-width: 0;
     background: var(--card);
     border: 1px solid var(--border);
     border-top: 3px solid var(--lux-navy);
     border-radius: var(--radius);
     padding: 14px 16px;
-    margin-top: 10px;
     box-shadow: var(--shadow);
     position: sticky;
     top: 0;
@@ -2730,8 +2730,15 @@ function editPassiveCell(el, year, source, month) {
 }
 
 // ── 新增/刪除 ──
+// 正規化分類名稱：去掉所有空白（半形/全形 U+3000）。避免「借款」和「借　款」變成兩個分類。
+function _normCatName(s) {
+    if (s == null) return '';
+    return String(s).replace(/[\s　]+/g, '');
+}
+
 function addCategory(section) {
     showModal('新增項目', '項目名稱', '', function(name) {
+        name = _normCatName(name);
         if (!name) return;
         var list = section === 'income' ? DATA.settings.incomeCategories : DATA.settings.expenseCategories;
         if (list.indexOf(name) >= 0) { toast('項目已存在'); return; }
@@ -2760,6 +2767,7 @@ function deleteCategory(section, cat) {
 
 function renameCategory(section, oldName) {
     showModal('改名「' + oldName + '」', '新名稱', oldName, function(newName) {
+        newName = _normCatName(newName);
         if (!newName || newName === oldName) { manageCategories(section); return; }
         var list = section === 'income' ? DATA.settings.incomeCategories : DATA.settings.expenseCategories;
         if (list.indexOf(newName) >= 0) { toast('名稱已存在'); manageCategories(section); return; }
