@@ -7516,6 +7516,44 @@ function showCalDaySnapshot(dateStr) {
     ov.addEventListener('click', function(e){ if (e.target === ov && _md) ov.remove(); _md = false; });
 }
 
+// 用某檔的所有 trades 重算 holdings[id] 的 shares 與 cost（均價）
+// 邏輯：按日期+原順序 replay 全部 buy/sell。買入用 amount 加總成本；賣出只扣股數，均價不變。
+function _rebuildHoldingFromTrades(stockId) {
+    if (!stockData || !Array.isArray(stockData.holdings) || !Array.isArray(stockData.trades)) return;
+    var h = stockData.holdings.find(function(x){ return x.id === stockId; });
+    if (!h) return;
+    var list = stockData.trades
+        .map(function(t, i){ return { t: t, i: i }; })
+        .filter(function(x){ return x.t && x.t.id === stockId && (x.t.type === 'buy' || x.t.type === 'sell'); })
+        .sort(function(a, b){
+            var ad = a.t.date || '', bd = b.t.date || '';
+            if (ad !== bd) return ad < bd ? -1 : 1;
+            return a.i - b.i;
+        });
+    var shares = 0, totalCost = 0;
+    list.forEach(function(x){
+        var t = x.t;
+        if (t.type === 'buy') {
+            var amt = (typeof t.amount === 'number') ? t.amount : (t.shares || 0) * (t.price || 0);
+            shares += (t.shares || 0);
+            totalCost += amt;
+        } else {
+            // sell：股數扣，總成本按比例扣（維持均價）
+            var sShares = t.shares || 0;
+            if (shares > 0) {
+                var portion = Math.min(sShares, shares);
+                var avgBefore = totalCost / shares;
+                totalCost -= avgBefore * portion;
+                shares -= portion;
+                if (shares < 0) shares = 0;
+                if (totalCost < 0) totalCost = 0;
+            }
+        }
+    });
+    h.shares = shares;
+    h.cost = shares > 0 ? totalCost / shares : 0;
+}
+
 function editTrade(idx) {
     var t = stockData.trades && stockData.trades[idx];
     if (!t) return;
@@ -7541,7 +7579,7 @@ function editTrade(idx) {
         html += '<label style="font-size:12px;color:var(--muted)">買入成本（總額，含手續費）</label>' +
                 '<input type="number" id="et-amount" value="' + defaultBuyAmount + '" step="1">' +
                 '<div id="et-pl-preview" style="margin-top:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:13px;color:var(--muted)">本次均價（自動）：<b id="et-pl-num">-</b></div>' +
-                '<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5">※ 編輯買入只會修改交易紀錄本身，<b>不會自動回算持股均價</b>。如要同步請另用「編輯持股」修正。</div>';
+                '<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5">※ 儲存後會用所有交易紀錄重算該檔的持股股數與均價。</div>';
     }
     html += '<div class="modal-btns" style="margin-top:12px">' +
                 '<button onclick="this.closest(\'.overlay\').remove()">取消</button>' +
@@ -7606,11 +7644,13 @@ function editTrade(idx) {
             t.realized = rz;
             try { _syncTradesToCashflow(); saveData(true); } catch(e){ console.error('[syncTrades]', e); }
         }
+        // 用全部 trades 回算該檔持股 shares / cost
+        _rebuildHoldingFromTrades(t.id);
         saveStockData();
         ov.remove();
         _refreshTradesList();
         renderStock();
-        toast('已更新交易紀錄');
+        toast('已更新交易紀錄並同步持股');
     };
 }
 
