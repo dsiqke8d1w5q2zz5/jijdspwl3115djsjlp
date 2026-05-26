@@ -7516,6 +7516,26 @@ function showCalDaySnapshot(dateStr) {
     ov.addEventListener('click', function(e){ if (e.target === ov && _md) ov.remove(); _md = false; });
 }
 
+// 清空某檔的所有 buy/sell 交易紀錄，並把該檔持股股數/均價歸零
+// 注意：不動「收入/支出」（不呼叫 _syncTradesToCashflow）
+function clearStockTrades(stockId) {
+    if (!stockData || !Array.isArray(stockData.trades)) return;
+    var h = (stockData.holdings || []).find(function(x){ return x.id === stockId; });
+    var name = h ? (h.name || stockId) : stockId;
+    var cnt = stockData.trades.filter(function(t){ return t && t.id === stockId && (t.type === 'buy' || t.type === 'sell'); }).length;
+    if (cnt === 0) { toast('此檔已無交易紀錄'); return; }
+    showConfirm2('確定清空「' + name + '」全部 ' + cnt + ' 筆交易紀錄？\n\n持股股數與均價會一併歸零。\n（收入/支出的紀錄不會動）', function() {
+        stockData.trades = stockData.trades.filter(function(t){
+            return !(t && t.id === stockId && (t.type === 'buy' || t.type === 'sell'));
+        });
+        if (h) { h.shares = 0; h.cost = 0; }
+        saveStockData();
+        _refreshTradesList();
+        renderStock();
+        toast('已清空 ' + cnt + ' 筆交易紀錄');
+    });
+}
+
 // 用某檔的所有 trades 重算 holdings[id] 的 shares 與 cost（均價）
 // 邏輯：按日期+原順序 replay 全部 buy/sell。買入用 amount 加總成本；賣出只扣股數，均價不變。
 function _rebuildHoldingFromTrades(stockId) {
@@ -8130,14 +8150,16 @@ function _buildStockTradesHtml(stockId) {
     });
 
     var html = '';
+    var clearBtn = '<button onclick="clearStockTrades(' + escJs(stockId) + ')" style="margin-left:auto;background:none;border:1px solid var(--red);color:var(--red);padding:3px 10px;border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit"><i class="ti ti-trash" style="font-size:12px"></i> 清空</button>';
     if (sellCount > 0) {
         var rCls = totalRealized >= 0 ? 'pos' : 'neg';
-        html += '<div style="display:flex;gap:14px;font-size:13px;margin-bottom:10px;padding:8px 10px;background:var(--bg);border-radius:6px;flex-wrap:wrap">';
+        html += '<div style="display:flex;align-items:center;gap:14px;font-size:13px;margin-bottom:10px;padding:8px 10px;background:var(--bg);border-radius:6px;flex-wrap:wrap">';
         html += '<span style="color:var(--muted)">累積已實現 <b class="' + rCls + '">' + (totalRealized >= 0 ? '+' : '') + fmt(totalRealized) + '</b></span>';
         html += '<span style="color:var(--muted)">買 <b style="color:var(--text)">' + buyCount + '</b> 筆／賣 <b style="color:var(--text)">' + sellCount + '</b> 筆</span>';
+        html += clearBtn;
         html += '</div>';
     } else {
-        html += '<div style="font-size:13px;margin-bottom:10px;padding:8px 10px;background:var(--bg);border-radius:6px;color:var(--muted)">買入 <b style="color:var(--text)">' + buyCount + '</b> 筆（尚未賣出）</div>';
+        html += '<div style="display:flex;align-items:center;font-size:13px;margin-bottom:10px;padding:8px 10px;background:var(--bg);border-radius:6px;color:var(--muted)">買入 <b style="color:var(--text);margin:0 4px"> ' + buyCount + ' </b> 筆（尚未賣出）' + clearBtn + '</div>';
     }
 
     html += '<div style="max-height:420px;overflow-y:auto">';
