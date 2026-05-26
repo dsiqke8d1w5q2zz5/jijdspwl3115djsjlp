@@ -1311,14 +1311,32 @@ th.sortable.sort-active .sort-arrow { color: var(--lux-gold); font-weight: 700; 
 .trend-grid-left { min-width: 0; position: sticky; top: 0; }
 .trend-grid-right { min-width: 0; }
 
-/* ── 淨資產：左右兩欄佈局（左為歷史日曆面板、右為資產卡片） ── */
-.assets-grid {
+/* ── 報酬日曆：左日曆、右已實現明細 ── */
+.return-grid {
     display: grid;
     grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
     gap: 14px;
     align-items: start;
+}
+.return-grid > * { min-width: 0; }
+.return-grid #realized-trades-slot { margin-top: 0; }
+
+/* ── 淨資產：左右兩欄佈局（左為歷史日曆面板、右為資產卡片） ── */
+.assets-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 14px;
+    align-items: start;
     margin-top: 10px;
 }
+/* 兩欄各半時，日曆格子需要縮一點才不會撐爆 */
+.assets-grid-right .cal-cell--sm {
+    padding: 2px 3px;
+    min-height: 38px;
+}
+.assets-grid-right .cal-cell--sm .cal-cell-day { font-size: 10px; }
+.assets-grid-right .cal-cell--sm .cal-cell-main { font-size: 10px; }
+.assets-grid-right .section-kpi-val { font-size: 11px; }
 .assets-grid-left { min-width: 0; }
 .assets-grid-right {
     min-width: 0;
@@ -6841,7 +6859,10 @@ function renderStockAnalysis() {
     if (!stockData.holdings || stockData.holdings.length === 0) {
         return '<div style="text-align:center;padding:40px;color:var(--muted)">尚未新增持股，無法分析</div>';
     }
-    return '<div id="return-calendar-slot">' + renderReturnCalendar() + '</div>';
+    return '<div class="return-grid">' +
+        '<div id="return-calendar-slot">' + renderReturnCalendar() + '</div>' +
+        '<div id="realized-trades-wrap">' + _buildRealizedTradesHtml() + '</div>' +
+    '</div>';
 }
 
 // ── 報酬日曆 ──
@@ -7107,9 +7128,6 @@ function renderReturnCalendar() {
 
     html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">※ 上方數字為「未實現」（純股價漲跌）含 %；下方「已實現」為當日賣出實際入袋。今日格：昨天就有的部位×今日漲跌 + 今天買進的部位×(現價−買價)。台灣時間 14:05 自動抓盤後最終價並寫入當日快照。</div>';
     html += '</div>';
-
-    // ── 已實現損益紀錄（賣出明細） ──
-    html += _buildRealizedTradesHtml();
     return html;
 }
 
@@ -7328,7 +7346,10 @@ function openReturnCalendarMonthPicker() {
 function _refreshTradesList() {
     // 報酬日曆會用到 trades，重畫
     var calSlot = document.getElementById('return-calendar-slot');
-    if (calSlot) { calSlot.innerHTML = renderReturnCalendar(); _bindRealizedSearchEvents(); }
+    if (calSlot) calSlot.innerHTML = renderReturnCalendar();
+    // 已實現損益列表也重畫
+    var realizedWrap = document.getElementById('realized-trades-wrap');
+    if (realizedWrap) { realizedWrap.innerHTML = _buildRealizedTradesHtml(); _bindRealizedSearchEvents(); }
     // 單股漲跌日曆 modal 開著時，同步重畫其分頁（tab 標籤的徽章 + 內容）
     if (document.querySelector('.stock-cal-modal-overlay')) {
         _renderStockCalModalTabs();
@@ -9059,8 +9080,14 @@ function switchPinnedHistoryTab(tabKey) {
 function getSectionChange(key, period) {
     var hist = (DATA.assets && DATA.assets.history) || [];
     if (hist.length === 0) return null;
+    // netWorth 取 h.netWorth；其他 section 取 h.breakdown[key]
+    function _valOf(h) {
+        if (!h) return 0;
+        if (key === 'netWorth') return h.netWorth || 0;
+        return (h.breakdown && h.breakdown[key]) || 0;
+    }
     var latest = hist[hist.length - 1];
-    var latestVal = (latest.breakdown && latest.breakdown[key]) || 0;
+    var latestVal = _valOf(latest);
     var today = new Date();
     var baseline;
     if (period === 'week')        { baseline = new Date(today); baseline.setDate(baseline.getDate() - 7); }
@@ -9072,7 +9099,7 @@ function getSectionChange(key, period) {
     // 找 date <= bStr 的最後一筆
     var startVal = null;
     for (var i = hist.length - 1; i >= 0; i--) {
-        if (hist[i].date <= bStr) { startVal = (hist[i].breakdown && hist[i].breakdown[key]) || 0; break; }
+        if (hist[i].date <= bStr) { startVal = _valOf(hist[i]); break; }
     }
     if (startVal === null) return null; // 該期間之前沒有快照，無法比較
     var delta = latestVal - startVal;
