@@ -7538,7 +7538,7 @@ function showCalDaySnapshot(dateStr) {
     Object.keys(allStockIds).forEach(function(id){
         var h = allStockIds[id];
         var shares = _sharesAtDate(id, dateStr);
-        // 收集當日交易（即使 shares=0 也要保留：可能當天買又當天賣完）
+        // 收集當日交易（即使 shares=0 也要保留：可能當天買又當天賣完、或當天全部賣完）
         var todayBuys = [], todaySellShares = 0;
         (stockData.trades || []).forEach(function(t){
             if (t.id !== id || t.date !== dateStr) return;
@@ -7546,7 +7546,8 @@ function showCalDaySnapshot(dateStr) {
             else if (t.type === 'sell') todaySellShares += (t.shares || 0);
         });
         var hasTodayBuy = todayBuys.length > 0;
-        if (shares <= 0 && !hasTodayBuy) return; // 該日完全沒部位也沒當日交易就跳過
+        var hasTodaySell = todaySellShares > 0;
+        if (shares <= 0 && !hasTodayBuy && !hasTodaySell) return; // 該日完全沒部位也沒當日交易就跳過
         var pInfo = _priceAtDate(id, dateStr);
         var price = pInfo ? pInfo.price : null;
         var market = price !== null ? shares * price : null;
