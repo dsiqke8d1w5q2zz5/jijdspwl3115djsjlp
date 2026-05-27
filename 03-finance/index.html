@@ -5989,7 +5989,15 @@ function renderStockHoldings() {
         var market = p ? h.shares * p.price : cost;
         totalCost += cost;
         totalMarket += market;
-        if (p && typeof p.change === 'number') todayPL += h.shares * p.change;
+        // 今日損益：優先用 priceHistory 最後兩筆，無資料才退回 Yahoo change
+        var phArr = (stockData.priceHistory && stockData.priceHistory[h.id]) || [];
+        var ch = null;
+        if (phArr.length >= 2) {
+            var l = phArr[phArr.length - 1], pv = phArr[phArr.length - 2];
+            if (typeof l.price === 'number' && typeof pv.price === 'number') ch = l.price - pv.price;
+        }
+        if (ch === null && p && typeof p.change === 'number') ch = p.change;
+        if (ch !== null) todayPL += h.shares * ch;
     });
     var totalPL = totalMarket - totalCost;
     var totalRate = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
@@ -6036,7 +6044,20 @@ function renderStockHoldings() {
     var rows = stockData.holdings.map(function(h, idx) {
         var p = stockData.prices[h.id];
         var curPrice = p ? p.price : null;
-        var change = (p && typeof p.change === 'number') ? p.change : null;
+        // change：優先用 priceHistory 最後兩筆相減（與報酬日曆/持股快照一致）；
+        // 沒兩筆才退回用 Yahoo 即時 change（避免 Yahoo 在凌晨/盤前回的 change 與本地收盤資料不一致）
+        var phArr = (stockData.priceHistory && stockData.priceHistory[h.id]) || [];
+        var change = null;
+        if (phArr.length >= 2) {
+            var last = phArr[phArr.length - 1];
+            var prev = phArr[phArr.length - 2];
+            if (typeof last.price === 'number' && typeof prev.price === 'number') {
+                change = last.price - prev.price;
+            }
+        }
+        if (change === null && p && typeof p.change === 'number') {
+            change = p.change;
+        }
         var changePct = (change !== null && curPrice !== null && curPrice - change !== 0) ? (change / (curPrice - change)) * 100 : null;
         var cost = h.shares * h.cost;
         var market = curPrice ? h.shares * curPrice : null;
@@ -6892,11 +6913,21 @@ function renderReturnCalendar() {
         }
     });
 
-    // 蒐集所有 priceHistory 出現過的日期
+    // 找「最早一筆 buy」當報酬計算的起始日；之前的 priceHistory 不算入報酬
+    var earliestBuyDate = null;
+    (stockData.trades || []).forEach(function(t){
+        if (t.type === 'buy' && t.date) {
+            if (!earliestBuyDate || t.date < earliestBuyDate) earliestBuyDate = t.date;
+        }
+    });
+
+    // 蒐集所有 priceHistory 出現過的日期（≥ earliestBuyDate）
     var dateSet = {};
     var ph = stockData.priceHistory || {};
     Object.keys(ph).forEach(function(sid){
-        (ph[sid] || []).forEach(function(e){ if (e && e.date) dateSet[e.date] = true; });
+        (ph[sid] || []).forEach(function(e){
+            if (e && e.date && (!earliestBuyDate || e.date >= earliestBuyDate)) dateSet[e.date] = true;
+        });
     });
     var sortedDates = Object.keys(dateSet).sort();
 
