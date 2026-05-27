@@ -5989,14 +5989,17 @@ function renderStockHoldings() {
         var market = p ? h.shares * p.price : cost;
         totalCost += cost;
         totalMarket += market;
-        // 今日損益：優先用 priceHistory 最後兩筆，無資料才退回 Yahoo change
-        var phArr = (stockData.priceHistory && stockData.priceHistory[h.id]) || [];
+        // 今日損益：優先用 Yahoo 即時 change（相對前一交易日官方收盤、最即時也最準）；
+        // 沒抓到才退回 priceHistory 最後兩筆相減
         var ch = null;
-        if (phArr.length >= 2) {
-            var l = phArr[phArr.length - 1], pv = phArr[phArr.length - 2];
-            if (typeof l.price === 'number' && typeof pv.price === 'number') ch = l.price - pv.price;
+        if (p && typeof p.change === 'number') ch = p.change;
+        if (ch === null) {
+            var phArr = (stockData.priceHistory && stockData.priceHistory[h.id]) || [];
+            if (phArr.length >= 2) {
+                var l = phArr[phArr.length - 1], pv = phArr[phArr.length - 2];
+                if (typeof l.price === 'number' && typeof pv.price === 'number') ch = l.price - pv.price;
+            }
         }
-        if (ch === null && p && typeof p.change === 'number') ch = p.change;
         if (ch !== null) todayPL += h.shares * ch;
     });
     var totalPL = totalMarket - totalCost;
@@ -6044,19 +6047,19 @@ function renderStockHoldings() {
     var rows = stockData.holdings.map(function(h, idx) {
         var p = stockData.prices[h.id];
         var curPrice = p ? p.price : null;
-        // change：優先用 priceHistory 最後兩筆相減（與報酬日曆/持股快照一致）；
-        // 沒兩筆才退回用 Yahoo 即時 change（避免 Yahoo 在凌晨/盤前回的 change 與本地收盤資料不一致）
-        var phArr = (stockData.priceHistory && stockData.priceHistory[h.id]) || [];
+        // change：優先用 Yahoo 即時 change（相對前一交易日官方收盤、最即時也最準）；
+        // 沒抓到才退回 priceHistory 最後兩筆相減
         var change = null;
-        if (phArr.length >= 2) {
-            var last = phArr[phArr.length - 1];
-            var prev = phArr[phArr.length - 2];
-            if (typeof last.price === 'number' && typeof prev.price === 'number') {
-                change = last.price - prev.price;
+        if (p && typeof p.change === 'number') change = p.change;
+        if (change === null) {
+            var phArr = (stockData.priceHistory && stockData.priceHistory[h.id]) || [];
+            if (phArr.length >= 2) {
+                var last = phArr[phArr.length - 1];
+                var prev = phArr[phArr.length - 2];
+                if (typeof last.price === 'number' && typeof prev.price === 'number') {
+                    change = last.price - prev.price;
+                }
             }
-        }
-        if (change === null && p && typeof p.change === 'number') {
-            change = p.change;
         }
         var changePct = (change !== null && curPrice !== null && curPrice - change !== 0) ? (change / (curPrice - change)) * 100 : null;
         var cost = h.shares * h.cost;
