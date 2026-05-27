@@ -7538,7 +7538,15 @@ function showCalDaySnapshot(dateStr) {
     Object.keys(allStockIds).forEach(function(id){
         var h = allStockIds[id];
         var shares = _sharesAtDate(id, dateStr);
-        if (shares <= 0) return; // 該日沒持股就跳過
+        // 收集當日交易（即使 shares=0 也要保留：可能當天買又當天賣完）
+        var todayBuys = [], todaySellShares = 0;
+        (stockData.trades || []).forEach(function(t){
+            if (t.id !== id || t.date !== dateStr) return;
+            if (t.type === 'buy') todayBuys.push({ shares: t.shares || 0, price: t.price || 0 });
+            else if (t.type === 'sell') todaySellShares += (t.shares || 0);
+        });
+        var hasTodayBuy = todayBuys.length > 0;
+        if (shares <= 0 && !hasTodayBuy) return; // 該日完全沒部位也沒當日交易就跳過
         var pInfo = _priceAtDate(id, dateStr);
         var price = pInfo ? pInfo.price : null;
         var market = price !== null ? shares * price : null;
@@ -7549,27 +7557,21 @@ function showCalDaySnapshot(dateStr) {
         // shares 是「該日收盤」股數；今天買的、賣的另外處理。
         var dayPL = null;
         var arr = (stockData.priceHistory && stockData.priceHistory[id]) || [];
-        if (arr.length >= 2 && pInfo && pInfo.exact) {
+        if (pInfo && pInfo.exact && typeof pInfo.price === 'number') {
             var prevEntry = null;
             for (var i = arr.length - 1; i >= 0; i--) {
                 if (arr[i].date < dateStr) { prevEntry = arr[i]; break; }
             }
-            if (prevEntry && typeof prevEntry.price === 'number' && typeof pInfo.price === 'number') {
-                // 拆當日交易
-                var todayBuys = [], todaySellShares = 0;
-                (stockData.trades || []).forEach(function(t){
-                    if (t.id !== id || t.date !== dateStr) return;
-                    if (t.type === 'buy') todayBuys.push({ shares: t.shares || 0, price: t.price || 0 });
-                    else if (t.type === 'sell') todaySellShares += (t.shares || 0);
-                });
-                var todayBuyShares = todayBuys.reduce(function(a, b){ return a + b.shares; }, 0);
-                // 昨天就有的股數 = 該日收盤股數 − 今天買 + 今天賣
-                var yShares = shares - todayBuyShares + todaySellShares;
-                if (yShares < 0) yShares = 0;
-                var part1 = yShares * (pInfo.price - prevEntry.price);
-                var part2 = todayBuys.reduce(function(sum, b){ return sum + b.shares * (pInfo.price - b.price); }, 0);
-                dayPL = part1 + part2;
+            var todayBuyShares = todayBuys.reduce(function(a, b){ return a + b.shares; }, 0);
+            // 昨天就有的股數 = 該日收盤股數 − 今天買 + 今天賣
+            var yShares = shares - todayBuyShares + todaySellShares;
+            if (yShares < 0) yShares = 0;
+            var part1 = 0;
+            if (prevEntry && typeof prevEntry.price === 'number' && yShares > 0) {
+                part1 = yShares * (pInfo.price - prevEntry.price);
             }
+            var part2 = todayBuys.reduce(function(sum, b){ return sum + b.shares * (pInfo.price - b.price); }, 0);
+            if (part1 !== 0 || part2 !== 0) dayPL = part1 + part2;
         }
         rows.push({
             id: id,
