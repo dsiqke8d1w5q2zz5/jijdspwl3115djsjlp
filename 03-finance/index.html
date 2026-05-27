@@ -8189,12 +8189,35 @@ function onStockCalMonthChange(m) {
 function _buildStockTradesHtml(stockId) {
     var items = (stockData.trades || [])
         .map(function(t, i){ return { t: t, i: i }; })
-        .filter(function(x){ return (x.t.type === 'buy' || x.t.type === 'sell') && x.t.id === stockId; })
-        .sort(function(a, b){ return (b.t.date || '').localeCompare(a.t.date || ''); });
+        .filter(function(x){ return (x.t.type === 'buy' || x.t.type === 'sell') && x.t.id === stockId; });
 
     if (items.length === 0) {
         return '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">尚無交易紀錄。<br>在持股總覽用 <i class="ti ti-plus"></i> 買入或 <i class="ti ti-cash"></i> 賣出，會自動記在這裡。</div>';
     }
+
+    // 計算「波次」：依日期+原索引由舊到新 replay，每次股數歸 0 後再進場就是新一波
+    var ascSorted = items.slice().sort(function(a, b){
+        var ad = a.t.date || '', bd = b.t.date || '';
+        if (ad !== bd) return ad < bd ? -1 : 1;
+        return a.i - b.i;
+    });
+    var wave = 1, shares = 0;
+    var waveByIdx = {}; // trade index → wave number
+    ascSorted.forEach(function(x){
+        if (shares === 0 && Object.keys(waveByIdx).length > 0) wave++;
+        var t = x.t;
+        if (t.type === 'buy') shares += (t.shares || 0);
+        else shares = Math.max(0, shares - (t.shares || 0));
+        waveByIdx[x.i] = wave;
+    });
+    var totalWaves = wave;
+
+    // 顯示用：新→舊
+    items.sort(function(a, b){
+        var ad = a.t.date || '', bd = b.t.date || '';
+        if (ad !== bd) return ad < bd ? 1 : -1;
+        return b.i - a.i;
+    });
 
     // 摘要：累積已實現、買入次數、賣出次數
     var totalRealized = 0, buyCount = 0, sellCount = 0;
@@ -8226,8 +8249,19 @@ function _buildStockTradesHtml(stockId) {
             '<th style="padding:6px 4px;text-align:right">金額／已實現</th>' +
             '<th style="padding:6px 4px;width:60px"></th>' +
         '</tr></thead><tbody>';
+    var prevWave = null;
     items.forEach(function(x){
         var t = x.t;
+        var w = waveByIdx[x.i];
+        if (w !== prevWave) {
+            // 波次分隔列；最頂部那一波（= 最新波）標「目前持有」
+            var isCurrent = (w === totalWaves);
+            var label = '第 ' + w + ' 波' + (isCurrent ? '（目前持有）' : '（已結束）');
+            var bg = isCurrent ? 'rgba(212,175,55,0.10)' : 'rgba(0,0,0,0.03)';
+            var color = isCurrent ? 'var(--lux-navy)' : 'var(--muted)';
+            html += '<tr><td colspan="6" style="padding:6px 8px;background:' + bg + ';color:' + color + ';font-size:11px;font-weight:600;letter-spacing:0.5px">' + label + '</td></tr>';
+            prevWave = w;
+        }
         var isBuy = t.type === 'buy';
         var typeLabel = isBuy
             ? '<span style="display:inline-block;background:rgba(22,163,74,0.12);color:var(--green);padding:1px 6px;border-radius:4px;font-size:11px;font-weight:600">買</span>'
