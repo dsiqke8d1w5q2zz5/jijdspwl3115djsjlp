@@ -6938,7 +6938,7 @@ function renderReturnCalendar() {
         // 沒有 priceHistory 時，至少把有 realized 的日子顯示出來
         var hasRealized = Object.keys(tradesByDate).some(function(d){ return tradesByDate[d].sellRealized; });
         if (!hasRealized) {
-            return _stockCalendarEmpty('尚無價格紀錄。<br>每天 14:05 後打開頁面、抓到股價就會自動記一筆。');
+            return _stockCalendarEmpty('尚無價格紀錄。<br>每天 15:00 後打開頁面、抓到股價就會自動記一筆。');
         }
     }
 
@@ -7102,11 +7102,11 @@ function renderReturnCalendar() {
     // 用全域 helper 分組
     var weekList = _groupMonthByWeeks(year, monthIdx);
 
-    // 判斷今天（台灣時區、YYYY-MM-DD）；僅在「平日 + 14:05 後」才顯示今日即時資料
+    // 判斷今天（台灣時區、YYYY-MM-DD）；僅在「平日 + 15:00 後」才顯示今日即時資料
     var twNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
     var todayStr = _localDateStr(twNow);
     var _wdNow = twNow.getDay();
-    var _afterClose = (twNow.getHours() > 14) || (twNow.getHours() === 14 && twNow.getMinutes() >= 5);
+    var _afterClose = twNow.getHours() >= 15;
     var todayShowsLive = (_wdNow !== 0 && _wdNow !== 6 && _afterClose);
 
     // 今日「未實現損益」公式：
@@ -7180,7 +7180,7 @@ function renderReturnCalendar() {
             var isToday = (dStr === todayStr);
             var entry = dailyPnL[dStr];
 
-            // 今日特殊處理：用即時算法（僅在平日 14:05 後）
+            // 今日特殊處理：用即時算法（僅在平日 15:00 後）
             if (isToday) {
                 var hasLiveData = todayShowsLive && (todayLiveUnr !== 0 || todayLiveRz !== 0);
                 if (hasLiveData) {
@@ -7233,7 +7233,7 @@ function renderReturnCalendar() {
     });
     html += '</div>';
 
-    html += '<div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.4">※ 上方數字為「未實現」（純股價漲跌）含 %；下方「已實現」為當日賣出實際入袋。今日格：昨天就有的部位×今日漲跌 + 今天買進的部位×(現價−買價)。台灣時間 14:05 自動抓盤後最終價並寫入當日快照。</div>';
+    html += '<div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.4">※ 上方數字為「未實現」（純股價漲跌）含 %；下方「已實現」為當日賣出實際入袋。今日格：昨天就有的部位×今日漲跌 + 今天買進的部位×(現價−買價)。台灣時間 15:00 自動抓盤後最終價並寫入當日快照。</div>';
     html += '</div>';
     return html;
 }
@@ -8437,12 +8437,12 @@ function _buildStockCalendarHtml(stockId, curMonthOpt) {
         }
     }
     ph.forEach(function(e){ if (e.date) allMonthSet[e.date.slice(0,7)] = true; });
-    // 補今天（用 Yahoo change 推算）：與 snapshotStockPrices 同規則 — 僅在「平日 + 14:05 後」才補
+    // 補今天（用 Yahoo change 推算）：與 snapshotStockPrices 同規則 — 僅在「平日 + 15:00 後」才補
     var todayP = stockData.prices && stockData.prices[stockId];
     if (todayP && typeof todayP.price === 'number' && typeof todayP.change === 'number') {
         var twNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
         var wd = twNow.getDay();
-        var afterClose = (twNow.getHours() > 14) || (twNow.getHours() === 14 && twNow.getMinutes() >= 5);
+        var afterClose = twNow.getHours() >= 15;
         if (wd !== 0 && wd !== 6 && afterClose) {
             var prevClose = todayP.price - todayP.change;
             var todayKey = _localDateStr(twNow);
@@ -8765,12 +8765,12 @@ function stopStockAutoRefresh() {
     if (_stockAutoTimer) { clearInterval(_stockAutoTimer); _stockAutoTimer = null; }
 }
 
-// 排定下一個「台灣時間 14:05」執行：先抓一次盤後最終價，再寫當日快照
-// 用 14:05 是給 Yahoo 5 分鐘清算緩衝；自動更新本身在 13:30 就停了
+// 排定下一個「台灣時間 15:00」執行：先抓一次盤後最終價，再寫當日快照
+// 用 15:00 是等盤後撮合（14:30 結束）+ Yahoo 更新到最終價的緩衝
 function scheduleDailySnapshot() {
     var tw = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
-    var next = new Date(tw.getFullYear(), tw.getMonth(), tw.getDate(), 14, 5, 0);
-    if (next <= tw) next.setDate(next.getDate() + 1); // 今天 14:05 已過 → 明天 14:05
+    var next = new Date(tw.getFullYear(), tw.getMonth(), tw.getDate(), 15, 0, 0);
+    if (next <= tw) next.setDate(next.getDate() + 1); // 今天 15:00 已過 → 明天 15:00
     var delay = next.getTime() - tw.getTime();
     setTimeout(function() {
         try {
@@ -8931,12 +8931,11 @@ function snapshotPortfolioMarket() {
     if (!stockData) return;
     if (!Array.isArray(stockData.holdings) || stockData.holdings.length === 0) return;
     if (!stockData.prices) return;
-    // 收盤後判斷：台灣時間 14:00 之後才寫（等 Yahoo 清算完）
+    // 收盤後判斷：台灣時間 15:00 之後才寫（給盤後撮合 14:30 結束 + Yahoo 更新到最終價的緩衝）
     var tw = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
     var weekday = tw.getDay(); // 0=日, 6=六
     if (weekday === 0 || weekday === 6) return; // 週末不寫
-    // 14:05 後才寫（給 Yahoo 5 分鐘清算緩衝，避免拿到非最終價）
-    var afterClose = (tw.getHours() > 14) || (tw.getHours() === 14 && tw.getMinutes() >= 5);
+    var afterClose = tw.getHours() >= 15;
     if (!afterClose) return;
     var tradeDate = _localDateStr(tw);
 
@@ -8971,12 +8970,12 @@ function snapshotStockPrices(today) {
     if (!stockData) return;
     if (!stockData.priceHistory) stockData.priceHistory = {};
     if (!stockData.holdings || !stockData.prices) return;
-    // 只在「台灣時間 14:00 後」且工作日寫入；之前不寫，避免拿 Yahoo 還未清算完的延遲價誤覆蓋。
+    // 只在「台灣時間 15:00 後」且工作日寫入；之前不寫，避免拿 Yahoo 還未清算完的暫定價誤覆蓋
+    // （台股 14:30 才完成盤後撮合，Yahoo 通常 14:35~15:00 才把最終價更新進 API）
     var tw = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
     var weekday = tw.getDay();
     if (weekday === 0 || weekday === 6) return;
-    // 14:05 後才寫（給 Yahoo 5 分鐘清算緩衝）
-    var afterClose = (tw.getHours() > 14) || (tw.getHours() === 14 && tw.getMinutes() >= 5);
+    var afterClose = tw.getHours() >= 15;
     if (!afterClose) return;
     var tradeDate = _localDateStr(tw);
     var dirty = false;
