@@ -6862,8 +6862,9 @@ function renderStockAnalysis() {
 }
 
 // ── 報酬日曆 ──
-// 讀 stockData.marketHistory（每日真實整體市值快照），相鄰兩日相減＝日損益。
-// 快照由 maybeAutoSnapshot 自動寫入；買賣後當天的快照已反映真實部位變化。
+// 用 stockData.priceHistory 逐檔精算每日「未實現損益」：
+//   該日 dayPL = Σ (反推該日持股 × (該日收盤 − 前一交易日收盤))
+// 這個算法與「點某日看持股快照」算出來的數字一致。
 var _returnCalendarMonth = null; // 'YYYY-MM' 字串；null 表示「最近一個有資料的月份」
 function _stockCalendarEmpty(msg) {
     return '<div style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);flex:1;display:flex;flex-direction:column"><div style="font-size:14px;font-weight:600;margin-bottom:6px">報酬日曆</div><div style="color:var(--muted);font-size:12px;line-height:1.6">' + msg + '</div></div>';
@@ -6873,72 +6874,131 @@ function renderReturnCalendar() {
     if (holdings.length === 0) return '';
 
     // dailyPnL[date] = { unrealized, realized, pct }
-    //   unrealized = 純股價漲跌損益（含當日有買賣的修正）
+    //   unrealized = 純股價漲跌損益（逐檔精算）
     //   realized   = 當日所有 sell trades 的 realized 總和
-    //   pct        = unrealized 對昨日市值的比例（純股價變化的 %）
+    //   pct        = unrealized 對前一交易日總市值的比例
+    // 算法：對每個 priceHistory 有資料的日期 D，逐檔算 shares(D) × (price(D) − price(D-1))
     var dailyPnL = {};
     var allMonthSet = {};
     var marketByDate = {}, dateListAll = [];
 
-    var mh = Array.isArray(stockData.marketHistory) ? stockData.marketHistory.slice() : [];
-    mh.sort(function(a, b){ return (a.date || '').localeCompare(b.date || ''); });
-
-    // 當日交易：buyGross = Σ(股數×價)，sellGross = Σ(股數×價)，sellRealized = Σ realized
-    // 市值差會被買賣污染：買入會讓市值多出買入金額，賣出會讓市值少掉賣出金額
-    // 所以「純股價漲跌損益」= 市值差 − 買入總額 + 賣出總額
-    var tradesByDate = {}; // { date: { buyGross, sellGross, sellRealized } }
+    // 當日交易：sellRealized 用來記「已實現」（不影響純股價漲跌的計算）
+    var tradesByDate = {};
     (stockData.trades || []).forEach(function(t){
         if (!t.date) return;
-        if (!tradesByDate[t.date]) tradesByDate[t.date] = { buyGross: 0, sellGross: 0, sellRealized: 0 };
+        if (!tradesByDate[t.date]) tradesByDate[t.date] = { sellRealized: 0 };
         if (t.type === 'sell') {
-            tradesByDate[t.date].sellGross += (t.shares || 0) * (t.price || 0);
             tradesByDate[t.date].sellRealized += t.realized || 0;
-        } else if (t.type === 'buy') {
-            var amt = (typeof t.amount === 'number') ? t.amount : (t.shares || 0) * (t.price || 0);
-            tradesByDate[t.date].buyGross += amt;
         }
     });
 
-    if (mh.length === 0) {
-        // 沒有市值快照時，至少把有 realized 的日子顯示出來
+    // 蒐集所有 priceHistory 出現過的日期
+    var dateSet = {};
+    var ph = stockData.priceHistory || {};
+    Object.keys(ph).forEach(function(sid){
+        (ph[sid] || []).forEach(function(e){ if (e && e.date) dateSet[e.date] = true; });
+    });
+    var sortedDates = Object.keys(dateSet).sort();
+
+    if (sortedDates.length === 0) {
+        // 沒有 priceHistory 時，至少把有 realized 的日子顯示出來
         var hasRealized = Object.keys(tradesByDate).some(function(d){ return tradesByDate[d].sellRealized; });
         if (!hasRealized) {
-            return _stockCalendarEmpty('尚無市值快照紀錄。<br>每次打開頁面（且有抓到股價）就會自動記一筆，過幾天累積後就能看到每日損益。');
+            return _stockCalendarEmpty('尚無價格紀錄。<br>每天 14:05 後打開頁面、抓到股價就會自動記一筆。');
         }
     }
 
-    for (var k = 1; k < mh.length; k++) {
-        var pM = mh[k - 1], cM = mh[k];
-        if (pM.market > 0) {
-            var s = tradesByDate[cM.date];
-            // 純股價漲跌損益（未實現）= 市值差 − 買入總額 + 賣出總額
-            var rawDiff = cM.market - pM.market;
-            var unrealized = rawDiff - (s ? s.buyGross : 0) + (s ? s.sellGross : 0);
-            var realized = s ? s.sellRealized : 0;
-            dailyPnL[cM.date] = {
-                unrealized: unrealized,
+    // 反推某股票在某交易日收盤的股數 = 目前股數 + 該日之後賣 − 該日之後買
+    function _sharesAt(sid, atDate) {
+        var h = (stockData.holdings || []).find(function(x){ return x.id === sid; });
+        var cur = h ? (h.shares || 0) : 0;
+        var afterBuy = 0, afterSell = 0;
+        (stockData.trades || []).forEach(function(t){
+            if (t.id !== sid || !t.date || t.date <= atDate) return;
+            if (t.type === 'buy') afterBuy += (t.shares || 0);
+            else if (t.type === 'sell') afterSell += (t.shares || 0);
+        });
+        return cur + afterSell - afterBuy;
+    }
+
+    // 預先建立 priceHistory[id] 的日期→價 lookup
+    var phByDate = {}; // { sid: { date: price } }
+    Object.keys(ph).forEach(function(sid){
+        phByDate[sid] = {};
+        (ph[sid] || []).forEach(function(e){ if (e && e.date) phByDate[sid][e.date] = e.price; });
+    });
+
+    // 預先建立「每日每股的買賣明細」用以拆分當日部位
+    var dayTradesByStock = {}; // { date: { sid: { buys: [{shares,price}], sellShares } } }
+    (stockData.trades || []).forEach(function(t){
+        if (!t.date || !t.id) return;
+        if (!dayTradesByStock[t.date]) dayTradesByStock[t.date] = {};
+        if (!dayTradesByStock[t.date][t.id]) dayTradesByStock[t.date][t.id] = { buys: [], sellShares: 0 };
+        if (t.type === 'buy') dayTradesByStock[t.date][t.id].buys.push({ shares: t.shares || 0, price: t.price || 0 });
+        else if (t.type === 'sell') dayTradesByStock[t.date][t.id].sellShares += (t.shares || 0);
+    });
+
+    // 逐日計算
+    // 該日未實現 = Σ「昨天就有的部位 × (今收 − 昨收)」+ Σ「今天買進的部位 × (今收 − 買進價)」
+    // （今天賣出的部位走 realized，不計入 unrealized）
+    for (var k = 0; k < sortedDates.length; k++) {
+        var curDate = sortedDates[k];
+
+        var unr = 0, baseMarket = 0;
+        var dayT = dayTradesByStock[curDate] || {};
+        Object.keys(phByDate).forEach(function(sid){
+            var pCur = phByDate[sid][curDate];
+            if (typeof pCur !== 'number') return;
+            // 前一天的價：找 < curDate 的最後一筆
+            var pPrev = null;
+            var arr = ph[sid] || [];
+            for (var j = arr.length - 1; j >= 0; j--) {
+                if (arr[j].date < curDate) { pPrev = arr[j].price; break; }
+            }
+
+            var endShares = _sharesAt(sid, curDate); // 該日收盤後股數
+            var st = dayT[sid] || { buys: [], sellShares: 0 };
+            var todayBuyShares = st.buys.reduce(function(a, b){ return a + b.shares; }, 0);
+            var todaySellShares = st.sellShares;
+            // 昨天就有的股數 = 今天收盤股數 − 今天買 + 今天賣
+            var yShares = endShares - todayBuyShares + todaySellShares;
+            if (yShares < 0) yShares = 0;
+
+            // 第一部分：昨天就有的部位 × (今收 − 昨收)
+            if (yShares > 0 && typeof pPrev === 'number') {
+                unr += yShares * (pCur - pPrev);
+                baseMarket += yShares * pPrev;
+            }
+            // 第二部分：今天買進的部位 × (今收 − 買進價)
+            st.buys.forEach(function(b){
+                unr += b.shares * (pCur - b.price);
+                baseMarket += b.shares * b.price;
+            });
+        });
+
+        var realized = (tradesByDate[curDate] && tradesByDate[curDate].sellRealized) || 0;
+        if (unr !== 0 || realized !== 0) {
+            dailyPnL[curDate] = {
+                unrealized: unr,
                 realized: realized,
-                pct: pM.market > 0 ? unrealized / pM.market * 100 : 0
+                pct: baseMarket > 0 ? unr / baseMarket * 100 : 0
             };
         }
     }
-    // 補：有賣出但當天沒有 marketHistory 連續對（例如假日／第一天）時，至少把已實現損益記上去
+
+    // 補：有賣出但 priceHistory 那天無紀錄時，至少把已實現損益記上去
     Object.keys(tradesByDate).forEach(function(d){
         if (!dailyPnL[d] && tradesByDate[d].sellRealized) {
             dailyPnL[d] = { unrealized: 0, realized: tradesByDate[d].sellRealized, pct: 0 };
         }
     });
-    mh.forEach(function(e){
-        if (e.date) allMonthSet[e.date.slice(0,7)] = true;
-        marketByDate[e.date] = e.market;
-        dateListAll.push(e.date);
-    });
-    // 把交易紀錄的月份也納入月份下拉（萬一某月只有交易沒有市值快照）
+    // 月份下拉：priceHistory 的月份 + 任何 sell trade 的月份
+    sortedDates.forEach(function(d){ allMonthSet[d.slice(0,7)] = true; });
     Object.keys(tradesByDate).forEach(function(d){
-        if (tradesByDate[d].sellRealized || tradesByDate[d].buyGross || tradesByDate[d].sellGross) {
-            allMonthSet[d.slice(0,7)] = true;
-        }
+        if (tradesByDate[d].sellRealized) allMonthSet[d.slice(0,7)] = true;
     });
+    // dateListAll：相容後續邏輯（取「前一交易日」用）
+    dateListAll = sortedDates.slice();
 
     var months = Object.keys(allMonthSet).sort().reverse();
     if (months.length === 0) return _stockCalendarEmpty('暫無資料');
@@ -6951,13 +7011,30 @@ function renderReturnCalendar() {
         monthUnrealized += dailyPnL[d].unrealized;
         monthRealized   += dailyPnL[d].realized;
     });
-    // 基準市值：取「該月第一筆 dailyPnL 之前一筆 marketHistory」當分母
+    // 基準市值：取「該月第一筆 dailyPnL 之前一個交易日」的整體市值；用 priceHistory 逐檔重算
+    function _totalMarketAt(date) {
+        var tot = 0;
+        Object.keys(phByDate).forEach(function(sid){
+            // 找 <= date 的最後一筆價
+            var p = phByDate[sid][date];
+            if (typeof p !== 'number') {
+                var arr = ph[sid] || [];
+                for (var j = arr.length - 1; j >= 0; j--) {
+                    if (arr[j].date <= date) { p = arr[j].price; break; }
+                }
+            }
+            if (typeof p !== 'number') return;
+            var s = _sharesAt(sid, date);
+            if (s > 0) tot += s * p;
+        });
+        return tot;
+    }
     if (monthDates.length) {
         var firstDailyDate = monthDates[0];
         var firstIdx = dateListAll.indexOf(firstDailyDate);
-        if (firstIdx > 0) basisMarket = marketByDate[dateListAll[firstIdx - 1]];
+        if (firstIdx > 0) basisMarket = _totalMarketAt(dateListAll[firstIdx - 1]);
     }
-    if (basisMarket === null && monthDates.length) basisMarket = marketByDate[monthDates[0]];
+    if (basisMarket === null && monthDates.length) basisMarket = _totalMarketAt(monthDates[0]);
     monthPct = (basisMarket && basisMarket > 0) ? (monthUnrealized / basisMarket * 100) : 0;
     var monthTotal = monthUnrealized + monthRealized;
 
@@ -7357,9 +7434,12 @@ function onReturnCalendarMonthChange(m) {
 
 // 開啟報酬日曆的月份選擇器（iOS 滾輪風格）
 function openReturnCalendarMonthPicker() {
-    // 收集 marketHistory + trades 出現過的所有月份
+    // 收集 priceHistory + trades 出現過的所有月份
     var monthSet = {};
-    (stockData.marketHistory || []).forEach(function(e){ if (e.date) monthSet[e.date.slice(0,7)] = true; });
+    var ph = stockData.priceHistory || {};
+    Object.keys(ph).forEach(function(sid){
+        (ph[sid] || []).forEach(function(e){ if (e && e.date) monthSet[e.date.slice(0,7)] = true; });
+    });
     (stockData.trades || []).forEach(function(t){ if (t.date) monthSet[t.date.slice(0,7)] = true; });
     var months = Object.keys(monthSet).sort();
     if (months.length === 0) return;
@@ -7433,17 +7513,31 @@ function showCalDaySnapshot(dateStr) {
         var market = price !== null ? shares * price : null;
         var costBasis = (h && typeof h.cost === 'number') ? shares * h.cost : null;
         var pl = (market !== null && costBasis !== null) ? market - costBasis : null;
-        // 當日損益：用 priceHistory 找該日的前一筆價格，計算當日漲跌 × 股數
+        // 當日損益（與報酬日曆一致的算法）：
+        //   = 昨天就有的部位 × (今收 − 昨收) + 今天買進的部位 × (今收 − 買進價)
+        // shares 是「該日收盤」股數；今天買的、賣的另外處理。
         var dayPL = null;
         var arr = (stockData.priceHistory && stockData.priceHistory[id]) || [];
         if (arr.length >= 2 && pInfo && pInfo.exact) {
-            // 找該日之前最近一筆
             var prevEntry = null;
             for (var i = arr.length - 1; i >= 0; i--) {
                 if (arr[i].date < dateStr) { prevEntry = arr[i]; break; }
             }
             if (prevEntry && typeof prevEntry.price === 'number' && typeof pInfo.price === 'number') {
-                dayPL = shares * (pInfo.price - prevEntry.price);
+                // 拆當日交易
+                var todayBuys = [], todaySellShares = 0;
+                (stockData.trades || []).forEach(function(t){
+                    if (t.id !== id || t.date !== dateStr) return;
+                    if (t.type === 'buy') todayBuys.push({ shares: t.shares || 0, price: t.price || 0 });
+                    else if (t.type === 'sell') todaySellShares += (t.shares || 0);
+                });
+                var todayBuyShares = todayBuys.reduce(function(a, b){ return a + b.shares; }, 0);
+                // 昨天就有的股數 = 該日收盤股數 − 今天買 + 今天賣
+                var yShares = shares - todayBuyShares + todaySellShares;
+                if (yShares < 0) yShares = 0;
+                var part1 = yShares * (pInfo.price - prevEntry.price);
+                var part2 = todayBuys.reduce(function(sum, b){ return sum + b.shares * (pInfo.price - b.price); }, 0);
+                dayPL = part1 + part2;
             }
         }
         rows.push({
