@@ -8220,7 +8220,7 @@ function _buildStockTradesHtml(stockId) {
     html += '<table style="width:100%;font-size:13px;border-collapse:collapse">' +
         '<thead><tr style="border-bottom:1px solid var(--border);color:var(--muted);font-size:12px">' +
             '<th style="padding:6px 4px;text-align:center;width:42px">類別</th>' +
-            '<th style="padding:6px 4px;text-align:left">日期</th>' +
+            '<th style="padding:6px 4px;text-align:center">日期</th>' +
             '<th style="padding:6px 4px;text-align:right">股數</th>' +
             '<th style="padding:6px 4px;text-align:right">股價</th>' +
             '<th style="padding:6px 4px;text-align:right">金額／已實現</th>' +
@@ -8244,7 +8244,7 @@ function _buildStockTradesHtml(stockId) {
         }
         html += '<tr style="border-bottom:1px solid var(--border)">' +
             '<td style="padding:8px 4px;text-align:center">' + typeLabel + '</td>' +
-            '<td style="padding:8px 4px;color:var(--muted);font-size:12px;white-space:nowrap">' + esc(t.date || '') + '</td>' +
+            '<td style="padding:8px 4px;text-align:center;color:var(--muted);font-size:12px;white-space:nowrap">' + esc(t.date || '') + '</td>' +
             '<td style="padding:8px 4px;text-align:right">' + fmt(t.shares || 0) + '</td>' +
             '<td style="padding:8px 4px;text-align:right;color:var(--muted)">' + priceStr + '</td>' +
             amountCell +
