@@ -8566,6 +8566,17 @@ function renderStockPledge() {
         else pledgeRows.push({ p:p, idx:i });
     });
 
+    // 依質押日升序（舊→新）；無日期者排最後
+    var _byDateAsc = function(a, b) {
+        var ad = a.p.date || '', bd = b.p.date || '';
+        if (!ad && !bd) return 0;
+        if (!ad) return 1;
+        if (!bd) return -1;
+        return ad < bd ? -1 : (ad > bd ? 1 : 0);
+    };
+    pledgeRows.sort(_byDateAsc);
+    lendRows.sort(_byDateAsc);
+
     html += _renderPledgeSection(pledgeRows);
     html += _renderLendSection(lendRows);
 
@@ -9249,7 +9260,12 @@ function runBackfillHistory(from, to, ids, ov) {
             });
             saveStockData();
             if (prog) prog.innerHTML = '<b style="color:var(--green)">完成</b>，共補 ' + totalAdded + ' 筆。記得按「雲端上傳」同步。';
-            if (btn) { btn.disabled = false; btn.textContent = '完成 ✓'; }
+            // 抓完後按鈕改為「關閉」，避免再按又抓一次
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = '完成 ✓';
+                btn.onclick = function() { if (ov) ov.remove(); };
+            }
             if (typeof renderStock === 'function') renderStock();
             // 若個股 modal 開著且補的是這檔，重畫日曆／走勢分頁
             if (document.querySelector('.stock-cal-modal-overlay') &&
