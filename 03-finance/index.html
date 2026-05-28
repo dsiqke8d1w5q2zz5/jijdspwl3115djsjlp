@@ -5970,6 +5970,7 @@ function renderStockHoldings() {
     html += '<button class="btn-refresh" style="background:linear-gradient(135deg,#0f2847 0%,#1a3a5c 50%,#2a5a8c 100%);border:1px solid var(--lux-gold)" onclick="toggleStockColumn()"><i class="ti ti-columns"></i> 欄位</button>';
     html += '<button class="btn-refresh" onclick="buyHolding(null)" title="新增持股（可選擇是否記入交易紀錄）"><i class="ti ti-plus"></i> <span class="lbl-full">新增持股</span><span class="lbl-short">新增</span></button>';
     html += '<button class="btn-refresh" onclick="manageHoldings()"><i class="ti ti-list-details"></i> <span class="lbl-full">管理持股</span><span class="lbl-short">管理</span></button>';
+    html += '<button class="btn-refresh" onclick="showBackfillHistoryModal()" title="從證交所/櫃買中心補抓歷史每日收盤價"><i class="ti ti-history"></i> <span class="lbl-full">補歷史價</span><span class="lbl-short">補價</span></button>';
     html += '<span class="last-update" style="color:var(--muted)">' + _stockPriceFreshnessLabel() + '</span>';
     html += '<button class="btn-refresh btn-drop-calc" onclick="showDropCalcModal()" title="跌幅分批試算"><i class="ti ti-calculator"></i> <span class="lbl-full">跌幅試算</span><span class="lbl-short">試算</span></button>';
     html += '</div>';
@@ -9004,6 +9005,87 @@ function snapshotStockPrices(today) {
         }
     });
     if (dirty && typeof saveStockData === 'function') saveStockData();
+}
+
+// ── 補歷史每日收盤價（透過 Apps Script proxy 打 TWSE / TPEX）──
+function showBackfillHistoryModal() {
+    if (!stockData || !Array.isArray(stockData.holdings) || stockData.holdings.length === 0) {
+        toast('尚無持股'); return;
+    }
+    var now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+    var thisYM = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+    var ov = document.createElement('div');
+    ov.className = 'overlay';
+    ov.innerHTML = '<div class="modal" style="width:460px;max-width:94vw">' +
+        '<h3 style="margin:0 0 12px"><i class="ti ti-history"></i> 補歷史收盤價</h3>' +
+        '<div style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:12px">從證交所／櫃買中心補抓每日收盤價、寫進各檔的價格歷史（個股漲跌日曆、走勢圖會用到）。已存在的日期會被覆蓋為官方收盤價。</div>' +
+        '<div class="row2">' +
+            '<div class="fld"><label>起始月份</label><input id="bf-from" type="month" value="2026-01" max="' + thisYM + '"></div>' +
+            '<div class="fld"><label>結束月份</label><input id="bf-to" type="month" value="' + thisYM + '" max="' + thisYM + '"></div>' +
+        '</div>' +
+        '<div id="bf-progress" style="font-size:12px;color:var(--muted);margin:8px 0;min-height:18px"></div>' +
+        '<div class="modal-btns" style="margin-top:8px">' +
+            '<button onclick="this.closest(\'.overlay\').remove()">取消</button>' +
+            '<button class="btn-primary" id="bf-go">開始補抓</button>' +
+        '</div>' +
+        '</div>';
+    document.body.appendChild(ov);
+    var _md = false;
+    ov.addEventListener('mousedown', function(e){ _md = (e.target === ov); });
+    ov.addEventListener('click', function(e){ if (e.target === ov && _md) ov.remove(); _md = false; });
+    document.getElementById('bf-go').onclick = function() {
+        var from = document.getElementById('bf-from').value;
+        var to = document.getElementById('bf-to').value;
+        if (!from || !to) { toast('請選起訖月份'); return; }
+        if (from > to) { toast('起始月份不可晚於結束月份'); return; }
+        runBackfillHistory(from, to, ov);
+    };
+}
+
+function runBackfillHistory(from, to, ov) {
+    var btn = document.getElementById('bf-go');
+    var prog = document.getElementById('bf-progress');
+    if (btn) { btn.disabled = true; btn.textContent = '抓取中…'; }
+    var ids = stockData.holdings.map(function(h){ return h.id; }).filter(Boolean);
+    if (prog) prog.textContent = '向證交所／櫃買中心查詢 ' + ids.length + ' 檔（' + from + ' ~ ' + to + '）…可能需數十秒';
+    var url = CLOUD_URL + '?action=history&format=json&ids=' + encodeURIComponent(ids.join(',')) +
+        '&from=' + encodeURIComponent(from) + '&to=' + encodeURIComponent(to) + '&t=' + Date.now();
+    // Apps Script 逐月逐檔抓會比較久，給長一點 timeout
+    fetchWithTimeout(url, {}, 120000)
+        .then(function(r){ return r.json(); })
+        .then(function(hist){
+            if (!hist || typeof hist !== 'object') { throw new Error('回傳格式錯誤'); }
+            if (!stockData.priceHistory) stockData.priceHistory = {};
+            var totalAdded = 0, perStock = [];
+            Object.keys(hist).forEach(function(sid){
+                var rows = hist[sid] || [];
+                if (!rows.length) { perStock.push(sid + '：無資料'); return; }
+                if (!Array.isArray(stockData.priceHistory[sid])) stockData.priceHistory[sid] = [];
+                var arr = stockData.priceHistory[sid];
+                var byDate = {};
+                arr.forEach(function(e){ if (e && e.date) byDate[e.date] = e.price; });
+                var added = 0;
+                rows.forEach(function(r){
+                    if (!r || !r.date || typeof r.price !== 'number') return;
+                    if (byDate[r.date] === undefined) added++;
+                    byDate[r.date] = r.price; // 覆蓋為官方收盤
+                });
+                stockData.priceHistory[sid] = Object.keys(byDate).sort().map(function(d){ return { date: d, price: byDate[d] }; });
+                totalAdded += added;
+                perStock.push(sid + '：' + rows.length + ' 筆（新增 ' + added + '）');
+            });
+            saveStockData();
+            if (prog) prog.innerHTML = '<b style="color:var(--green)">完成</b>，共補 ' + totalAdded + ' 筆。記得按「雲端上傳」同步。';
+            if (btn) { btn.disabled = false; btn.textContent = '完成 ✓'; }
+            if (typeof renderStock === 'function') renderStock();
+            console.log('[backfill] ' + perStock.join('\n'));
+            toast('歷史價補抓完成，共 ' + totalAdded + ' 筆');
+        })
+        .catch(function(err){
+            console.error('[backfill] failed', err);
+            if (prog) prog.innerHTML = '<b style="color:var(--red)">失敗：</b>' + esc(String(err && err.message || err));
+            if (btn) { btn.disabled = false; btn.textContent = '重試'; }
+        });
 }
 
 // ── 匯率自動抓（open.er-api.com） ──
