@@ -4549,10 +4549,8 @@ function deleteHolding(idx) {
     if (!h) return;
     showConfirm('確定刪除「' + h.name + '（' + h.id + '）」？', function() {
         stockData.holdings.splice(idx, 1);
-        delete stockData.prices[h.id];
+        if (stockData.prices) delete stockData.prices[h.id];
         saveStockData();
-        var ov = document.querySelector('.overlay');
-        if (ov) { ov.remove(); manageHoldings(); }
         renderStock();
     });
 }
@@ -4882,31 +4880,6 @@ function showDropCalcModal() {
             '</div>';
         resBox.innerHTML = html;
     });
-}
-
-function manageHoldings() {
-    var ov = document.createElement('div');
-    ov.className = 'overlay';
-    // 取得依代號由小到大排序後的索引（保留原 index 給 deleteHolding 使用）
-    // 只顯示尚有持股的（shares > 0），已賣完的隱藏（trades 仍保留）
-    var sorted = stockData.holdings
-        .map(function(h, i){ return { h: h, i: i }; })
-        .filter(function(it){ return (it.h.shares || 0) > 0; })
-        .sort(function(a, b){ return String(a.h.id || '').localeCompare(String(b.h.id || '')); });
-    var rows = sorted.map(function(it) {
-        var h = it.h, i = it.i;
-        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 6px;border-bottom:1px solid var(--border);background:var(--card)">' +
-            '<span style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">' +
-                '<span style="font-size:14px"><b>' + esc(h.id) + '</b> <span style="color:var(--muted)">' + esc(h.name || '') + '</span></span>' +
-            '</span>' +
-            '<button onclick="this.closest(\'.overlay\').remove();deleteHolding(' + i + ')" style="padding:4px 10px;border:none;border-radius:6px;font-size:13px;cursor:pointer;background:var(--red);color:white;font-family:inherit"><i class="ti ti-x" style="font-size:14px"></i></button>' +
-            '</div>';
-    }).join('');
-    if (stockData.holdings.length === 0) rows = '<div style="padding:16px;text-align:center;color:var(--muted)">尚無持股</div>';
-    ov.innerHTML = '<div class="modal" style="max-height:80vh;overflow-y:auto"><h3>管理持股</h3>' +
-        '<div>' + rows + '</div>' +
-        '<div style="margin-top:12px"><button onclick="this.closest(\'.overlay\').remove()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card);font-size:14px;cursor:pointer;font-family:inherit">關閉</button></div></div>';
-    document.body.appendChild(ov);
 }
 
 // ── 股利管理 ──
@@ -5969,7 +5942,6 @@ function renderStockHoldings() {
     html += '<button class="btn-refresh" id="btn-fetch-price" onclick="refreshPrices()"><i class="ti ti-antenna-bars-5"></i> <span class="lbl-full">更新股價</span><span class="lbl-short">更新</span></button>';
     html += '<button class="btn-refresh" style="background:linear-gradient(135deg,#0f2847 0%,#1a3a5c 50%,#2a5a8c 100%);border:1px solid var(--lux-gold)" onclick="toggleStockColumn()"><i class="ti ti-columns"></i> 欄位</button>';
     html += '<button class="btn-refresh" onclick="buyHolding(null)" title="新增持股（可選擇是否記入交易紀錄）"><i class="ti ti-plus"></i> <span class="lbl-full">新增持股</span><span class="lbl-short">新增</span></button>';
-    html += '<button class="btn-refresh" onclick="manageHoldings()"><i class="ti ti-list-details"></i> <span class="lbl-full">管理持股</span><span class="lbl-short">管理</span></button>';
     html += '<button class="btn-refresh" onclick="showStockSearchModal()" title="輸入股票代號，查任意個股的漲跌日曆"><i class="ti ti-search"></i> <span class="lbl-full">搜尋個股</span><span class="lbl-short">搜尋</span></button>';
     html += '<span class="last-update" style="color:var(--muted)">' + _stockPriceFreshnessLabel() + '</span>';
     html += '<button class="btn-refresh btn-drop-calc" onclick="showDropCalcModal()" title="跌幅分批試算"><i class="ti ti-calculator"></i> <span class="lbl-full">跌幅試算</span><span class="lbl-short">試算</span></button>';
@@ -6131,6 +6103,7 @@ function renderStockHoldings() {
     if (vis.chg90d  !== false) html += '<th class="col-price-chg col-90d" style="text-align:right;cursor:pointer;user-select:none" title="近 90 日純價格漲跌（已還原權息／股票股利／分割），不受定期定額影響" onclick="toggleStockSort(\'chg90d\')">季' + _sArr('chg90d') + '</th>';
     if (vis.chg180d !== false) html += '<th class="col-price-chg col-180d" style="text-align:right;cursor:pointer;user-select:none" title="近 180 日純價格漲跌（已還原權息／股票股利／分割），不受定期定額影響" onclick="toggleStockSort(\'chg180d\')">半年' + _sArr('chg180d') + '</th>';
     if (vis.chg365d !== false) html += '<th class="col-price-chg col-365d" style="text-align:right;cursor:pointer;user-select:none" title="近 1 年純價格漲跌（已還原權息／股票股利／分割），不受定期定額影響" onclick="toggleStockSort(\'chg365d\')">一年' + _sArr('chg365d') + '</th>';
+    html += '<th class="col-del" style="width:36px"></th>';
     html += '</tr></thead><tbody>';
 
     rows.forEach(function(r) {
@@ -6204,6 +6177,7 @@ function renderStockHoldings() {
         if (vis.chg90d  !== false) html += '<td class="col-price-chg col-90d" style="text-align:right">'  + fmtPriceChange(r.chg90d)  + '</td>';
         if (vis.chg180d !== false) html += '<td class="col-price-chg col-180d" style="text-align:right">' + fmtPriceChange(r.chg180d) + '</td>';
         if (vis.chg365d !== false) html += '<td class="col-price-chg col-365d" style="text-align:right">' + fmtPriceChange(r.chg365d) + '</td>';
+        html += '<td class="col-del" style="text-align:center"><button onclick="event.stopPropagation();deleteHolding(' + r.idx + ')" title="刪除持股" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;font-size:15px;line-height:1"><i class="ti ti-x"></i></button></td>';
         html += '</tr>';
     });
 
