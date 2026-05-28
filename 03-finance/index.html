@@ -8437,7 +8437,8 @@ function _buildStockTradesHtml(stockId) {
 }
 
 // 建立個股漲跌日曆 HTML（純價格 %、複利累加）
-function _buildStockCalendarHtml(stockId, curMonthOpt) {
+function _buildStockCalendarHtml(stockId, curMonthOpt, onChangeFn) {
+    onChangeFn = onChangeFn || 'onStockCalMonthChange';
     var ph = (stockData.priceHistory || {})[stockId] || [];
     ph = ph.slice().sort(function(a, b){ return (a.date || '').localeCompare(b.date || ''); });
     var dailyPnL = {};
@@ -8480,8 +8481,26 @@ function _buildStockCalendarHtml(stockId, curMonthOpt) {
         return '<option value="' + m + '"' + (m === curMonth ? ' selected' : '') + '>' + m + '</option>';
     }).join('');
 
+    // 左右切換：months 為新→舊排序，故「上一月」index+1（較舊）、「下一月」index-1（較新）
+    var curIdx = months.indexOf(curMonth);
+    var prevMonth = (curIdx >= 0 && curIdx < months.length - 1) ? months[curIdx + 1] : '';
+    var nextMonth = (curIdx > 0) ? months[curIdx - 1] : '';
+    var arrowBase = 'flex:0 0 auto;width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:8px;background:var(--card);font-size:16px;color:var(--text)';
+    var arrowOn = arrowBase + ';cursor:pointer';
+    var arrowOff = arrowBase + ';opacity:0.3;cursor:not-allowed';
+
     var html = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">';
-    html += '<select onchange="onStockCalMonthChange(this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--card)">' + monthOpts + '</select>';
+    html += prevMonth
+        ? '<button type="button" onclick="' + onChangeFn + '(\'' + prevMonth + '\')" title="上一月" style="' + arrowOn + '"><i class="ti ti-chevron-left"></i></button>'
+        : '<button type="button" disabled style="' + arrowOff + '"><i class="ti ti-chevron-left"></i></button>';
+    // 中間：點擊可自選月份（原生 select 透明疊在月份文字上）
+    html += '<div style="position:relative;display:inline-flex;align-items:center;justify-content:center;min-width:120px;height:34px;padding:0 12px;border:1px solid var(--border);border-radius:8px;background:var(--card);cursor:pointer;font-size:15px;font-weight:600;color:var(--text)">' +
+        '<span>' + curMonth + '</span><i class="ti ti-chevron-down" style="margin-left:6px;font-size:13px;color:var(--muted)"></i>' +
+        '<select onchange="' + onChangeFn + '(this.value)" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-family:inherit">' + monthOpts + '</select>' +
+        '</div>';
+    html += nextMonth
+        ? '<button type="button" onclick="' + onChangeFn + '(\'' + nextMonth + '\')" title="下一月" style="' + arrowOn + '"><i class="ti ti-chevron-right"></i></button>'
+        : '<button type="button" disabled style="' + arrowOff + '"><i class="ti ti-chevron-right"></i></button>';
     html += '<span style="margin-left:auto;font-size:13px;color:var(--muted)">當月合計 <b style="color:' + signColor(monthPct) + ';font-size:16px">' + signPrefix(monthPct) + monthPct.toFixed(2) + '%</b></span>';
     html += '</div>';
 
@@ -9146,11 +9165,7 @@ function runStockSearch() {
 function _renderStockSearchResult() {
     var box = document.getElementById('ss-result');
     if (!box) return;
-    box.innerHTML = _buildStockCalendarHtml(_stockSearchState.stockId, _stockSearchState.month);
-    // _buildStockCalendarHtml 的月份 select 預設呼叫 onStockCalMonthChange（個股 modal 用），
-    // 搜尋視窗改指向自己的月切換
-    var sel = box.querySelector('select');
-    if (sel) sel.setAttribute('onchange', 'onStockSearchMonthChange(this.value)');
+    box.innerHTML = _buildStockCalendarHtml(_stockSearchState.stockId, _stockSearchState.month, 'onStockSearchMonthChange');
 }
 
 function onStockSearchMonthChange(m) {
