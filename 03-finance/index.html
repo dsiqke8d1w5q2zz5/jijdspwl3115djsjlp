@@ -1606,6 +1606,9 @@ th.sortable.sort-active .sort-arrow { color: var(--lux-gold); font-weight: 700; 
                 <button onclick="closeSettingsMenu();showRestoreDialog()" title="從自動快照還原台股資料" style="display:block;width:100%;padding:10px 14px;border:none;background:none;text-align:left;cursor:pointer;color:var(--text);font-size:13px;font-family:inherit;border-bottom:1px solid var(--border)">
                     <i class="ti ti-history"></i> 還原台股快照
                 </button>
+                <button onclick="closeSettingsMenu();clearStockPriceHistory()" title="清空各檔每日收盤價歷史與整體市值快照（報酬日曆、漲跌日曆、走勢圖會歸零），保留持股、股利、質押、已實現損益" style="display:block;width:100%;padding:10px 14px;border:none;background:none;text-align:left;cursor:pointer;color:var(--text);font-size:13px;font-family:inherit;border-bottom:1px solid var(--border)">
+                    <i class="ti ti-eraser"></i> 清除價格歷史
+                </button>
                 <button onclick="closeSettingsMenu();showConfirm2('確定清除本機所有資料？\n清除後此裝置的資料將無法復原（但雲端仍保留，可再用雲端下載還原）。',function(){localStorage.clear();location.reload();},null,{title:'清除本機資料',okText:'確定清除',okStyle:'background:var(--red)'})" style="display:block;width:100%;padding:10px 14px;border:none;background:none;text-align:left;cursor:pointer;color:var(--red);font-size:13px;font-family:inherit">
                     <i class="ti ti-trash"></i> 清除本機資料
                 </button>
@@ -8973,6 +8976,35 @@ function snapshotPortfolioMarket() {
     if (dirty && typeof saveStockData === 'function') saveStockData();
 }
 
+// 清除價格歷史：清空各檔每日收盤價歷史與整體市值快照（報酬日曆／漲跌日曆／走勢圖歸零），
+// 保留持股、股利、質押、已實現損益。清除前先推一份快照可救回。
+function clearStockPriceHistory() {
+    if (!stockData) { toast('尚無資料'); return; }
+    var phCount = 0;
+    if (stockData.priceHistory) {
+        Object.keys(stockData.priceHistory).forEach(function(k){
+            phCount += (stockData.priceHistory[k] || []).length;
+        });
+    }
+    var mhCount = Array.isArray(stockData.marketHistory) ? stockData.marketHistory.length : 0;
+    var msg = '確定清除所有價格歷史？\n\n' +
+        '會清空：每日收盤價歷史（' + phCount + ' 筆）、整體市值快照（' + mhCount + ' 筆）。\n' +
+        '報酬日曆、個股漲跌日曆、走勢圖會歸零，今天重新抓股價後從今天重新累積。\n\n' +
+        '保留：持股、股利、質押、已實現損益。\n\n' +
+        '（清除前會先推一份快照，可用「還原台股快照」救回）';
+    showConfirm2(msg, function() {
+        try {
+            var curRaw = (typeof STOCK_KEY !== 'undefined') ? localStorage.getItem(STOCK_KEY) : null;
+            if (curRaw && typeof pushSnapshot === 'function') pushSnapshot(curRaw);
+        } catch(_){}
+        stockData.priceHistory = {};
+        stockData.marketHistory = [];
+        saveStockData();
+        if (typeof renderStock === 'function') renderStock();
+        toast('已清除價格歷史，記得按「雲端上傳」同步');
+    }, null, { title: '<i class="ti ti-eraser"></i> 清除價格歷史', okText: '確定清除', okStyle: 'background:var(--red)' });
+}
+
 // 將當日股價寫入 stockData.priceHistory[id] = [{date,price}, ...]
 // 注意：date 是「資料實際對應的交易日」，不是「執行 snapshot 的今日」
 function snapshotStockPrices(today) {
@@ -9068,7 +9100,7 @@ function showStockSearchModal() {
             '<div class="fld" style="flex:1 1 140px;min-width:120px"><label>股票代號</label><input id="ss-id" type="text" placeholder="例如 2330" autocomplete="off"></div>' +
             '<div class="fld" style="flex:0 0 130px"><label>起始月份</label><input id="ss-from" type="month" value="2026-01" max="' + thisYM + '"></div>' +
             '<div class="fld" style="flex:0 0 130px"><label>結束月份</label><input id="ss-to" type="month" value="' + thisYM + '" max="' + thisYM + '"></div>' +
-            '<button class="btn-primary" id="ss-go" style="flex:0 0 auto;height:38px;padding:0 18px"><i class="ti ti-search"></i> 查詢</button>' +
+            '<button class="btn-primary" id="ss-go" style="flex:0 0 auto;height:43px;box-sizing:border-box;margin-bottom:10px;padding:0 18px;display:inline-flex;align-items:center;justify-content:center;gap:5px"><i class="ti ti-search"></i> 查詢</button>' +
         '</div>' +
         '<div id="ss-progress" style="font-size:12px;color:var(--muted);margin:8px 0;min-height:18px;flex:none"></div>' +
         '<div id="ss-result" style="min-height:300px;flex:none"></div>' +
