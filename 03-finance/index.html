@@ -5970,7 +5970,7 @@ function renderStockHoldings() {
     html += '<button class="btn-refresh" style="background:linear-gradient(135deg,#0f2847 0%,#1a3a5c 50%,#2a5a8c 100%);border:1px solid var(--lux-gold)" onclick="toggleStockColumn()"><i class="ti ti-columns"></i> 欄位</button>';
     html += '<button class="btn-refresh" onclick="buyHolding(null)" title="新增持股（可選擇是否記入交易紀錄）"><i class="ti ti-plus"></i> <span class="lbl-full">新增持股</span><span class="lbl-short">新增</span></button>';
     html += '<button class="btn-refresh" onclick="manageHoldings()"><i class="ti ti-list-details"></i> <span class="lbl-full">管理持股</span><span class="lbl-short">管理</span></button>';
-    html += '<button class="btn-refresh" onclick="showBackfillHistoryModal()" title="從證交所/櫃買中心補抓歷史每日收盤價"><i class="ti ti-history"></i> <span class="lbl-full">補歷史價</span><span class="lbl-short">補價</span></button>';
+    html += '<button class="btn-refresh" onclick="showStockSearchModal()" title="輸入股票代號，查任意個股的漲跌日曆"><i class="ti ti-search"></i> <span class="lbl-full">搜尋個股</span><span class="lbl-short">搜尋</span></button>';
     html += '<span class="last-update" style="color:var(--muted)">' + _stockPriceFreshnessLabel() + '</span>';
     html += '<button class="btn-refresh btn-drop-calc" onclick="showDropCalcModal()" title="跌幅分批試算"><i class="ti ti-calculator"></i> <span class="lbl-full">跌幅試算</span><span class="lbl-short">試算</span></button>';
     html += '</div>';
@@ -8256,6 +8256,7 @@ function showStockCalendarModal(stockId, initialTab) {
     ov.innerHTML = '<div class="modal" style="width:680px;max-width:94vw;display:flex;flex-direction:column">' +
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;flex:none">' +
             '<h3 style="margin:0;flex:1"><i class="ti ti-chart-bar"></i> ' + esc(stockId) + ' ' + esc(name) + '</h3>' +
+            '<button type="button" onclick="showStockBackfillModal(\'' + esc(stockId) + '\')" title="補抓這檔的歷史每日收盤價" style="flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border:1px solid var(--border);border-radius:8px;background:var(--card);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:var(--text)"><i class="ti ti-history"></i> 補歷史價</button>' +
         '</div>' +
         _stockModalNavBar(stockId, 'calendar') +
         '<div id="stock-cal-modal-tabs" style="display:flex;gap:6px;margin:8px 0;border-bottom:1px solid var(--border);flex:none"></div>' +
@@ -9061,6 +9062,138 @@ function showBackfillHistoryModal() {
     };
 }
 
+// 搜尋個股漲跌日曆（持股總覽工具列觸發）：輸入任意代號 → 補抓區間 → 只秀漲跌日曆
+var _stockSearchState = { stockId: '', month: null };
+function showStockSearchModal() {
+    var now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+    var thisYM = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+    var ov = document.createElement('div');
+    ov.className = 'overlay stock-search-modal-overlay';
+    ov.innerHTML = '<div class="modal" style="width:680px;max-width:94vw;display:flex;flex-direction:column">' +
+        '<h3 style="margin:0 0 12px;flex:none"><i class="ti ti-search"></i> 搜尋個股漲跌日曆</h3>' +
+        '<div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;flex:none">' +
+            '<div class="fld" style="flex:1 1 140px;min-width:120px"><label>股票代號</label><input id="ss-id" type="text" placeholder="例如 2330" autocomplete="off"></div>' +
+            '<div class="fld" style="flex:0 0 130px"><label>起始月份</label><input id="ss-from" type="month" value="2026-01" max="' + thisYM + '"></div>' +
+            '<div class="fld" style="flex:0 0 130px"><label>結束月份</label><input id="ss-to" type="month" value="' + thisYM + '" max="' + thisYM + '"></div>' +
+            '<button class="btn-primary" id="ss-go" style="flex:0 0 auto;height:38px;padding:0 18px"><i class="ti ti-search"></i> 查詢</button>' +
+        '</div>' +
+        '<div id="ss-progress" style="font-size:12px;color:var(--muted);margin:8px 0;min-height:18px;flex:none"></div>' +
+        '<div id="ss-result" style="min-height:300px;flex:none"></div>' +
+        '<div class="modal-btns" style="margin-top:12px;flex:none"><button onclick="closeStockSearchModal()" style="flex:1">關閉</button></div>' +
+        '</div>';
+    document.body.appendChild(ov);
+    var _md = false;
+    ov.addEventListener('mousedown', function(e){ _md = (e.target === ov); });
+    ov.addEventListener('click', function(e){ if (e.target === ov && _md) closeStockSearchModal(); _md = false; });
+    var idInput = document.getElementById('ss-id');
+    if (idInput) idInput.focus();
+    document.getElementById('ss-go').onclick = runStockSearch;
+    if (idInput) idInput.addEventListener('keydown', function(e){ if (e.key === 'Enter') runStockSearch(); });
+}
+
+function closeStockSearchModal() {
+    var ov = document.querySelector('.stock-search-modal-overlay');
+    if (ov) ov.remove();
+    _stockSearchState = { stockId: '', month: null };
+}
+
+function runStockSearch() {
+    var id = (document.getElementById('ss-id').value || '').trim().toUpperCase();
+    var from = document.getElementById('ss-from').value;
+    var to = document.getElementById('ss-to').value;
+    var prog = document.getElementById('ss-progress');
+    var go = document.getElementById('ss-go');
+    if (!id) { toast('請輸入股票代號'); return; }
+    if (!from || !to) { toast('請選起訖月份'); return; }
+    if (from > to) { toast('起始月份不可晚於結束月份'); return; }
+    if (go) { go.disabled = true; }
+    if (prog) prog.textContent = '向證交所／櫃買中心查詢 ' + id + '（' + from + ' ~ ' + to + '）…可能需數十秒';
+    var url = CLOUD_URL + '?action=history&format=json&ids=' + encodeURIComponent(id) +
+        '&from=' + encodeURIComponent(from) + '&to=' + encodeURIComponent(to) + '&t=' + Date.now();
+    fetchWithTimeout(url, {}, 120000)
+        .then(function(r){ return r.json(); })
+        .then(function(hist){
+            if (!hist || typeof hist !== 'object') throw new Error('回傳格式錯誤');
+            var rows = hist[id] || [];
+            if (!stockData.priceHistory) stockData.priceHistory = {};
+            if (!Array.isArray(stockData.priceHistory[id])) stockData.priceHistory[id] = [];
+            var byDate = {};
+            stockData.priceHistory[id].forEach(function(e){ if (e && e.date) byDate[e.date] = e.price; });
+            rows.forEach(function(rw){
+                if (!rw || !rw.date || typeof rw.price !== 'number') return;
+                byDate[rw.date] = rw.price;
+            });
+            stockData.priceHistory[id] = Object.keys(byDate).sort().map(function(d){ return { date: d, price: byDate[d] }; });
+            saveStockData();
+            if (go) go.disabled = false;
+            if (stockData.priceHistory[id].length < 2) {
+                if (prog) prog.innerHTML = '<b style="color:var(--red)">查無資料</b>：找不到 ' + esc(id) + ' 在此區間的收盤價，請確認代號。';
+                document.getElementById('ss-result').innerHTML = '';
+                return;
+            }
+            if (prog) prog.textContent = '';
+            _stockSearchState.stockId = id;
+            _stockSearchState.month = null;
+            _renderStockSearchResult();
+        })
+        .catch(function(err){
+            console.error('[stock-search] failed', err);
+            if (go) go.disabled = false;
+            if (prog) prog.innerHTML = '<b style="color:var(--red)">失敗：</b>' + esc(String(err && err.message || err));
+        });
+}
+
+function _renderStockSearchResult() {
+    var box = document.getElementById('ss-result');
+    if (!box) return;
+    box.innerHTML = _buildStockCalendarHtml(_stockSearchState.stockId, _stockSearchState.month);
+    // _buildStockCalendarHtml 的月份 select 預設呼叫 onStockCalMonthChange（個股 modal 用），
+    // 搜尋視窗改指向自己的月切換
+    var sel = box.querySelector('select');
+    if (sel) sel.setAttribute('onchange', 'onStockSearchMonthChange(this.value)');
+}
+
+function onStockSearchMonthChange(m) {
+    _stockSearchState.month = m;
+    _renderStockSearchResult();
+}
+
+// 單檔補歷史價（從個股 modal 標題列觸發）
+function showStockBackfillModal(stockId) {
+    var holding = (stockData.holdings || []).find(function(h){ return h.id === stockId; });
+    if (!holding) { toast('找不到此股票'); return; }
+    var name = holding.name || stockId;
+    var now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+    var thisYM = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+    var ov = document.createElement('div');
+    ov.className = 'overlay';
+    ov.innerHTML = '<div class="modal" style="width:440px;max-width:94vw">' +
+        '<h3 style="margin:0 0 12px"><i class="ti ti-history"></i> 補歷史收盤價</h3>' +
+        '<div style="font-size:13px;margin-bottom:6px"><b>' + esc(stockId) + '</b> <span style="color:var(--muted)">' + esc(name) + '</span></div>' +
+        '<div style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:12px">從證交所／櫃買中心補抓每日收盤價、寫進這檔的價格歷史（漲跌日曆、走勢圖會用到）。已存在的日期會被覆蓋為官方收盤價。</div>' +
+        '<div class="row2">' +
+            '<div class="fld"><label>起始月份</label><input id="bf-from" type="month" value="2026-01" max="' + thisYM + '"></div>' +
+            '<div class="fld"><label>結束月份</label><input id="bf-to" type="month" value="' + thisYM + '" max="' + thisYM + '"></div>' +
+        '</div>' +
+        '<div id="bf-progress" style="font-size:12px;color:var(--muted);margin:8px 0;min-height:18px"></div>' +
+        '<div class="modal-btns" style="margin-top:8px">' +
+            '<button onclick="this.closest(\'.overlay\').remove()">取消</button>' +
+            '<button class="btn-primary" id="bf-go">開始補抓</button>' +
+        '</div>' +
+        '</div>';
+    document.body.appendChild(ov);
+    var _md = false;
+    ov.addEventListener('mousedown', function(e){ _md = (e.target === ov); });
+    ov.addEventListener('click', function(e){ if (e.target === ov && _md) ov.remove(); _md = false; });
+    document.getElementById('bf-go').onclick = function() {
+        var from = document.getElementById('bf-from').value;
+        var to = document.getElementById('bf-to').value;
+        if (!from || !to) { toast('請選起訖月份'); return; }
+        if (from > to) { toast('起始月份不可晚於結束月份'); return; }
+        runBackfillHistory(from, to, [stockId], ov);
+    };
+}
+
 function runBackfillHistory(from, to, ids, ov) {
     var btn = document.getElementById('bf-go');
     var prog = document.getElementById('bf-progress');
@@ -9097,6 +9230,12 @@ function runBackfillHistory(from, to, ids, ov) {
             if (prog) prog.innerHTML = '<b style="color:var(--green)">完成</b>，共補 ' + totalAdded + ' 筆。記得按「雲端上傳」同步。';
             if (btn) { btn.disabled = false; btn.textContent = '完成 ✓'; }
             if (typeof renderStock === 'function') renderStock();
+            // 若個股 modal 開著且補的是這檔，重畫日曆／走勢分頁
+            if (document.querySelector('.stock-cal-modal-overlay') &&
+                ids.indexOf(_stockCalModalState.stockId) >= 0 &&
+                typeof _renderStockCalModalBody === 'function') {
+                _renderStockCalModalBody();
+            }
             console.log('[backfill] ' + perStock.join('\n'));
             toast('歷史價補抓完成，共 ' + totalAdded + ' 筆');
         })
