@@ -7519,8 +7519,18 @@ function showCalDaySnapshot(dateStr) {
         // 所以 atDate 收盤部位 = 今天 − 之後 buy + 之後 sell
         return cur - afterBuys + afterSells;
     }
-    // 取某日的股價（從 priceHistory；找不到就找該日之前最近一筆）
+    // 台灣今天日期
+    var _twTodayStr = _localDateStr(new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' })));
+    // 取某日的股價：
+    //   若查的是「今天」且有 Yahoo 即時價 → 用即時價（與持股總覽一致，避免收盤前後不同步）
+    //   否則用 priceHistory（找該日之前最近一筆）
     function _priceAtDate(stockId, atDate) {
+        if (atDate === _twTodayStr) {
+            var live = stockData.prices && stockData.prices[stockId];
+            if (live && typeof live.price === 'number') {
+                return { price: live.price, date: atDate, exact: true };
+            }
+        }
         var arr = (stockData.priceHistory && stockData.priceHistory[stockId]) || [];
         if (!arr.length) return null;
         var best = null;
