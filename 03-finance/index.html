@@ -9111,7 +9111,7 @@ function showBackfillHistoryModal() {
     ov.className = 'overlay';
     ov.innerHTML = '<div class="modal" style="width:520px;max-width:94vw">' +
         '<h3 style="margin:0 0 12px"><i class="ti ti-history"></i> 補歷史收盤價</h3>' +
-        '<div style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:12px">從證交所／櫃買中心補抓每日收盤價、寫進各檔的價格歷史（個股漲跌日曆、走勢圖會用到）。已存在的日期會被覆蓋為官方收盤價。</div>' +
+        '<div style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:12px">從 Yahoo 股市補抓每日收盤價、寫進各檔的價格歷史（個股漲跌日曆、走勢圖會用到）。已存在的日期會被覆蓋為 Yahoo 收盤價。</div>' +
         '<div class="row2">' +
             '<div class="fld"><label>起始月份</label><input id="bf-from" type="month" value="2026-01" max="' + thisYM + '"></div>' +
             '<div class="fld"><label>結束月份</label><input id="bf-to" type="month" value="' + thisYM + '" max="' + thisYM + '"></div>' +
@@ -9189,7 +9189,7 @@ function runStockSearch() {
     if (!from || !to) { toast('請選起訖月份'); return; }
     if (from > to) { toast('起始月份不可晚於結束月份'); return; }
     if (go) { go.disabled = true; }
-    if (prog) prog.textContent = '向證交所／櫃買中心查詢 ' + id + '（' + from + ' ~ ' + to + '）…可能需數十秒';
+    if (prog) prog.textContent = '向 Yahoo 股市查詢 ' + id + '（' + from + ' ~ ' + to + '）…可能需數十秒';
     var url = CLOUD_URL + '?action=history&format=json&ids=' + encodeURIComponent(id) +
         '&from=' + encodeURIComponent(from) + '&to=' + encodeURIComponent(to) + '&t=' + Date.now();
     fetchWithTimeout(url, {}, 120000)
@@ -9248,7 +9248,7 @@ function showStockBackfillModal(stockId) {
     ov.innerHTML = '<div class="modal" style="width:440px;max-width:94vw">' +
         '<h3 style="margin:0 0 12px"><i class="ti ti-history"></i> 補歷史收盤價</h3>' +
         '<div style="font-size:13px;margin-bottom:6px"><b>' + esc(stockId) + '</b> <span style="color:var(--muted)">' + esc(name) + '</span></div>' +
-        '<div style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:12px">從證交所／櫃買中心補抓每日收盤價、寫進這檔的價格歷史（漲跌日曆、走勢圖會用到）。已存在的日期會被覆蓋為官方收盤價。</div>' +
+        '<div style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:12px">從 Yahoo 股市補抓每日收盤價、寫進這檔的價格歷史（漲跌日曆、走勢圖會用到）。已存在的日期會被覆蓋為 Yahoo 收盤價。</div>' +
         '<div class="row2">' +
             '<div class="fld"><label>起始月份</label><input id="bf-from" type="month" value="2026-01" max="' + thisYM + '"></div>' +
             '<div class="fld"><label>結束月份</label><input id="bf-to" type="month" value="' + thisYM + '" max="' + thisYM + '"></div>' +
@@ -9277,7 +9277,7 @@ function runBackfillHistory(from, to, ids, ov) {
     var prog = document.getElementById('bf-progress');
     if (btn) { btn.disabled = true; btn.textContent = '抓取中…'; }
     ids = (ids || []).filter(Boolean);
-    if (prog) prog.textContent = '向證交所／櫃買中心查詢 ' + ids.length + ' 檔（' + from + ' ~ ' + to + '）…可能需數十秒';
+    if (prog) prog.textContent = '向 Yahoo 股市查詢 ' + ids.length + ' 檔（' + from + ' ~ ' + to + '）…可能需數十秒';
     var url = CLOUD_URL + '?action=history&format=json&ids=' + encodeURIComponent(ids.join(',')) +
         '&from=' + encodeURIComponent(from) + '&to=' + encodeURIComponent(to) + '&t=' + Date.now();
     // Apps Script 逐月逐檔抓會比較久，給長一點 timeout
@@ -9298,7 +9298,7 @@ function runBackfillHistory(from, to, ids, ov) {
                 rows.forEach(function(r){
                     if (!r || !r.date || typeof r.price !== 'number') return;
                     if (byDate[r.date] === undefined) added++;
-                    byDate[r.date] = r.price; // 覆蓋為官方收盤
+                    byDate[r.date] = r.price; // 覆蓋為 Yahoo 收盤
                 });
                 stockData.priceHistory[sid] = Object.keys(byDate).sort().map(function(d){ return { date: d, price: byDate[d] }; });
                 totalAdded += added;
