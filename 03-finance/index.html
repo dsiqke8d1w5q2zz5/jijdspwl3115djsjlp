@@ -9017,7 +9017,7 @@ function showBackfillHistoryModal() {
     // 股票勾選清單（預設全勾）
     var checkboxes = stockData.holdings.map(function(h){
         return '<label style="display:flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;background:var(--card);min-width:0;overflow:hidden">' +
-            '<input type="checkbox" class="bf-stock-cb" value="' + esc(h.id) + '" checked style="flex:0 0 auto;margin:0"> ' +
+            '<input type="checkbox" class="bf-stock-cb" value="' + esc(h.id) + '" checked style="flex:0 0 auto;width:16px;min-width:16px;margin:0;padding:0"> ' +
             '<span style="flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b>' + esc(h.id) + '</b> <span style="color:var(--muted)">' + esc(h.name || '') + '</span></span></label>';
     }).join('');
     var ov = document.createElement('div');
