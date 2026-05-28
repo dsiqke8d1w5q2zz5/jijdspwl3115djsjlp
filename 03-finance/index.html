@@ -8444,7 +8444,7 @@ function _buildStockCalendarHtml(stockId, curMonthOpt) {
     for (var i = 1; i < ph.length; i++) {
         var prevP = ph[i - 1], curP = ph[i];
         if (prevP.price > 0) {
-            dailyPnL[curP.date] = { pct: (curP.price - prevP.price) / prevP.price * 100 };
+            dailyPnL[curP.date] = { pct: (curP.price - prevP.price) / prevP.price * 100, price: curP.price };
         }
     }
     ph.forEach(function(e){ if (e.date) allMonthSet[e.date.slice(0,7)] = true; });
@@ -8458,7 +8458,7 @@ function _buildStockCalendarHtml(stockId, curMonthOpt) {
             var prevClose = todayP.price - todayP.change;
             var todayKey = _localDateStr(twNow);
             if (!dailyPnL[todayKey] && prevClose > 0) {
-                dailyPnL[todayKey] = { pct: todayP.change / prevClose * 100 };
+                dailyPnL[todayKey] = { pct: todayP.change / prevClose * 100, price: todayP.price };
                 allMonthSet[todayKey.slice(0,7)] = true;
             }
         }
@@ -8512,9 +8512,13 @@ function _buildStockCalendarHtml(stockId, curMonthOpt) {
             if (entry) {
                 weekAcc *= (1 + entry.pct / 100);
                 weekHasData = true;
+                var closeRow = (typeof entry.price === 'number')
+                    ? '<div class="cal-cell-sub" style="color:var(--muted)">收 ' + entry.price.toFixed(2) + '</div>'
+                    : '';
                 html += '<div class="cal-cell cal-cell--sm" style="background:' + _pctBg(entry.pct) + '">' +
                     '<div class="cal-cell-day">' + dayNum + '</div>' +
                     '<div class="cal-cell-main" style="color:' + signColor(entry.pct) + '">' + signPrefix(entry.pct) + entry.pct.toFixed(2) + '%</div>' +
+                    closeRow +
                     '</div>';
             } else {
                 html += '<div class="cal-cell cal-cell-blank cal-cell--sm">' + dayNum + '</div>';
@@ -8530,7 +8534,7 @@ function _buildStockCalendarHtml(stockId, curMonthOpt) {
         }
     });
     html += '</div>';
-    html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">※ 個股漲跌：純價格 % 漲跌（不含股數）。週／月為複利累加。</div>';
+    html += '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">※ 個股漲跌：純價格 % 漲跌（不含股數）。「收」為當日收盤價。週／月為複利累加。</div>';
     return html;
 }
 
