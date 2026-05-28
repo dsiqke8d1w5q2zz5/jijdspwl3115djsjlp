@@ -6901,6 +6901,11 @@ function renderReturnCalendar() {
             if (!earliestBuyDate || t.date < earliestBuyDate) earliestBuyDate = t.date;
         }
     });
+    // 使用者自訂的「報酬日曆起算日」下限：早於此日的不算入報酬日曆（不影響個股漲跌日曆）
+    var userStart = stockData.returnCalStartDate || '';
+    if (userStart) {
+        if (!earliestBuyDate || userStart > earliestBuyDate) earliestBuyDate = userStart;
+    }
 
     // 蒐集所有 priceHistory 出現過的日期（≥ earliestBuyDate）
     var dateSet = {};
@@ -7059,6 +7064,7 @@ function renderReturnCalendar() {
     html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">';
     html += '<div style="font-size:14px;font-weight:600">報酬日曆</div>';
     html += '<button onclick="openReturnCalendarMonthPicker()" style="padding:4px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--card);cursor:pointer;display:inline-flex;align-items:center;gap:6px"><span>' + curMonth + '</span><i class="ti ti-chevron-down" style="font-size:12px;color:var(--muted)"></i></button>';
+    html += '<button onclick="showReturnCalStartDialog()" title="' + (userStart ? '報酬日曆起算日：' + esc(userStart) + '（早於此日不計入）' : '設定報酬日曆起算日') + '" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;background:var(--card);cursor:pointer;display:inline-flex;align-items:center;gap:5px;color:' + (userStart ? 'var(--lux-navy)' : 'var(--muted)') + '"><i class="ti ti-calendar-cog" style="font-size:13px"></i>' + (userStart ? '<span>起算 ' + esc(userStart) + '</span>' : '<span>起算日</span>') + '</button>';
     html += '<span style="margin-left:auto;display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;align-items:baseline">';
     html += '<span>月損益 <b style="color:' + signColor(monthTotal) + ';font-size:16px">' + signedFmt(monthTotal) + '</b></span>';
     html += '<span style="font-size:12px">未實現 <b style="color:' + signColor(monthUnrealized) + '">' + signedFmt(monthUnrealized) + '</b></span>';
@@ -7442,6 +7448,46 @@ function onReturnCalendarMonthChange(m) {
         slot.innerHTML = renderReturnCalendar();
         _bindRealizedSearchEvents();
     }
+}
+
+// 設定「報酬日曆起算日」：早於此日的不計入報酬日曆（不影響個股漲跌日曆、不刪任何資料）
+function showReturnCalStartDialog() {
+    var cur = stockData.returnCalStartDate || '';
+    var ov = document.createElement('div');
+    ov.className = 'overlay';
+    ov.innerHTML = '<div class="modal" style="width:380px;max-width:94vw">' +
+        '<h3 style="margin:0 0 12px"><i class="ti ti-calendar-cog"></i> 報酬日曆起算日</h3>' +
+        '<div style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:12px">設定後，報酬日曆只從這天起算（早於這天的損益不顯示）。<b>不會刪除任何資料</b>，個股漲跌日曆與走勢圖仍顯示完整歷史。留空＝取消限制。</div>' +
+        '<label style="font-size:12px;color:var(--muted)">起算日（YYYY-MM-DD）</label>' +
+        '<input type="text" id="rc-start" placeholder="YYYY-MM-DD" value="' + esc(cur) + '">' +
+        '<div class="modal-btns" style="margin-top:12px">' +
+            '<button onclick="this.closest(\'.overlay\').remove()">取消</button>' +
+            (cur ? '<button id="rc-clear" style="color:var(--red)">清除限制</button>' : '') +
+            '<button class="btn-primary" id="rc-save">儲存</button>' +
+        '</div>' +
+        '</div>';
+    document.body.appendChild(ov);
+    bindDateInput(document.getElementById('rc-start'));
+    function _applyAndClose() {
+        saveStockData();
+        ov.remove();
+        var slot = document.getElementById('return-calendar-slot');
+        if (slot) { slot.innerHTML = renderReturnCalendar(); _bindRealizedSearchEvents(); }
+    }
+    document.getElementById('rc-save').onclick = function() {
+        var v = document.getElementById('rc-start').value.trim();
+        if (v && !/^\d{4}-\d{2}-\d{2}$/.test(v)) { toast('日期格式錯誤（YYYY-MM-DD）', true); return; }
+        if (v) stockData.returnCalStartDate = v;
+        else delete stockData.returnCalStartDate;
+        _applyAndClose();
+        toast(v ? '報酬日曆起算日：' + v + '（記得雲端上傳同步）' : '已取消起算日限制');
+    };
+    var clearBtn = document.getElementById('rc-clear');
+    if (clearBtn) clearBtn.onclick = function() {
+        delete stockData.returnCalStartDate;
+        _applyAndClose();
+        toast('已取消起算日限制');
+    };
 }
 
 // 開啟報酬日曆的月份選擇器（iOS 滾輪風格）
