@@ -3515,8 +3515,8 @@ function showThisMonth() {
 function getData() {
     const q = document.getElementById('searchInput').value.trim().toLowerCase();
     var qPhone = normalizePhone(q); // 電話正規化搜尋用
-    // 排除已刪除的資料
-    var activeDB = DB.filter(function(c){ return !c._deleted && !c._system; });
+    // 排除已刪除的資料、系統紀錄、以及範本/業績等特殊容器紀錄
+    var activeDB = DB.filter(function(c){ return !c._deleted && !c._system && !c.__perfRecords && !c.__templates && !c.__signingTemplates && !c.__otherTemplates; });
     // 本月新增模式
     if (showThisMonthMode) {
         var tm = localDateISO().slice(0,7);
@@ -3587,7 +3587,7 @@ function getData() {
         }
         // 總覽或其他：搜全部（含新增聯絡人，電話正規化比對）
         function _phoneMatch(p) { return qPhone && normalizePhone(p).includes(qPhone); }
-        if (c.name.toLowerCase().includes(q) ||
+        if ((c.name||'').toLowerCase().includes(q) ||
             _phoneMatch(c.phone) ||
             (c.llName||'').toLowerCase().includes(q) ||
             (c.ttName||'').toLowerCase().includes(q) ||
