@@ -6551,41 +6551,64 @@ function renderStockDividend() {
     html += '<span style="margin-left:auto;font-size:13px;color:var(--muted)">合計 <b style="color:var(--lux-navy);font-size:15px">$' + fmt(yearTotal) + '</b>　' + items.length + ' 筆</span>';
     html += '</div>';
 
-    // 一列的 HTML
-    function _divRow(item){
-        var d = item.d;
-        return '<tr>' +
-            '<td style="text-align:left">' + esc(_toROCDate(d.date)) + '</td>' +
-            '<td style="text-align:left">' + esc(d.stockId) + ' <span class="div-stock-name">' + esc(d.stockName) + '</span></td>' +
-            '<td>' + (d.cashPerShare > 0 ? d.cashPerShare.toFixed(3) : '-') + '</td>' +
-            '<td style="color:var(--green);font-weight:600">' + (d.cash > 0 ? fmt(d.cash) : '-') + '</td>' +
-            '<td>' + (d.stockShares > 0 ? d.stockShares + ' 股' : '-') + '</td>' +
-            '<td style="width:56px;white-space:nowrap">' +
-                '<button onclick="editDividend(' + item.idx + ')" title="編輯" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;font-size:14px;line-height:1"><i class="ti ti-pencil"></i></button>' +
-                '<button class="btn-del" onclick="deleteDividend(' + item.idx + ')"><i class="ti ti-x" style="font-size:14px"></i></button>' +
-            '</td></tr>';
-    }
-    // 一欄的表格 HTML（給一組 items）
-    function _divTable(list){
-        if (!list.length) return '<div style="flex:1 1 320px;min-width:300px"></div>';
-        var h = '<div style="flex:1 1 320px;min-width:300px"><div class="table-wrap"><table class="stock-table dividend-table"><thead><tr>' +
-            '<th>日期</th><th>股票</th><th>每股</th><th>現金</th><th>股票</th><th style="width:56px"></th>' +
-            '</tr></thead><tbody>';
-        list.forEach(function(it){ h += _divRow(it); });
-        return h + '</tbody></table></div></div>';
-    }
+    // 該年依「股票」分組，每檔一行（年合計＋筆數），點開看逐筆明細
+    var byStock = {};
+    items.forEach(function(it){
+        var sid = it.d.stockId;
+        if (!byStock[sid]) byStock[sid] = { id: sid, name: it.d.stockName || sid, list: [], cash: 0, stockShares: 0 };
+        byStock[sid].list.push(it);
+        byStock[sid].cash += (it.d.cash || 0);
+        byStock[sid].stockShares += (it.d.stockShares || 0);
+    });
+    // 各檔依現金合計由大到小；組內逐筆新→舊
+    var groups = Object.keys(byStock).map(function(k){ return byStock[k]; })
+        .sort(function(a,b){ return b.cash - a.cash; });
+    groups.forEach(function(g){ g.list.sort(function(a,b){ return (b.d.date||'').localeCompare(a.d.date||''); }); });
 
-    // 依日期新→舊排序後，左右各半（左欄前半、右欄後半），左右各約 6 筆
-    items.sort(function(a,b){ return (b.d.date||'').localeCompare(a.d.date||''); });
-    var mid = Math.ceil(items.length / 2);
-    var leftItems = items.slice(0, mid), rightItems = items.slice(mid);
+    if (!window._divExpandStock) window._divExpandStock = {};
 
-    html += '<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">';
-    html += _divTable(leftItems);
-    html += _divTable(rightItems);
+    html += '<div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">';
+    groups.forEach(function(g){
+        var key = curY + '|' + g.id;
+        var open = !!window._divExpandStock[key];
+        // 分組標題列（可點展開）
+        html += '<div onclick="toggleDivStock(\'' + esc(key) + '\')" style="display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;background:var(--card);border-bottom:1px solid var(--border)">' +
+            '<i class="ti ti-chevron-' + (open ? 'down' : 'right') + '" style="font-size:14px;color:var(--muted)"></i>' +
+            '<span style="font-weight:600"><b>' + esc(g.id) + '</b> <span style="color:var(--muted);font-size:13px;font-weight:400">' + esc(g.name) + '</span></span>' +
+            '<span style="margin-left:auto;font-size:13px;color:var(--muted)">' +
+                (g.cash > 0 ? '現金 <b style="color:var(--green)">$' + fmt(g.cash) + '</b>' : '') +
+                (g.stockShares > 0 ? '　股票 <b style="color:#7C3AED">' + fmt(g.stockShares) + ' 股</b>' : '') +
+                '　<span style="font-size:12px">' + g.list.length + ' 筆</span>' +
+            '</span></div>';
+        // 展開的逐筆明細
+        if (open) {
+            html += '<div class="table-wrap"><table class="stock-table dividend-table" style="margin:0"><thead><tr>' +
+                '<th>日期</th><th>每股配息</th><th>現金股利</th><th>股票股利</th><th style="width:56px"></th>' +
+                '</tr></thead><tbody>';
+            g.list.forEach(function(item){
+                var d = item.d;
+                html += '<tr>' +
+                    '<td style="text-align:left">' + esc(_toROCDate(d.date)) + '</td>' +
+                    '<td>' + (d.cashPerShare > 0 ? d.cashPerShare.toFixed(3) : '-') + '</td>' +
+                    '<td style="color:var(--green);font-weight:600">' + (d.cash > 0 ? fmt(d.cash) : '-') + '</td>' +
+                    '<td>' + (d.stockShares > 0 ? d.stockShares + ' 股' : '-') + '</td>' +
+                    '<td style="width:56px;white-space:nowrap">' +
+                        '<button onclick="event.stopPropagation();editDividend(' + item.idx + ')" title="編輯" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;font-size:14px;line-height:1"><i class="ti ti-pencil"></i></button>' +
+                        '<button class="btn-del" onclick="event.stopPropagation();deleteDividend(' + item.idx + ')"><i class="ti ti-x" style="font-size:14px"></i></button>' +
+                    '</td></tr>';
+            });
+            html += '</tbody></table></div>';
+        }
+    });
     html += '</div>';
 
     return html;
+}
+
+function toggleDivStock(key) {
+    if (!window._divExpandStock) window._divExpandStock = {};
+    window._divExpandStock[key] = !window._divExpandStock[key];
+    renderStock();
 }
 
 function onDivListYearChange(y) {
