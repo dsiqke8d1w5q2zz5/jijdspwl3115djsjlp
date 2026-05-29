@@ -6296,22 +6296,32 @@ function showDivMonthDetail(ym, label) {
     var ov = document.createElement('div');
     ov.className = 'overlay';
     var rows = list.map(function(x){
+        // 已公告：金額原色(navy)＋標「已公告」；純推估：金額紅色＋標「預估」
+        var amtColor = x.announced ? 'var(--lux-navy)' : '#DC2626';
+        var tag = x.announced
+            ? '<span style="font-size:11px;color:var(--green);margin-left:6px">已公告</span>'
+            : '<span style="font-size:11px;color:#DC2626;margin-left:6px">預估</span>';
+        // 有配股：股名下加一行「配股 ≈ X 股」
+        var stockLine = (x.stockShares > 0)
+            ? '<div style="font-size:11px;color:#7C3AED;margin-top:2px">配股 ≈ ' + fmt(Math.round(x.stockShares)) + ' 股</div>'
+            : '';
+        var cashCell = (x.amt > 0) ? '$' + fmt(Math.round(x.amt)) : '<span style="color:var(--muted)">—</span>';
         return '<tr style="border-bottom:1px solid var(--border)">' +
-            '<td style="text-align:left;padding:8px 4px"><b>' + esc(x.id) + '</b> <span style="color:var(--muted);font-size:12px">' + esc(x.name) + '</span></td>' +
-            '<td style="text-align:right;padding:8px 4px;color:var(--muted);font-size:12px">' + x.cpsPerTime.toFixed(3) + ' × ' + fmt(x.shares) + '</td>' +
-            '<td style="text-align:right;padding:8px 4px;font-weight:600;color:var(--lux-navy)">$' + fmt(Math.round(x.amt)) + '</td>' +
+            '<td style="text-align:left;padding:8px 4px"><b>' + esc(x.id) + '</b> <span style="color:var(--muted);font-size:12px">' + esc(x.name) + '</span>' + tag + stockLine + '</td>' +
+            '<td style="text-align:right;padding:8px 4px;color:var(--muted);font-size:12px">' + (x.cpsPerTime > 0 ? x.cpsPerTime.toFixed(3) + ' × ' + fmt(x.shares) : '—') + '</td>' +
+            '<td style="text-align:right;padding:8px 4px;font-weight:600;color:' + amtColor + '">' + cashCell + '</td>' +
             '</tr>';
     }).join('');
     ov.innerHTML = '<div class="modal" style="width:460px;max-width:92vw">' +
         '<h3 style="margin:0 0 4px"><i class="ti ti-calendar-dollar"></i> ' + esc(label) + '預估配息</h3>' +
-        '<div style="font-size:13px;color:var(--muted);margin-bottom:10px">預估合計 <b style="color:var(--lux-navy);font-size:15px">$' + fmt(Math.round(total)) + '</b>　共 ' + list.length + ' 檔</div>' +
+        '<div style="font-size:13px;color:var(--muted);margin-bottom:10px">合計 <b style="color:var(--lux-navy);font-size:15px">$' + fmt(Math.round(total)) + '</b>　共 ' + list.length + ' 檔</div>' +
         (list.length ? '<table class="stock-table" style="width:100%;font-size:13px"><thead><tr>' +
             '<th style="text-align:left;padding:6px 4px">股票</th>' +
             '<th style="text-align:right;padding:6px 4px">每股 × 股數</th>' +
-            '<th style="text-align:right;padding:6px 4px">預估金額</th>' +
+            '<th style="text-align:right;padding:6px 4px">金額</th>' +
             '</tr></thead><tbody>' + rows + '</tbody></table>'
           : '<div style="padding:20px;text-align:center;color:var(--muted)">此月無預估配息</div>') +
-        '<div style="font-size:11px;color:var(--muted);margin-top:8px">※ 以過去 12 個月實際配息推估；實際除息日／金額以公告為準。</div>' +
+        '<div style="font-size:11px;color:var(--muted);margin-top:8px">※ <span style="color:var(--green)">已公告</span>＝官方已定除息／配息；<span style="color:#DC2626">預估</span>＝以最近一次配息推估（未公告，僅供參考）。</div>' +
         '<div class="modal-btns" style="margin-top:12px"><button class="btn-primary" onclick="this.closest(\'.overlay\').remove()">關閉</button></div>' +
         '</div>';
     document.body.appendChild(ov);
@@ -6338,27 +6348,38 @@ function _buildDividendForecastHtml() {
     var oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
     var thisYear = String(now.getFullYear());
 
-    // 各檔「過去 12 個月每股配息合計」+ 出現過的除息月份（用快取，per-share）
-    var cps12 = {};   // id → 過去12月每股配息
-    var exMonths = {}; // id → { 月(1-12): true }
+    // 各檔：過去 12 個月「最近一次每股配息」(用最新公告值推估) + 年配次數 + 發放月份分布。
+    //   payMonths 用「配息日(發放)月份」歸月，反映現金何時入帳；無配息日才退回除息月。
+    var lastCps = {};      // id → 最近一次每股現金配息
+    var lastStockDiv = {}; // id → 最近一次每股配股(元/股；配股率 = /10)
+    var lastEx = {};       // id → 最近一次的除息日(判斷誰較新)
+    var freq = {};         // id → 過去12月配息次數
+    var payMonths = {};    // id → { 月(1-12): true }（發放月）
     (_dividendCacheItems || []).forEach(function(it){
         if (!it || !it.stockId || !it.exDate) return;
         var c = Number(it.cash) || 0;
-        if (c <= 0) return;
+        var sd = Number(it.stockDiv) || 0;
+        if (c <= 0 && sd <= 0) return; // 現金與配股都 0 才跳過
         var p = it.exDate.split('-');
         if (p.length !== 3) return;
         var d = new Date(+p[0], +p[1]-1, +p[2]);
         if (d < oneYearAgo || d > now) return; // 只取過去 12 個月
-        cps12[it.stockId] = (cps12[it.stockId] || 0) + c;
-        if (!exMonths[it.stockId]) exMonths[it.stockId] = {};
-        exMonths[it.stockId][+p[1]] = true;
+        var id = it.stockId;
+        freq[id] = (freq[id] || 0) + 1;
+        // 最近一次（除息日最新者）的現金與配股
+        if (!lastEx[id] || it.exDate > lastEx[id]) { lastEx[id] = it.exDate; lastCps[id] = c; lastStockDiv[id] = sd; }
+        // 發放月份：優先 payDate，否則除息月
+        var payP = (it.payDate || '').split('-');
+        var payMon = (payP.length === 3) ? +payP[1] : +p[1];
+        if (!payMonths[id]) payMonths[id] = {};
+        payMonths[id][payMon] = true;
     });
 
-    // 逐檔預估年配息 + 總市值
+    // 逐檔預估年配息（最近一次每股 × 年配次數 × 股數）+ 總市值
     var estTotal = 0, totalMarket = 0;
     holdings.forEach(function(h){
-        var cps = cps12[h.id] || 0;
-        estTotal += cps * (h.shares || 0);
+        var est = (lastCps[h.id] || 0) * (freq[h.id] || 0) * (h.shares || 0);
+        estTotal += est;
         var pr = stockData.prices && stockData.prices[h.id];
         if (pr && typeof pr.price === 'number') totalMarket += (h.shares || 0) * pr.price;
     });
@@ -6373,9 +6394,20 @@ function _buildDividendForecastHtml() {
     });
     var progPct = estTotal > 0 ? Math.min(100, receivedThisYear / estTotal * 100) : 0;
 
-    // 未來 6 個月各月預估（用各檔歷史除息月份推算該月會配，金額 = 該檔每次平均 × 股數）
+    // 已公告的未來配息（逐檔逐月）：快取中「除息日 ≥ 今天」的持股紀錄，其發放年月標為已公告。
+    // key = 'id|YYYY-M'，供明細視窗判斷該檔該月是「已公告」還是「純推估」。
+    var todayStr = _localDateStr(now);
+    var announcedKey = {};
+    (_dividendCacheItems || []).forEach(function(it){
+        if (!it || !it.stockId || !it.exDate) return;
+        if (it.exDate < todayStr) return; // 只看未來（已公告即將除息）
+        var payP = (it.payDate || it.exDate).split('-');
+        if (payP.length === 3) announcedKey[it.stockId + '|' + (+payP[0]) + '-' + (+payP[1])] = true;
+    });
+
+    // 未來 6 個月各月預估（用各檔「發放月份」推算該月會配，每次金額 = 最近一次每股 × 股數）
     var monthEst = {};    // 'YYYY-M' → 金額
-    var monthDetail = {}; // 'YYYY-M' → [{ id, name, amt, cpsPerTime, shares }]  逐檔明細
+    var monthDetail = {}; // 'YYYY-M' → [{ id, name, amt, cpsPerTime, shares, announced }]  逐檔明細
     var monthNames = [];
     for (var k = 1; k <= 6; k++) {
         var dt = new Date(now.getFullYear(), now.getMonth() + k, 1);
@@ -6385,16 +6417,17 @@ function _buildDividendForecastHtml() {
         monthDetail[ym] = [];
     }
     holdings.forEach(function(h){
-        var months = exMonths[h.id];
+        var months = payMonths[h.id];
         if (!months) return;
-        var monCount = Object.keys(months).length;
-        if (monCount === 0) return;
-        var cpsPerTime = (cps12[h.id] || 0) / monCount; // 每次每股配息
-        var perTime = cpsPerTime * (h.shares || 0);     // 每次配息估值（金額）
+        var cpsPerTime = lastCps[h.id] || 0;            // 最近一次每股現金配息
+        var sdPerShare = lastStockDiv[h.id] || 0;       // 最近一次每股配股(元/股)
+        var perTime = cpsPerTime * (h.shares || 0);     // 每次現金配息估值（金額）
+        var stockSharesEst = (sdPerShare / 10) * (h.shares || 0); // 配股率(=元/10) × 股數 = 預估配股股數
+        if (perTime <= 0 && stockSharesEst <= 0) return;
         monthNames.forEach(function(mn){
             if (months[mn.mon]) {
                 monthEst[mn.ym] += perTime;
-                monthDetail[mn.ym].push({ id: h.id, name: h.name || h.id, amt: perTime, cpsPerTime: cpsPerTime, shares: h.shares || 0 });
+                monthDetail[mn.ym].push({ id: h.id, name: h.name || h.id, amt: perTime, cpsPerTime: cpsPerTime, shares: h.shares || 0, stockShares: stockSharesEst, announced: !!announcedKey[h.id + '|' + mn.ym] });
             }
         });
     });
@@ -6427,7 +6460,7 @@ function _buildDividendForecastHtml() {
             '</div>';
     });
     html += '</div>';
-    html += '<div style="font-size:11px;opacity:.6;margin-top:8px">※ 以過去 12 個月實際配息 × 目前股數推估，僅供參考；配息會逐年增減。</div>';
+    html += '<div style="font-size:11px;opacity:.6;margin-top:8px">※ 以最近一次配息 × 目前股數推估，僅供參考；配息會逐年增減。</div>';
     html += '</div>';
     return html;
 }
