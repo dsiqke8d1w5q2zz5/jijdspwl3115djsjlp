@@ -8395,7 +8395,7 @@ function onStockDivYearChange(y) {
 function _buildStockDividendsHtml(stockId) {
     var byEx = {}; // 除息日 → { date, cps, stockDiv, payDate }
 
-    // 快取為準：先放快取（市場資料：含股票股利、配息日，覆蓋最完整）
+    // 快取（市場資料：含股票股利、配息日，覆蓋最完整且乾淨）
     (_dividendCacheItems || []).forEach(function(it){
         if (!it || it.stockId !== stockId || !it.exDate) return;
         if (!byEx[it.exDate]) byEx[it.exDate] = { date: it.exDate, cps: 0, stockDiv: 0, payDate: '' };
@@ -8405,33 +8405,17 @@ function _buildStockDividendsHtml(stockId) {
         if (it.payDate && !e.payDate) e.payDate = it.payDate;
     });
 
-    // 日期字串(YYYY-MM-DD)相差天數
-    function _dayDiff(a, b) {
-        var pa = a.split('-'), pb = b.split('-');
-        var da = new Date(+pa[0], +pa[1]-1, +pa[2]).getTime();
-        var db = new Date(+pb[0], +pb[1]-1, +pb[2]).getTime();
-        return Math.abs(da - db) / 86400000;
-    }
-    // 再放手記：除息日若落在任一快取筆 ±7 天內，視為同一次配息（校正每股值，不新增）；
-    // 否則才當作快取沒有的、獨立加入。
-    var cacheDates = Object.keys(byEx);
-    (stockData.dividends || []).forEach(function(d){
-        if (d.stockId !== stockId || !d.date) return;
-        var cps = Number(d.cashPerShare) || 0;
-        // 找最接近的快取除息日（±7 天內）
-        var matched = '';
-        for (var i = 0; i < cacheDates.length; i++) {
-            if (_dayDiff(d.date, cacheDates[i]) <= 7) { matched = cacheDates[i]; break; }
-        }
-        if (matched) {
-            // 同一次配息：手記每股值優先（你校過的）
-            if (cps > 0) byEx[matched].cps = cps;
-        } else {
-            // 快取完全沒有 → 用手記獨立加入
+    // 該股只要快取有任何資料就完全以快取為準（避免手記除息日對不齊污染）；
+    // 只有「快取完全沒這檔」時才退回用手記墊底。
+    var hasCache = Object.keys(byEx).length > 0;
+    if (!hasCache) {
+        (stockData.dividends || []).forEach(function(d){
+            if (d.stockId !== stockId || !d.date) return;
             if (!byEx[d.date]) byEx[d.date] = { date: d.date, cps: 0, stockDiv: 0, payDate: '' };
+            var cps = Number(d.cashPerShare) || 0;
             if (cps > 0) byEx[d.date].cps = cps;
-        }
-    });
+        });
+    }
 
     // 過濾現金與股票都為 0 的空筆
     var all = Object.keys(byEx).map(function(k){ return byEx[k]; })
