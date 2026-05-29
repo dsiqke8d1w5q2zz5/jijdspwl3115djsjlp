@@ -6394,14 +6394,16 @@ function _buildDividendForecastHtml() {
     });
     var progPct = estTotal > 0 ? Math.min(100, receivedThisYear / estTotal * 100) : 0;
 
-    // 已公告的未來配息（逐檔逐月）：快取中「除息日 ≥ 今天」的持股紀錄，其發放年月標為已公告。
+    // 已公告的未來配息（逐檔逐月）：快取中「尚未入帳」的持股紀錄（配息日≥今天；無配息日則除息日≥今天），
+    // 其發放年月標為已公告。涵蓋「已除息、待發放」的情況（如月配 ETF 除息已過、配息日未到）。
     // key = 'id|YYYY-M'，供明細視窗判斷該檔該月是「已公告」還是「純推估」。
     var todayStr = _localDateStr(now);
     var announcedKey = {};
     (_dividendCacheItems || []).forEach(function(it){
         if (!it || !it.stockId || !it.exDate) return;
-        if (it.exDate < todayStr) return; // 只看未來（已公告即將除息）
-        var payP = (it.payDate || it.exDate).split('-');
+        var refDate = it.payDate || it.exDate; // 以「實際入帳日」為準，沒配息日才退回除息日
+        if (refDate < todayStr) return;        // 已入帳/過期的不算「未來已公告」
+        var payP = refDate.split('-');
         if (payP.length === 3) announcedKey[it.stockId + '|' + (+payP[0]) + '-' + (+payP[1])] = true;
     });
 
