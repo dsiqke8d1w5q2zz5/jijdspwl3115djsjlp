@@ -8392,6 +8392,16 @@ function _buildStockDividendsHtml(stockId) {
     // 新→舊
     records.sort(function(a, b){ return (b.date || '').localeCompare(a.date || ''); });
 
+    // 發放日對照：用除權息快取（MoneyDJ 來源，多為 ETF）以「除息日 → 配息日」比對，補進顯示。
+    // 個股快取通常沒配息日，對不到就留空。
+    var payByExDate = {};
+    (_dividendCacheItems || []).forEach(function(it){
+        if (it && it.stockId === stockId && it.exDate && it.payDate) {
+            payByExDate[it.exDate] = it.payDate;
+        }
+    });
+    var hasPayCol = records.some(function(d){ return payByExDate[d.date]; });
+
     // 分年；只統計「每股配息」（不含股數，不會因股數調整失真）
     var byYear = {};
     records.forEach(function(d){
@@ -8411,11 +8421,14 @@ function _buildStockDividendsHtml(stockId) {
             '<span style="font-size:12px;font-weight:400;color:var(--muted);margin-left:8px">每股合計 ' + g.cps.toFixed(3) + '　(' + g.items.length + ' 筆)</span></div>';
         html += '<table class="stock-table" style="width:100%;font-size:13px"><thead><tr>' +
             '<th style="text-align:left;padding:6px 4px">除息日</th>' +
+            (hasPayCol ? '<th style="text-align:left;padding:6px 4px">發放日</th>' : '') +
             '<th style="text-align:right;padding:6px 4px">每股配息</th>' +
             '</tr></thead><tbody>';
         g.items.forEach(function(d){
+            var pay = payByExDate[d.date];
             html += '<tr style="border-bottom:1px solid var(--border)">' +
                 '<td style="text-align:left;padding:6px 4px">' + esc(_toROCDate(d.date) || '—') + '</td>' +
+                (hasPayCol ? '<td style="text-align:left;padding:6px 4px;color:var(--muted)">' + (pay ? esc(_toROCDate(pay)) : '—') + '</td>' : '') +
                 '<td style="text-align:right;padding:6px 4px;color:var(--lux-navy);font-weight:600">' + (d.cashPerShare > 0 ? d.cashPerShare.toFixed(3) : '-') + '</td>' +
                 '</tr>';
         });
