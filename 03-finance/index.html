@@ -8336,6 +8336,7 @@ function _renderStockCalModalTabs() {
     var tradeCount = (stockData.trades || []).filter(function(t){
         return (t.type === 'buy' || t.type === 'sell') && t.id === stockId;
     }).length;
+    var divCount = (stockData.dividends || []).filter(function(d){ return d.stockId === stockId; }).length;
     var cur = _stockCalModalState.tab;
     function _tab(key, label, badge) {
         var active = cur === key;
@@ -8345,7 +8346,9 @@ function _renderStockCalModalTabs() {
         return '<button type="button" onclick="switchStockCalTab(\'' + key + '\')" style="' + style + '">' + label +
             (badge ? '<span style="margin-left:6px;font-size:11px;color:var(--muted)">' + badge + '</span>' : '') + '</button>';
     }
-    tabsBox.innerHTML = _tab('calendar', '漲跌日曆') + _tab('trend', '走勢') + _tab('trades', '交易紀錄', tradeCount > 0 ? tradeCount : '');
+    tabsBox.innerHTML = _tab('calendar', '漲跌日曆') + _tab('trend', '走勢') +
+        _tab('dividends', '歷史配息', divCount > 0 ? divCount : '') +
+        _tab('trades', '交易紀錄', tradeCount > 0 ? tradeCount : '');
 }
 
 function switchStockCalTab(tab) {
@@ -8364,6 +8367,8 @@ function _renderStockCalModalBody() {
     var tab = _stockCalModalState.tab;
     if (tab === 'trades') {
         box.innerHTML = _buildStockTradesHtml(_stockCalModalState.stockId);
+    } else if (tab === 'dividends') {
+        box.innerHTML = _buildStockDividendsHtml(_stockCalModalState.stockId);
     } else if (tab === 'trend') {
         box.innerHTML = _buildStockTrendHtml(_stockCalModalState.stockId);
         // 走勢分頁需要在 HTML 注入後才能畫圖
@@ -8376,6 +8381,47 @@ function _renderStockCalModalBody() {
 function onStockCalMonthChange(m) {
     _stockCalModalState.month = m;
     _renderStockCalModalBody();
+}
+
+// 單股歷史配息（個股 modal 的「歷史配息」分頁；資料來自 stockData.dividends，使用者手記）
+function _buildStockDividendsHtml(stockId) {
+    var records = (stockData.dividends || []).filter(function(d){ return d.stockId === stockId; });
+    if (records.length === 0) {
+        return '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">尚無配息紀錄。<br>在「股利紀錄」分頁用 <i class="ti ti-plus"></i> 新增股利，會記在這裡。</div>';
+    }
+    // 新→舊
+    records.sort(function(a, b){ return (b.date || '').localeCompare(a.date || ''); });
+
+    // 分年；只統計「每股配息」（不含股數，不會因股數調整失真）
+    var byYear = {};
+    records.forEach(function(d){
+        var y = d.date ? d.date.substring(0,4) : '未知';
+        if (!byYear[y]) byYear[y] = { items: [], cps: 0 };
+        byYear[y].items.push(d);
+        byYear[y].cps += (d.cashPerShare || 0);
+    });
+    var years = Object.keys(byYear).sort(function(a, b){ return b.localeCompare(a); });
+    function _yearROC(y){ var n = parseInt(y,10); return isNaN(n) ? y : (n - 1911); }
+
+    var html = '<div style="font-size:13px;color:var(--muted);margin-bottom:10px">共 ' + records.length + ' 筆配息紀錄</div>';
+
+    years.forEach(function(y){
+        var g = byYear[y];
+        html += '<div style="font-weight:700;color:var(--lux-navy);margin:12px 0 4px;font-size:13px">' + _yearROC(y) + ' 年' +
+            '<span style="font-size:12px;font-weight:400;color:var(--muted);margin-left:8px">每股合計 ' + g.cps.toFixed(3) + '　(' + g.items.length + ' 筆)</span></div>';
+        html += '<table class="stock-table" style="width:100%;font-size:13px"><thead><tr>' +
+            '<th style="text-align:left;padding:6px 4px">除息日</th>' +
+            '<th style="text-align:right;padding:6px 4px">每股配息</th>' +
+            '</tr></thead><tbody>';
+        g.items.forEach(function(d){
+            html += '<tr style="border-bottom:1px solid var(--border)">' +
+                '<td style="text-align:left;padding:6px 4px">' + esc(_toROCDate(d.date) || '—') + '</td>' +
+                '<td style="text-align:right;padding:6px 4px;color:var(--lux-navy);font-weight:600">' + (d.cashPerShare > 0 ? d.cashPerShare.toFixed(3) : '-') + '</td>' +
+                '</tr>';
+        });
+        html += '</tbody></table>';
+    });
+    return html;
 }
 
 // 單股交易紀錄（buy + sell）
