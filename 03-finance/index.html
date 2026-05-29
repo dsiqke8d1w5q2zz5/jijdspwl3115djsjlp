@@ -8389,32 +8389,52 @@ function onStockDivYearChange(y) {
     _renderStockCalModalBody();
 }
 
-// 單股歷史配息（個股 modal 的「歷史配息」分頁；資料來自 stockData.dividends，使用者手記）
+// 單股歷史配息（個股 modal 的「歷史配息」分頁）。
+// 合併兩來源：除權息快取（FinMind/Yahoo/MoneyDJ，含股票股利、配息日）+ 你手記的股利。
+// 以「除息日」去重；每股配息優先用手記值，股票股利／配息日用快取。
 function _buildStockDividendsHtml(stockId) {
-    var records = (stockData.dividends || []).filter(function(d){ return d.stockId === stockId; });
-    if (records.length === 0) {
-        return '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">尚無配息紀錄。<br>在「股利紀錄」分頁用 <i class="ti ti-plus"></i> 新增股利，會記在這裡。</div>';
+    var byEx = {}; // 除息日 → { date, cps, stockDiv, payDate }
+    function _put(date, cps, stockDiv, payDate) {
+        if (!date) return;
+        if (!byEx[date]) byEx[date] = { date: date, cps: 0, stockDiv: 0, payDate: '' };
+        var e = byEx[date];
+        if (cps > 0) e.cps = cps;             // 每股配息（手記優先，見下方順序）
+        if (stockDiv > 0) e.stockDiv = stockDiv;
+        if (payDate && !e.payDate) e.payDate = payDate;
     }
-    // 新→舊
-    records.sort(function(a, b){ return (b.date || '').localeCompare(a.date || ''); });
-
-    // 發放日對照：用除權息快取（MoneyDJ 來源，多為 ETF）以「除息日 → 配息日」比對，補進顯示。
-    // 個股快取通常沒配息日，對不到就留空。
-    var payByExDate = {};
+    // 先放快取（市場資料：含股票股利、配息日）
     (_dividendCacheItems || []).forEach(function(it){
-        if (it && it.stockId === stockId && it.exDate && it.payDate) {
-            payByExDate[it.exDate] = it.payDate;
-        }
+        if (!it || it.stockId !== stockId || !it.exDate) return;
+        _put(it.exDate, Number(it.cash) || 0, Number(it.stockDiv) || 0, it.payDate || '');
     });
-    var hasPayCol = records.some(function(d){ return payByExDate[d.date]; });
+    // 再放手記（每股配息以你校過的為準，會覆蓋快取的 cps）
+    (stockData.dividends || []).forEach(function(d){
+        if (d.stockId !== stockId || !d.date) return;
+        _put(d.date, Number(d.cashPerShare) || 0, 0, '');
+    });
 
-    // 分年；只統計「每股配息」（不含股數，不會因股數調整失真）
+    // 過濾現金與股票都為 0 的空筆
+    var all = Object.keys(byEx).map(function(k){ return byEx[k]; })
+        .filter(function(e){ return e.cps > 0 || e.stockDiv > 0; });
+
+    if (all.length === 0) {
+        return '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">尚無配息紀錄。<br>市場資料每日自動更新；也可在「股利紀錄」分頁手動新增。</div>';
+    }
+
+    var hasPayCol = all.some(function(e){ return e.payDate; });
+    var hasStockCol = all.some(function(e){ return e.stockDiv > 0; });
+
+    // 分年
     var byYear = {};
-    records.forEach(function(d){
-        var y = d.date ? d.date.substring(0,4) : '未知';
-        if (!byYear[y]) byYear[y] = { items: [], cps: 0 };
-        byYear[y].items.push(d);
-        byYear[y].cps += (d.cashPerShare || 0);
+    all.forEach(function(e){
+        var y = e.date.substring(0,4);
+        if (!byYear[y]) byYear[y] = { items: [], cps: 0, stockDiv: 0 };
+        byYear[y].items.push(e);
+        byYear[y].cps += e.cps;
+        byYear[y].stockDiv += e.stockDiv;
+    });
+    Object.keys(byYear).forEach(function(y){
+        byYear[y].items.sort(function(a, b){ return b.date.localeCompare(a.date); }); // 年內新→舊
     });
     var years = Object.keys(byYear).sort(function(a, b){ return b.localeCompare(a); }); // 新→舊
     function _yearROC(y){ var n = parseInt(y,10); return isNaN(n) ? y : (n - 1911); }
@@ -8435,6 +8455,8 @@ function _buildStockDividendsHtml(stockId) {
     var arrowOff = arrowBase + ';opacity:0.3;cursor:not-allowed';
 
     var g = byYear[curYear];
+    var sumLabel = '每股合計 <b style="color:var(--lux-navy);font-size:15px">' + g.cps.toFixed(3) + '</b>';
+    if (g.stockDiv > 0) sumLabel += '　配股 <b style="color:var(--lux-navy)">' + g.stockDiv.toFixed(3) + '</b>';
     var html = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">';
     html += prevYear
         ? '<button type="button" onclick="onStockDivYearChange(\'' + prevYear + '\')" title="上一年" style="' + arrowOn + '"><i class="ti ti-chevron-left"></i></button>'
@@ -8443,20 +8465,21 @@ function _buildStockDividendsHtml(stockId) {
     html += nextYear
         ? '<button type="button" onclick="onStockDivYearChange(\'' + nextYear + '\')" title="下一年" style="' + arrowOn + '"><i class="ti ti-chevron-right"></i></button>'
         : '<button type="button" disabled style="' + arrowOff + '"><i class="ti ti-chevron-right"></i></button>';
-    html += '<span style="margin-left:auto;font-size:13px;color:var(--muted)">每股合計 <b style="color:var(--lux-navy);font-size:15px">' + g.cps.toFixed(3) + '</b>　' + g.items.length + ' 筆</span>';
+    html += '<span style="margin-left:auto;font-size:13px;color:var(--muted)">' + sumLabel + '　' + g.items.length + ' 筆</span>';
     html += '</div>';
 
     html += '<table class="stock-table" style="width:100%;font-size:13px"><thead><tr>' +
         '<th style="text-align:left;padding:6px 4px">除息日</th>' +
         (hasPayCol ? '<th style="text-align:left;padding:6px 4px">發放日</th>' : '') +
         '<th style="text-align:right;padding:6px 4px">每股配息</th>' +
+        (hasStockCol ? '<th style="text-align:right;padding:6px 4px">股票股利</th>' : '') +
         '</tr></thead><tbody>';
-    g.items.forEach(function(d){
-        var pay = payByExDate[d.date];
+    g.items.forEach(function(e){
         html += '<tr style="border-bottom:1px solid var(--border)">' +
-            '<td style="text-align:left;padding:6px 4px">' + esc(_toROCDate(d.date) || '—') + '</td>' +
-            (hasPayCol ? '<td style="text-align:left;padding:6px 4px;color:var(--muted)">' + (pay ? esc(_toROCDate(pay)) : '—') + '</td>' : '') +
-            '<td style="text-align:right;padding:6px 4px;color:var(--lux-navy);font-weight:600">' + (d.cashPerShare > 0 ? d.cashPerShare.toFixed(3) : '-') + '</td>' +
+            '<td style="text-align:left;padding:6px 4px">' + esc(_toROCDate(e.date) || '—') + '</td>' +
+            (hasPayCol ? '<td style="text-align:left;padding:6px 4px;color:var(--muted)">' + (e.payDate ? esc(_toROCDate(e.payDate)) : '—') + '</td>' : '') +
+            '<td style="text-align:right;padding:6px 4px;color:var(--lux-navy);font-weight:600">' + (e.cps > 0 ? e.cps.toFixed(3) : '-') + '</td>' +
+            (hasStockCol ? '<td style="text-align:right;padding:6px 4px;color:var(--green);font-weight:600">' + (e.stockDiv > 0 ? e.stockDiv.toFixed(3) : '-') + '</td>' : '') +
             '</tr>';
     });
     html += '</tbody></table>';
