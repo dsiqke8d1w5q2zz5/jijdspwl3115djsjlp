@@ -6293,6 +6293,15 @@ function _buildDividendForecastHtml() {
     var holdings = (stockData.holdings || []).filter(function(h){ return (h.shares || 0) > 0; });
     if (holdings.length === 0) return '';
 
+    // 除權息快取尚未載入完成時，先顯示「計算中」占位，避免用不完整資料算出偏低/閃動的數字。
+    // 快取載入完成後 checkDividendAlerts 會觸發 renderStock 重畫，屆時才顯示正確值。
+    if (typeof _dividendAlertChecked !== 'undefined' && !_dividendAlertChecked) {
+        return '<div style="background:linear-gradient(135deg,#0f2847 0%,#1a3a5c 100%);color:#fff;border-radius:var(--radius);padding:14px 18px;margin-bottom:12px;box-shadow:var(--shadow);display:flex;align-items:center;gap:10px">' +
+            '<i class="ti ti-loader-2" style="animation:div-spin 1s linear infinite;display:inline-block;font-size:18px;color:var(--lux-gold)"></i>' +
+            '<span style="font-size:14px;opacity:.9">全年配息預估計算中…（等除權息資料載入）</span>' +
+            '</div>';
+    }
+
     var now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
     var oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
     var thisYear = String(now.getFullYear());
