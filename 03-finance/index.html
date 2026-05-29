@@ -8287,7 +8287,7 @@ function _initStockTrendChart(stockId) {
 }
 
 // 個股 modal：三個分頁（漲跌日曆 / 交易紀錄 / 走勢）
-var _stockCalModalState = { stockId: '', month: null, tab: 'calendar' }; // tab: 'calendar' | 'trades' | 'trend'
+var _stockCalModalState = { stockId: '', month: null, tab: 'calendar', divYear: null }; // tab: 'calendar' | 'trades' | 'trend' | 'dividends'；divYear: 歷史配息選定年份(西元字串)，null=預設
 function showStockCalendarModal(stockId, initialTab) {
     // 關掉舊的走勢 modal（向後相容）
     var trendOv = document.querySelector('.stock-price-trend-overlay');
@@ -8298,6 +8298,7 @@ function showStockCalendarModal(stockId, initialTab) {
     var name = holding ? (holding.name || stockId) : stockId;
     _stockCalModalState.stockId = stockId;
     _stockCalModalState.month = null;
+    _stockCalModalState.divYear = null;
     _stockCalModalState.tab = initialTab || 'calendar';
 
     var ov = document.createElement('div');
@@ -8383,6 +8384,11 @@ function onStockCalMonthChange(m) {
     _renderStockCalModalBody();
 }
 
+function onStockDivYearChange(y) {
+    _stockCalModalState.divYear = y;
+    _renderStockCalModalBody();
+}
+
 // 單股歷史配息（個股 modal 的「歷史配息」分頁；資料來自 stockData.dividends，使用者手記）
 function _buildStockDividendsHtml(stockId) {
     var records = (stockData.dividends || []).filter(function(d){ return d.stockId === stockId; });
@@ -8410,30 +8416,50 @@ function _buildStockDividendsHtml(stockId) {
         byYear[y].items.push(d);
         byYear[y].cps += (d.cashPerShare || 0);
     });
-    var years = Object.keys(byYear).sort(function(a, b){ return b.localeCompare(a); });
+    var years = Object.keys(byYear).sort(function(a, b){ return b.localeCompare(a); }); // 新→舊
     function _yearROC(y){ var n = parseInt(y,10); return isNaN(n) ? y : (n - 1911); }
 
-    var html = '<div style="font-size:13px;color:var(--muted);margin-bottom:10px">共 ' + records.length + ' 筆配息紀錄</div>';
+    // 選定年份：優先用使用者切換的；否則預設今年（若有），再否則最新有資料的年
+    var thisYear = String(new Date().getFullYear());
+    var curYear = _stockCalModalState.divYear;
+    if (!curYear || years.indexOf(curYear) < 0) {
+        curYear = (years.indexOf(thisYear) >= 0) ? thisYear : years[0];
+    }
 
-    years.forEach(function(y){
-        var g = byYear[y];
-        html += '<div style="font-weight:700;color:var(--lux-navy);margin:12px 0 4px;font-size:13px">' + _yearROC(y) + ' 年' +
-            '<span style="font-size:12px;font-weight:400;color:var(--muted);margin-left:8px">每股合計 ' + g.cps.toFixed(3) + '　(' + g.items.length + ' 筆)</span></div>';
-        html += '<table class="stock-table" style="width:100%;font-size:13px"><thead><tr>' +
-            '<th style="text-align:left;padding:6px 4px">除息日</th>' +
-            (hasPayCol ? '<th style="text-align:left;padding:6px 4px">發放日</th>' : '') +
-            '<th style="text-align:right;padding:6px 4px">每股配息</th>' +
-            '</tr></thead><tbody>';
-        g.items.forEach(function(d){
-            var pay = payByExDate[d.date];
-            html += '<tr style="border-bottom:1px solid var(--border)">' +
-                '<td style="text-align:left;padding:6px 4px">' + esc(_toROCDate(d.date) || '—') + '</td>' +
-                (hasPayCol ? '<td style="text-align:left;padding:6px 4px;color:var(--muted)">' + (pay ? esc(_toROCDate(pay)) : '—') + '</td>' : '') +
-                '<td style="text-align:right;padding:6px 4px;color:var(--lux-navy);font-weight:600">' + (d.cashPerShare > 0 ? d.cashPerShare.toFixed(3) : '-') + '</td>' +
-                '</tr>';
-        });
-        html += '</tbody></table>';
+    // 年份左右切換（years 為新→舊：上一年=較舊=index+1、下一年=較新=index-1）
+    var curIdx = years.indexOf(curYear);
+    var prevYear = (curIdx >= 0 && curIdx < years.length - 1) ? years[curIdx + 1] : '';
+    var nextYear = (curIdx > 0) ? years[curIdx - 1] : '';
+    var arrowBase = 'flex:0 0 auto;width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:8px;background:var(--card);font-size:16px;color:var(--text)';
+    var arrowOn = arrowBase + ';cursor:pointer';
+    var arrowOff = arrowBase + ';opacity:0.3;cursor:not-allowed';
+
+    var g = byYear[curYear];
+    var html = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">';
+    html += prevYear
+        ? '<button type="button" onclick="onStockDivYearChange(\'' + prevYear + '\')" title="上一年" style="' + arrowOn + '"><i class="ti ti-chevron-left"></i></button>'
+        : '<button type="button" disabled style="' + arrowOff + '"><i class="ti ti-chevron-left"></i></button>';
+    html += '<div style="min-width:120px;height:34px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:8px;background:var(--card);font-size:15px;font-weight:600;color:var(--text)">' + _yearROC(curYear) + ' 年</div>';
+    html += nextYear
+        ? '<button type="button" onclick="onStockDivYearChange(\'' + nextYear + '\')" title="下一年" style="' + arrowOn + '"><i class="ti ti-chevron-right"></i></button>'
+        : '<button type="button" disabled style="' + arrowOff + '"><i class="ti ti-chevron-right"></i></button>';
+    html += '<span style="margin-left:auto;font-size:13px;color:var(--muted)">每股合計 <b style="color:var(--lux-navy);font-size:15px">' + g.cps.toFixed(3) + '</b>　' + g.items.length + ' 筆</span>';
+    html += '</div>';
+
+    html += '<table class="stock-table" style="width:100%;font-size:13px"><thead><tr>' +
+        '<th style="text-align:left;padding:6px 4px">除息日</th>' +
+        (hasPayCol ? '<th style="text-align:left;padding:6px 4px">發放日</th>' : '') +
+        '<th style="text-align:right;padding:6px 4px">每股配息</th>' +
+        '</tr></thead><tbody>';
+    g.items.forEach(function(d){
+        var pay = payByExDate[d.date];
+        html += '<tr style="border-bottom:1px solid var(--border)">' +
+            '<td style="text-align:left;padding:6px 4px">' + esc(_toROCDate(d.date) || '—') + '</td>' +
+            (hasPayCol ? '<td style="text-align:left;padding:6px 4px;color:var(--muted)">' + (pay ? esc(_toROCDate(pay)) : '—') + '</td>' : '') +
+            '<td style="text-align:right;padding:6px 4px;color:var(--lux-navy);font-weight:600">' + (d.cashPerShare > 0 ? d.cashPerShare.toFixed(3) : '-') + '</td>' +
+            '</tr>';
     });
+    html += '</tbody></table>';
     return html;
 }
 
