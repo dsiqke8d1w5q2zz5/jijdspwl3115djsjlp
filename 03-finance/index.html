@@ -6288,6 +6288,38 @@ function showStockDividendHistory(stockId) {
     document.body.appendChild(ov);
 }
 
+// 配息預估：各月逐檔明細（key 'YYYY-M' → [{id,name,amt,cpsPerTime,shares}]），供月份點擊視窗用
+var _divForecastDetail = {};
+function showDivMonthDetail(ym, label) {
+    var list = (_divForecastDetail && _divForecastDetail[ym]) || [];
+    var total = list.reduce(function(s, x){ return s + x.amt; }, 0);
+    var ov = document.createElement('div');
+    ov.className = 'overlay';
+    var rows = list.map(function(x){
+        return '<tr style="border-bottom:1px solid var(--border)">' +
+            '<td style="text-align:left;padding:8px 4px"><b>' + esc(x.id) + '</b> <span style="color:var(--muted);font-size:12px">' + esc(x.name) + '</span></td>' +
+            '<td style="text-align:right;padding:8px 4px;color:var(--muted);font-size:12px">' + x.cpsPerTime.toFixed(3) + ' × ' + fmt(x.shares) + '</td>' +
+            '<td style="text-align:right;padding:8px 4px;font-weight:600;color:var(--lux-navy)">$' + fmt(Math.round(x.amt)) + '</td>' +
+            '</tr>';
+    }).join('');
+    ov.innerHTML = '<div class="modal" style="width:460px;max-width:92vw">' +
+        '<h3 style="margin:0 0 4px"><i class="ti ti-calendar-dollar"></i> ' + esc(label) + '預估配息</h3>' +
+        '<div style="font-size:13px;color:var(--muted);margin-bottom:10px">預估合計 <b style="color:var(--lux-navy);font-size:15px">$' + fmt(Math.round(total)) + '</b>　共 ' + list.length + ' 檔</div>' +
+        (list.length ? '<table class="stock-table" style="width:100%;font-size:13px"><thead><tr>' +
+            '<th style="text-align:left;padding:6px 4px">股票</th>' +
+            '<th style="text-align:right;padding:6px 4px">每股 × 股數</th>' +
+            '<th style="text-align:right;padding:6px 4px">預估金額</th>' +
+            '</tr></thead><tbody>' + rows + '</tbody></table>'
+          : '<div style="padding:20px;text-align:center;color:var(--muted)">此月無預估配息</div>') +
+        '<div style="font-size:11px;color:var(--muted);margin-top:8px">※ 以過去 12 個月實際配息推估；實際除息日／金額以公告為準。</div>' +
+        '<div class="modal-btns" style="margin-top:12px"><button class="btn-primary" onclick="this.closest(\'.overlay\').remove()">關閉</button></div>' +
+        '</div>';
+    document.body.appendChild(ov);
+    var _md = false;
+    ov.addEventListener('mousedown', function(e){ _md = (e.target === ov); });
+    ov.addEventListener('click', function(e){ if (e.target === ov && _md) ov.remove(); _md = false; });
+}
+
 // 全年配息預估卡片：以「過去 12 個月每股實配 × 現股數」逐檔推估未來一年領息（參考值）
 function _buildDividendForecastHtml() {
     var holdings = (stockData.holdings || []).filter(function(h){ return (h.shares || 0) > 0; });
@@ -6342,24 +6374,35 @@ function _buildDividendForecastHtml() {
     var progPct = estTotal > 0 ? Math.min(100, receivedThisYear / estTotal * 100) : 0;
 
     // 未來 6 個月各月預估（用各檔歷史除息月份推算該月會配，金額 = 該檔每次平均 × 股數）
-    var monthEst = {}; // 'YYYY-M' → 金額
+    var monthEst = {};    // 'YYYY-M' → 金額
+    var monthDetail = {}; // 'YYYY-M' → [{ id, name, amt, cpsPerTime, shares }]  逐檔明細
     var monthNames = [];
     for (var k = 1; k <= 6; k++) {
         var dt = new Date(now.getFullYear(), now.getMonth() + k, 1);
         var ym = dt.getFullYear() + '-' + (dt.getMonth() + 1);
         monthNames.push({ ym: ym, mon: dt.getMonth() + 1, label: (dt.getMonth() + 1) + '月' });
         monthEst[ym] = 0;
+        monthDetail[ym] = [];
     }
     holdings.forEach(function(h){
         var months = exMonths[h.id];
         if (!months) return;
         var monCount = Object.keys(months).length;
         if (monCount === 0) return;
-        var perTime = (cps12[h.id] || 0) / monCount * (h.shares || 0); // 每次配息估值
+        var cpsPerTime = (cps12[h.id] || 0) / monCount; // 每次每股配息
+        var perTime = cpsPerTime * (h.shares || 0);     // 每次配息估值（金額）
         monthNames.forEach(function(mn){
-            if (months[mn.mon]) monthEst[mn.ym] += perTime;
+            if (months[mn.mon]) {
+                monthEst[mn.ym] += perTime;
+                monthDetail[mn.ym].push({ id: h.id, name: h.name || h.id, amt: perTime, cpsPerTime: cpsPerTime, shares: h.shares || 0 });
+            }
         });
     });
+    // 存到全域供月份明細視窗使用（金額由大到小）
+    Object.keys(monthDetail).forEach(function(ym){
+        monthDetail[ym].sort(function(a,b){ return b.amt - a.amt; });
+    });
+    _divForecastDetail = monthDetail;
 
     var html = '<div style="position:sticky;top:0;z-index:5;background:linear-gradient(135deg,#0f2847 0%,#1a3a5c 100%);color:#fff;border-radius:var(--radius);padding:14px 18px;margin-bottom:12px;box-shadow:var(--shadow)">';
     html += '<div style="display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:8px">';
@@ -6374,8 +6417,12 @@ function _buildDividendForecastHtml() {
     html += '<div style="display:flex;gap:6px;flex-wrap:wrap">';
     monthNames.forEach(function(mn){
         var amt = Math.round(monthEst[mn.ym]);
-        html += '<div style="flex:1 1 90px;min-width:80px;background:rgba(255,255,255,.08);border-radius:8px;padding:6px 8px;text-align:center">' +
-            '<div style="font-size:11px;opacity:.75">' + mn.label + '</div>' +
+        var clickable = amt > 0;
+        var cellStyle = 'flex:1 1 90px;min-width:80px;background:rgba(255,255,255,.08);border-radius:8px;padding:6px 8px;text-align:center';
+        if (clickable) cellStyle += ';cursor:pointer';
+        var attr = clickable ? ' onclick="showDivMonthDetail(\'' + mn.ym + '\',\'' + mn.label + '\')" title="點看 ' + mn.label + '配息明細"' : '';
+        html += '<div style="' + cellStyle + '"' + attr + '>' +
+            '<div style="font-size:11px;opacity:.75">' + mn.label + (clickable ? ' <i class="ti ti-chevron-right" style="font-size:10px;opacity:.6"></i>' : '') + '</div>' +
             '<div style="font-size:14px;font-weight:600;color:' + (amt > 0 ? 'var(--lux-gold)' : 'rgba(255,255,255,.4)') + '">' + (amt > 0 ? '$' + fmt(amt) : '—') + '</div>' +
             '</div>';
     });
