@@ -6322,11 +6322,9 @@ function renderStockDividend() {
     stockData.holdings.forEach(function(h) {
         var t = totals[h.id];
         if (t.sum <= 0) return;
-        // 累積模式才能點看歷史
-        var clickable = mode === 'cumulative';
-        var cardStyle = 'padding:3px 14px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);font-size:13px';
-        if (clickable) cardStyle += ';cursor:pointer';
-        var onClickAttr = clickable ? ' onclick="showStockDividendHistory(' + escJs(h.id) + ')" title="點看歷史股利紀錄"' : '';
+        // 兩種模式都可點，點卡片看該檔歷史股利
+        var cardStyle = 'padding:3px 14px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);font-size:13px;cursor:pointer';
+        var onClickAttr = ' onclick="showStockDividendHistory(' + escJs(h.id) + ')" title="點看歷史股利紀錄"';
         html += '<div style="' + cardStyle + '"' + onClickAttr + '>';
         html += '<div style="color:var(--muted);font-size:11px">' + esc(t.label) + '<span class="lbl-cum">' + cumLabel + '</span></div>';
         html += '<div style="font-weight:700;color:var(--lux-navy);font-size:15px">$' + fmt(t.sum) + '</div>';
@@ -8144,11 +8142,18 @@ function _buildStockTrendHtml(stockId) {
     var c30  = getStockPriceChange(stockId, 30);
     var c90  = getStockPriceChange(stockId, 90);
     var c365 = getStockPriceChange(stockId, 365);
+    function _kpiCard(label, days, chg) {
+        var hasData = chg && typeof chg.pct === 'number';
+        var attrs = hasData
+            ? ' class="section-kpi trend-kpi" data-days="' + days + '" style="cursor:pointer" title="點擊查看近 ' + label + '走勢"'
+            : ' class="section-kpi" style="opacity:0.55"';
+        return '<div' + attrs + '><div class="section-kpi-label">近 ' + label + '</div><div class="section-kpi-val">' + fmtPriceChange(chg) + '</div></div>';
+    }
     return '<div class="section-kpi-row" style="margin-bottom:14px">' +
-        '<div class="section-kpi"><div class="section-kpi-label">近 7 日</div><div class="section-kpi-val">' + fmtPriceChange(c7) + '</div></div>' +
-        '<div class="section-kpi"><div class="section-kpi-label">近 30 日</div><div class="section-kpi-val">' + fmtPriceChange(c30) + '</div></div>' +
-        '<div class="section-kpi"><div class="section-kpi-label">近 90 日</div><div class="section-kpi-val">' + fmtPriceChange(c90) + '</div></div>' +
-        '<div class="section-kpi"><div class="section-kpi-label">近 1 年</div><div class="section-kpi-val">' + fmtPriceChange(c365) + '</div></div>' +
+        _kpiCard('7 日', 7, c7) +
+        _kpiCard('30 日', 30, c30) +
+        _kpiCard('90 日', 90, c90) +
+        _kpiCard('1 年', 365, c365) +
         '</div>' +
         '<div style="display:flex;flex-wrap:wrap;align-items:stretch;gap:6px;margin-bottom:8px;font-size:12px;color:var(--muted)">' +
             '<span style="display:inline-flex;align-items:center;height:28px;line-height:1">區間</span>' +
@@ -8244,6 +8249,28 @@ function _initStockTrendChart(stockId) {
             ' <span style="font-size:12px;color:var(--muted)">（' + startEntry.date + ' ~ ' + endEntry.date + '，' + subset.length + ' 筆）</span>';
         _draw(subset);
     }
+    // 點 KPI 卡片（近 7/30/90/365 日）→ 自動套用對應區間
+    function _setRangeAndApply(startDate, endDate) {
+        if (fpStart) fpStart.setDate(startDate, false); else startInput.value = startDate;
+        if (fpEnd) fpEnd.setDate(endDate, false); else endInput.value = endDate;
+        if (fpStart) fpStart.set('maxDate', endDate);
+        if (fpEnd) fpEnd.set('minDate', startDate);
+        _applyRange();
+    }
+    Array.prototype.forEach.call(document.querySelectorAll('.trend-kpi'), function(card) {
+        card.onclick = function() {
+            var days = parseInt(card.getAttribute('data-days'), 10);
+            if (!days) return;
+            var lastDate = arr[arr.length - 1].date;
+            var lp = lastDate.split('-');
+            var d = new Date(+lp[0], +lp[1] - 1, +lp[2]);
+            d.setDate(d.getDate() - days);
+            var startDate = _localDateStr(d);
+            if (startDate < arr[0].date) startDate = arr[0].date;
+            _setRangeAndApply(startDate, lastDate);
+        };
+    });
+
     var applyBtn = document.getElementById('trend-range-apply');
     var resetBtn = document.getElementById('trend-range-reset');
     if (applyBtn) applyBtn.onclick = _applyRange;
@@ -9154,7 +9181,7 @@ function showStockSearchModal() {
     ov.innerHTML = '<div class="modal" style="width:680px;max-width:94vw;display:flex;flex-direction:column">' +
         '<h3 style="margin:0 0 12px;flex:none"><i class="ti ti-search"></i> 搜尋個股漲跌日曆</h3>' +
         '<div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;flex:none">' +
-            '<div class="fld" style="flex:1 1 140px;min-width:120px"><label>股票代號</label><input id="ss-id" type="text" placeholder="例如 2330" autocomplete="off"></div>' +
+            '<div class="fld" style="flex:1 1 140px;min-width:120px"><label>代號或名稱</label><input id="ss-id" type="text" placeholder="例如 2330 或 台積電" autocomplete="off"></div>' +
             '<div class="fld" style="flex:0 0 130px"><label>起始月份</label><input id="ss-from" type="month" value="2026-01" max="' + thisYM + '"></div>' +
             '<div class="fld" style="flex:0 0 130px"><label>結束月份</label><input id="ss-to" type="month" value="' + thisYM + '" max="' + thisYM + '"></div>' +
             '<button class="btn-primary" id="ss-go" style="flex:0 0 auto;height:43px;box-sizing:border-box;margin-bottom:10px;padding:0 18px;display:inline-flex;align-items:center;justify-content:center;gap:5px"><i class="ti ti-search"></i> 查詢</button>' +
@@ -9180,15 +9207,91 @@ function closeStockSearchModal() {
 }
 
 function runStockSearch() {
-    var id = (document.getElementById('ss-id').value || '').trim().toUpperCase();
+    var raw = (document.getElementById('ss-id').value || '').trim();
     var from = document.getElementById('ss-from').value;
     var to = document.getElementById('ss-to').value;
     var prog = document.getElementById('ss-progress');
     var go = document.getElementById('ss-go');
-    if (!id) { toast('請輸入股票代號'); return; }
+    if (!raw) { toast('請輸入代號或名稱'); return; }
     if (!from || !to) { toast('請選起訖月份'); return; }
     if (from > to) { toast('起始月份不可晚於結束月份'); return; }
+
+    // 純代號（2~6 位數字、可帶 1 個英文字母，如 2330、00937B）→ 直接抓
+    var asId = raw.toUpperCase();
+    if (/^[0-9]{2,6}[A-Z]?$/.test(asId)) {
+        _doStockSearchFetch(asId, from, to);
+        return;
+    }
+
+    // 否則視為「名稱」→ 用全市場清單反查代號
+    if (go) go.disabled = true;
+    if (prog) prog.textContent = '以名稱「' + esc(raw) + '」搜尋股票…';
+    _searchStockByName(raw, function(matches) {
+        if (go) go.disabled = false;
+        if (!matches || matches.length === 0) {
+            if (prog) prog.innerHTML = '<b style="color:var(--red)">查無股票</b>：找不到名稱含「' + esc(raw) + '」的股票，可改輸入代號。';
+            document.getElementById('ss-result').innerHTML = '';
+            return;
+        }
+        if (matches.length === 1) {
+            if (prog) prog.textContent = '';
+            _doStockSearchFetch(matches[0].id, from, to);
+            return;
+        }
+        // 多筆 → 列候選讓使用者點選
+        if (prog) prog.textContent = '找到 ' + matches.length + ' 檔，請點選：';
+        var box = document.getElementById('ss-result');
+        var html = '<div style="display:flex;flex-direction:column;gap:6px;padding:4px 0">';
+        matches.slice(0, 50).forEach(function(m){
+            html += '<button type="button" class="ss-name-opt" data-id="' + esc(m.id) + '" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--card);cursor:pointer;font-family:inherit;font-size:14px;text-align:left">' +
+                '<b style="color:var(--lux-navy);min-width:60px">' + esc(m.id) + '</b>' +
+                '<span>' + esc(m.name) + '</span>' +
+                '<span style="margin-left:auto;font-size:11px;color:var(--muted)">' + esc(m.market) + '</span></button>';
+        });
+        html += '</div>';
+        box.innerHTML = html;
+        Array.prototype.forEach.call(box.querySelectorAll('.ss-name-opt'), function(btn){
+            btn.onclick = function(){ _doStockSearchFetch(btn.getAttribute('data-id'), from, to); };
+        });
+    });
+}
+
+// 用全市場清單（上市 + 上櫃）以「名稱關鍵字」反查代號
+function _searchStockByName(kw, callback) {
+    var key = kw.toLowerCase();
+    fetchTWSEAll(function(e1, twse) {
+        fetchTPEXAll(function(e2, tpex) {
+            var matches = [];
+            function scan(map, market) {
+                if (!map) return;
+                Object.keys(map).forEach(function(id){
+                    var name = (map[id] && map[id].name) || '';
+                    if (name && name.toLowerCase().indexOf(key) >= 0) {
+                        matches.push({ id: id, name: name, market: market });
+                    }
+                });
+            }
+            scan(twse, '上市');
+            scan(tpex, '上櫃');
+            // 名稱完全相同的排前面，其次依代號
+            matches.sort(function(a, b){
+                var aExact = a.name === kw ? 0 : 1;
+                var bExact = b.name === kw ? 0 : 1;
+                if (aExact !== bExact) return aExact - bExact;
+                return a.id < b.id ? -1 : (a.id > b.id ? 1 : 0);
+            });
+            callback(matches);
+        });
+    });
+}
+
+// 用代號實際向 Yahoo 抓歷史收盤、寫入 priceHistory、畫日曆
+function _doStockSearchFetch(id, from, to) {
+    id = String(id).toUpperCase();
+    var prog = document.getElementById('ss-progress');
+    var go = document.getElementById('ss-go');
     if (go) { go.disabled = true; }
+    document.getElementById('ss-result').innerHTML = '';
     if (prog) prog.textContent = '向 Yahoo 股市查詢 ' + id + '（' + from + ' ~ ' + to + '）…可能需數十秒';
     var url = CLOUD_URL + '?action=history&format=json&ids=' + encodeURIComponent(id) +
         '&from=' + encodeURIComponent(from) + '&to=' + encodeURIComponent(to) + '&t=' + Date.now();
