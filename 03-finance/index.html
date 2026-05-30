@@ -5497,6 +5497,15 @@ function showDividendAlertModal() {
         html += '<div style="font-size:12px;color:var(--text-light);margin-bottom:8px;">資料更新於 ' + esc(_dividendCacheUpdatedAt) + '</div>';
     }
     html += '<div style="max-height:60vh;overflow-y:auto;margin-bottom:14px;">';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:13px;">';
+    html += '<thead><tr style="color:var(--text-light);font-size:11px;text-align:left;border-bottom:1px solid var(--border);">' +
+        '<th style="padding:6px 8px 6px 0;font-weight:600;">股票</th>' +
+        '<th style="padding:6px 8px;font-weight:600;text-align:right;">配 / 股</th>' +
+        '<th style="padding:6px 8px;font-weight:600;">除息日</th>' +
+        '<th style="padding:6px 8px;font-weight:600;">配息日</th>' +
+        '<th style="padding:6px 8px;font-weight:600;text-align:right;">預估配息</th>' +
+        '<th style="padding:6px 0 6px 8px;font-weight:600;text-align:right;">殖利率</th>' +
+        '</tr></thead><tbody>';
     _dividendAlerts.forEach(function(a) {
         var exLabel = a.diff < 0 ? '已除息' : (a.diff === 0 ? '今天除息' : a.diff + ' 天後除息');
         var payLabel = '';
@@ -5506,7 +5515,7 @@ function showDividendAlertModal() {
         var amount = [];
         if (a.cash > 0) amount.push('現金 $' + a.cash.toFixed(3));
         if (a.stockDiv > 0) amount.push('股票 ' + a.stockDiv.toFixed(4) + ' 股');
-        var amountText = amount.length ? amount.join('　') : '—';
+        var amountText = amount.length ? amount.join('<br>') : '—';
 
         // 預估配息金額（以目前持股股數計算）
         var holding = (stockData.holdings || []).find(function(h){ return h.id === a.stockId; });
@@ -5516,7 +5525,7 @@ function showDividendAlertModal() {
         var estParts = [];
         if (estCash > 0) estParts.push('現金 $' + fmt(estCash));
         if (estStockShares > 0) estParts.push('股票 ' + estStockShares.toFixed(2) + ' 股');
-        var estText = estParts.length ? estParts.join('　') : '—';
+        var estText = estParts.length ? estParts.join('<br>') : '—';
 
         // 年化殖利率（過去 12 個月每股現金股利 / 現價）
         var price = stockData.prices[a.stockId] ? stockData.prices[a.stockId].price : null;
@@ -5526,20 +5535,21 @@ function showDividendAlertModal() {
             yieldText = (annualCps / price * 100).toFixed(2) + '%';
         }
 
-        html += '<div style="padding:10px 0;border-bottom:1px solid var(--border);">';
-        html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;font-size:13px;">';
-        html += '<div><div style="color:var(--text-light);font-size:11px;">代號</div><b>' + esc(a.stockId) + '</b> ' + esc(a.stockName) + '</div>';
-        html += '<div><div style="color:var(--text-light);font-size:11px;">配多少 / 股</div>' + esc(amountText) + '</div>';
-        html += '<div><div style="color:var(--text-light);font-size:11px;">除息日</div><span style="font-weight:700;color:#B45309;">' + esc(a.exDate) + '</span>　<span style="color:var(--text-light);font-size:12px;">' + exLabel + '</span></div>';
+        var td = 'padding:10px 8px;border-bottom:1px solid var(--border);vertical-align:top;';
+        html += '<tr>';
+        html += '<td style="' + td + 'padding-left:0;"><b>' + esc(a.stockId) + '</b><br><span style="color:var(--text-light);font-size:12px;">' + esc(a.stockName) + '</span></td>';
+        html += '<td style="' + td + 'text-align:right;white-space:nowrap;">' + amountText + '</td>';
+        html += '<td style="' + td + 'white-space:nowrap;"><span style="font-weight:700;color:#B45309;">' + esc(a.exDate) + '</span><br><span style="color:var(--text-light);font-size:11px;">' + exLabel + '</span></td>';
         if (a.payDate) {
-            html += '<div><div style="color:var(--text-light);font-size:11px;">配息日</div><span style="font-weight:700;color:#B45309;">' + esc(a.payDate) + '</span>　<span style="color:var(--text-light);font-size:12px;">' + payLabel + '</span></div>';
+            html += '<td style="' + td + 'white-space:nowrap;"><span style="font-weight:700;color:#B45309;">' + esc(a.payDate) + '</span><br><span style="color:var(--text-light);font-size:11px;">' + payLabel + '</span></td>';
         } else {
-            html += '<div><div style="color:var(--text-light);font-size:11px;">配息日</div>—</div>';
+            html += '<td style="' + td + '">—</td>';
         }
-        html += '<div><div style="color:var(--text-light);font-size:11px;">預估配息（持有 ' + fmt(shares) + ' 股）</div><b style="color:var(--lux-navy)">' + esc(estText) + '</b></div>';
-        html += '<div><div style="color:var(--text-light);font-size:11px;">殖利率（年化）</div><b style="color:var(--lux-navy)">' + esc(yieldText) + '</b></div>';
-        html += '</div></div>';
+        html += '<td style="' + td + 'text-align:right;white-space:nowrap;"><b style="color:var(--lux-navy)">' + estText + '</b><br><span style="color:var(--text-light);font-size:11px;">持有 ' + fmt(shares) + ' 股</span></td>';
+        html += '<td style="' + td + 'padding-right:0;text-align:right;white-space:nowrap;"><b style="color:var(--lux-navy)">' + esc(yieldText) + '</b></td>';
+        html += '</tr>';
     });
+    html += '</tbody></table>';
     html += '</div>';
     html += '<div class="modal-btns"><button class="btn-primary" id="div-alert-ok">確定</button></div>';
     html += '</div>';
