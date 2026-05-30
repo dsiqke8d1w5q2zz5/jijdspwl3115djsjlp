@@ -8635,13 +8635,13 @@ function _stockModalNavBar(stockId, kind) {
     var html = '<div style="display:flex;gap:10px;margin-bottom:12px;flex:none">';
     if (nav.prev) {
         html += '<button type="button" onclick="' + goPrev + '" style="' + btnStyle + '">' +
-            '<i class="ti ti-chevron-left" style="font-size:18px"></i> 上一檔 <span style="color:var(--muted);font-size:13px;font-weight:400">' + esc(nav.prev) + '</span></button>';
+            '<i class="ti ti-chevron-left" style="font-size:18px"></i> 上一檔</button>';
     } else {
         html += '<button type="button" disabled style="' + disabledStyle + '"><i class="ti ti-chevron-left"></i> 上一檔</button>';
     }
     if (nav.next) {
         html += '<button type="button" onclick="' + goNext + '" style="' + btnStyle + '">' +
-            '<span style="color:var(--muted);font-size:13px;font-weight:400">' + esc(nav.next) + '</span> 下一檔 <i class="ti ti-chevron-right" style="font-size:18px"></i></button>';
+            '下一檔 <i class="ti ti-chevron-right" style="font-size:18px"></i></button>';
     } else {
         html += '<button type="button" disabled style="' + disabledStyle + '">下一檔 <i class="ti ti-chevron-right"></i></button>';
     }
@@ -8841,7 +8841,7 @@ function showStockCalendarModal(stockId, initialTab) {
     // body 固定高度，三個分頁切換時容器不會跳
     ov.innerHTML = '<div class="modal" style="width:680px;max-width:94vw;display:flex;flex-direction:column">' +
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;flex:none">' +
-            '<h3 style="margin:0;flex:1"><i class="ti ti-chart-bar"></i> ' + esc(stockId) + ' ' + esc(name) + '</h3>' +
+            '<h3 style="margin:0;flex:1;font-size:24px;letter-spacing:0"><i class="ti ti-chart-bar" style="font-size:22px;color:var(--lux-gold)"></i> <span style="color:var(--lux-navy)">' + esc(stockId) + '</span> ' + esc(name) + '</h3>' +
             '<button type="button" onclick="showStockBackfillModal(\'' + esc(stockId) + '\')" title="補抓這檔的歷史每日收盤價" style="flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border:1px solid var(--border);border-radius:8px;background:var(--card);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:var(--text)"><i class="ti ti-history"></i> 補歷史價</button>' +
         '</div>' +
         _stockModalNavBar(stockId, 'calendar') +
