@@ -4123,6 +4123,124 @@ function fetchFinMindName(stockId, callback) {
         .catch(function() { callback(''); });
 }
 
+// ── 基本面（月營收 + 季 EPS + 本益比 + 三率），來源：FinMind 免費 API ──
+// 快取：stockId → { loading, error, data }；data 內含算好的所有指標
+var _fundamentalsCache = {};
+
+// 取得目前股價（優先即時 prices，其次 priceHistory 末筆）
+function _currentPriceFor(stockId) {
+    var p = stockData.prices && stockData.prices[stockId];
+    if (p && typeof p.price === 'number' && p.price > 0) return p.price;
+    var ph = (stockData.priceHistory || {})[stockId];
+    if (Array.isArray(ph) && ph.length) {
+        var last = ph.slice().sort(function(a,b){ return (a.date||'').localeCompare(b.date||''); })[ph.length-1];
+        if (last && typeof last.price === 'number' && last.price > 0) return last.price;
+    }
+    return null;
+}
+
+// 季 EPS 的標籤：2026-03-31 → 26Q1
+function _epsQuarterLabel(dateStr) {
+    var p = String(dateStr).split('-');
+    var y = parseInt(p[0],10), m = parseInt(p[1],10);
+    if (isNaN(y) || isNaN(m)) return dateStr;
+    var q = Math.ceil(m / 3);
+    return String(y).slice(2) + 'Q' + q;
+}
+
+// 抓基本面：並行打 月營收 + 財報 兩個 dataset，算出所有指標後 callback
+function fetchFundamentals(stockId, callback) {
+    var cached = _fundamentalsCache[stockId];
+    if (cached && cached.data) { callback(null, cached.data); return; }
+    _fundamentalsCache[stockId] = { loading: true };
+
+    var revUrl = 'https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockMonthRevenue&data_id=' + stockId + '&start_date=2023-01-01';
+    var finUrl = 'https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockFinancialStatements&data_id=' + stockId + '&start_date=2023-01-01';
+
+    Promise.all([
+        fetchWithTimeout(revUrl, {}, 15000).then(function(r){ return r.json(); }).catch(function(){ return null; }),
+        fetchWithTimeout(finUrl, {}, 15000).then(function(r){ return r.json(); }).catch(function(){ return null; })
+    ]).then(function(res) {
+        var revJson = res[0], finJson = res[1];
+        var data = _computeFundamentals(stockId, revJson, finJson);
+        _fundamentalsCache[stockId] = { data: data };
+        callback(null, data);
+    }).catch(function(err) {
+        _fundamentalsCache[stockId] = { error: String(err && err.message || err) };
+        callback(_fundamentalsCache[stockId].error, null);
+    });
+}
+
+// 把 FinMind 回傳整理成指標物件
+function _computeFundamentals(stockId, revJson, finJson) {
+    var out = { stockId: stockId, revenue: null, revTrend: [], eps: [], epsTTM: null, per: null,
+                grossMargin: null, opMargin: null, netMargin: null, marginQuarter: null };
+
+    // ── 月營收 ──
+    var revRows = (revJson && revJson.status === 200 && Array.isArray(revJson.data)) ? revJson.data : [];
+    if (revRows.length) {
+        var revMap = {}; // 'YYYY-MM' → revenue
+        revRows.forEach(function(r){
+            var key = r.revenue_year + '-' + String(r.revenue_month).padStart(2,'0');
+            revMap[key] = r.revenue;
+        });
+        var revKeys = Object.keys(revMap).sort();
+        // 近 12 月趨勢（給迷你長條圖）
+        out.revTrend = revKeys.slice(-12).map(function(k){ return { ym: k, value: revMap[k] }; });
+        // 最新一月 + MoM + YoY
+        var latestK = revKeys[revKeys.length - 1];
+        var lp = latestK.split('-'); var ly = parseInt(lp[0],10), lm = parseInt(lp[1],10);
+        var prevMK = ly + '-' + String(lm-1>=1?lm-1:12).padStart(2,'0');
+        if (lm === 1) prevMK = (ly-1) + '-12';
+        var prevYK = (ly-1) + '-' + String(lm).padStart(2,'0');
+        var cur = revMap[latestK];
+        out.revenue = {
+            ym: latestK,
+            value: cur,
+            mom: revMap[prevMK] ? (cur/revMap[prevMK]-1)*100 : null,
+            yoy: revMap[prevYK] ? (cur/revMap[prevYK]-1)*100 : null
+        };
+    }
+
+    // ── 財報（季 EPS + 三率）──
+    var finRows = (finJson && finJson.status === 200 && Array.isArray(finJson.data)) ? finJson.data : [];
+    if (finRows.length) {
+        var byDate = {}; // date → { EPS, Revenue, GrossProfit, OperatingIncome, IncomeAfterTaxes }
+        finRows.forEach(function(r){
+            if (!byDate[r.date]) byDate[r.date] = {};
+            byDate[r.date][r.type] = r.value;
+        });
+        var dates = Object.keys(byDate).sort(); // 舊→新
+        // 近四季 EPS（取最新 4 季）
+        var epsSeq = dates.filter(function(d){ return typeof byDate[d].EPS === 'number'; });
+        out.eps = epsSeq.slice(-4).map(function(d){ return { label: _epsQuarterLabel(d), value: byDate[d].EPS }; });
+        if (out.eps.length === 4) {
+            out.epsTTM = out.eps.reduce(function(s,e){ return s + e.value; }, 0);
+        } else if (out.eps.length > 0) {
+            // 不足 4 季也先加總（標示為非完整）
+            out.epsTTM = out.eps.reduce(function(s,e){ return s + e.value; }, 0);
+        }
+        // 三率（用最新一季有 Revenue 的那季）
+        var marginDates = dates.filter(function(d){ return typeof byDate[d].Revenue === 'number' && byDate[d].Revenue !== 0; });
+        if (marginDates.length) {
+            var md = marginDates[marginDates.length - 1];
+            var rec = byDate[md];
+            out.marginQuarter = _epsQuarterLabel(md);
+            if (typeof rec.GrossProfit === 'number') out.grossMargin = rec.GrossProfit / rec.Revenue * 100;
+            if (typeof rec.OperatingIncome === 'number') out.opMargin = rec.OperatingIncome / rec.Revenue * 100;
+            if (typeof rec.IncomeAfterTaxes === 'number') out.netMargin = rec.IncomeAfterTaxes / rec.Revenue * 100;
+        }
+    }
+
+    // ── 本益比 PER = 現價 / 近四季EPS（僅在 TTM > 0 時有意義）──
+    var price = _currentPriceFor(stockId);
+    if (price && out.epsTTM && out.epsTTM > 0) {
+        out.per = price / out.epsTTM;
+    }
+
+    return out;
+}
+
 // 顯示「股價資料新鮮度」：以 stockData.prices 裡 Yahoo srcTime 最新一筆為準
 function _stockPriceFreshnessLabel() {
     var maxTime = 0;
@@ -8766,6 +8884,7 @@ function _renderStockCalModalTabs() {
     }
     tabsBox.innerHTML = _tab('calendar', '漲跌日曆') + _tab('trend', '走勢') +
         _tab('dividends', '歷史配息', divCount > 0 ? divCount : '') +
+        _tab('fundamentals', '基本面') +
         _tab('trades', '交易紀錄', tradeCount > 0 ? tradeCount : '');
 }
 
@@ -8785,6 +8904,8 @@ function _renderStockCalModalBody() {
     var tab = _stockCalModalState.tab;
     if (tab === 'trades') {
         box.innerHTML = _buildStockTradesHtml(_stockCalModalState.stockId);
+    } else if (tab === 'fundamentals') {
+        box.innerHTML = _buildFundamentalsHtml(_stockCalModalState.stockId);
     } else if (tab === 'dividends') {
         box.innerHTML = _buildStockDividendsHtml(_stockCalModalState.stockId);
     } else if (tab === 'trend') {
@@ -8804,6 +8925,131 @@ function onStockCalMonthChange(m) {
 function onStockDivYearChange(y) {
     _stockCalModalState.divYear = y;
     _renderStockCalModalBody();
+}
+
+// ── 基本面分頁／區塊（個股 modal + 搜尋日曆共用）──
+// 同步回傳容器，注入 DOM 後會自動非同步抓取並填入（用 requestAnimationFrame 排程 hydrate）
+var _FUND_CONTAINER_ID = 'fund-box';
+function _buildFundamentalsHtml(stockId) {
+    // ETF／債券 ETF 沒有個股基本面（無 EPS／月營收／財報）
+    if (/^00/.test(String(stockId))) {
+        return '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">此標的為 ETF，無個股基本面資料（EPS／月營收／本益比）。</div>';
+    }
+    // 觸發抓取（非同步），完成後重繪所有同 stockId 的基本面容器
+    setTimeout(function(){
+        fetchFundamentals(stockId, function(err, data){
+            _paintFundamentals(stockId, err, data);
+        });
+    }, 0);
+    var loading = '<div class="' + _FUND_CONTAINER_ID + '" data-fund="' + esc(stockId) + '">' +
+        '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px"><i class="ti ti-loader"></i> 載入基本面資料中…</div>' +
+        '</div>';
+    // 若已有快取，直接帶內容（避免閃 loading）
+    var c = _fundamentalsCache[stockId];
+    if (c && c.data) {
+        return '<div class="' + _FUND_CONTAINER_ID + '" data-fund="' + esc(stockId) + '">' + _fundamentalsInnerHtml(c.data) + '</div>';
+    }
+    return loading;
+}
+
+// 抓完後把內容填入頁面上所有對應容器
+function _paintFundamentals(stockId, err, data) {
+    var boxes = document.querySelectorAll('.' + _FUND_CONTAINER_ID + '[data-fund="' + (window.CSS && CSS.escape ? CSS.escape(stockId) : stockId) + '"]');
+    Array.prototype.forEach.call(boxes, function(box){
+        if (err || !data) {
+            box.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">基本面資料載入失敗或查無資料。</div>';
+        } else {
+            box.innerHTML = _fundamentalsInnerHtml(data);
+        }
+    });
+}
+
+// 把指標物件渲染成 HTML
+function _fundamentalsInnerHtml(d) {
+    var html = '';
+    var cardOpen = '<div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px">';
+    var titleStyle = 'font-size:12px;color:var(--lux-navy);font-weight:700;letter-spacing:.5px;margin-bottom:10px';
+
+    var hasRev = d.revenue, hasEps = d.eps && d.eps.length, hasMargin = d.grossMargin !== null || d.opMargin !== null || d.netMargin !== null;
+    if (!hasRev && !hasEps && !hasMargin) {
+        return '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">查無此標的的基本面資料。</div>';
+    }
+
+    // ── 月營收 ──
+    if (hasRev) {
+        var r = d.revenue;
+        var ymp = r.ym.split('-');
+        html += cardOpen;
+        html += '<div style="' + titleStyle + '">月營收</div>';
+        html += '<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px">';
+        html += '<span style="font-size:13px;color:var(--muted)">' + ymp[0] + '年' + parseInt(ymp[1],10) + '月</span>';
+        html += '<b style="font-size:22px;color:var(--text)">' + (r.value/1e8).toFixed(2) + '<span style="font-size:13px;font-weight:400;color:var(--muted)"> 億</span></b>';
+        if (r.mom !== null) html += '<span style="font-size:13px">月增 <b style="color:' + signColor(r.mom) + '">' + signPrefix(r.mom) + r.mom.toFixed(1) + '%</b></span>';
+        if (r.yoy !== null) html += '<span style="font-size:13px">年增 <b style="color:' + signColor(r.yoy) + '">' + signPrefix(r.yoy) + r.yoy.toFixed(1) + '%</b></span>';
+        html += '</div>';
+        // 近 12 月迷你長條圖
+        if (d.revTrend && d.revTrend.length > 1) {
+            var maxV = Math.max.apply(null, d.revTrend.map(function(t){ return t.value; }));
+            html += '<div style="display:flex;align-items:flex-end;gap:3px;height:48px">';
+            d.revTrend.forEach(function(t, i){
+                var h = maxV > 0 ? Math.max(2, Math.round(t.value/maxV*44)) : 2;
+                var isLast = i === d.revTrend.length - 1;
+                var mm = t.ym.split('-')[1];
+                html += '<div title="' + t.ym + '：' + (t.value/1e8).toFixed(2) + ' 億" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px">' +
+                    '<div style="width:100%;height:' + h + 'px;background:' + (isLast ? 'var(--lux-navy)' : 'rgba(30,58,95,0.25)') + ';border-radius:2px 2px 0 0"></div>' +
+                    '<span style="font-size:9px;color:var(--muted)">' + parseInt(mm,10) + '</span></div>';
+            });
+            html += '</div><div style="font-size:10px;color:var(--muted);margin-top:4px">近 12 月營收趨勢（億元）</div>';
+        }
+        html += '</div>';
+    }
+
+    // ── 獲利（季 EPS）+ 本益比 ──
+    if (hasEps) {
+        html += cardOpen;
+        html += '<div style="' + titleStyle + '">獲利（每股盈餘 EPS）</div>';
+        html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">';
+        d.eps.forEach(function(e){
+            html += '<div style="flex:1;min-width:64px;text-align:center;border:1px solid var(--border);border-radius:8px;padding:8px 4px">' +
+                '<div style="font-size:11px;color:var(--muted)">' + e.label + '</div>' +
+                '<div style="font-size:16px;font-weight:700;color:' + signColor(e.value) + '">' + signPrefix(e.value) + e.value.toFixed(2) + '</div></div>';
+        });
+        html += '</div>';
+        html += '<div style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px">';
+        if (d.epsTTM !== null) {
+            var ttmFull = d.eps.length === 4;
+            html += '<span>近四季合計 <b style="color:' + signColor(d.epsTTM) + '">' + signPrefix(d.epsTTM) + d.epsTTM.toFixed(2) + '</b>' +
+                (ttmFull ? '' : '<span style="font-size:11px;color:var(--muted)">（不足四季）</span>') + '</span>';
+        }
+        if (d.per !== null) {
+            html += '<span>本益比 PER <b style="color:var(--lux-navy)">' + d.per.toFixed(1) + ' 倍</b></span>';
+        } else if (d.epsTTM !== null && d.epsTTM <= 0) {
+            html += '<span>本益比 PER <b style="color:var(--muted)">—（近四季虧損）</b></span>';
+        }
+        html += '</div>';
+        html += '</div>';
+    }
+
+    // ── 三率（獲利品質）──
+    if (hasMargin) {
+        html += cardOpen;
+        html += '<div style="' + titleStyle + '">獲利品質' + (d.marginQuarter ? '（' + d.marginQuarter + '）' : '') + '</div>';
+        html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+        function _marginCell(label, v) {
+            if (v === null) return '';
+            return '<div style="flex:1;min-width:80px;text-align:center;border:1px solid var(--border);border-radius:8px;padding:8px 4px">' +
+                '<div style="font-size:11px;color:var(--muted)">' + label + '</div>' +
+                '<div style="font-size:16px;font-weight:700;color:' + signColor(v) + '">' + v.toFixed(1) + '%</div></div>';
+        }
+        html += _marginCell('毛利率', d.grossMargin);
+        html += _marginCell('營益率', d.opMargin);
+        html += _marginCell('淨利率', d.netMargin);
+        html += '</div>';
+        html += '</div>';
+    }
+
+    html += '<div style="font-size:11px;color:var(--muted);line-height:1.6">※ 資料來源：FinMind（月營收、季財報）。本益比＝目前股價 ÷ 近四季EPS；近四季含一次性業內外損益，請搭配三率判斷本業強弱。</div>';
+    return html;
 }
 
 // 單股歷史配息（個股 modal 的「歷史配息」分頁）。
@@ -9878,11 +10124,20 @@ function _renderStockSearchResult() {
         '<b style="font-size:18px;color:var(--lux-navy)">' + esc(id) + '</b>' +
         (nm ? '<span style="font-size:16px;font-weight:600;color:var(--text)">' + esc(nm) + '</span>' : '') +
         '</div>';
-    box.innerHTML = head + _buildStockCalendarHtml(id, _stockSearchState.month, 'onStockSearchMonthChange');
+    // 日曆放獨立容器（切月份只重繪它）；基本面放固定容器（不隨切月份重建）
+    box.innerHTML = head +
+        '<div id="ss-cal">' + _buildStockCalendarHtml(id, _stockSearchState.month, 'onStockSearchMonthChange') + '</div>' +
+        '<div style="margin-top:16px">' + _buildFundamentalsHtml(id) + '</div>';
 }
 
 function onStockSearchMonthChange(m) {
     _stockSearchState.month = m;
+    // 只重繪日曆，基本面區塊保持不動（避免閃爍／重抓）
+    var cal = document.getElementById('ss-cal');
+    if (cal) {
+        cal.innerHTML = _buildStockCalendarHtml(_stockSearchState.stockId, m, 'onStockSearchMonthChange');
+        return;
+    }
     _renderStockSearchResult();
 }
 
