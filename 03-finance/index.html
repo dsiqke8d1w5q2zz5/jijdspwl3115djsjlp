@@ -9720,6 +9720,10 @@ function showStockSearchModal() {
         '<div class="modal-btns" style="margin-top:12px;flex:none"><button onclick="closeStockSearchModal()" style="flex:1">關閉</button></div>' +
         '</div>';
     document.body.appendChild(ov);
+    // 上方固定對齊：切換月份時日曆高度變化不會讓整個視窗上下跳動
+    ov.style.alignItems = 'flex-start';
+    ov.style.paddingTop = '6vh';
+    ov.style.overflowY = 'auto';
     var _md = false;
     ov.addEventListener('mousedown', function(e){ _md = (e.target === ov); });
     ov.addEventListener('click', function(e){ if (e.target === ov && _md) closeStockSearchModal(); _md = false; });
