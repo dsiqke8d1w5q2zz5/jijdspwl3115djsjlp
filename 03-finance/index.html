@@ -9262,8 +9262,57 @@ function _buildStockTradesHtml(stockId) {
 }
 
 // 建立個股漲跌日曆 HTML（純價格 %、複利累加）
+// ── 單日成交量（張）快取，來源 FinMind TaiwanStockPrice ──
+// stockId → { loading, map:{ 'YYYY-MM-DD': 張數 } }
+var _volumeCache = {};
+function fetchStockVolume(stockId, onDone) {
+    var c = _volumeCache[stockId];
+    if (c && c.map) { if (onDone) onDone(c.map); return; }
+    if (c && c.loading) return; // 抓取中，避免重複
+    _volumeCache[stockId] = { loading: true };
+    var url = 'https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=' + encodeURIComponent(stockId) + '&start_date=2023-01-01';
+    fetchWithTimeout(url, {}, 15000)
+        .then(function(r){ return r.json(); })
+        .then(function(json){
+            var map = {};
+            if (json && json.status === 200 && Array.isArray(json.data)) {
+                json.data.forEach(function(r){
+                    if (r && r.date && typeof r.Trading_Volume === 'number') {
+                        map[r.date] = Math.round(r.Trading_Volume / 1000); // 股→張
+                    }
+                });
+            }
+            _volumeCache[stockId] = { map: map };
+            if (onDone) onDone(map);
+        })
+        .catch(function(){
+            _volumeCache[stockId] = { map: {} }; // 失敗也標記，避免反覆重打
+            if (onDone) onDone({});
+        });
+}
+
+// 量抓好後，重繪頁面上正在顯示這檔日曆的容器
+function _repaintActiveCalendars(stockId) {
+    // 個股 modal
+    if (_stockCalModalState.stockId === stockId && _stockCalModalState.tab === 'calendar') {
+        var b = document.getElementById('stock-cal-modal-body');
+        if (b) b.innerHTML = _buildStockCalendarHtml(stockId, _stockCalModalState.month);
+    }
+    // 搜尋日曆
+    if (_stockSearchState.stockId === stockId) {
+        var cal = document.getElementById('ss-cal');
+        if (cal) cal.innerHTML = _buildStockCalendarHtml(stockId, _stockSearchState.month, 'onStockSearchMonthChange');
+    }
+}
+
 function _buildStockCalendarHtml(stockId, curMonthOpt, onChangeFn) {
     onChangeFn = onChangeFn || 'onStockCalMonthChange';
+    // 確保有成交量資料：沒有就背景抓一次，抓完重繪
+    var _vc = _volumeCache[stockId];
+    var volMap = (_vc && _vc.map) ? _vc.map : null;
+    if (!_vc && !/^00/.test(String(stockId))) {
+        fetchStockVolume(stockId, function(){ _repaintActiveCalendars(stockId); });
+    }
     var ph = (stockData.priceHistory || {})[stockId] || [];
     ph = ph.slice().sort(function(a, b){ return (a.date || '').localeCompare(b.date || ''); });
     var dailyPnL = {};
@@ -9360,10 +9409,14 @@ function _buildStockCalendarHtml(stockId, curMonthOpt, onChangeFn) {
                 var closeRow = (typeof entry.price === 'number')
                     ? '<div class="cal-cell-sub" style="color:var(--muted)">收 ' + entry.price.toFixed(2) + '</div>'
                     : '';
+                var volRow = (volMap && typeof volMap[dStr] === 'number')
+                    ? '<div class="cal-cell-sub" style="color:var(--muted);font-weight:400">量 ' + fmt(volMap[dStr]) + '</div>'
+                    : '';
                 html += '<div class="cal-cell cal-cell--sm" style="background:' + _pctBg(entry.pct) + '">' +
                     '<div class="cal-cell-day">' + dayNum + '</div>' +
                     '<div class="cal-cell-main" style="color:' + signColor(entry.pct) + '">' + signPrefix(entry.pct) + entry.pct.toFixed(2) + '%</div>' +
                     closeRow +
+                    volRow +
                     '</div>';
             } else {
                 html += '<div class="cal-cell cal-cell-blank cal-cell--sm">' + dayNum + '</div>';
