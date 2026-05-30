@@ -6367,13 +6367,38 @@ function toggleDivHistYear(headEl) {
 
 // 配息預估：各月逐檔明細（key 'YYYY-M' → [{id,name,amt,cpsPerTime,shares}]），供月份點擊視窗用
 var _divForecastDetail = {};
+// 把 'YYYY-M' 轉成可比較的數值（年*12+月），供月份排序/前後切換
+function _ymNum(ym) {
+    var p = String(ym).split('-');
+    return (parseInt(p[0], 10) || 0) * 12 + (parseInt(p[1], 10) || 0);
+}
+
 function showDivMonthDetail(ym, label) {
-    var list = (_divForecastDetail && _divForecastDetail[ym]) || [];
-    var total = list.reduce(function(s, x){ return s + x.amt; }, 0);
     var ov = document.createElement('div');
     ov.className = 'overlay';
+    document.body.appendChild(ov);
+    var _md = false;
+    ov.addEventListener('mousedown', function(e){ _md = (e.target === ov); });
+    ov.addEventListener('click', function(e){ if (e.target === ov && _md) ov.remove(); _md = false; });
+    _renderDivMonthDetail(ov, ym, label);
+}
+
+// 在既有 overlay 內重畫某月明細（供左右切換月份用，不重建 overlay）
+function _renderDivMonthDetail(ov, ym, label) {
+    var list = (_divForecastDetail && _divForecastDetail[ym]) || [];
+    var total = list.reduce(function(s, x){ return s + x.amt; }, 0);
     var totalStock = list.reduce(function(s, x){ return s + (x.stockShares || 0); }, 0);
     var u = function(t){ return '<span style="color:var(--muted);font-weight:400">' + t + '</span>'; }; // 淡色小單位
+
+    // 可切換月份：所有有資料的月份，依時間排序；找出目前位置與前後月
+    var ymList = Object.keys(_divForecastDetail || {})
+        .filter(function(k){ return (_divForecastDetail[k] || []).length > 0; })
+        .sort(function(a, b){ return _ymNum(a) - _ymNum(b); });
+    var ci = ymList.indexOf(ym);
+    var prevYm = ci > 0 ? ymList[ci - 1] : '';
+    var nextYm = (ci >= 0 && ci < ymList.length - 1) ? ymList[ci + 1] : '';
+    var _label = function(y){ var m = String(y).split('-')[1]; return m + '月'; };
+
     var rows = list.map(function(x){
         // 已公告：金額原色(navy)＋標「已公告」；純推估：金額紅色＋標「預估」
         var amtColor = x.announced ? 'var(--lux-navy)' : '#DC2626';
@@ -6394,8 +6419,19 @@ function showDivMonthDetail(ym, label) {
             '<td style="text-align:right;padding:8px 4px;font-weight:600;font-size:12px">' + stockCell + '</td>' +
             '</tr>';
     }).join('');
+    // 月份左右切換鈕
+    var navBase = 'flex:0 0 auto;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:6px;background:var(--card);font-size:14px;color:var(--text)';
+    var navOn = navBase + ';cursor:pointer', navOff = navBase + ';opacity:0.3;cursor:not-allowed';
+    var navHtml = '<div style="display:flex;align-items:center;gap:6px;margin:0 0 8px">' +
+        (prevYm ? '<button type="button" class="div-month-prev" title="上一月" style="' + navOn + '"><i class="ti ti-chevron-left"></i></button>'
+                : '<button type="button" disabled style="' + navOff + '"><i class="ti ti-chevron-left"></i></button>') +
+        '<h3 style="margin:0;display:inline-flex;align-items:center;gap:6px;font-size:17px"><i class="ti ti-calendar-dollar"></i> ' + esc(label) + '預估配息</h3>' +
+        (nextYm ? '<button type="button" class="div-month-next" title="下一月" style="' + navOn + '"><i class="ti ti-chevron-right"></i></button>'
+                : '<button type="button" disabled style="' + navOff + '"><i class="ti ti-chevron-right"></i></button>') +
+        '</div>';
+
     ov.innerHTML = '<div class="modal" style="width:600px;max-width:92vw">' +
-        '<h3 style="margin:0 0 4px"><i class="ti ti-calendar-dollar"></i> ' + esc(label) + '預估配息</h3>' +
+        navHtml +
         '<div style="font-size:13px;color:var(--muted);margin-bottom:10px">合計 現金 <b style="color:var(--lux-navy);font-size:15px">$' + fmt(Math.round(total)) + '</b>' +
             (totalStock > 0 ? '　配股 <b style="color:#7C3AED">≈ ' + fmt(Math.round(totalStock)) + ' 股</b>' : '') +
             '　共 ' + list.length + ' 檔</div>' +
@@ -6409,10 +6445,11 @@ function showDivMonthDetail(ym, label) {
         '<div style="font-size:11px;color:var(--muted);margin-top:8px">※ <span style="color:var(--green)">已公告</span>＝官方已定除息／配息；<span style="color:#DC2626">預估</span>＝以最近一次配息推估（未公告，僅供參考）。</div>' +
         '<div class="modal-btns" style="margin-top:12px"><button class="btn-primary" onclick="this.closest(\'.overlay\').remove()">關閉</button></div>' +
         '</div>';
-    document.body.appendChild(ov);
-    var _md = false;
-    ov.addEventListener('mousedown', function(e){ _md = (e.target === ov); });
-    ov.addEventListener('click', function(e){ if (e.target === ov && _md) ov.remove(); _md = false; });
+
+    var pb = ov.querySelector('.div-month-prev');
+    if (pb) pb.onclick = function(){ _renderDivMonthDetail(ov, prevYm, _label(prevYm)); };
+    var nb = ov.querySelector('.div-month-next');
+    if (nb) nb.onclick = function(){ _renderDivMonthDetail(ov, nextYm, _label(nextYm)); };
 }
 
 // 全年配息預估卡片：以「過去 12 個月每股實配 × 現股數」逐檔推估未來一年領息（參考值）
