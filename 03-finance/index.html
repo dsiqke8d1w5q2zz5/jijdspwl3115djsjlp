@@ -2618,8 +2618,8 @@ function openYearPicker(onChangeFn, curY, labelFnName) {
         var on = (y === curY);
         return '<button type="button" data-year="' + esc(y) + '" style="padding:10px 8px;border:1px solid ' + (on ? 'var(--lux-navy)' : 'var(--border)') + ';border-radius:8px;background:' + (on ? 'var(--lux-navy)' : '#fff') + ';color:' + (on ? '#fff' : 'var(--text)') + ';font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">' + esc(String(labelFn(y))) + ' 年</button>';
     }).join('');
-    ov.innerHTML = '<div class="modal" style="max-width:320px"><h3 style="margin:0 0 12px">選擇年份</h3>' +
-        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-height:50vh;overflow-y:auto">' + btns + '</div>' +
+    ov.innerHTML = '<div class="modal" style="max-width:480px"><h3 style="margin:0 0 12px">選擇年份</h3>' +
+        '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;max-height:50vh;overflow-y:auto">' + btns + '</div>' +
         '<div class="modal-btns" style="margin-top:14px"><button id="yp-cancel">取消</button></div></div>';
     document.body.appendChild(ov);
     ov.querySelectorAll('button[data-year]').forEach(function(b){
