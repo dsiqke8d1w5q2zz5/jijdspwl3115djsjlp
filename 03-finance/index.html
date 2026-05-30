@@ -6372,30 +6372,38 @@ function showDivMonthDetail(ym, label) {
     var total = list.reduce(function(s, x){ return s + x.amt; }, 0);
     var ov = document.createElement('div');
     ov.className = 'overlay';
+    var totalStock = list.reduce(function(s, x){ return s + (x.stockShares || 0); }, 0);
+    var u = function(t){ return '<span style="color:var(--muted);font-weight:400">' + t + '</span>'; }; // 淡色小單位
     var rows = list.map(function(x){
         // 已公告：金額原色(navy)＋標「已公告」；純推估：金額紅色＋標「預估」
         var amtColor = x.announced ? 'var(--lux-navy)' : '#DC2626';
         var tag = x.announced
             ? '<span style="font-size:11px;color:var(--green);margin-left:6px">已公告</span>'
             : '<span style="font-size:11px;color:#DC2626;margin-left:6px">預估</span>';
-        // 有配股：股名下加一行「配股 ≈ X 股」
-        var stockLine = (x.stockShares > 0)
-            ? '<div style="font-size:11px;color:#7C3AED;margin-top:2px">配股 ≈ ' + fmt(Math.round(x.stockShares)) + ' 股</div>'
-            : '';
+        var perShareCell = (x.cpsPerTime > 0)
+            ? x.cpsPerTime.toFixed(3) + u('元') + ' × ' + fmt(x.shares) + u('股')
+            : '—';
         var cashCell = (x.amt > 0) ? '$' + fmt(Math.round(x.amt)) : '<span style="color:var(--muted)">—</span>';
+        var stockCell = (x.stockShares > 0)
+            ? '<span style="color:#7C3AED">≈ ' + fmt(Math.round(x.stockShares)) + u('股') + '</span>'
+            : '<span style="color:var(--muted)">—</span>';
         return '<tr style="border-bottom:1px solid var(--border)">' +
-            '<td style="text-align:left;padding:8px 4px"><b>' + esc(x.id) + '</b> <span style="color:var(--muted);font-size:12px">' + esc(x.name) + '</span>' + tag + stockLine + '</td>' +
-            '<td style="text-align:right;padding:8px 4px;color:var(--muted);font-size:12px">' + (x.cpsPerTime > 0 ? x.cpsPerTime.toFixed(3) + ' × ' + fmt(x.shares) : '—') + '</td>' +
+            '<td style="text-align:left;padding:8px 4px"><b>' + esc(x.id) + '</b> <span style="color:var(--muted);font-size:12px">' + esc(x.name) + '</span>' + tag + '</td>' +
+            '<td style="text-align:right;padding:8px 4px;color:var(--muted);font-size:12px">' + perShareCell + '</td>' +
             '<td style="text-align:right;padding:8px 4px;font-weight:600;color:' + amtColor + '">' + cashCell + '</td>' +
+            '<td style="text-align:right;padding:8px 4px;font-weight:600;font-size:12px">' + stockCell + '</td>' +
             '</tr>';
     }).join('');
-    ov.innerHTML = '<div class="modal" style="width:540px;max-width:92vw">' +
+    ov.innerHTML = '<div class="modal" style="width:600px;max-width:92vw">' +
         '<h3 style="margin:0 0 4px"><i class="ti ti-calendar-dollar"></i> ' + esc(label) + '預估配息</h3>' +
-        '<div style="font-size:13px;color:var(--muted);margin-bottom:10px">合計 <b style="color:var(--lux-navy);font-size:15px">$' + fmt(Math.round(total)) + '</b>　共 ' + list.length + ' 檔</div>' +
+        '<div style="font-size:13px;color:var(--muted);margin-bottom:10px">合計 現金 <b style="color:var(--lux-navy);font-size:15px">$' + fmt(Math.round(total)) + '</b>' +
+            (totalStock > 0 ? '　配股 <b style="color:#7C3AED">≈ ' + fmt(Math.round(totalStock)) + ' 股</b>' : '') +
+            '　共 ' + list.length + ' 檔</div>' +
         (list.length ? '<table class="stock-table" style="width:100%;font-size:13px"><thead><tr>' +
             '<th style="text-align:left;padding:6px 4px">股票</th>' +
             '<th style="text-align:right;padding:6px 4px">每股 × 股數</th>' +
-            '<th style="text-align:right;padding:6px 4px">金額</th>' +
+            '<th style="text-align:right;padding:6px 4px">現金</th>' +
+            '<th style="text-align:right;padding:6px 4px">配股</th>' +
             '</tr></thead><tbody>' + rows + '</tbody></table>'
           : '<div style="padding:20px;text-align:center;color:var(--muted)">此月無預估配息</div>') +
         '<div style="font-size:11px;color:var(--muted);margin-top:8px">※ <span style="color:var(--green)">已公告</span>＝官方已定除息／配息；<span style="color:#DC2626">預估</span>＝以最近一次配息推估（未公告，僅供參考）。</div>' +
