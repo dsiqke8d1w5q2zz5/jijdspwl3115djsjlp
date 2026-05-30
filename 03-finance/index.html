@@ -2606,15 +2606,17 @@ function yearSwitchHTML(years, curY, onChangeFn) {
 
 // 年份選擇器：點年份切換列中間的框時叫出，列出所有年份直接選
 // onChangeFn：與 yearSwitchHTML 相同的全域函式名；curY：目前年份
-function openYearPicker(onChangeFn, curY) {
+// 可選 labelFnName：全域函式名，把年份「值」轉成顯示「標籤」（例如西元→民國），未提供則用值本身
+function openYearPicker(onChangeFn, curY, labelFnName) {
     var years = (window._yearPickerData && window._yearPickerData[onChangeFn]) || [];
     if (years.length === 0) return;
-    var yearsDesc = years.slice().reverse(); // 新→舊顯示
+    var labelFn = (labelFnName && typeof window[labelFnName] === 'function') ? window[labelFnName] : function(y){ return y; };
+    var yearsAsc = years.slice(); // 舊→新顯示（左小右大）
     var ov = document.createElement('div');
     ov.className = 'overlay';
-    var btns = yearsDesc.map(function(y){
+    var btns = yearsAsc.map(function(y){
         var on = (y === curY);
-        return '<button type="button" data-year="' + esc(y) + '" style="padding:10px 8px;border:1px solid ' + (on ? 'var(--lux-navy)' : 'var(--border)') + ';border-radius:8px;background:' + (on ? 'var(--lux-navy)' : '#fff') + ';color:' + (on ? '#fff' : 'var(--text)') + ';font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">' + esc(y) + ' 年</button>';
+        return '<button type="button" data-year="' + esc(y) + '" style="padding:10px 8px;border:1px solid ' + (on ? 'var(--lux-navy)' : 'var(--border)') + ';border-radius:8px;background:' + (on ? 'var(--lux-navy)' : '#fff') + ';color:' + (on ? '#fff' : 'var(--text)') + ';font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">' + esc(String(labelFn(y))) + ' 年</button>';
     }).join('');
     ov.innerHTML = '<div class="modal" style="max-width:320px"><h3 style="margin:0 0 12px">選擇年份</h3>' +
         '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-height:50vh;overflow-y:auto">' + btns + '</div>' +
@@ -2626,6 +2628,9 @@ function openYearPicker(onChangeFn, curY) {
     document.getElementById('yp-cancel').onclick = function(){ ov.remove(); };
     ov.addEventListener('click', function(e){ if (e.target === ov) ov.remove(); });
 }
+
+// 西元年字串 → 民國年（給 openYearPicker 的 labelFn 用）
+function _yearLabelROC(y){ var n = parseInt(y,10); return isNaN(n) ? y : (n - 1911); }
 
 function selectPassiveYear(y) {
     window._passiveYear = y;
@@ -6596,11 +6601,14 @@ function renderStockDividend() {
     var aOn = aBase + ';cursor:pointer', aOff = aBase + ';opacity:0.3;cursor:not-allowed';
     var items = byYear[curY] || [];
     var yearTotal = 0; items.forEach(function(it){ yearTotal += (it.d.cash || 0); });
+    // 把年份清單（西元年，舊→新）暫存到全域，讓中間框點下去可叫出年份選單直接挑年；顯示用民國
+    window._yearPickerData = window._yearPickerData || {};
+    window._yearPickerData['onDivListYearChange'] = years.slice().reverse();
 
     html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">';
     html += prevY ? '<button type="button" onclick="onDivListYearChange(\'' + esc(prevY) + '\')" title="上一年" style="' + aOn + '"><i class="ti ti-chevron-left"></i></button>'
                   : '<button type="button" disabled style="' + aOff + '"><i class="ti ti-chevron-left"></i></button>';
-    html += '<div style="min-width:120px;height:34px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:8px;background:var(--card);font-size:15px;font-weight:600;color:var(--text)">' + (parseInt(curY,10) ? (parseInt(curY,10)-1911) : curY) + ' 年</div>';
+    html += '<button type="button" onclick="openYearPicker(\'onDivListYearChange\',\'' + esc(curY) + '\',\'_yearLabelROC\')" title="點選年份" style="min-width:120px;height:34px;display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1px solid var(--border);border-radius:8px;background:var(--card);font-size:15px;font-weight:600;color:var(--text);cursor:pointer;font-family:inherit"><span>' + (parseInt(curY,10) ? (parseInt(curY,10)-1911) : curY) + ' 年</span><i class="ti ti-chevron-down" style="font-size:12px;color:var(--muted)"></i></button>';
     html += nextY ? '<button type="button" onclick="onDivListYearChange(\'' + esc(nextY) + '\')" title="下一年" style="' + aOn + '"><i class="ti ti-chevron-right"></i></button>'
                   : '<button type="button" disabled style="' + aOff + '"><i class="ti ti-chevron-right"></i></button>';
     html += '<span style="margin-left:auto;font-size:13px;color:var(--muted)">合計 <b style="color:var(--lux-navy);font-size:15px">$' + fmt(yearTotal) + '</b>　' + items.length + ' 筆</span>';
