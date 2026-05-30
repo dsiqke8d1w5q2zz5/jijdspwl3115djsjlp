@@ -9691,7 +9691,7 @@ function showBackfillHistoryModal() {
 }
 
 // 搜尋個股漲跌日曆（持股總覽工具列觸發）：輸入任意代號 → 補抓區間 → 只秀漲跌日曆
-var _stockSearchState = { stockId: '', month: null };
+var _stockSearchState = { stockId: '', stockName: '', month: null };
 function showStockSearchModal() {
     var now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
     var thisYM = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
@@ -9722,7 +9722,7 @@ function showStockSearchModal() {
 function closeStockSearchModal() {
     var ov = document.querySelector('.stock-search-modal-overlay');
     if (ov) ov.remove();
-    _stockSearchState = { stockId: '', month: null };
+    _stockSearchState = { stockId: '', stockName: '', month: null };
 }
 
 function runStockSearch() {
@@ -9837,8 +9837,16 @@ function _doStockSearchFetch(id, from, to) {
             }
             if (prog) prog.textContent = '';
             _stockSearchState.stockId = id;
+            _stockSearchState.stockName = '';
             _stockSearchState.month = null;
             _renderStockSearchResult();
+            // 補查股票名稱後再刷新標題
+            lookupStockName(id, function(err, name){
+                if (!err && name && _stockSearchState.stockId === id) {
+                    _stockSearchState.stockName = name;
+                    _renderStockSearchResult();
+                }
+            });
         })
         .catch(function(err){
             console.error('[stock-search] failed', err);
@@ -9850,7 +9858,13 @@ function _doStockSearchFetch(id, from, to) {
 function _renderStockSearchResult() {
     var box = document.getElementById('ss-result');
     if (!box) return;
-    box.innerHTML = _buildStockCalendarHtml(_stockSearchState.stockId, _stockSearchState.month, 'onStockSearchMonthChange');
+    var id = _stockSearchState.stockId;
+    var nm = _stockSearchState.stockName;
+    var head = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)">' +
+        '<b style="font-size:18px;color:var(--lux-navy)">' + esc(id) + '</b>' +
+        (nm ? '<span style="font-size:16px;font-weight:600;color:var(--text)">' + esc(nm) + '</span>' : '') +
+        '</div>';
+    box.innerHTML = head + _buildStockCalendarHtml(id, _stockSearchState.month, 'onStockSearchMonthChange');
 }
 
 function onStockSearchMonthChange(m) {
