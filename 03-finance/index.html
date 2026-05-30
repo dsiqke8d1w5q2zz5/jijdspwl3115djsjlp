@@ -2429,7 +2429,8 @@ function switchTab(tab) {
     });
     document.getElementById('tab-' + tab).classList.add('active');
     if (tab === 'stock') {
-        if (!_dividendAlertChecked) checkDividendAlerts();
+        // 沒查過、或這次是用 localStorage 快取先顯示（需背景更新一次）→ 觸發
+        if (!_dividendAlertChecked || _dividendNeedsRefresh) checkDividendAlerts();
     }
     if (tab === 'assets') {
         maybeAutoFetchFx();
@@ -5196,6 +5197,7 @@ function setDividendAlertRange(before) {
 }
 
 function checkDividendAlerts() {
+    _dividendNeedsRefresh = false; // 已開始這次背景更新
     _dividendAlerts = [];
     _dividendCacheUpdatedAt = null;
     if (stockData.holdings.length === 0) {
@@ -5335,6 +5337,7 @@ function checkDividendAlerts() {
     var cachePromise = Promise.all([cacheP, twseP, tpexP]).then(function(all){
         var allItems = all[0].concat(all[1]).concat(all[2]);
         _dividendCacheItems = allItems.slice();
+        _saveDividendCacheLS(); // 存快取供下次立即顯示
         allItems.forEach(function(d) {
             var h = holdingIds[d.stockId];
             if (!h) return;
@@ -5386,6 +5389,34 @@ function checkDividendAlerts() {
 
 var _dividendCacheUpdatedAt = null;
 var _dividendCacheItems = []; // 全部 cache 條目（per-share），用於殖利率計算
+
+// ── 除權息快取 localStorage（讓「全年配息預估」能用上次資料立即顯示完整版面，背景再更新）──
+var _DIV_CACHE_LS_KEY = 'dividendCacheItems';
+function _saveDividendCacheLS() {
+    try {
+        localStorage.setItem(_DIV_CACHE_LS_KEY, JSON.stringify({
+            items: _dividendCacheItems,
+            updatedAt: _dividendCacheUpdatedAt || null,
+            savedAt: Date.now()
+        }));
+    } catch (e) {}
+}
+function _loadDividendCacheLS() {
+    try {
+        var raw = localStorage.getItem(_DIV_CACHE_LS_KEY);
+        if (!raw) return false;
+        var o = JSON.parse(raw);
+        if (o && Array.isArray(o.items) && o.items.length) {
+            _dividendCacheItems = o.items.slice();
+            if (o.updatedAt) _dividendCacheUpdatedAt = o.updatedAt;
+            return true;
+        }
+    } catch (e) {}
+    return false;
+}
+// 初始化：有上次快取就先灌入，並視為「已有可用資料」→ 面板直接顯示完整版（網路仍會背景更新）
+var _dividendNeedsRefresh = false; // 用快取先顯示時，標記仍需背景更新一次
+if (_loadDividendCacheLS()) { _dividendAlertChecked = true; _dividendNeedsRefresh = true; }
 
 function renderDividendAlerts() {
     var settingsBtn = '<button onclick="event.stopPropagation();openDividendAlertSettings()" title="提醒天數設定" style="background:none;border:none;cursor:pointer;color:var(--lux-navy);padding:0 4px;font-size:14px;"><i class="ti ti-settings"></i></button>';
@@ -6376,6 +6407,10 @@ function _ymNum(ym) {
 function showDivMonthDetail(ym, label) {
     var ov = document.createElement('div');
     ov.className = 'overlay';
+    // 頂端對齊（覆蓋 .overlay 的置中），讓切換月份檔數變動時視窗頂端位置固定、不跳動
+    ov.style.alignItems = 'flex-start';
+    ov.style.paddingTop = '8vh';
+    ov.style.overflowY = 'auto';
     document.body.appendChild(ov);
     var _md = false;
     ov.addEventListener('mousedown', function(e){ _md = (e.target === ov); });
@@ -6584,7 +6619,7 @@ function _buildDividendForecastHtml() {
             '</div>';
     });
     html += '</div>';
-    html += '<div style="font-size:11px;opacity:.6;margin-top:8px">※ 以最近一次配息 × 目前股數推估，僅供參考；配息會逐年增減。</div>';
+    html += '<div style="font-size:11px;opacity:.6;margin-top:8px">※ 以最近一次配息 × 目前股數推估，僅供參考；實際配息每年可能不同。</div>';
     html += '</div>';
     return html;
 }
