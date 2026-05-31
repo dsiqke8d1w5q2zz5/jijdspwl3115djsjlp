@@ -9595,8 +9595,8 @@ function _paintChips(stockId, err, data) {
 // 把指標物件渲染成 HTML
 function _fundamentalsInnerHtml(d) {
     var html = '';
-    var cardOpen = '<div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px">';
-    var titleStyle = 'font-size:12px;color:var(--lux-navy);font-weight:700;letter-spacing:.5px;margin-bottom:10px';
+    var cardOpen = '<div style="border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:8px">';
+    var titleStyle = 'font-size:12px;color:var(--lux-navy);font-weight:700;letter-spacing:.5px;margin-bottom:6px';
 
     var hasRev = d.revenue, hasEps = d.eps && d.eps.length, hasMargin = d.grossMargin !== null || d.opMargin !== null || d.netMargin !== null;
     if (!hasRev && !hasEps && !hasMargin) {
@@ -9609,7 +9609,7 @@ function _fundamentalsInnerHtml(d) {
         var ymp = r.ym.split('-');
         html += cardOpen;
         html += '<div style="' + titleStyle + '">月營收</div>';
-        html += '<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px">';
+        html += '<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:6px">';
         html += '<span style="font-size:13px;color:var(--muted)">' + ymp[0] + '年' + parseInt(ymp[1],10) + '月</span>';
         html += '<b style="font-size:22px;color:var(--text)">' + (r.value/1e8).toFixed(2) + '<span style="font-size:13px;font-weight:400;color:var(--muted)"> 億</span></b>';
         if (r.mom !== null) html += '<span style="font-size:13px">月增 <b style="color:' + signColor(r.mom) + '">' + signPrefix(r.mom) + r.mom.toFixed(1) + '%</b></span>';
@@ -9636,28 +9636,29 @@ function _fundamentalsInnerHtml(d) {
     if (hasEps) {
         html += cardOpen;
         html += '<div style="' + titleStyle + '">獲利（每股盈餘 EPS）</div>';
-        html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">';
+        html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px">';
         d.eps.forEach(function(e){
             html += '<div style="flex:1;min-width:64px;text-align:center;border:1px solid var(--border);border-radius:8px;padding:8px 4px">' +
                 '<div style="font-size:11px;color:var(--muted)">' + e.label + '</div>' +
                 '<div style="font-size:16px;font-weight:700;color:' + signColor(e.value) + '">' + signPrefix(e.value) + e.value.toFixed(2) + '</div></div>';
         });
         html += '</div>';
-        html += '<div style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px">';
+        html += '<div style="display:flex;gap:8px 20px;flex-wrap:wrap;font-size:13px">';
         if (d.epsTTM !== null) {
             var ttmFull = d.eps.length === 4;
             html += '<span>近四季合計 <b style="color:' + signColor(d.epsTTM) + '">' + signPrefix(d.epsTTM) + d.epsTTM.toFixed(2) + '</b>' +
                 (ttmFull ? '' : '<span style="font-size:11px;color:var(--muted)">（不足四季）</span>') + '</span>';
         }
-        if (d.per !== null) {
-            html += '<span>本益比 PER <b style="color:var(--lux-navy)">' + d.per.toFixed(1) + ' 倍</b></span>';
-        } else if (d.epsTTM !== null && d.epsTTM <= 0) {
-            html += '<span>本益比 PER <b style="color:var(--muted)">—（近四季虧損）</b></span>';
-        }
         if (d.roe !== null) {
             html += '<span>ROE（近四季） <b style="color:' + signColor(d.roe) + '">' + signPrefix(d.roe) + d.roe.toFixed(1) + '%</b></span>';
         }
+        // 官方估值（TWSE 版 PER/PBR/殖利率）併入此卡，取代原自算 PER
+        if (d.perOfficial != null) html += '<span>本益比 PER <b style="color:var(--lux-navy)">' + d.perOfficial.toFixed(2) + ' 倍</b></span>';
+        else if (d.epsTTM !== null && d.epsTTM <= 0) html += '<span>本益比 PER <b style="color:var(--muted)">—（近四季虧損）</b></span>';
+        if (d.pbrOfficial != null) html += '<span>股價淨值比 PB <b style="color:var(--lux-navy)">' + d.pbrOfficial.toFixed(2) + ' 倍</b></span>';
+        if (d.dividendYield != null) html += '<span>殖利率 <b style="color:' + signColor(1) + '">' + d.dividendYield.toFixed(2) + '%</b></span>';
         html += '</div>';
+        if (d.perDate) html += '<div style="font-size:10px;color:var(--muted);margin-top:4px">PER／PB／殖利率為官方公告值（' + d.perDate.slice(5) + '）</div>';
         html += '</div>';
     }
 
@@ -9677,18 +9678,6 @@ function _fundamentalsInnerHtml(d) {
         html += _marginCell('淨利率', d.netMargin);
         html += '</div>';
         html += '</div>';
-    }
-
-    // ── 官方估值（TWSE 版 PER/PBR/殖利率）──
-    if (d.perOfficial != null || d.pbrOfficial != null || d.dividendYield != null) {
-        html += cardOpen;
-        var perDateStr = d.perDate ? '<span style="font-weight:400;color:var(--muted);font-size:11px">（' + d.perDate.slice(5) + '）</span>' : '';
-        html += '<div style="' + titleStyle + '">官方估值' + perDateStr + '</div>';
-        html += '<div style="display:flex;gap:8px 16px;flex-wrap:wrap;font-size:13px">';
-        if (d.perOfficial != null) html += '<span>本益比 PER <b style="color:var(--lux-navy)">' + d.perOfficial.toFixed(2) + ' 倍</b></span>';
-        if (d.pbrOfficial != null) html += '<span>股價淨值比 PB <b style="color:var(--lux-navy)">' + d.pbrOfficial.toFixed(2) + ' 倍</b></span>';
-        if (d.dividendYield != null) html += '<span>殖利率 <b style="color:' + signColor(1) + '">' + d.dividendYield.toFixed(2) + '%</b></span>';
-        html += '</div></div>';
     }
 
     // ── 財務體質（負債比 / 流動比 / 每股淨值）──
@@ -9718,7 +9707,7 @@ function _fundamentalsInnerHtml(d) {
         html += '</div></div>';
     }
 
-    html += '<div style="font-size:11px;color:var(--muted);line-height:1.6">※ 資料來源：FinMind（月營收、季財報、資產負債表、官方本益比）。自算本益比＝目前股價 ÷ 近四季EPS；官方估值為 TWSE/TPEX 公告值。負債比＝總負債÷總資產（低較穩健）；流動比＝流動資產÷流動負債（高較有短期償債力）；每股淨值＝股東權益÷股數。</div>';
+    html += '<div style="font-size:11px;color:var(--muted);line-height:1.6">※ 資料來源：FinMind（月營收、季財報、資產負債表、官方本益比）。PER／PB／殖利率為 TWSE／TPEX 官方公告值；ROE＝近四季淨利÷最新股東權益。負債比＝總負債÷總資產（低較穩健）；流動比＝流動資產÷流動負債（高較有短期償債力）；每股淨值＝股東權益÷股數。</div>';
     return html;
 }
 
@@ -9728,8 +9717,8 @@ function _chipsInnerHtml(d) {
     var hasInst = d.foreign != null || d.trust != null || d.dealer != null;
     var hasMargin = d.marginBalance != null || d.shortBalance != null;
     if (!hasInst && !hasMargin) return '';
-    var cardOpen = '<div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px">';
-    var titleStyle = 'font-size:12px;color:var(--lux-navy);font-weight:700;letter-spacing:.5px;margin-bottom:10px';
+    var cardOpen = '<div style="border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:8px">';
+    var titleStyle = 'font-size:12px;color:var(--lux-navy);font-weight:700;letter-spacing:.5px;margin-bottom:6px';
     // 張數格式化：千分位、帶正負號顏色
     function _lots(v) {
         if (v == null) return '—';
@@ -9774,7 +9763,7 @@ function _chipsInnerHtml(d) {
                         : '<div style="height:24px"></div><div style="height:24px;display:flex;align-items:flex-start"><div style="width:100%;height:' + h + 'px;background:' + signColor(-1) + ';border-radius:0 0 2px 2px"></div></div>') +
                     '</div>';
             }).join('');
-            html += '<div style="margin-top:10px"><div style="display:flex;align-items:center;gap:2px;position:relative">' +
+            html += '<div style="margin-top:6px"><div style="display:flex;align-items:center;gap:2px;position:relative">' +
                 '<div style="position:absolute;left:0;right:0;top:50%;border-top:1px dashed var(--border)"></div>' + bars + '</div>' +
                 '<div style="font-size:10px;color:var(--muted);margin-top:2px">外資近 ' + d.foreignTrend.length + ' 日買賣超趨勢（張）</div></div>';
         }
