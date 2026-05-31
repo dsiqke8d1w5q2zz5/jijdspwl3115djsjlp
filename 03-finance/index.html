@@ -9125,14 +9125,14 @@ function _etfInfoHtml(d) {
         html += '<div onclick="toggleEtfCard(this)" style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;' + titleStyle + ';margin-bottom:0">' +
             '<i class="ti ti-chevron-right" style="font-size:14px;color:var(--muted);transition:transform .15s"></i> 產業分佈' +
             '<span style="font-weight:400;color:var(--muted);margin-left:auto">' + esc(topInd.name) + ' ' + topInd.pct.toFixed(1) + '%…</span></div>';
-        html += '<div class="etf-card-body" style="display:none;margin-top:10px">';
+        html += '<div class="etf-card-body" data-disp="grid" style="display:none;grid-template-columns:1fr 1fr;gap:4px 20px;margin-top:10px">';
         d.industries.slice(0, 8).forEach(function(x){
             var w = maxPct > 0 ? Math.max(3, x.pct / maxPct * 100) : 3;
-            html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:12px">' +
-                '<span style="flex:0 0 130px;text-align:right;color:var(--text)">' + esc(x.name) + '</span>' +
-                '<div style="flex:1;background:#F1EDE8;border-radius:4px;height:16px;position:relative">' +
-                    '<div style="width:' + w + '%;background:var(--lux-navy);height:100%;border-radius:4px"></div></div>' +
-                '<span style="flex:0 0 52px;text-align:right;font-weight:600;color:var(--lux-navy)">' + x.pct.toFixed(2) + '%</span>' +
+            html += '<div style="display:flex;align-items:center;gap:6px;font-size:12px">' +
+                '<span style="flex:0 0 72px;text-align:right;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(x.name) + '</span>' +
+                '<div style="flex:1;background:#F1EDE8;border-radius:3px;height:12px;position:relative">' +
+                    '<div style="width:' + w + '%;background:var(--lux-navy);height:100%;border-radius:3px"></div></div>' +
+                '<span style="flex:0 0 46px;text-align:right;font-weight:600;color:var(--lux-navy)">' + x.pct.toFixed(1) + '%</span>' +
                 '</div>';
         });
         html += '</div></div>';
@@ -9149,8 +9149,8 @@ function _etfInfoHtml(d) {
         html += '<table class="etf-card-body" style="display:none;width:100%;border-collapse:collapse;font-size:13px;margin-top:10px"><tbody>';
         top.forEach(function(x){
             html += '<tr style="border-bottom:1px solid var(--border)">' +
-                '<td style="padding:6px 4px">' + esc(x.name) + (x.code ? ' <span style="color:var(--muted);font-size:11px">' + esc(x.code) + '</span>' : '') + '</td>' +
-                '<td style="padding:6px 4px;text-align:right;color:var(--lux-navy);font-weight:600">' + (x.pct != null ? x.pct.toFixed(2) + '%' : '—') + '</td></tr>';
+                '<td style="padding:3px 4px">' + esc(x.name) + (x.code ? ' <span style="color:var(--muted);font-size:11px">' + esc(x.code) + '</span>' : '') + '</td>' +
+                '<td style="padding:3px 4px;text-align:right;color:var(--lux-navy);font-weight:600">' + (x.pct != null ? x.pct.toFixed(2) + '%' : '—') + '</td></tr>';
         });
         html += '</tbody></table></div>';
     }
@@ -9166,7 +9166,8 @@ function toggleEtfCard(headEl) {
     var icon = headEl.querySelector('i');
     if (!body) return;
     var open = body.style.display !== 'none';
-    body.style.display = open ? 'none' : (body.tagName === 'TABLE' ? 'table' : 'block');
+    var openDisp = body.getAttribute('data-disp') || (body.tagName === 'TABLE' ? 'table' : 'block');
+    body.style.display = open ? 'none' : openDisp;
     if (icon) icon.style.transform = open ? '' : 'rotate(90deg)';
 }
 
