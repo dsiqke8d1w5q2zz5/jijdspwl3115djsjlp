@@ -9131,11 +9131,11 @@ function _renderStockCalModalTabs() {
         return '<button type="button" onclick="switchStockCalTab(\'' + key + '\')" style="' + style + '">' + label +
             (badge ? '<span style="margin-left:6px;font-size:11px;color:var(--muted)">' + badge + '</span>' : '') + '</button>';
     }
-    var isEtf = /^00/.test(String(stockId)); // ETF 無個股籌碼面（法人/融資券）
+    // 籌碼面：個股與 ETF 都顯示（ETF 一樣有法人買賣超／融資融券；外資持股比例若無資料會自動隱藏）
     tabsBox.innerHTML = _tab('calendar', '漲跌日曆') + _tab('trend', '走勢') +
         _tab('dividends', '歷史配息', divCount > 0 ? divCount : '') +
         _tab('fundamentals', '基本面') +
-        (isEtf ? '' : _tab('chips', '籌碼面')) +
+        _tab('chips', '籌碼面') +
         _tab('trades', '交易紀錄', tradeCount > 0 ? tradeCount : '');
 }
 
@@ -9827,8 +9827,9 @@ function _chipsInnerHtml(d) {
         html += '</div>';
     }
 
-    // 外資持股比例
-    if (d.foreignHoldRatio != null) {
+    // 外資持股比例（僅個股；ETF 的此值無意義，隱藏）
+    var _isEtfChips = /^00/.test(String(d.stockId || ''));
+    if (!_isEtfChips && d.foreignHoldRatio != null) {
         var fhColor = d.foreignHoldChange > 0 ? signColor(1) : d.foreignHoldChange < 0 ? signColor(-1) : 'var(--muted)';
         html += '<div style="font-size:13px;margin-top:10px">外資持股比例 <b style="color:var(--lux-navy)">' + d.foreignHoldRatio.toFixed(2) + '%</b>' +
             (d.foreignHoldChange != null && Math.abs(d.foreignHoldChange) >= 0.01 ? ' <span style="color:' + fhColor + ';font-size:12px">(' + (d.foreignHoldChange > 0 ? '+' : '') + d.foreignHoldChange.toFixed(2) + ' pt，近期)</span>' : '') + '</div>';
