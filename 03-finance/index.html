@@ -9054,6 +9054,23 @@ function _etfInfoHtml(d) {
     var cardOpen = '<div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px">';
     var titleStyle = 'font-size:12px;color:var(--lux-navy);font-weight:700;letter-spacing:.5px;margin-bottom:10px';
 
+    // 成分股變動橫幅（與前一日比對：新增綠、移除紅）
+    if (d.changes && ((d.changes.added && d.changes.added.length) || (d.changes.removed && d.changes.removed.length))) {
+        var ch = d.changes;
+        var nameOf = function(x){ return (x.name ? esc(x.name) + ' ' : '') + '<span style="color:var(--muted);font-size:11px">' + esc(x.code) + '</span>'; };
+        html += '<div style="border:1px solid #F0C36D;background:#FCF6E8;border-radius:10px;padding:12px 14px;margin-bottom:12px">';
+        html += '<div style="font-size:12px;font-weight:700;color:#B45309;margin-bottom:8px"><i class="ti ti-bell"></i> 成分股異動（' + esc(ch.prevDate || '') + ' → ' + esc(ch.currDate || '') + '）</div>';
+        if (ch.added && ch.added.length) {
+            html += '<div style="font-size:13px;margin-bottom:4px"><span style="color:' + signColor(1) + ';font-weight:700">＋ 新增</span>　' +
+                ch.added.map(nameOf).join('、') + '</div>';
+        }
+        if (ch.removed && ch.removed.length) {
+            html += '<div style="font-size:13px"><span style="color:' + signColor(-1) + ';font-weight:700">－ 移除</span>　' +
+                ch.removed.map(nameOf).join('、') + '</div>';
+        }
+        html += '</div>';
+    }
+
     // 費率 + 折溢價（合併一張卡）
     var hasFee = d.fee && (d.fee.total != null || d.fee.manage != null || d.fee.custody != null);
     var hasNav = d.nav && d.nav.nav != null;
