@@ -9065,9 +9065,11 @@ function _renderStockCalModalTabs() {
         return '<button type="button" onclick="switchStockCalTab(\'' + key + '\')" style="' + style + '">' + label +
             (badge ? '<span style="margin-left:6px;font-size:11px;color:var(--muted)">' + badge + '</span>' : '') + '</button>';
     }
+    var isEtf = /^00/.test(String(stockId)); // ETF 無個股籌碼面（法人/融資券）
     tabsBox.innerHTML = _tab('calendar', '漲跌日曆') + _tab('trend', '走勢') +
         _tab('dividends', '歷史配息', divCount > 0 ? divCount : '') +
         _tab('fundamentals', '基本面') +
+        (isEtf ? '' : _tab('chips', '籌碼面')) +
         _tab('trades', '交易紀錄', tradeCount > 0 ? tradeCount : '');
 }
 
@@ -9089,6 +9091,8 @@ function _renderStockCalModalBody() {
         box.innerHTML = _buildStockTradesHtml(_stockCalModalState.stockId);
     } else if (tab === 'fundamentals') {
         box.innerHTML = _buildFundamentalsHtml(_stockCalModalState.stockId);
+    } else if (tab === 'chips') {
+        box.innerHTML = _buildChipsHtml(_stockCalModalState.stockId);
     } else if (tab === 'dividends') {
         box.innerHTML = _buildStockDividendsHtml(_stockCalModalState.stockId);
     } else if (tab === 'trend') {
@@ -9489,28 +9493,41 @@ function _buildFundamentalsHtml(stockId) {
         return _buildEtfFundamentalsHtml(stockId);
     }
     var hadCache = !!(_fundamentalsCache[stockId] && _fundamentalsCache[stockId].data);
-    var hadChips = !!(_chipsCache[stockId] && _chipsCache[stockId].data);
     // 觸發抓取（非同步）：首次填入 or 有實質變動才重繪；無變動不動畫面
     setTimeout(function(){
         fetchFundamentals(stockId, function(err, data, changed){
             if (!hadCache || changed || err) _paintFundamentals(stockId, err, data);
         });
-        fetchChips(stockId, function(err, data, changed){
-            if (!hadChips || changed) _paintChips(stockId, data);
-        });
     }, 0);
     var loading = '<div class="' + _FUND_CONTAINER_ID + '" data-fund="' + esc(stockId) + '">' +
         '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px"><i class="ti ti-loader"></i> 載入基本面資料中…</div>' +
         '</div>';
-    // 籌碼面容器（基本面下方）：有快取直接帶內容，無則留空（資料較不重要，不顯示 loading 佔位）
-    var cc = _chipsCache[stockId];
-    var chipsBox = '<div class="chips-box" data-chips="' + esc(stockId) + '">' + ((cc && cc.data) ? _chipsInnerHtml(cc.data) : '') + '</div>';
     // 若已有快取（含 localStorage 還原），直接帶內容（避免閃 loading）
     var c = _fundamentalsCache[stockId];
     if (c && c.data) {
-        return '<div class="' + _FUND_CONTAINER_ID + '" data-fund="' + esc(stockId) + '">' + _fundamentalsInnerHtml(c.data) + '</div>' + chipsBox;
+        return '<div class="' + _FUND_CONTAINER_ID + '" data-fund="' + esc(stockId) + '">' + _fundamentalsInnerHtml(c.data) + '</div>';
     }
-    return loading + chipsBox;
+    return loading;
+}
+
+// 籌碼面分頁（個股限定）：三大法人買賣超 + 連買連賣 + 外資趨勢 + 融資融券
+function _buildChipsHtml(stockId) {
+    var hadChips = !!(_chipsCache[stockId] && _chipsCache[stockId].data);
+    setTimeout(function(){
+        fetchChips(stockId, function(err, data, changed){
+            if (!hadChips || changed || err) _paintChips(stockId, err, data);
+        });
+    }, 0);
+    var cc = _chipsCache[stockId];
+    if (cc && cc.data) {
+        var inner = _chipsInnerHtml(cc.data);
+        return '<div class="chips-box" data-chips="' + esc(stockId) + '">' + (inner || _chipsEmptyHtml()) + '</div>';
+    }
+    return '<div class="chips-box" data-chips="' + esc(stockId) + '">' +
+        '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px"><i class="ti ti-loader"></i> 載入籌碼面資料中…</div></div>';
+}
+function _chipsEmptyHtml() {
+    return '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">查無籌碼面資料（法人買賣超／融資融券）。</div>';
 }
 
 // 抓完後把內容填入頁面上所有對應容器
@@ -9525,11 +9542,15 @@ function _paintFundamentals(stockId, err, data) {
     });
 }
 
-// 抓完後把籌碼面填入頁面上所有對應容器（無資料則留空，不顯示錯誤）
-function _paintChips(stockId, data) {
+// 抓完後把籌碼面填入頁面上所有對應容器
+function _paintChips(stockId, err, data) {
     var sel = (window.CSS && CSS.escape ? CSS.escape(stockId) : stockId);
     var boxes = document.querySelectorAll('.chips-box[data-chips="' + sel + '"]');
-    Array.prototype.forEach.call(boxes, function(box){ box.innerHTML = data ? _chipsInnerHtml(data) : ''; });
+    Array.prototype.forEach.call(boxes, function(box){
+        if (err || !data) { box.innerHTML = _chipsEmptyHtml(); return; }
+        var inner = _chipsInnerHtml(data);
+        box.innerHTML = inner || _chipsEmptyHtml();
+    });
 }
 
 // 把指標物件渲染成 HTML
