@@ -8948,13 +8948,92 @@ function onStockDivYearChange(y) {
     _renderStockCalModalBody();
 }
 
+// ── ETF 輕量基本面：配息表現（用本地既有資料：除權息快取 + priceHistory）──
+function _buildEtfFundamentalsHtml(stockId) {
+    // 近一年每股現金配息（去重）
+    var ttmCps = _trailing12mCashPerShare(stockId);
+    // 該檔全部配息紀錄（含每股、除息日），近一年明細 + 算頻率
+    var now = new Date();
+    var oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+    var seen = {}, ttmList = [];
+    (_dividendCacheItems || []).forEach(function(item){
+        if (item.stockId !== stockId) return;
+        if (!item.cash || item.cash <= 0) return;
+        var d = new Date(item.exDate);
+        if (isNaN(d.getTime())) return;
+        var key = stockId + '|' + item.exDate;
+        if (seen[key]) return;
+        seen[key] = true;
+        if (d >= oneYearAgo && d <= now) ttmList.push({ exDate: item.exDate, cash: item.cash });
+    });
+    ttmList.sort(function(a,b){ return a.exDate < b.exDate ? 1 : -1; }); // 新→舊
+
+    // 配息頻率（近一年除息次數推估）
+    var n = ttmList.length;
+    var freqLabel = n >= 11 ? '月配' : n >= 4 ? '季配' : n === 2 ? '半年配' : n === 1 ? '年配' : '—';
+
+    // 殖利率（近一年配息 / 現價）
+    var price = _currentPriceFor(stockId);
+    var yieldTxt = (price && ttmCps > 0) ? (ttmCps / price * 100).toFixed(2) + '%' : '—';
+
+    // 近 12 月價格區間 / 波動（用 priceHistory）
+    var ph = (stockData.priceHistory || {})[stockId] || [];
+    var oneYearStr = _localDateStr(oneYearAgo);
+    var yp = ph.filter(function(e){ return e && e.date >= oneYearStr && typeof e.price === 'number'; });
+    var priceBlock = '';
+    if (yp.length >= 2) {
+        var hi = Math.max.apply(null, yp.map(function(e){ return e.price; }));
+        var lo = Math.min.apply(null, yp.map(function(e){ return e.price; }));
+        var amp = lo > 0 ? (hi - lo) / lo * 100 : 0;
+        priceBlock = '<div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px">' +
+            '<div style="font-size:12px;color:var(--lux-navy);font-weight:700;letter-spacing:.5px;margin-bottom:10px">近一年價格</div>' +
+            '<div style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px">' +
+            '<span>最高 <b>' + hi.toFixed(2) + '</b></span>' +
+            '<span>最低 <b>' + lo.toFixed(2) + '</b></span>' +
+            '<span>振幅 <b>' + amp.toFixed(1) + '%</b></span>' +
+            (price ? '<span>現價 <b style="color:var(--lux-navy)">' + price.toFixed(2) + '</b></span>' : '') +
+            '</div></div>';
+    }
+
+    var html = '';
+    // 配息卡片
+    html += '<div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px">';
+    html += '<div style="font-size:12px;color:var(--lux-navy);font-weight:700;letter-spacing:.5px;margin-bottom:10px">配息表現</div>';
+    html += '<div style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px;margin-bottom:' + (ttmList.length ? '12px' : '0') + '">';
+    html += '<span>近一年每股配息 <b style="color:var(--lux-navy)">' + (ttmCps > 0 ? '$' + ttmCps.toFixed(3) : '—') + '</b></span>';
+    html += '<span>年化殖利率 <b style="color:var(--lux-navy)">' + yieldTxt + '</b></span>';
+    html += '<span>配息頻率 <b>' + freqLabel + (n ? '（近一年 ' + n + ' 次）' : '') + '</b></span>';
+    html += '</div>';
+    if (ttmList.length) {
+        html += '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:var(--muted);font-size:11px;text-align:left;border-bottom:1px solid var(--border)">' +
+            '<th style="padding:6px 4px;font-weight:600">除息日</th><th style="padding:6px 4px;font-weight:600;text-align:right">每股配息</th></tr></thead><tbody>';
+        ttmList.forEach(function(e){
+            html += '<tr style="border-bottom:1px solid var(--border)">' +
+                '<td style="padding:6px 4px">' + esc(_toROCDate(e.exDate) || e.exDate) + '</td>' +
+                '<td style="padding:6px 4px;text-align:right;color:var(--lux-navy);font-weight:600">$' + e.cash.toFixed(3) + '</td></tr>';
+        });
+        html += '</tbody></table>';
+    }
+    html += '</div>';
+
+    html += priceBlock;
+
+    // ETF 缺漏項目誠實標註
+    html += '<div style="font-size:11px;color:var(--muted);line-height:1.6">※ ETF 配息資料來自除權息快取與你的紀錄；殖利率＝近一年配息 ÷ 現價。<br>※ <b>成分股／產業分佈、總費用率、淨值折溢價</b>無免費資料來源，暫無法顯示。</div>';
+
+    if (ttmCps <= 0 && !ttmList.length && !priceBlock) {
+        return '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">此 ETF 尚無配息或價格紀錄可顯示。</div>';
+    }
+    return html;
+}
+
 // ── 基本面分頁／區塊（個股 modal + 搜尋日曆共用）──
 // 同步回傳容器，注入 DOM 後會自動非同步抓取並填入（用 requestAnimationFrame 排程 hydrate）
 var _FUND_CONTAINER_ID = 'fund-box';
 function _buildFundamentalsHtml(stockId) {
-    // ETF／債券 ETF 沒有個股基本面（無 EPS／月營收／財報）
+    // ETF／債券 ETF 沒有個股財報（無 EPS／月營收）；改顯示「配息表現」輕量基本面
     if (/^00/.test(String(stockId))) {
-        return '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">此標的為 ETF，無個股基本面資料（EPS／月營收／本益比）。</div>';
+        return _buildEtfFundamentalsHtml(stockId);
     }
     // 觸發抓取（非同步），完成後重繪所有同 stockId 的基本面容器
     setTimeout(function(){
