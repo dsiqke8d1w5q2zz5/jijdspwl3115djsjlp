@@ -4189,14 +4189,18 @@ function fetchFundamentals(stockId, callback) {
     var revUrl = _withFinMindToken('https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockMonthRevenue&data_id=' + stockId + '&start_date=2023-01-01');
     var finUrl = _withFinMindToken('https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockFinancialStatements&data_id=' + stockId + '&start_date=2023-01-01');
     var bsUrl = _withFinMindToken('https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockBalanceSheet&data_id=' + stockId + '&start_date=2023-01-01');
+    // 官方 PER/PBR/殖利率（TWSE 版）：只需近幾日，取最新一筆
+    var perStart = _localDateStr(new Date(Date.now() - 14 * 86400000));
+    var perUrl = _withFinMindToken('https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPER&data_id=' + stockId + '&start_date=' + perStart);
 
     Promise.all([
         fetchWithTimeout(revUrl, {}, 15000).then(function(r){ return r.json(); }).catch(function(){ return null; }),
         fetchWithTimeout(finUrl, {}, 15000).then(function(r){ return r.json(); }).catch(function(){ return null; }),
-        fetchWithTimeout(bsUrl, {}, 15000).then(function(r){ return r.json(); }).catch(function(){ return null; })
+        fetchWithTimeout(bsUrl, {}, 15000).then(function(r){ return r.json(); }).catch(function(){ return null; }),
+        fetchWithTimeout(perUrl, {}, 15000).then(function(r){ return r.json(); }).catch(function(){ return null; })
     ]).then(function(res) {
-        var revJson = res[0], finJson = res[1], bsJson = res[2];
-        var data = _computeFundamentals(stockId, revJson, finJson, bsJson);
+        var revJson = res[0], finJson = res[1], bsJson = res[2], perJson = res[3];
+        var data = _computeFundamentals(stockId, revJson, finJson, bsJson, perJson);
         var changed = JSON.stringify(data) !== oldJson;
         _fundamentalsCache[stockId] = { data: data };
         _saveFundamentalsLS();
@@ -4210,9 +4214,11 @@ function fetchFundamentals(stockId, callback) {
 }
 
 // 把 FinMind 回傳整理成指標物件
-function _computeFundamentals(stockId, revJson, finJson, bsJson) {
+function _computeFundamentals(stockId, revJson, finJson, bsJson, perJson) {
     var out = { stockId: stockId, revenue: null, revTrend: [], eps: [], epsTTM: null, per: null,
-                grossMargin: null, opMargin: null, netMargin: null, marginQuarter: null, roe: null };
+                grossMargin: null, opMargin: null, netMargin: null, marginQuarter: null, roe: null,
+                debtRatio: null, currentRatio: null, bookValuePerShare: null, bsQuarter: null,
+                perOfficial: null, pbrOfficial: null, dividendYield: null, perDate: null };
 
     // ── 月營收 ──
     var revRows = (revJson && revJson.status === 200 && Array.isArray(revJson.data)) ? revJson.data : [];
@@ -4293,6 +4299,39 @@ function _computeFundamentals(stockId, revJson, finJson, bsJson) {
                 out.roe = niTTM / latestEq * 100;
             }
         }
+    }
+
+    // ── 財務體質：負債比 / 流動比 / 每股淨值（取最新一季資產負債表）──
+    if (bsRows.length) {
+        // 以最新日期那一季的各科目值
+        var bsByDateType = {}; // date → {type:value}
+        bsRows.forEach(function(r){
+            if (typeof r.value !== 'number') return;
+            if (!bsByDateType[r.date]) bsByDateType[r.date] = {};
+            bsByDateType[r.date][r.type] = r.value;
+        });
+        var bsDates = Object.keys(bsByDateType).sort();
+        if (bsDates.length) {
+            var bq = bsByDateType[bsDates[bsDates.length - 1]];
+            out.bsQuarter = _epsQuarterLabel(bsDates[bsDates.length - 1]);
+            var totalAssets = bq.TotalAssets, totalLiab = bq.Liabilities, equity = bq.Equity, capital = bq.CapitalStock;
+            // 負債比 = 總負債 / 總資產
+            if (totalLiab != null && totalAssets > 0) out.debtRatio = totalLiab / totalAssets * 100;
+            // 流動比 = 流動資產 / 流動負債
+            if (bq.CurrentAssets != null && bq.CurrentLiabilities > 0) out.currentRatio = bq.CurrentAssets / bq.CurrentLiabilities * 100;
+            // 每股淨值 = 股東權益 / 股數；股數 = 股本/10（面額10元）
+            if (equity != null && capital > 0) out.bookValuePerShare = equity / (capital / 10);
+        }
+    }
+
+    // ── 官方 PER / PBR / 殖利率（TWSE 版，取最新一筆）──
+    var perRows = (perJson && perJson.status === 200 && Array.isArray(perJson.data)) ? perJson.data : [];
+    if (perRows.length) {
+        var pr = perRows[perRows.length - 1]; // 升冪，最後一筆最新
+        if (typeof pr.PER === 'number') out.perOfficial = pr.PER;
+        if (typeof pr.PBR === 'number') out.pbrOfficial = pr.PBR;
+        if (typeof pr.dividend_yield === 'number') out.dividendYield = pr.dividend_yield;
+        out.perDate = pr.date || null;
     }
 
     return out;
@@ -9640,7 +9679,46 @@ function _fundamentalsInnerHtml(d) {
         html += '</div>';
     }
 
-    html += '<div style="font-size:11px;color:var(--muted);line-height:1.6">※ 資料來源：FinMind（月營收、季財報、資產負債表）。本益比＝目前股價 ÷ 近四季EPS；ROE＝近四季淨利 ÷ 最新股東權益；近四季含一次性業內外損益，請搭配三率判斷本業強弱。</div>';
+    // ── 官方估值（TWSE 版 PER/PBR/殖利率）──
+    if (d.perOfficial != null || d.pbrOfficial != null || d.dividendYield != null) {
+        html += cardOpen;
+        var perDateStr = d.perDate ? '<span style="font-weight:400;color:var(--muted);font-size:11px">（' + d.perDate.slice(5) + '）</span>' : '';
+        html += '<div style="' + titleStyle + '">官方估值' + perDateStr + '</div>';
+        html += '<div style="display:flex;gap:8px 16px;flex-wrap:wrap;font-size:13px">';
+        if (d.perOfficial != null) html += '<span>本益比 PER <b style="color:var(--lux-navy)">' + d.perOfficial.toFixed(2) + ' 倍</b></span>';
+        if (d.pbrOfficial != null) html += '<span>股價淨值比 PB <b style="color:var(--lux-navy)">' + d.pbrOfficial.toFixed(2) + ' 倍</b></span>';
+        if (d.dividendYield != null) html += '<span>殖利率 <b style="color:' + signColor(1) + '">' + d.dividendYield.toFixed(2) + '%</b></span>';
+        html += '</div></div>';
+    }
+
+    // ── 財務體質（負債比 / 流動比 / 每股淨值）──
+    if (d.debtRatio != null || d.currentRatio != null || d.bookValuePerShare != null) {
+        html += cardOpen;
+        html += '<div style="' + titleStyle + '">財務體質' + (d.bsQuarter ? '<span style="font-weight:400;color:var(--muted);font-size:11px">（' + d.bsQuarter + '）</span>' : '') + '</div>';
+        html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+        function _healthCell(label, valStr, color, hint) {
+            return '<div style="flex:1;min-width:90px;text-align:center;border:1px solid var(--border);border-radius:8px;padding:8px 4px">' +
+                '<div style="font-size:11px;color:var(--muted)">' + label + '</div>' +
+                '<div style="font-size:16px;font-weight:700;color:' + color + '">' + valStr + '</div>' +
+                (hint ? '<div style="font-size:10px;color:var(--muted);margin-top:1px">' + hint + '</div>' : '') + '</div>';
+        }
+        if (d.debtRatio != null) {
+            // 負債比：<40% 佳(綠)、40~60% 普(預設)、>60% 偏高(紅)
+            var dColor = d.debtRatio < 40 ? signColor(1) : d.debtRatio > 60 ? signColor(-1) : 'var(--text)';
+            html += _healthCell('負債比', d.debtRatio.toFixed(1) + '%', dColor, d.debtRatio < 40 ? '偏低' : d.debtRatio > 60 ? '偏高' : '');
+        }
+        if (d.currentRatio != null) {
+            // 流動比：>200% 佳(綠)、100~200% 普、<100% 偏弱(紅)
+            var cColor = d.currentRatio >= 200 ? signColor(1) : d.currentRatio < 100 ? signColor(-1) : 'var(--text)';
+            html += _healthCell('流動比', d.currentRatio.toFixed(0) + '%', cColor, d.currentRatio >= 200 ? '充裕' : d.currentRatio < 100 ? '偏弱' : '');
+        }
+        if (d.bookValuePerShare != null) {
+            html += _healthCell('每股淨值', d.bookValuePerShare.toFixed(2), 'var(--lux-navy)', '元');
+        }
+        html += '</div></div>';
+    }
+
+    html += '<div style="font-size:11px;color:var(--muted);line-height:1.6">※ 資料來源：FinMind（月營收、季財報、資產負債表、官方本益比）。自算本益比＝目前股價 ÷ 近四季EPS；官方估值為 TWSE/TPEX 公告值。負債比＝總負債÷總資產（低較穩健）；流動比＝流動資產÷流動負債（高較有短期償債力）；每股淨值＝股東權益÷股數。</div>';
     return html;
 }
 
