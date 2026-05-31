@@ -8948,104 +8948,148 @@ function onStockDivYearChange(y) {
     _renderStockCalModalBody();
 }
 
-// ── ETF 輕量基本面：配息表現（用本地既有資料：除權息快取 + priceHistory）──
+// ── ETF 輕量基本面：價格／費用淨值／產業／持股（配息表現已移到「歷史配息」分頁）──
 function _buildEtfFundamentalsHtml(stockId) {
-    // 近一年每股現金配息（去重）
-    var ttmCps = _trailing12mCashPerShare(stockId);
-    // 該檔全部配息紀錄（含每股、除息日），近一年明細 + 算頻率
     var now = new Date();
     var oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-    var seen = {}, ttmList = [];
-    (_dividendCacheItems || []).forEach(function(item){
-        if (item.stockId !== stockId) return;
-        if (!item.cash || item.cash <= 0) return;
-        var d = new Date(item.exDate);
-        if (isNaN(d.getTime())) return;
-        var key = stockId + '|' + item.exDate;
-        if (seen[key]) return;
-        seen[key] = true;
-        if (d >= oneYearAgo && d <= now) ttmList.push({ exDate: item.exDate, cash: item.cash });
-    });
-    ttmList.sort(function(a,b){ return a.exDate < b.exDate ? 1 : -1; }); // 新→舊
-
-    // 配息頻率（近一年除息次數推估）
-    var n = ttmList.length;
-    var freqLabel = n >= 11 ? '月配' : n >= 4 ? '季配' : n === 2 ? '半年配' : n === 1 ? '年配' : '—';
-
-    // 殖利率（近一年配息 / 現價）
     var price = _currentPriceFor(stockId);
-    var yieldTxt = (price && ttmCps > 0) ? (ttmCps / price * 100).toFixed(2) + '%' : '—';
 
-    // 近 12 月價格區間 / 波動（用 priceHistory）
+    // 近 12 月價格區間 / 波動（用 priceHistory）— 卡片內容（與費用淨值併排）
     var ph = (stockData.priceHistory || {})[stockId] || [];
     var oneYearStr = _localDateStr(oneYearAgo);
     var yp = ph.filter(function(e){ return e && e.date >= oneYearStr && typeof e.price === 'number'; });
-    var priceBlock = '';
+    var priceInner = '';
     if (yp.length >= 2) {
         var hi = Math.max.apply(null, yp.map(function(e){ return e.price; }));
         var lo = Math.min.apply(null, yp.map(function(e){ return e.price; }));
         var amp = lo > 0 ? (hi - lo) / lo * 100 : 0;
-        priceBlock = '<div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px">' +
-            '<div style="font-size:12px;color:var(--lux-navy);font-weight:700;letter-spacing:.5px;margin-bottom:10px">近一年價格</div>' +
-            '<div style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px">' +
+        priceInner = '<div style="font-size:12px;color:var(--lux-navy);font-weight:700;letter-spacing:.5px;margin-bottom:10px">近一年價格</div>' +
+            '<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px">' +
             '<span>最高 <b>' + hi.toFixed(2) + '</b></span>' +
             '<span>最低 <b>' + lo.toFixed(2) + '</b></span>' +
             '<span>振幅 <b>' + amp.toFixed(1) + '%</b></span>' +
             (price ? '<span>現價 <b style="color:var(--lux-navy)">' + price.toFixed(2) + '</b></span>' : '') +
-            '</div></div>';
+            '</div>';
     }
 
+    var cardBase = 'border:1px solid var(--border);border-radius:10px;padding:14px 16px';
     var html = '';
-    // 配息卡片
-    html += '<div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px">';
-    html += '<div style="font-size:12px;color:var(--lux-navy);font-weight:700;letter-spacing:.5px;margin-bottom:10px">配息表現</div>';
-    html += '<div style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px">';
-    html += '<span>近一年每股配息 <b style="color:var(--lux-navy)">' + (ttmCps > 0 ? '$' + ttmCps.toFixed(3) : '—') + '</b></span>';
-    html += '<span>年化殖利率 <b style="color:var(--lux-navy)">' + yieldTxt + '</b></span>';
-    html += '<span>配息頻率 <b>' + freqLabel + (n ? '（近一年 ' + n + ' 次）' : '') + '</b></span>';
-    html += '</div>';
-    html += '</div>';
 
-    html += priceBlock;
-
-    // 產業分佈 / 持股明細 / 淨值折溢價 / 費率（從 Apps Script 後端抓 MoneyDJ，非同步填入）
+    // 近一年價格 + 費用與淨值：同一排（flex 兩欄）
+    html += '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">';
+    if (priceInner) {
+        html += '<div style="' + cardBase + ';flex:1 1 260px">' + priceInner + '</div>';
+    }
+    // 費用與淨值由後端資料填（先放容器，有快取直接帶內容，無則留白不跳 loading）
     var ec = _etfInfoCache[stockId];
-    var etfInfoInner = (ec && ec.data) ? _etfInfoHtml(ec.data) :
-        '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px"><i class="ti ti-loader"></i> 載入持股／費率／折溢價中…</div>';
+    var feeInner = (ec && ec.data) ? _etfFeeNavHtml(ec.data) : '';
+    html += '<div class="etf-fee-box" data-etf="' + esc(stockId) + '" style="' + cardBase + ';flex:1 1 260px">' + (feeInner || _etfFeeNavPlaceholder()) + '</div>';
+    html += '</div>';
+
+    // 產業分佈 / 持股明細 / 成分股異動（後端資料；有快取立即顯示，無則留空容器，不跳 loading）
+    var etfInfoInner = (ec && ec.data) ? _etfInfoHtml(ec.data) : '';
     html += '<div class="etf-info-box" data-etf="' + esc(stockId) + '">' + etfInfoInner + '</div>';
-    if (!ec) {
-        setTimeout(function(){ fetchEtfInfo(stockId, function(){ _paintEtfInfo(stockId); }); }, 0);
-    }
 
-    html += '<div style="font-size:11px;color:var(--muted);line-height:1.6;margin-top:4px">※ 配息來自除權息快取；產業／持股／淨值折溢價／費率來源：MoneyDJ。</div>';
+    // 不論有無快取，背景都抓一次最新；有實質變動才重繪
+    setTimeout(function(){
+        fetchEtfInfo(stockId, function(data, changed){
+            var hadShown = !!(ec && ec.data);
+            if (!hadShown || changed) _paintEtfInfo(stockId); // 首次填入 or 有變動才重畫
+        });
+    }, 0);
 
-    if (ttmCps <= 0 && !ttmList.length && !priceBlock) {
-        // 仍把 etf-info-box 留著（可能有持股/費率），不直接 return 空
-    }
+    html += '<div style="font-size:11px;color:var(--muted);line-height:1.6;margin-top:4px">※ 產業／持股／淨值折溢價／費率來源：MoneyDJ；配息表現移至「歷史配息」分頁。</div>';
+
     return html;
 }
 
 // ETF 後端資料快取 + 抓取（產業/持股/淨值/費率）
+// localStorage 持久化：打開分頁立刻顯示上次資料（不跳 loading），背景更新，有變動才重繪
 var _etfInfoCache = {};
+var _ETF_INFO_LS_KEY = 'etfInfoCache';
+function _loadEtfInfoLS() {
+    try {
+        var raw = localStorage.getItem(_ETF_INFO_LS_KEY);
+        if (!raw) return;
+        var o = JSON.parse(raw);
+        if (o && typeof o === 'object') {
+            Object.keys(o).forEach(function(id){ if (o[id] && o[id].data) _etfInfoCache[id] = { data: o[id].data }; });
+        }
+    } catch (e) {}
+}
+function _saveEtfInfoLS() {
+    try {
+        var slim = {};
+        Object.keys(_etfInfoCache).forEach(function(id){
+            if (_etfInfoCache[id] && _etfInfoCache[id].data) slim[id] = { data: _etfInfoCache[id].data };
+        });
+        localStorage.setItem(_ETF_INFO_LS_KEY, JSON.stringify(slim));
+    } catch (e) {}
+}
+_loadEtfInfoLS();
+
+// onDone(data, changed)：changed 表示與顯示中的舊資料相比有無實質變動
 function fetchEtfInfo(stockId, onDone) {
     var c = _etfInfoCache[stockId];
-    if (c && c.data) { if (onDone) onDone(c.data); return; }
+    var hadData = !!(c && c.data);
     if (c && c.loading) return;
-    _etfInfoCache[stockId] = { loading: true };
+    // 標記抓取中（但保留舊 data 供畫面繼續顯示）
+    _etfInfoCache[stockId] = hadData ? { data: c.data, loading: true } : { loading: true };
+    var oldJson = hadData ? JSON.stringify(c.data) : null;
     var url = CLOUD_URL + '?action=etfinfo&format=json&id=' + encodeURIComponent(stockId) + '&t=' + Date.now();
     fetchWithTimeout(url, {}, 20000)
         .then(function(r){ return r.json(); })
-        .then(function(data){ _etfInfoCache[stockId] = { data: data }; if (onDone) onDone(data); })
-        .catch(function(){ _etfInfoCache[stockId] = { data: null, failed: true }; if (onDone) onDone(null); });
+        .then(function(data){
+            var changed = JSON.stringify(data) !== oldJson;
+            _etfInfoCache[stockId] = { data: data };
+            _saveEtfInfoLS();
+            if (onDone) onDone(data, changed);
+        })
+        .catch(function(){
+            // 抓失敗：保留舊資料（若有），不洗掉畫面
+            _etfInfoCache[stockId] = hadData ? { data: c.data } : { data: null, failed: true };
+            if (onDone) onDone(_etfInfoCache[stockId].data, false);
+        });
 }
 
 function _paintEtfInfo(stockId) {
     var sel = (window.CSS && CSS.escape) ? CSS.escape(stockId) : stockId;
-    var boxes = document.querySelectorAll('.etf-info-box[data-etf="' + sel + '"]');
     var c = _etfInfoCache[stockId];
-    var inner = (c && c.data) ? _etfInfoHtml(c.data) :
-        '<div style="font-size:12px;color:var(--muted);padding:8px 0">持股／費率資料載入失敗（後端未更新或查無資料）。</div>';
+    var hasData = !!(c && c.data);
+    // 費用與淨值（併排卡）
+    var feeBoxes = document.querySelectorAll('.etf-fee-box[data-etf="' + sel + '"]');
+    var feeInner = hasData ? _etfFeeNavHtml(c.data) : '';
+    Array.prototype.forEach.call(feeBoxes, function(b){ b.innerHTML = feeInner || _etfFeeNavPlaceholder(); });
+    // 產業/持股/異動
+    var boxes = document.querySelectorAll('.etf-info-box[data-etf="' + sel + '"]');
+    var inner = hasData ? _etfInfoHtml(c.data) :
+        '<div style="font-size:12px;color:var(--muted);padding:8px 0">持股資料載入失敗（後端未更新或查無資料）。</div>';
     Array.prototype.forEach.call(boxes, function(b){ b.innerHTML = inner; });
+}
+
+// 費用與淨值卡片內容（從 etf-fee-box 併排用）
+function _etfFeeNavHtml(d) {
+    var hasFee = d.fee && (d.fee.total != null || d.fee.manage != null || d.fee.custody != null);
+    var hasNav = d.nav && d.nav.nav != null;
+    if (!hasFee && !hasNav) return _etfFeeNavPlaceholder();
+    var html = '<div style="font-size:12px;color:var(--lux-navy);font-weight:700;letter-spacing:.5px;margin-bottom:10px">費用與淨值</div>';
+    html += '<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px">';
+    if (d.fee && d.fee.total != null) html += '<span>內扣總費用 <b style="color:var(--lux-navy)">' + d.fee.total + '%</b></span>';
+    if (d.fee && d.fee.manage != null) html += '<span>經理費 <b>' + d.fee.manage + '%</b></span>';
+    if (d.fee && d.fee.custody != null) html += '<span>保管費 <b>' + d.fee.custody + '%</b></span>';
+    if (hasNav) {
+        var pm = d.nav.premium;
+        var pmColor = pm > 0 ? signColor(1) : pm < 0 ? signColor(-1) : 'var(--text)';
+        var pmLabel = pm > 0 ? '溢價' : pm < 0 ? '折價' : '';
+        html += '<span>淨值 <b>' + d.nav.nav + '</b></span>';
+        html += '<span>折溢價 <b style="color:' + pmColor + '">' + (pm > 0 ? '+' : '') + pm + '%</b>' + (pmLabel ? ' <span style="font-size:11px;color:var(--muted)">' + pmLabel + '</span>' : '') + '</span>';
+    }
+    html += '</div>';
+    return html;
+}
+function _etfFeeNavPlaceholder() {
+    return '<div style="font-size:12px;color:var(--lux-navy);font-weight:700;letter-spacing:.5px;margin-bottom:10px">費用與淨值</div>' +
+        '<div style="font-size:13px;color:var(--muted)">—</div>';
 }
 
 function _etfInfoHtml(d) {
@@ -9071,24 +9115,7 @@ function _etfInfoHtml(d) {
         html += '</div>';
     }
 
-    // 費率 + 折溢價（合併一張卡）
-    var hasFee = d.fee && (d.fee.total != null || d.fee.manage != null || d.fee.custody != null);
-    var hasNav = d.nav && d.nav.nav != null;
-    if (hasFee || hasNav) {
-        html += cardOpen + '<div style="' + titleStyle + '">費用與淨值</div>';
-        html += '<div style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px">';
-        if (d.fee && d.fee.total != null) html += '<span>內扣總費用 <b style="color:var(--lux-navy)">' + d.fee.total + '%</b></span>';
-        if (d.fee && d.fee.manage != null) html += '<span>經理費 <b>' + d.fee.manage + '%</b></span>';
-        if (d.fee && d.fee.custody != null) html += '<span>保管費 <b>' + d.fee.custody + '%</b></span>';
-        if (hasNav) {
-            var pm = d.nav.premium;
-            var pmColor = pm > 0 ? signColor(1) : pm < 0 ? signColor(-1) : 'var(--text)';
-            var pmLabel = pm > 0 ? '溢價' : pm < 0 ? '折價' : '';
-            html += '<span>淨值 <b>' + d.nav.nav + '</b></span>';
-            html += '<span>折溢價 <b style="color:' + pmColor + '">' + (pm > 0 ? '+' : '') + pm + '%</b>' + (pmLabel ? ' <span style="font-size:11px;color:var(--muted)">' + pmLabel + '</span>' : '') + '</span>';
-        }
-        html += '</div></div>';
-    }
+    // （費用與淨值已抽到 _etfFeeNavHtml，與「近一年價格」併排顯示）
 
     // 產業分佈（長條）— 可開合，預設收合
     if (Array.isArray(d.industries) && d.industries.length) {
@@ -9274,6 +9301,35 @@ function _fundamentalsInnerHtml(d) {
 // 單股歷史配息（個股 modal 的「歷史配息」分頁）。
 // 合併兩來源：除權息快取（FinMind/Yahoo/MoneyDJ，含股票股利、配息日）+ 你手記的股利。
 // 以「除息日」去重；每股配息優先用手記值，股票股利／配息日用快取。
+// 配息表現摘要（近一年每股配息／殖利率／頻率）—— 歷史配息分頁頂部顯示
+function _dividendSummaryHtml(stockId) {
+    var ttmCps = _trailing12mCashPerShare(stockId);
+    var now = new Date();
+    var oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+    var seen = {}, cnt = 0;
+    (_dividendCacheItems || []).forEach(function(item){
+        if (item.stockId !== stockId || !item.cash || item.cash <= 0) return;
+        var d = new Date(item.exDate);
+        if (isNaN(d.getTime())) return;
+        var key = stockId + '|' + item.exDate;
+        if (seen[key]) return;
+        seen[key] = true;
+        if (d >= oneYearAgo && d <= now) cnt++;
+    });
+    if (ttmCps <= 0 && cnt === 0) return '';
+    var freqLabel = cnt >= 11 ? '月配' : cnt >= 4 ? '季配' : cnt === 2 ? '半年配' : cnt === 1 ? '年配' : '—';
+    var price = _currentPriceFor(stockId);
+    var yieldTxt = (price && ttmCps > 0) ? (ttmCps / price * 100).toFixed(2) + '%' : '—';
+    var html = '<div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px">';
+    html += '<div style="font-size:12px;color:var(--lux-navy);font-weight:700;letter-spacing:.5px;margin-bottom:10px">配息表現</div>';
+    html += '<div style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px">';
+    html += '<span>近一年每股配息 <b style="color:var(--lux-navy)">' + (ttmCps > 0 ? '$' + ttmCps.toFixed(3) : '—') + '</b></span>';
+    html += '<span>年化殖利率 <b style="color:var(--lux-navy)">' + yieldTxt + '</b></span>';
+    html += '<span>配息頻率 <b>' + freqLabel + (cnt ? '（近一年 ' + cnt + ' 次）' : '') + '</b></span>';
+    html += '</div></div>';
+    return html;
+}
+
 function _buildStockDividendsHtml(stockId) {
     var byEx = {}; // 除息日 → { date, cps, stockDiv, payDate }
 
@@ -9343,7 +9399,8 @@ function _buildStockDividendsHtml(stockId) {
     var g = byYear[curYear];
     var sumLabel = '每股合計 <b style="color:var(--lux-navy);font-size:15px">' + g.cps.toFixed(3) + '</b>';
     if (g.stockDiv > 0) sumLabel += '　配股 <b style="color:var(--lux-navy)">' + g.stockDiv.toFixed(3) + '</b>';
-    var html = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">';
+    var html = _dividendSummaryHtml(stockId);
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">';
     html += prevYear
         ? '<button type="button" onclick="onStockDivYearChange(\'' + prevYear + '\')" title="上一年" style="' + arrowOn + '"><i class="ti ti-chevron-left"></i></button>'
         : '<button type="button" disabled style="' + arrowOff + '"><i class="ti ti-chevron-left"></i></button>';
