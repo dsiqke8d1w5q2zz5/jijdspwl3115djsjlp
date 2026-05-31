@@ -9005,7 +9005,11 @@ function _buildEtfFundamentalsHtml(stockId) {
     html += '<span>配息頻率 <b>' + freqLabel + (n ? '（近一年 ' + n + ' 次）' : '') + '</b></span>';
     html += '</div>';
     if (ttmList.length) {
-        html += '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:var(--muted);font-size:11px;text-align:left;border-bottom:1px solid var(--border)">' +
+        // 配息明細：預設收合，點標題列展開
+        html += '<div class="etf-div-detail">';
+        html += '<div onclick="toggleEtfDivDetail(this)" style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 0;font-size:13px;font-weight:600;color:var(--text);user-select:none">' +
+            '<i class="ti ti-chevron-right" style="font-size:14px;color:var(--muted);transition:transform .15s"></i> 配息明細（' + ttmList.length + ' 筆）</div>';
+        html += '<table class="etf-div-items" style="width:100%;border-collapse:collapse;font-size:13px;display:none"><thead><tr style="color:var(--muted);font-size:11px;text-align:left;border-bottom:1px solid var(--border)">' +
             '<th style="padding:6px 4px;font-weight:600">除息日</th><th style="padding:6px 4px;font-weight:600;text-align:right">每股配息</th></tr></thead><tbody>';
         ttmList.forEach(function(e){
             html += '<tr style="border-bottom:1px solid var(--border)">' +
@@ -9013,6 +9017,7 @@ function _buildEtfFundamentalsHtml(stockId) {
                 '<td style="padding:6px 4px;text-align:right;color:var(--lux-navy);font-weight:600">$' + e.cash.toFixed(3) + '</td></tr>';
         });
         html += '</tbody></table>';
+        html += '</div>';
     }
     html += '</div>';
 
@@ -9025,6 +9030,17 @@ function _buildEtfFundamentalsHtml(stockId) {
         return '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">此 ETF 尚無配息或價格紀錄可顯示。</div>';
     }
     return html;
+}
+
+// ETF 配息明細開合
+function toggleEtfDivDetail(headEl) {
+    var box = headEl.parentElement;
+    var tbl = box && box.querySelector('.etf-div-items');
+    var icon = headEl.querySelector('i');
+    if (!tbl) return;
+    var open = tbl.style.display !== 'none';
+    tbl.style.display = open ? 'none' : 'table';
+    if (icon) icon.style.transform = open ? '' : 'rotate(90deg)';
 }
 
 // ── 基本面分頁／區塊（個股 modal + 搜尋日曆共用）──
