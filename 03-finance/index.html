@@ -8972,11 +8972,11 @@ function _buildEtfFundamentalsHtml(stockId) {
             '</div>';
     }
 
-    var cardBase = 'border:1px solid var(--border);border-radius:10px;padding:14px 16px';
+    var cardBase = 'border:1px solid var(--border);border-radius:10px;padding:10px 14px';
     var html = '';
 
     // 近一年價格 + 費用與淨值：同一排（flex 兩欄）
-    html += '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">';
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">';
     if (priceInner) {
         html += '<div style="' + cardBase + ';flex:1 1 260px">' + priceInner + '</div>';
     }
@@ -9095,7 +9095,7 @@ function _etfFeeNavPlaceholder() {
 function _etfInfoHtml(d) {
     if (!d) return '<div style="font-size:12px;color:var(--muted);padding:8px 0">查無此 ETF 的持股資料。</div>';
     var html = '';
-    var cardOpen = '<div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px">';
+    var cardOpen = '<div style="border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:8px">';
     var titleStyle = 'font-size:12px;color:var(--lux-navy);font-weight:700;letter-spacing:.5px;margin-bottom:10px';
 
     // 成分股變動橫幅（與前一日比對：新增綠、移除紅）
