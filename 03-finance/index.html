@@ -9576,7 +9576,30 @@ function _buildStockTradesHtml(stockId) {
 // 建立個股漲跌日曆 HTML（純價格 %、複利累加）
 // ── 單日成交量（張）快取，來源 FinMind TaiwanStockPrice ──
 // stockId → { loading, map:{ 'YYYY-MM-DD': 張數 } }
+// localStorage 持久化：重整後直接用上次抓到的量，不必重抓（避免額度滿時量消失）
 var _volumeCache = {};
+var _VOL_CACHE_LS_KEY = 'volumeCache';
+function _loadVolumeLS() {
+    try {
+        var raw = localStorage.getItem(_VOL_CACHE_LS_KEY);
+        if (!raw) return;
+        var o = JSON.parse(raw);
+        if (o && typeof o === 'object') {
+            Object.keys(o).forEach(function(id){ if (o[id] && o[id].map) _volumeCache[id] = { map: o[id].map }; });
+        }
+    } catch (e) {}
+}
+function _saveVolumeLS() {
+    try {
+        var slim = {};
+        Object.keys(_volumeCache).forEach(function(id){
+            if (_volumeCache[id] && _volumeCache[id].map && Object.keys(_volumeCache[id].map).length) slim[id] = { map: _volumeCache[id].map };
+        });
+        localStorage.setItem(_VOL_CACHE_LS_KEY, JSON.stringify(slim));
+    } catch (e) {}
+}
+_loadVolumeLS();
+
 function fetchStockVolume(stockId, onDone) {
     var c = _volumeCache[stockId];
     if (c && c.map) { if (onDone) onDone(c.map); return; }
@@ -9594,11 +9617,16 @@ function fetchStockVolume(stockId, onDone) {
                     }
                 });
             }
-            _volumeCache[stockId] = { map: map };
+            if (Object.keys(map).length) {
+                _volumeCache[stockId] = { map: map };
+                _saveVolumeLS(); // 抓到才持久化
+            } else {
+                delete _volumeCache[stockId]; // 額度滿(402)/無資料：清標記，下次可重試（不存空 map）
+            }
             if (onDone) onDone(map);
         })
         .catch(function(){
-            _volumeCache[stockId] = { map: {} }; // 失敗也標記，避免反覆重打
+            delete _volumeCache[stockId]; // 失敗清標記，下次可重試
             if (onDone) onDone({});
         });
 }
