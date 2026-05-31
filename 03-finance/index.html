@@ -1846,6 +1846,9 @@ function _updateLastEditLabel() {
 
 // ===== 雲端同步（Apps Script + Google Drive JSON）=====
 var CLOUD_URL = 'https://script.google.com/macros/s/AKfycbyJ4E1nxlXeSgrXVrgaVUz6JGy5B7JXEWPMN98qw8mFN4QpzgDbyJ2qM3d00vVY46paAA/exec';
+// FinMind 已驗證帳號 token（提升額度，避免匿名每小時 600 次上限）。加在所有 FinMind 請求 URL 後。
+var FINMIND_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoib2h5YWJhYnkwMDEiLCJlbWFpbCI6IndhdGVyLmJvYm9AZ21haWwuY29tIiwidG9rZW5fdmVyc2lvbiI6MH0.eACJqXUntBmo1K_L7_gjb9V8bYmiVvF2Z-nUbfjsrB4';
+function _withFinMindToken(url) { return url + (FINMIND_TOKEN ? '&token=' + encodeURIComponent(FINMIND_TOKEN) : ''); }
 
 // 驗證雲端拉下來的 finTracker 結構是否合理（最低門檻：應為物件且有必要欄位）
 // 回傳 true/false；不合理就拒絕寫入 localStorage（避免污染）
@@ -4091,7 +4094,7 @@ function fetchFinMind(stockId, callback) {
     var today = new Date();
     var startDate = today.getFullYear() + '-' +
         String(today.getMonth()+1).padStart(2,'0') + '-01';
-    var url = 'https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=' + stockId + '&start_date=' + startDate;
+    var url = _withFinMindToken('https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=' + stockId + '&start_date=' + startDate);
     fetchWithTimeout(url)
         .then(function(r) { return r.json(); })
         .then(function(json) {
@@ -4111,7 +4114,7 @@ function fetchFinMind(stockId, callback) {
 }
 
 function fetchFinMindName(stockId, callback) {
-    fetchWithTimeout('https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInfo&data_id=' + stockId)
+    fetchWithTimeout(_withFinMindToken('https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInfo&data_id=' + stockId))
         .then(function(r) { return r.json(); })
         .then(function(json) {
             if (json.status === 200 && json.data && json.data.length > 0) {
@@ -4154,9 +4157,9 @@ function fetchFundamentals(stockId, callback) {
     if (cached && cached.data) { callback(null, cached.data); return; }
     _fundamentalsCache[stockId] = { loading: true };
 
-    var revUrl = 'https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockMonthRevenue&data_id=' + stockId + '&start_date=2023-01-01';
-    var finUrl = 'https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockFinancialStatements&data_id=' + stockId + '&start_date=2023-01-01';
-    var bsUrl = 'https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockBalanceSheet&data_id=' + stockId + '&start_date=2023-01-01';
+    var revUrl = _withFinMindToken('https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockMonthRevenue&data_id=' + stockId + '&start_date=2023-01-01');
+    var finUrl = _withFinMindToken('https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockFinancialStatements&data_id=' + stockId + '&start_date=2023-01-01');
+    var bsUrl = _withFinMindToken('https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockBalanceSheet&data_id=' + stockId + '&start_date=2023-01-01');
 
     Promise.all([
         fetchWithTimeout(revUrl, {}, 15000).then(function(r){ return r.json(); }).catch(function(){ return null; }),
@@ -5489,8 +5492,8 @@ function checkDividendAlerts() {
 
     cachePromise.then(function() {
         stockData.holdings.forEach(function(h) {
-            var urlPreview = 'https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockDividend&data_id=' + h.id + '&start_date=' + startDate;
-            var urlResult = 'https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockDividendResult&data_id=' + h.id + '&start_date=' + startDate;
+            var urlPreview = _withFinMindToken('https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockDividend&data_id=' + h.id + '&start_date=' + startDate);
+            var urlResult = _withFinMindToken('https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockDividendResult&data_id=' + h.id + '&start_date=' + startDate);
             Promise.all([
                 fetchWithTimeout(urlPreview).then(function(r){return r.json();}).catch(function(){return {data:[]};}),
                 fetchWithTimeout(urlResult).then(function(r){return r.json();}).catch(function(){return {data:[]};})
@@ -9579,7 +9582,7 @@ function fetchStockVolume(stockId, onDone) {
     if (c && c.map) { if (onDone) onDone(c.map); return; }
     if (c && c.loading) return; // 抓取中，避免重複
     _volumeCache[stockId] = { loading: true };
-    var url = 'https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=' + encodeURIComponent(stockId) + '&start_date=2023-01-01';
+    var url = _withFinMindToken('https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=' + encodeURIComponent(stockId) + '&start_date=2023-01-01');
     fetchWithTimeout(url, {}, 15000)
         .then(function(r){ return r.json(); })
         .then(function(json){
