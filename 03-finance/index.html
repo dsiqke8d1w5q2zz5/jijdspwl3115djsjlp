@@ -8967,7 +8967,7 @@ function _buildEtfFundamentalsHtml(stockId) {
         var lo = Math.min.apply(null, yp.map(function(e){ return e.price; }));
         var amp = lo > 0 ? (hi - lo) / lo * 100 : 0;
         priceInner = '<div style="font-size:12px;color:var(--lux-navy);font-weight:700;letter-spacing:.5px;margin-bottom:10px">近一年價格</div>' +
-            '<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px">' +
+            '<div style="display:flex;gap:8px 16px;flex-wrap:wrap;font-size:13px">' +
             '<span>最高 <b>' + hi.toFixed(2) + '</b></span>' +
             '<span>最低 <b>' + lo.toFixed(2) + '</b></span>' +
             '<span>振幅 <b>' + amp.toFixed(1) + '%</b></span>' +
@@ -9076,7 +9076,7 @@ function _etfFeeNavHtml(d) {
     var hasNav = d.nav && d.nav.nav != null;
     if (!hasFee && !hasNav) return _etfFeeNavPlaceholder();
     var html = '<div style="font-size:12px;color:var(--lux-navy);font-weight:700;letter-spacing:.5px;margin-bottom:10px">費用與淨值</div>';
-    html += '<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px">';
+    html += '<div style="display:flex;gap:8px 16px;flex-wrap:wrap;font-size:13px">';
     if (d.fee && d.fee.total != null) html += '<span>內扣總費用 <b style="color:var(--lux-navy)">' + d.fee.total + '%</b></span>';
     if (d.fee && d.fee.manage != null) html += '<span>經理費 <b>' + d.fee.manage + '%</b></span>';
     if (d.fee && d.fee.custody != null) html += '<span>保管費 <b>' + d.fee.custody + '%</b></span>';
