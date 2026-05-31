@@ -1850,6 +1850,15 @@ var CLOUD_URL = 'https://script.google.com/macros/s/AKfycbyJ4E1nxlXeSgrXVrgaVUz6
 var FINMIND_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoib2h5YWJhYnkwMDEiLCJlbWFpbCI6IndhdGVyLmJvYm9AZ21haWwuY29tIiwidG9rZW5fdmVyc2lvbiI6MH0.eACJqXUntBmo1K_L7_gjb9V8bYmiVvF2Z-nUbfjsrB4';
 function _withFinMindToken(url) { return url + (FINMIND_TOKEN ? '&token=' + encodeURIComponent(FINMIND_TOKEN) : ''); }
 
+// 快取新鮮度節流：若快取項目在 TTL（毫秒）內抓過，視為新鮮、可跳過背景重抓（省 FinMind 額度）。
+// 用 fetchedAt 時間戳判斷；無時間戳（舊版快取）視為不新鮮，會重抓一次補上時間戳。
+function _isCacheFresh(cacheEntry, ttlMs) {
+    return !!(cacheEntry && cacheEntry.data && cacheEntry.fetchedAt && (Date.now() - cacheEntry.fetchedAt < ttlMs));
+}
+var _FUND_TTL = 12 * 3600 * 1000;   // 基本面：財報季更新，快取 12 小時
+var _CHIPS_TTL = 4 * 3600 * 1000;   // 籌碼面：法人/融資券日更新（盤後），快取 4 小時
+var _ETFINFO_TTL = 6 * 3600 * 1000; // ETF 成分股/淨值，快取 6 小時
+
 // 驗證雲端拉下來的 finTracker 結構是否合理（最低門檻：應為物件且有必要欄位）
 // 回傳 true/false；不合理就拒絕寫入 localStorage（避免污染）
 function _isValidFinTrackerCloud(obj) {
@@ -4138,7 +4147,7 @@ function _loadFundamentalsLS() {
         if (!raw) return;
         var o = JSON.parse(raw);
         if (o && typeof o === 'object') {
-            Object.keys(o).forEach(function(id){ if (o[id] && o[id].data) _fundamentalsCache[id] = { data: o[id].data }; });
+            Object.keys(o).forEach(function(id){ if (o[id] && o[id].data) _fundamentalsCache[id] = { data: o[id].data, fetchedAt: o[id].fetchedAt || 0 }; });
         }
     } catch (e) {}
 }
@@ -4146,7 +4155,7 @@ function _saveFundamentalsLS() {
     try {
         var slim = {};
         Object.keys(_fundamentalsCache).forEach(function(id){
-            if (_fundamentalsCache[id] && _fundamentalsCache[id].data) slim[id] = { data: _fundamentalsCache[id].data };
+            if (_fundamentalsCache[id] && _fundamentalsCache[id].data) slim[id] = { data: _fundamentalsCache[id].data, fetchedAt: _fundamentalsCache[id].fetchedAt || 0 };
         });
         localStorage.setItem(_FUND_LS_KEY, JSON.stringify(slim));
     } catch (e) {}
@@ -4180,11 +4189,13 @@ function _epsQuarterLabel(dateStr) {
 function fetchFundamentals(stockId, callback) {
     var cached = _fundamentalsCache[stockId];
     var hadData = !!(cached && cached.data);
-    // 已有快取：先用快取立即回（changed=false），再背景抓最新
+    // 已有快取：先用快取立即回（changed=false）
     if (hadData) callback(null, cached.data, false);
     if (cached && cached.loading) return;
+    // 快取仍新鮮（TTL 內）→ 跳過背景重抓，省 FinMind 額度
+    if (_isCacheFresh(cached, _FUND_TTL)) return;
     var oldJson = hadData ? JSON.stringify(cached.data) : null;
-    _fundamentalsCache[stockId] = hadData ? { data: cached.data, loading: true } : { loading: true };
+    _fundamentalsCache[stockId] = hadData ? { data: cached.data, loading: true, fetchedAt: cached.fetchedAt } : { loading: true };
 
     var revUrl = _withFinMindToken('https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockMonthRevenue&data_id=' + stockId + '&start_date=2023-01-01');
     var finUrl = _withFinMindToken('https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockFinancialStatements&data_id=' + stockId + '&start_date=2023-01-01');
@@ -4202,7 +4213,7 @@ function fetchFundamentals(stockId, callback) {
         var revJson = res[0], finJson = res[1], bsJson = res[2], perJson = res[3];
         var data = _computeFundamentals(stockId, revJson, finJson, bsJson, perJson);
         var changed = JSON.stringify(data) !== oldJson;
-        _fundamentalsCache[stockId] = { data: data };
+        _fundamentalsCache[stockId] = { data: data, fetchedAt: Date.now() };
         _saveFundamentalsLS();
         // 首次（無舊資料）一定要回；有舊資料則只在變動時回（避免無謂重畫）
         if (!hadData || changed) callback(null, data, changed);
@@ -4347,7 +4358,7 @@ function _loadChipsLS() {
         if (!raw) return;
         var o = JSON.parse(raw);
         if (o && typeof o === 'object') {
-            Object.keys(o).forEach(function(id){ if (o[id] && o[id].data) _chipsCache[id] = { data: o[id].data }; });
+            Object.keys(o).forEach(function(id){ if (o[id] && o[id].data) _chipsCache[id] = { data: o[id].data, fetchedAt: o[id].fetchedAt || 0 }; });
         }
     } catch (e) {}
 }
@@ -4355,7 +4366,7 @@ function _saveChipsLS() {
     try {
         var slim = {};
         Object.keys(_chipsCache).forEach(function(id){
-            if (_chipsCache[id] && _chipsCache[id].data) slim[id] = { data: _chipsCache[id].data };
+            if (_chipsCache[id] && _chipsCache[id].data) slim[id] = { data: _chipsCache[id].data, fetchedAt: _chipsCache[id].fetchedAt || 0 };
         });
         localStorage.setItem(_CHIPS_LS_KEY, JSON.stringify(slim));
     } catch (e) {}
@@ -4368,8 +4379,10 @@ function fetchChips(stockId, callback) {
     var hadData = !!(cached && cached.data);
     if (hadData) callback(null, cached.data, false);
     if (cached && cached.loading) return;
+    // 快取仍新鮮（TTL 內）→ 跳過背景重抓，省 FinMind 額度
+    if (_isCacheFresh(cached, _CHIPS_TTL)) return;
     var oldJson = hadData ? JSON.stringify(cached.data) : null;
-    _chipsCache[stockId] = hadData ? { data: cached.data, loading: true } : { loading: true };
+    _chipsCache[stockId] = hadData ? { data: cached.data, loading: true, fetchedAt: cached.fetchedAt } : { loading: true };
 
     // 抓近 40 天，足夠算近 5 日買賣超與連買連賣天數、近 20 日趨勢
     var startDate = _localDateStr(new Date(Date.now() - 60 * 86400000));
@@ -4384,7 +4397,7 @@ function fetchChips(stockId, callback) {
     ]).then(function(res) {
         var data = _computeChips(stockId, res[0], res[1], res[2]);
         var changed = JSON.stringify(data) !== oldJson;
-        _chipsCache[stockId] = { data: data };
+        _chipsCache[stockId] = { data: data, fetchedAt: Date.now() };
         _saveChipsLS();
         if (!hadData || changed) callback(null, data, changed);
     }).catch(function(err) {
@@ -9245,7 +9258,7 @@ function _loadEtfInfoLS() {
         if (!raw) return;
         var o = JSON.parse(raw);
         if (o && typeof o === 'object') {
-            Object.keys(o).forEach(function(id){ if (o[id] && o[id].data) _etfInfoCache[id] = { data: o[id].data }; });
+            Object.keys(o).forEach(function(id){ if (o[id] && o[id].data) _etfInfoCache[id] = { data: o[id].data, fetchedAt: o[id].fetchedAt || 0 }; });
         }
     } catch (e) {}
 }
@@ -9253,7 +9266,7 @@ function _saveEtfInfoLS() {
     try {
         var slim = {};
         Object.keys(_etfInfoCache).forEach(function(id){
-            if (_etfInfoCache[id] && _etfInfoCache[id].data) slim[id] = { data: _etfInfoCache[id].data };
+            if (_etfInfoCache[id] && _etfInfoCache[id].data) slim[id] = { data: _etfInfoCache[id].data, fetchedAt: _etfInfoCache[id].fetchedAt || 0 };
         });
         localStorage.setItem(_ETF_INFO_LS_KEY, JSON.stringify(slim));
     } catch (e) {}
@@ -9306,8 +9319,10 @@ function fetchEtfInfo(stockId, onDone) {
     var c = _etfInfoCache[stockId];
     var hadData = !!(c && c.data);
     if (c && c.loading) return;
+    // 快取仍新鮮（TTL 內）→ 跳過重抓（省後端流量；成分股一天內不會變）
+    if (_isCacheFresh(c, _ETFINFO_TTL)) { if (onDone) onDone(c.data, false); return; }
     // 標記抓取中（但保留舊 data 供畫面繼續顯示）
-    _etfInfoCache[stockId] = hadData ? { data: c.data, loading: true } : { loading: true };
+    _etfInfoCache[stockId] = hadData ? { data: c.data, loading: true, fetchedAt: c.fetchedAt } : { loading: true };
     var oldJson = hadData ? JSON.stringify(c.data) : null;
     var url = CLOUD_URL + '?action=etfinfo&format=json&id=' + encodeURIComponent(stockId) + '&t=' + Date.now();
     fetchWithTimeout(url, {}, 20000)
@@ -9316,7 +9331,7 @@ function fetchEtfInfo(stockId, onDone) {
             var changed = JSON.stringify(data) !== oldJson;
             // 持股異動 diff（在覆蓋快取前比對；首次建立基準不產生 diff）
             if (data && Array.isArray(data.holdings)) _computeEtfHoldingsDiff(stockId, data.holdings);
-            _etfInfoCache[stockId] = { data: data };
+            _etfInfoCache[stockId] = { data: data, fetchedAt: Date.now() };
             _saveEtfInfoLS();
             if (onDone) onDone(data, changed);
         })
