@@ -4156,13 +4156,15 @@ function fetchFundamentals(stockId, callback) {
 
     var revUrl = 'https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockMonthRevenue&data_id=' + stockId + '&start_date=2023-01-01';
     var finUrl = 'https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockFinancialStatements&data_id=' + stockId + '&start_date=2023-01-01';
+    var bsUrl = 'https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockBalanceSheet&data_id=' + stockId + '&start_date=2023-01-01';
 
     Promise.all([
         fetchWithTimeout(revUrl, {}, 15000).then(function(r){ return r.json(); }).catch(function(){ return null; }),
-        fetchWithTimeout(finUrl, {}, 15000).then(function(r){ return r.json(); }).catch(function(){ return null; })
+        fetchWithTimeout(finUrl, {}, 15000).then(function(r){ return r.json(); }).catch(function(){ return null; }),
+        fetchWithTimeout(bsUrl, {}, 15000).then(function(r){ return r.json(); }).catch(function(){ return null; })
     ]).then(function(res) {
-        var revJson = res[0], finJson = res[1];
-        var data = _computeFundamentals(stockId, revJson, finJson);
+        var revJson = res[0], finJson = res[1], bsJson = res[2];
+        var data = _computeFundamentals(stockId, revJson, finJson, bsJson);
         _fundamentalsCache[stockId] = { data: data };
         callback(null, data);
     }).catch(function(err) {
@@ -4172,9 +4174,9 @@ function fetchFundamentals(stockId, callback) {
 }
 
 // 把 FinMind 回傳整理成指標物件
-function _computeFundamentals(stockId, revJson, finJson) {
+function _computeFundamentals(stockId, revJson, finJson, bsJson) {
     var out = { stockId: stockId, revenue: null, revTrend: [], eps: [], epsTTM: null, per: null,
-                grossMargin: null, opMargin: null, netMargin: null, marginQuarter: null };
+                grossMargin: null, opMargin: null, netMargin: null, marginQuarter: null, roe: null };
 
     // ── 月營收 ──
     var revRows = (revJson && revJson.status === 200 && Array.isArray(revJson.data)) ? revJson.data : [];
@@ -4236,6 +4238,25 @@ function _computeFundamentals(stockId, revJson, finJson) {
     var price = _currentPriceFor(stockId);
     if (price && out.epsTTM && out.epsTTM > 0) {
         out.per = price / out.epsTTM;
+    }
+
+    // ── ROE = 近四季淨利(TTM) / 最新股東權益 ──（財報拿淨利、資產負債表拿股東權益）
+    var finRows2 = (finJson && finJson.status === 200 && Array.isArray(finJson.data)) ? finJson.data : [];
+    var bsRows = (bsJson && bsJson.status === 200 && Array.isArray(bsJson.data)) ? bsJson.data : [];
+    if (finRows2.length && bsRows.length) {
+        var niByDate = {}; // date → 本期淨利
+        finRows2.forEach(function(r){ if (r.type === 'IncomeAfterTaxes' && typeof r.value === 'number') niByDate[r.date] = r.value; });
+        var eqByDate = {}; // date → 股東權益
+        bsRows.forEach(function(r){ if (r.type === 'Equity' && typeof r.value === 'number') eqByDate[r.date] = r.value; });
+        var niDates = Object.keys(niByDate).sort();
+        var eqDates = Object.keys(eqByDate).sort();
+        if (niDates.length >= 4 && eqDates.length) {
+            var niTTM = niDates.slice(-4).reduce(function(s,d){ return s + niByDate[d]; }, 0);
+            var latestEq = eqByDate[eqDates[eqDates.length - 1]];
+            if (latestEq && latestEq > 0) {
+                out.roe = niTTM / latestEq * 100;
+            }
+        }
     }
 
     return out;
@@ -9026,6 +9047,9 @@ function _fundamentalsInnerHtml(d) {
         } else if (d.epsTTM !== null && d.epsTTM <= 0) {
             html += '<span>本益比 PER <b style="color:var(--muted)">—（近四季虧損）</b></span>';
         }
+        if (d.roe !== null) {
+            html += '<span>ROE（近四季） <b style="color:' + signColor(d.roe) + '">' + signPrefix(d.roe) + d.roe.toFixed(1) + '%</b></span>';
+        }
         html += '</div>';
         html += '</div>';
     }
@@ -9048,7 +9072,7 @@ function _fundamentalsInnerHtml(d) {
         html += '</div>';
     }
 
-    html += '<div style="font-size:11px;color:var(--muted);line-height:1.6">※ 資料來源：FinMind（月營收、季財報）。本益比＝目前股價 ÷ 近四季EPS；近四季含一次性業內外損益，請搭配三率判斷本業強弱。</div>';
+    html += '<div style="font-size:11px;color:var(--muted);line-height:1.6">※ 資料來源：FinMind（月營收、季財報、資產負債表）。本益比＝目前股價 ÷ 近四季EPS；ROE＝近四季淨利 ÷ 最新股東權益；近四季含一次性業內外損益，請搭配三率判斷本業強弱。</div>';
     return html;
 }
 
