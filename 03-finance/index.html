@@ -5283,11 +5283,14 @@ function _buildCompareRow(id) {
     function _ret(days){ var r = getStockPriceChange(id, days); return r ? r.pct : null; }
     var ret1 = _ret(30), ret3 = _ret(90), ret6 = _ret(180);
     // 殖利率：優先官方(基本面快取)，其次近12月每股配息/現價
+    // 殖利率：個股優先官方公告值，缺則用近12月每股配息÷現價；ETF 直接用配息算（官方PER無ETF殖利率）
     var fc = _fundamentalsCache[id] && _fundamentalsCache[id].data;
-    var yieldPct = (fc && fc.dividendYield != null) ? fc.dividendYield : null;
-    if (yieldPct == null) {
+    var yieldPct = null, yieldEst = false;
+    if (!isEtf && fc && fc.dividendYield != null) {
+        yieldPct = fc.dividendYield;
+    } else {
         var cps = _trailing12mCashPerShare(id);
-        if (cps > 0 && price) yieldPct = cps / price * 100;
+        if (cps > 0 && price) { yieldPct = cps / price * 100; yieldEst = true; }
     }
     // ETF 費用率 / 產業集中度（最大產業占比）
     var ec = _etfInfoCache[id] && _etfInfoCache[id].data;
@@ -5304,7 +5307,7 @@ function _buildCompareRow(id) {
     return {
         id: id, name: name, isEtf: isEtf, isHolding: !!holding, price: price,
         ret1: ret1, ret3: ret3, ret6: ret6,
-        yieldPct: yieldPct, feeTotal: feeTotal, topInd: topInd, myRet: myRet
+        yieldPct: yieldPct, yieldEst: yieldEst, feeTotal: feeTotal, topInd: topInd, myRet: myRet
     };
 }
 
@@ -5350,7 +5353,7 @@ function _renderCompareTable() {
         html += '<tr>' +
             '<td ' + tdL + '><b style="color:var(--lux-navy)">' + esc(r.id) + '</b> ' + esc(r.name) + tag + '</td>' +
             '<td ' + td + '>' + (r.price != null ? r.price.toFixed(2) : '<span style="color:var(--muted)">—</span>') + '</td>' +
-            '<td ' + td + '>' + (r.yieldPct != null ? '<b style="color:' + signColor(1) + '">' + r.yieldPct.toFixed(2) + '%</b>' : '<span style="color:var(--muted)">—</span>') + '</td>' +
+            '<td ' + td + '>' + (r.yieldPct != null ? '<b style="color:' + signColor(1) + '">' + r.yieldPct.toFixed(2) + '%</b>' + (r.yieldEst ? '<span style="color:var(--muted);font-size:10px" title="以近12月每股配息÷現價估算">*</span>' : '') : '<span style="color:var(--muted)">—</span>') + '</td>' +
             '<td ' + td + '>' + pctCell(r.ret1) + '</td>' +
             '<td ' + td + '>' + pctCell(r.ret3) + '</td>' +
             '<td ' + td + '>' + pctCell(r.ret6) + '</td>' +
@@ -9279,7 +9282,7 @@ function showStockCalendarModal(stockId, initialTab) {
     if (_stockPriceTrendChart) { try { _stockPriceTrendChart.destroy(); } catch(_){} _stockPriceTrendChart = null; }
 
     var holding = stockData.holdings.find(function(h){ return h.id === stockId; });
-    var name = holding ? (holding.name || stockId) : stockId;
+    var name = holding ? (holding.name || stockId) : ((window._searchedNames && _searchedNames[stockId]) || stockId);
     _stockCalModalState.stockId = stockId;
     _stockCalModalState.month = null;
     _stockCalModalState.divYear = null;
@@ -10341,15 +10344,10 @@ function fetchStockVolume(stockId, onDone) {
 
 // 量抓好後，重繪頁面上正在顯示這檔日曆的容器
 function _repaintActiveCalendars(stockId) {
-    // 個股 modal
+    // 個股 modal（搜尋個股查完也是開這個 modal，統一由此重繪）
     if (_stockCalModalState.stockId === stockId && _stockCalModalState.tab === 'calendar') {
         var b = document.getElementById('stock-cal-modal-body');
         if (b) b.innerHTML = _buildStockCalendarHtml(stockId, _stockCalModalState.month);
-    }
-    // 搜尋日曆
-    if (_stockSearchState.stockId === stockId) {
-        var cal = document.getElementById('ss-cal');
-        if (cal) cal.innerHTML = _buildStockCalendarHtml(stockId, _stockSearchState.month, 'onStockSearchMonthChange');
     }
 }
 
@@ -11055,7 +11053,7 @@ function showStockSearchModal() {
     var ov = document.createElement('div');
     ov.className = 'overlay stock-search-modal-overlay';
     ov.innerHTML = '<div class="modal" style="width:680px;max-width:94vw;display:flex;flex-direction:column">' +
-        '<h3 style="margin:0 0 12px;flex:none"><i class="ti ti-search"></i> 搜尋個股漲跌日曆</h3>' +
+        '<h3 style="margin:0 0 12px;flex:none"><i class="ti ti-search"></i> 搜尋個股</h3>' +
         '<div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;flex:none">' +
             '<div class="fld" style="flex:1 1 140px;min-width:120px"><label>代號或名稱</label><input id="ss-id" type="text" placeholder="例如 2330 或 台積電" autocomplete="off"></div>' +
             '<div class="fld" style="flex:0 0 130px"><label>起始月份</label><input id="ss-from" type="month" value="2026-01" max="' + thisYM + '"></div>' +
@@ -11197,16 +11195,12 @@ function _doStockSearchFetch(id, from, to) {
                 return;
             }
             if (prog) prog.textContent = '';
-            _stockSearchState.stockId = id;
-            _stockSearchState.stockName = '';
-            _stockSearchState.month = null;
-            _renderStockSearchResult();
-            // 補查股票名稱後再刷新標題
+            // 補抓完成後：關掉搜尋 modal，直接開個股 modal（完整分頁：漲跌日曆/走勢/歷史配息/基本面/籌碼面）
+            // 先查名稱寫進臨時暫存，讓 modal 標題能顯示股名（非持股無 holding.name）
             lookupStockName(id, function(err, name){
-                if (!err && name && _stockSearchState.stockId === id) {
-                    _stockSearchState.stockName = name;
-                    _renderStockSearchResult();
-                }
+                if (!err && name) { if (!window._searchedNames) window._searchedNames = {}; _searchedNames[id] = name; }
+                closeStockSearchModal();
+                showStockCalendarModal(id, 'calendar');
             });
         })
         .catch(function(err){
