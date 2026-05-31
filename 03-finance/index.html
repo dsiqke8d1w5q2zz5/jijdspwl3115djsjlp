@@ -9199,26 +9199,29 @@ function _etfInfoHtml(d) {
                 '<span style="flex:0 0 auto;text-align:right;color:var(--lux-navy);font-weight:600">' + (x.pct != null ? x.pct.toFixed(2) + '%' : '—') + '</span></div>';
         });
         html += '</div>';
-        // 持股異動提示 + 查看全部按鈕：同一排
+        // 成分股異動按鈕（常駐）+ 查看全部按鈕：同一排
         var diff = getEtfHoldingsDiff(d.id);
         var nAdd = diff ? diff.added.length : 0, nRem = diff ? diff.removed.length : 0, nChg = diff ? diff.changed.length : 0;
         var hasDiff = (nAdd + nRem + nChg) > 0;
-        if (d.holdings.length > 10 || hasDiff) {
-            window._etfAllHoldings = window._etfAllHoldings || {};
-            window._etfAllHoldings[d.id] = { name: (d.name || d.id), holdings: d.holdings };
-            html += '<div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-top:10px">';
-            if (hasDiff) {
-                var parts = [];
-                if (nAdd) parts.push('<span style="color:' + signColor(1) + '">+' + nAdd + '</span>');
-                if (nRem) parts.push('<span style="color:' + signColor(-1) + '">−' + nRem + '</span>');
-                if (nChg) parts.push('<span style="color:var(--muted)">✎' + nChg + '</span>');
-                html += '<span onclick="event.stopPropagation();showEtfHoldingsDiff(\'' + esc(d.id) + '\')" title="點看成分股異動明細" style="cursor:pointer;font-size:12px;display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid var(--border);border-radius:8px;background:var(--card)"><span style="color:var(--muted)">成分股異動</span>' + parts.join(' ') + '</span>';
-            }
-            if (d.holdings.length > 10) {
-                html += '<button type="button" onclick="event.stopPropagation();showEtfAllHoldings(\'' + esc(d.id) + '\')" style="padding:6px 16px;border:1px solid var(--border);border-radius:8px;background:var(--card);cursor:pointer;font-family:inherit;font-size:13px;color:var(--lux-navy);font-weight:600">查看全部 ' + d.holdings.length + ' 檔</button>';
-            }
-            html += '</div>';
+        window._etfAllHoldings = window._etfAllHoldings || {};
+        window._etfAllHoldings[d.id] = { name: (d.name || d.id), holdings: d.holdings };
+        html += '<div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-top:10px">';
+        // 成分股異動：常駐顯示，有異動列數量，無異動顯示打勾
+        var diffParts;
+        if (hasDiff) {
+            var parts = [];
+            if (nAdd) parts.push('<span style="color:' + signColor(1) + '">+' + nAdd + '</span>');
+            if (nRem) parts.push('<span style="color:' + signColor(-1) + '">−' + nRem + '</span>');
+            if (nChg) parts.push('<span style="color:var(--muted)">✎' + nChg + '</span>');
+            diffParts = '<span style="color:var(--muted)">成分股異動</span>' + parts.join(' ');
+        } else {
+            diffParts = '<span style="color:var(--muted)">成分股異動</span><span style="color:var(--muted)">—</span>';
         }
+        html += '<span onclick="event.stopPropagation();showEtfHoldingsDiff(\'' + esc(d.id) + '\')" title="點看成分股異動明細" style="cursor:pointer;font-size:12px;display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid var(--border);border-radius:8px;background:var(--card)">' + diffParts + '</span>';
+        if (d.holdings.length > 10) {
+            html += '<button type="button" onclick="event.stopPropagation();showEtfAllHoldings(\'' + esc(d.id) + '\')" style="padding:6px 16px;border:1px solid var(--border);border-radius:8px;background:var(--card);cursor:pointer;font-family:inherit;font-size:13px;color:var(--lux-navy);font-weight:600">查看全部 ' + d.holdings.length + ' 檔</button>';
+        }
+        html += '</div>';
         html += '</div></div>';
     }
 
@@ -9254,7 +9257,6 @@ function showEtfAllHoldings(etfId) {
 // 成分股異動明細（另開 modal）：新增／移除／比例變動
 function showEtfHoldingsDiff(etfId) {
     var diff = getEtfHoldingsDiff(etfId);
-    if (!diff) { toast('尚無異動資料'); return; }
     function nameCell(x) {
         return esc(x.name || x.id) + (x.code ? ' <span style="color:var(--muted);font-size:11px">' + esc(x.code) + '</span>' : '');
     }
@@ -9267,22 +9269,28 @@ function showEtfHoldingsDiff(etfId) {
         return s;
     }
     var body = '';
-    body += section('新增', signColor(1), diff.added, function(x){
+    body += section('新增', signColor(1), diff && diff.added, function(x){
         return '<span style="flex:1;min-width:0">' + nameCell(x) + '</span>' +
             '<span style="flex:0 0 auto;color:' + signColor(1) + ';font-weight:600">' + (x.pct != null ? x.pct.toFixed(2) + '%' : '—') + '</span>';
     });
-    body += section('移除', signColor(-1), diff.removed, function(x){
+    body += section('移除', signColor(-1), diff && diff.removed, function(x){
         return '<span style="flex:1;min-width:0;color:var(--muted);text-decoration:line-through">' + nameCell(x) + '</span>' +
             '<span style="flex:0 0 auto;color:var(--muted)">' + (x.pct != null ? x.pct.toFixed(2) + '%' : '—') + '</span>';
     });
-    body += section('比例變動', 'var(--lux-navy)', diff.changed, function(x){
+    body += section('比例變動', 'var(--lux-navy)', diff && diff.changed, function(x){
         var up = x.to >= x.from;
         return '<span style="flex:1;min-width:0">' + nameCell(x) + '</span>' +
             '<span style="flex:0 0 auto;color:var(--muted);font-size:12px">' + x.from.toFixed(2) + '% → </span>' +
             '<span style="flex:0 0 auto;color:' + signColor(up ? 1 : -1) + ';font-weight:600">' + x.to.toFixed(2) + '%</span>' +
             '<span style="flex:0 0 auto;color:' + signColor(up ? 1 : -1) + ';font-size:11px">(' + (up ? '+' : '') + (x.to - x.from).toFixed(2) + ')</span>';
     });
-    if (!body) { toast('本次無異動'); return; }
+    // 無異動：顯示友善空狀態（首次建基準後、或成分股沒變時）
+    if (!body) {
+        body = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:24px 8px;line-height:1.8">' +
+            '<i class="ti ti-circle-check" style="font-size:28px;color:' + signColor(1) + ';display:block;margin-bottom:8px"></i>' +
+            '與上次抓取相比，成分股無變動。<br>' +
+            '<span style="font-size:11px">（系統會在每次開啟時記錄成分股，往後若有進榜／出榜／比例變動會顯示在這裡）</span></div>';
+    }
     var ov = document.createElement('div');
     ov.className = 'overlay';
     ov.style.alignItems = 'flex-start';
