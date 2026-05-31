@@ -4298,6 +4298,132 @@ function _computeFundamentals(stockId, revJson, finJson, bsJson) {
     return out;
 }
 
+// ── 籌碼面（三大法人買賣超 + 融資融券餘額），來源：FinMind ──
+// 快取 stockId → { loading, data }；data 內含算好的指標。仿 fundamentals：localStorage 持久化 + 背景重抓 + 有變動才重畫
+var _chipsCache = {};
+var _CHIPS_LS_KEY = 'chipsCache';
+function _loadChipsLS() {
+    try {
+        var raw = localStorage.getItem(_CHIPS_LS_KEY);
+        if (!raw) return;
+        var o = JSON.parse(raw);
+        if (o && typeof o === 'object') {
+            Object.keys(o).forEach(function(id){ if (o[id] && o[id].data) _chipsCache[id] = { data: o[id].data }; });
+        }
+    } catch (e) {}
+}
+function _saveChipsLS() {
+    try {
+        var slim = {};
+        Object.keys(_chipsCache).forEach(function(id){
+            if (_chipsCache[id] && _chipsCache[id].data) slim[id] = { data: _chipsCache[id].data };
+        });
+        localStorage.setItem(_CHIPS_LS_KEY, JSON.stringify(slim));
+    } catch (e) {}
+}
+_loadChipsLS();
+
+// callback(err, data, changed)：即使有快取也背景重抓，有變動才重畫
+function fetchChips(stockId, callback) {
+    var cached = _chipsCache[stockId];
+    var hadData = !!(cached && cached.data);
+    if (hadData) callback(null, cached.data, false);
+    if (cached && cached.loading) return;
+    var oldJson = hadData ? JSON.stringify(cached.data) : null;
+    _chipsCache[stockId] = hadData ? { data: cached.data, loading: true } : { loading: true };
+
+    // 抓近 40 天，足夠算近 5 日買賣超與連買連賣天數、近 20 日趨勢
+    var startDate = _localDateStr(new Date(Date.now() - 60 * 86400000));
+    var instUrl = _withFinMindToken('https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInstitutionalInvestorsBuySell&data_id=' + stockId + '&start_date=' + startDate);
+    var marginUrl = _withFinMindToken('https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockMarginPurchaseShortSale&data_id=' + stockId + '&start_date=' + startDate);
+
+    Promise.all([
+        fetchWithTimeout(instUrl, {}, 15000).then(function(r){ return r.json(); }).catch(function(){ return null; }),
+        fetchWithTimeout(marginUrl, {}, 15000).then(function(r){ return r.json(); }).catch(function(){ return null; })
+    ]).then(function(res) {
+        var data = _computeChips(stockId, res[0], res[1]);
+        var changed = JSON.stringify(data) !== oldJson;
+        _chipsCache[stockId] = { data: data };
+        _saveChipsLS();
+        if (!hadData || changed) callback(null, data, changed);
+    }).catch(function(err) {
+        if (hadData) { _chipsCache[stockId] = { data: cached.data }; }
+        else { _chipsCache[stockId] = { error: String(err && err.message || err) }; callback(_chipsCache[stockId].error, null, false); }
+    });
+}
+
+// 把 FinMind 法人/融資券回傳整理成籌碼指標
+function _computeChips(stockId, instJson, marginJson) {
+    var out = { stockId: stockId, date: null,
+        foreign: null, trust: null, dealer: null,            // 最新一日買賣超（張）
+        foreign5: null, trust5: null, dealer5: null,         // 近5日合計（張）
+        foreignStreak: 0, trustStreak: 0,                    // 連買(正)/連賣(負)天數
+        foreignTrend: [],                                    // 近 N 日外資買賣超（張），畫趨勢條
+        marginBalance: null, marginChange: null,             // 融資餘額(張) / 較前日增減
+        shortBalance: null, shortChange: null };             // 融券餘額(張) / 較前日增減
+
+    // ── 三大法人（單位：股 → 轉張，1張=1000股）──
+    var instRows = (instJson && instJson.status === 200 && Array.isArray(instJson.data)) ? instJson.data : [];
+    if (instRows.length) {
+        // 依日期彙整：每日 { foreign, trust, dealer }（買賣超張數 = (buy-sell)/1000）
+        var byDate = {};
+        instRows.forEach(function(r){
+            var d = r.date; if (!d) return;
+            if (!byDate[d]) byDate[d] = { foreign: 0, trust: 0, dealer: 0 };
+            var net = ((r.buy || 0) - (r.sell || 0)) / 1000;
+            if (r.name === 'Foreign_Investor' || r.name === 'Foreign_Dealer_Self') byDate[d].foreign += net;
+            else if (r.name === 'Investment_Trust') byDate[d].trust += net;
+            else if (r.name === 'Dealer_self' || r.name === 'Dealer_Hedging') byDate[d].dealer += net;
+        });
+        var dates = Object.keys(byDate).sort(); // 舊→新
+        if (dates.length) {
+            var last = dates[dates.length - 1];
+            out.date = last;
+            out.foreign = Math.round(byDate[last].foreign);
+            out.trust = Math.round(byDate[last].trust);
+            out.dealer = Math.round(byDate[last].dealer);
+            // 近 5 日合計
+            var last5 = dates.slice(-5);
+            out.foreign5 = Math.round(last5.reduce(function(s,d){ return s + byDate[d].foreign; }, 0));
+            out.trust5 = Math.round(last5.reduce(function(s,d){ return s + byDate[d].trust; }, 0));
+            out.dealer5 = Math.round(last5.reduce(function(s,d){ return s + byDate[d].dealer; }, 0));
+            // 連買/連賣天數（從最新往回，同號才累加；外資、投信各算）
+            out.foreignStreak = _netStreak(dates, byDate, 'foreign');
+            out.trustStreak = _netStreak(dates, byDate, 'trust');
+            // 近 20 日外資趨勢
+            out.foreignTrend = dates.slice(-20).map(function(d){ return Math.round(byDate[d].foreign); });
+        }
+    }
+
+    // ── 融資融券（單位：張）──
+    var marginRows = (marginJson && marginJson.status === 200 && Array.isArray(marginJson.data)) ? marginJson.data : [];
+    if (marginRows.length) {
+        var mLast = marginRows[marginRows.length - 1]; // FinMind 已按日期升冪
+        out.marginBalance = mLast.MarginPurchaseTodayBalance != null ? mLast.MarginPurchaseTodayBalance : null;
+        if (mLast.MarginPurchaseTodayBalance != null && mLast.MarginPurchaseYesterdayBalance != null)
+            out.marginChange = mLast.MarginPurchaseTodayBalance - mLast.MarginPurchaseYesterdayBalance;
+        out.shortBalance = mLast.ShortSaleTodayBalance != null ? mLast.ShortSaleTodayBalance : null;
+        if (mLast.ShortSaleTodayBalance != null && mLast.ShortSaleYesterdayBalance != null)
+            out.shortChange = mLast.ShortSaleTodayBalance - mLast.ShortSaleYesterdayBalance;
+        if (!out.date && mLast.date) out.date = mLast.date;
+    }
+    return out;
+}
+
+// 連買/連賣天數：從最新往回數，同方向(正/負)連續幾天；回傳正數=連買、負數=連賣
+function _netStreak(dates, byDate, key) {
+    var streak = 0, sign = 0;
+    for (var i = dates.length - 1; i >= 0; i--) {
+        var v = byDate[dates[i]][key];
+        var s = v > 0 ? 1 : (v < 0 ? -1 : 0);
+        if (s === 0) break;
+        if (sign === 0) sign = s;
+        if (s !== sign) break;
+        streak++;
+    }
+    return sign * streak;
+}
+
 // 顯示「股價資料新鮮度」：以 stockData.prices 裡 Yahoo srcTime 最新一筆為準
 function _stockPriceFreshnessLabel() {
     var maxTime = 0;
@@ -9363,21 +9489,28 @@ function _buildFundamentalsHtml(stockId) {
         return _buildEtfFundamentalsHtml(stockId);
     }
     var hadCache = !!(_fundamentalsCache[stockId] && _fundamentalsCache[stockId].data);
+    var hadChips = !!(_chipsCache[stockId] && _chipsCache[stockId].data);
     // 觸發抓取（非同步）：首次填入 or 有實質變動才重繪；無變動不動畫面
     setTimeout(function(){
         fetchFundamentals(stockId, function(err, data, changed){
             if (!hadCache || changed || err) _paintFundamentals(stockId, err, data);
         });
+        fetchChips(stockId, function(err, data, changed){
+            if (!hadChips || changed) _paintChips(stockId, data);
+        });
     }, 0);
     var loading = '<div class="' + _FUND_CONTAINER_ID + '" data-fund="' + esc(stockId) + '">' +
         '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px"><i class="ti ti-loader"></i> 載入基本面資料中…</div>' +
         '</div>';
+    // 籌碼面容器（基本面下方）：有快取直接帶內容，無則留空（資料較不重要，不顯示 loading 佔位）
+    var cc = _chipsCache[stockId];
+    var chipsBox = '<div class="chips-box" data-chips="' + esc(stockId) + '">' + ((cc && cc.data) ? _chipsInnerHtml(cc.data) : '') + '</div>';
     // 若已有快取（含 localStorage 還原），直接帶內容（避免閃 loading）
     var c = _fundamentalsCache[stockId];
     if (c && c.data) {
-        return '<div class="' + _FUND_CONTAINER_ID + '" data-fund="' + esc(stockId) + '">' + _fundamentalsInnerHtml(c.data) + '</div>';
+        return '<div class="' + _FUND_CONTAINER_ID + '" data-fund="' + esc(stockId) + '">' + _fundamentalsInnerHtml(c.data) + '</div>' + chipsBox;
     }
-    return loading;
+    return loading + chipsBox;
 }
 
 // 抓完後把內容填入頁面上所有對應容器
@@ -9390,6 +9523,13 @@ function _paintFundamentals(stockId, err, data) {
             box.innerHTML = _fundamentalsInnerHtml(data);
         }
     });
+}
+
+// 抓完後把籌碼面填入頁面上所有對應容器（無資料則留空，不顯示錯誤）
+function _paintChips(stockId, data) {
+    var sel = (window.CSS && CSS.escape ? CSS.escape(stockId) : stockId);
+    var boxes = document.querySelectorAll('.chips-box[data-chips="' + sel + '"]');
+    Array.prototype.forEach.call(boxes, function(box){ box.innerHTML = data ? _chipsInnerHtml(data) : ''; });
 }
 
 // 把指標物件渲染成 HTML
@@ -9480,6 +9620,83 @@ function _fundamentalsInnerHtml(d) {
     }
 
     html += '<div style="font-size:11px;color:var(--muted);line-height:1.6">※ 資料來源：FinMind（月營收、季財報、資產負債表）。本益比＝目前股價 ÷ 近四季EPS；ROE＝近四季淨利 ÷ 最新股東權益；近四季含一次性業內外損益，請搭配三率判斷本業強弱。</div>';
+    return html;
+}
+
+// 把籌碼指標物件渲染成 HTML（三大法人買賣超 + 連買連賣 + 外資趨勢條 + 融資融券）
+function _chipsInnerHtml(d) {
+    if (!d) return '';
+    var hasInst = d.foreign != null || d.trust != null || d.dealer != null;
+    var hasMargin = d.marginBalance != null || d.shortBalance != null;
+    if (!hasInst && !hasMargin) return '';
+    var cardOpen = '<div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px">';
+    var titleStyle = 'font-size:12px;color:var(--lux-navy);font-weight:700;letter-spacing:.5px;margin-bottom:10px';
+    // 張數格式化：千分位、帶正負號顏色
+    function _lots(v) {
+        if (v == null) return '—';
+        var s = (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toLocaleString('en-US');
+        return s;
+    }
+    function _streakLabel(n) {
+        if (!n) return '';
+        return n > 0 ? '連買 ' + n + ' 日' : '連賣 ' + Math.abs(n) + ' 日';
+    }
+    var html = cardOpen;
+    var dateStr = d.date ? '（' + d.date.slice(5) + '）' : '';
+    html += '<div style="' + titleStyle + '">籌碼面' + (dateStr ? '<span style="font-weight:400;color:var(--muted);font-size:11px">' + dateStr + '</span>' : '') + '</div>';
+
+    // 三大法人買賣超：三欄卡片（最新一日 / 近5日 / 連買賣）
+    if (hasInst) {
+        function _instCell(label, today, sum5, streak) {
+            var tColor = today > 0 ? signColor(1) : today < 0 ? signColor(-1) : 'var(--muted)';
+            var s5Color = sum5 > 0 ? signColor(1) : sum5 < 0 ? signColor(-1) : 'var(--muted)';
+            var sk = _streakLabel(streak);
+            return '<div style="flex:1;min-width:90px;text-align:center;border:1px solid var(--border);border-radius:8px;padding:8px 4px">' +
+                '<div style="font-size:11px;color:var(--muted);margin-bottom:2px">' + label + '</div>' +
+                '<div style="font-size:16px;font-weight:700;color:' + tColor + '">' + _lots(today) + '</div>' +
+                '<div style="font-size:10px;color:var(--muted);margin-top:2px">近5日 <span style="color:' + s5Color + '">' + _lots(sum5) + '</span></div>' +
+                (sk ? '<div style="font-size:10px;color:' + (streak > 0 ? signColor(1) : signColor(-1)) + ';margin-top:1px">' + sk + '</div>' : '') +
+                '</div>';
+        }
+        html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+        html += _instCell('外資', d.foreign, d.foreign5, d.foreignStreak);
+        html += _instCell('投信', d.trust, d.trust5, d.trustStreak);
+        html += _instCell('自營', d.dealer, d.dealer5, 0);
+        html += '</div>';
+
+        // 外資近 20 日買賣超趨勢條（正綠負紅，中線=0）
+        if (Array.isArray(d.foreignTrend) && d.foreignTrend.length >= 2) {
+            var maxAbs = Math.max.apply(null, d.foreignTrend.map(function(v){ return Math.abs(v); })) || 1;
+            var bars = d.foreignTrend.map(function(v){
+                var h = Math.max(2, Math.abs(v) / maxAbs * 22); // 最高 22px
+                var up = v >= 0;
+                return '<div title="' + _lots(v) + ' 張" style="flex:1;display:flex;flex-direction:column;justify-content:center;height:48px">' +
+                    (up ? '<div style="height:24px;display:flex;align-items:flex-end"><div style="width:100%;height:' + h + 'px;background:' + signColor(1) + ';border-radius:2px 2px 0 0"></div></div><div style="height:24px"></div>'
+                        : '<div style="height:24px"></div><div style="height:24px;display:flex;align-items:flex-start"><div style="width:100%;height:' + h + 'px;background:' + signColor(-1) + ';border-radius:0 0 2px 2px"></div></div>') +
+                    '</div>';
+            }).join('');
+            html += '<div style="margin-top:10px"><div style="display:flex;align-items:center;gap:2px;position:relative">' +
+                '<div style="position:absolute;left:0;right:0;top:50%;border-top:1px dashed var(--border)"></div>' + bars + '</div>' +
+                '<div style="font-size:10px;color:var(--muted);margin-top:2px">外資近 ' + d.foreignTrend.length + ' 日買賣超趨勢（張）</div></div>';
+        }
+    }
+
+    // 融資融券餘額
+    if (hasMargin) {
+        function _marginCell(label, bal, chg, unit) {
+            if (bal == null) return '';
+            var cColor = chg > 0 ? signColor(1) : chg < 0 ? signColor(-1) : 'var(--muted)';
+            return '<span>' + label + ' <b>' + bal.toLocaleString('en-US') + '</b> ' + unit +
+                (chg != null ? ' <span style="color:' + cColor + ';font-size:12px">(' + _lots(chg) + ')</span>' : '') + '</span>';
+        }
+        html += '<div style="display:flex;gap:8px 18px;flex-wrap:wrap;font-size:13px;margin-top:' + (hasInst ? '12px' : '0') + '">';
+        html += _marginCell('融資餘額', d.marginBalance, d.marginChange, '張');
+        html += _marginCell('融券餘額', d.shortBalance, d.shortChange, '張');
+        html += '</div>';
+    }
+
+    html += '<div style="font-size:11px;color:var(--muted);line-height:1.6;margin-top:8px">※ 法人買賣超／融資融券來源：FinMind。買超為正、賣超為負；單位：張（1張=1000股）。括號內為較前一日增減。</div>';
+    html += '</div>';
     return html;
 }
 
