@@ -9073,10 +9073,15 @@ function _etfInfoHtml(d) {
         html += '</div></div>';
     }
 
-    // 產業分佈（長條）
+    // 產業分佈（長條）— 可開合，預設收合
     if (Array.isArray(d.industries) && d.industries.length) {
         var maxPct = Math.max.apply(null, d.industries.map(function(x){ return x.pct; }));
-        html += cardOpen + '<div style="' + titleStyle + '">產業分佈</div>';
+        var topInd = d.industries[0];
+        html += cardOpen;
+        html += '<div onclick="toggleEtfCard(this)" style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;' + titleStyle + ';margin-bottom:0">' +
+            '<i class="ti ti-chevron-right" style="font-size:14px;color:var(--muted);transition:transform .15s"></i> 產業分佈' +
+            '<span style="font-weight:400;color:var(--muted);margin-left:auto">' + esc(topInd.name) + ' ' + topInd.pct.toFixed(1) + '%…</span></div>';
+        html += '<div class="etf-card-body" style="display:none;margin-top:10px">';
         d.industries.slice(0, 8).forEach(function(x){
             var w = maxPct > 0 ? Math.max(3, x.pct / maxPct * 100) : 3;
             html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:12px">' +
@@ -9086,15 +9091,18 @@ function _etfInfoHtml(d) {
                 '<span style="flex:0 0 52px;text-align:right;font-weight:600;color:var(--lux-navy)">' + x.pct.toFixed(2) + '%</span>' +
                 '</div>';
         });
-        html += '</div>';
+        html += '</div></div>';
     }
 
-    // 前十大持股
+    // 前十大持股 — 可開合，預設收合
     if (Array.isArray(d.holdings) && d.holdings.length) {
         var top = d.holdings.slice(0, 10);
         var top10Sum = top.reduce(function(s,x){ return s + (x.pct || 0); }, 0);
-        html += cardOpen + '<div style="' + titleStyle + '">前十大持股<span style="font-weight:400;color:var(--muted)">（合計 ' + top10Sum.toFixed(1) + '%，共 ' + d.holdings.length + ' 檔）</span></div>';
-        html += '<table style="width:100%;border-collapse:collapse;font-size:13px"><tbody>';
+        html += cardOpen;
+        html += '<div onclick="toggleEtfCard(this)" style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;' + titleStyle + ';margin-bottom:0">' +
+            '<i class="ti ti-chevron-right" style="font-size:14px;color:var(--muted);transition:transform .15s"></i> 前十大持股' +
+            '<span style="font-weight:400;color:var(--muted);margin-left:auto">合計 ' + top10Sum.toFixed(1) + '%／共 ' + d.holdings.length + ' 檔</span></div>';
+        html += '<table class="etf-card-body" style="display:none;width:100%;border-collapse:collapse;font-size:13px;margin-top:10px"><tbody>';
         top.forEach(function(x){
             html += '<tr style="border-bottom:1px solid var(--border)">' +
                 '<td style="padding:6px 4px">' + esc(x.name) + (x.code ? ' <span style="color:var(--muted);font-size:11px">' + esc(x.code) + '</span>' : '') + '</td>' +
@@ -9105,6 +9113,17 @@ function _etfInfoHtml(d) {
 
     if (!html) return '<div style="font-size:12px;color:var(--muted);padding:8px 0">此 ETF 暫無持股／費率資料。</div>';
     return html;
+}
+
+// ETF 卡片開合（產業分佈、前十大持股）。body 可能是 div 或 table
+function toggleEtfCard(headEl) {
+    var card = headEl.parentElement;
+    var body = card && card.querySelector('.etf-card-body');
+    var icon = headEl.querySelector('i');
+    if (!body) return;
+    var open = body.style.display !== 'none';
+    body.style.display = open ? 'none' : (body.tagName === 'TABLE' ? 'table' : 'block');
+    if (icon) icon.style.transform = open ? '' : 'rotate(90deg)';
 }
 
 // ── 基本面分頁／區塊（個股 modal + 搜尋日曆共用）──
