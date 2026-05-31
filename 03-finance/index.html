@@ -4130,6 +4130,29 @@ function fetchFinMindName(stockId, callback) {
 // 快取：stockId → { loading, error, data }；data 內含算好的所有指標
 var _fundamentalsCache = {};
 
+// localStorage 持久化（重開頁面立即顯示上次資料、不閃 loading；背景再抓最新，有變動才重畫）
+var _FUND_LS_KEY = 'fundamentalsCache';
+function _loadFundamentalsLS() {
+    try {
+        var raw = localStorage.getItem(_FUND_LS_KEY);
+        if (!raw) return;
+        var o = JSON.parse(raw);
+        if (o && typeof o === 'object') {
+            Object.keys(o).forEach(function(id){ if (o[id] && o[id].data) _fundamentalsCache[id] = { data: o[id].data }; });
+        }
+    } catch (e) {}
+}
+function _saveFundamentalsLS() {
+    try {
+        var slim = {};
+        Object.keys(_fundamentalsCache).forEach(function(id){
+            if (_fundamentalsCache[id] && _fundamentalsCache[id].data) slim[id] = { data: _fundamentalsCache[id].data };
+        });
+        localStorage.setItem(_FUND_LS_KEY, JSON.stringify(slim));
+    } catch (e) {}
+}
+_loadFundamentalsLS();
+
 // 取得目前股價（優先即時 prices，其次 priceHistory 末筆）
 function _currentPriceFor(stockId) {
     var p = stockData.prices && stockData.prices[stockId];
@@ -4152,10 +4175,16 @@ function _epsQuarterLabel(dateStr) {
 }
 
 // 抓基本面：並行打 月營收 + 財報 兩個 dataset，算出所有指標後 callback
+// callback(err, data, changed)：changed 表示與顯示中的舊資料相比有無實質變動
+// 即使已有快取也在背景重抓最新（有變動才需重畫）；正在抓取中則不重複發
 function fetchFundamentals(stockId, callback) {
     var cached = _fundamentalsCache[stockId];
-    if (cached && cached.data) { callback(null, cached.data); return; }
-    _fundamentalsCache[stockId] = { loading: true };
+    var hadData = !!(cached && cached.data);
+    // 已有快取：先用快取立即回（changed=false），再背景抓最新
+    if (hadData) callback(null, cached.data, false);
+    if (cached && cached.loading) return;
+    var oldJson = hadData ? JSON.stringify(cached.data) : null;
+    _fundamentalsCache[stockId] = hadData ? { data: cached.data, loading: true } : { loading: true };
 
     var revUrl = _withFinMindToken('https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockMonthRevenue&data_id=' + stockId + '&start_date=2023-01-01');
     var finUrl = _withFinMindToken('https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockFinancialStatements&data_id=' + stockId + '&start_date=2023-01-01');
@@ -4168,11 +4197,15 @@ function fetchFundamentals(stockId, callback) {
     ]).then(function(res) {
         var revJson = res[0], finJson = res[1], bsJson = res[2];
         var data = _computeFundamentals(stockId, revJson, finJson, bsJson);
+        var changed = JSON.stringify(data) !== oldJson;
         _fundamentalsCache[stockId] = { data: data };
-        callback(null, data);
+        _saveFundamentalsLS();
+        // 首次（無舊資料）一定要回；有舊資料則只在變動時回（避免無謂重畫）
+        if (!hadData || changed) callback(null, data, changed);
     }).catch(function(err) {
-        _fundamentalsCache[stockId] = { error: String(err && err.message || err) };
-        callback(_fundamentalsCache[stockId].error, null);
+        // 抓失敗：保留舊資料（若有），不洗掉畫面
+        if (hadData) { _fundamentalsCache[stockId] = { data: cached.data }; }
+        else { _fundamentalsCache[stockId] = { error: String(err && err.message || err) }; callback(_fundamentalsCache[stockId].error, null, false); }
     });
 }
 
@@ -9329,16 +9362,17 @@ function _buildFundamentalsHtml(stockId) {
     if (/^00/.test(String(stockId))) {
         return _buildEtfFundamentalsHtml(stockId);
     }
-    // 觸發抓取（非同步），完成後重繪所有同 stockId 的基本面容器
+    var hadCache = !!(_fundamentalsCache[stockId] && _fundamentalsCache[stockId].data);
+    // 觸發抓取（非同步）：首次填入 or 有實質變動才重繪；無變動不動畫面
     setTimeout(function(){
-        fetchFundamentals(stockId, function(err, data){
-            _paintFundamentals(stockId, err, data);
+        fetchFundamentals(stockId, function(err, data, changed){
+            if (!hadCache || changed || err) _paintFundamentals(stockId, err, data);
         });
     }, 0);
     var loading = '<div class="' + _FUND_CONTAINER_ID + '" data-fund="' + esc(stockId) + '">' +
         '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px"><i class="ti ti-loader"></i> 載入基本面資料中…</div>' +
         '</div>';
-    // 若已有快取，直接帶內容（避免閃 loading）
+    // 若已有快取（含 localStorage 還原），直接帶內容（避免閃 loading）
     var c = _fundamentalsCache[stockId];
     if (c && c.data) {
         return '<div class="' + _FUND_CONTAINER_ID + '" data-fund="' + esc(stockId) + '">' + _fundamentalsInnerHtml(c.data) + '</div>';
