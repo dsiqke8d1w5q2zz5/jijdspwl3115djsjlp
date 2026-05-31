@@ -9031,6 +9031,47 @@ function _saveEtfInfoLS() {
 }
 _loadEtfInfoLS();
 
+// ── 持股異動（diff）：保存上一版持股快照，比對出新增／移除／比例變動 ──
+var _ETF_HOLD_PREV_KEY = 'etfHoldingsPrev';   // { id: [{id,name,pct}, ...] }
+var _ETF_HOLD_DIFF_KEY = 'etfHoldingsDiff';   // { id: {added:[],removed:[],changed:[]} }
+function _readLS(key) { try { var r = localStorage.getItem(key); return r ? JSON.parse(r) : {}; } catch (e) { return {}; } }
+function _writeLS(key, obj) { try { localStorage.setItem(key, JSON.stringify(obj)); } catch (e) {} }
+// 取某檔 ETF 已算好的異動結果（給畫面用）
+function getEtfHoldingsDiff(stockId) { return _readLS(_ETF_HOLD_DIFF_KEY)[stockId] || null; }
+// 比對 old/new 持股，回傳 {added, removed, changed}；同時更新基準與 diff 快取
+function _computeEtfHoldingsDiff(stockId, newHoldings) {
+    var prevAll = _readLS(_ETF_HOLD_PREV_KEY);
+    var oldList = prevAll[stockId];
+    var newList = (newHoldings || []).map(function(x){ return { id: x.id || x.code || x.name, name: x.name, code: x.code, pct: (x.pct != null ? x.pct : null) }; });
+    // 首次沒有基準：建立基準，不產生 diff（避免把全部當新增）
+    if (!Array.isArray(oldList)) {
+        prevAll[stockId] = newList; _writeLS(_ETF_HOLD_PREV_KEY, prevAll);
+        return null;
+    }
+    var oldMap = {}, newMap = {};
+    oldList.forEach(function(x){ oldMap[x.id] = x; });
+    newList.forEach(function(x){ newMap[x.id] = x; });
+    var added = newList.filter(function(x){ return !oldMap[x.id]; });
+    var removed = oldList.filter(function(x){ return !newMap[x.id]; });
+    var changed = [];
+    newList.forEach(function(x){
+        var o = oldMap[x.id];
+        if (o && o.pct != null && x.pct != null && Math.abs(o.pct - x.pct) >= 0.01) {
+            changed.push({ id: x.id, name: x.name, code: x.code, from: o.pct, to: x.pct });
+        }
+    });
+    var hasDiff = added.length || removed.length || changed.length;
+    // 更新基準到最新；diff 快取保留到下次有變動才覆蓋（無變動時維持上次的明細顯示）
+    prevAll[stockId] = newList; _writeLS(_ETF_HOLD_PREV_KEY, prevAll);
+    if (hasDiff) {
+        var diffAll = _readLS(_ETF_HOLD_DIFF_KEY);
+        diffAll[stockId] = { added: added, removed: removed, changed: changed };
+        _writeLS(_ETF_HOLD_DIFF_KEY, diffAll);
+        return diffAll[stockId];
+    }
+    return getEtfHoldingsDiff(stockId);
+}
+
 // onDone(data, changed)：changed 表示與顯示中的舊資料相比有無實質變動
 function fetchEtfInfo(stockId, onDone) {
     var c = _etfInfoCache[stockId];
@@ -9044,6 +9085,8 @@ function fetchEtfInfo(stockId, onDone) {
         .then(function(r){ return r.json(); })
         .then(function(data){
             var changed = JSON.stringify(data) !== oldJson;
+            // 持股異動 diff（在覆蓋快取前比對；首次建立基準不產生 diff）
+            if (data && Array.isArray(data.holdings)) _computeEtfHoldingsDiff(stockId, data.holdings);
             _etfInfoCache[stockId] = { data: data };
             _saveEtfInfoLS();
             if (onDone) onDone(data, changed);
@@ -9156,10 +9199,25 @@ function _etfInfoHtml(d) {
                 '<span style="flex:0 0 auto;text-align:right;color:var(--lux-navy);font-weight:600">' + (x.pct != null ? x.pct.toFixed(2) + '%' : '—') + '</span></div>';
         });
         html += '</div>';
-        if (d.holdings.length > 10) {
+        // 持股異動提示 + 查看全部按鈕：同一排
+        var diff = getEtfHoldingsDiff(d.id);
+        var nAdd = diff ? diff.added.length : 0, nRem = diff ? diff.removed.length : 0, nChg = diff ? diff.changed.length : 0;
+        var hasDiff = (nAdd + nRem + nChg) > 0;
+        if (d.holdings.length > 10 || hasDiff) {
             window._etfAllHoldings = window._etfAllHoldings || {};
             window._etfAllHoldings[d.id] = { name: (d.name || d.id), holdings: d.holdings };
-            html += '<div style="text-align:center;margin-top:10px"><button type="button" onclick="event.stopPropagation();showEtfAllHoldings(\'' + esc(d.id) + '\')" style="padding:6px 16px;border:1px solid var(--border);border-radius:8px;background:var(--card);cursor:pointer;font-family:inherit;font-size:13px;color:var(--lux-navy);font-weight:600">查看全部 ' + d.holdings.length + ' 檔</button></div>';
+            html += '<div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-top:10px">';
+            if (hasDiff) {
+                var parts = [];
+                if (nAdd) parts.push('<span style="color:' + signColor(1) + '">+' + nAdd + '</span>');
+                if (nRem) parts.push('<span style="color:' + signColor(-1) + '">−' + nRem + '</span>');
+                if (nChg) parts.push('<span style="color:var(--muted)">✎' + nChg + '</span>');
+                html += '<span onclick="event.stopPropagation();showEtfHoldingsDiff(\'' + esc(d.id) + '\')" title="點看成分股異動明細" style="cursor:pointer;font-size:12px;display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid var(--border);border-radius:8px;background:var(--card)"><span style="color:var(--muted)">成分股異動</span>' + parts.join(' ') + '</span>';
+            }
+            if (d.holdings.length > 10) {
+                html += '<button type="button" onclick="event.stopPropagation();showEtfAllHoldings(\'' + esc(d.id) + '\')" style="padding:6px 16px;border:1px solid var(--border);border-radius:8px;background:var(--card);cursor:pointer;font-family:inherit;font-size:13px;color:var(--lux-navy);font-weight:600">查看全部 ' + d.holdings.length + ' 檔</button>';
+            }
+            html += '</div>';
         }
         html += '</div></div>';
     }
@@ -9187,6 +9245,53 @@ function showEtfAllHoldings(etfId) {
     ov.innerHTML = '<div class="modal" style="width:560px;max-width:94vw;display:flex;flex-direction:column;max-height:84vh">' +
         '<h3 style="margin:0 0 12px;flex:none"><i class="ti ti-list-details"></i> ' + esc(etfId) + ' 全部持股（' + rec.holdings.length + ' 檔）</h3>' +
         '<div style="flex:1;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(' + Math.ceil(rec.holdings.length / 2) + ',auto);grid-auto-flow:column;gap:0 20px">' + rows + '</div>' +
+        '<div class="modal-btns" style="margin-top:12px;flex:none"><button onclick="this.closest(\'.overlay\').remove()" style="flex:1">關閉</button></div>' +
+        '</div>';
+    document.body.appendChild(ov);
+    ov.addEventListener('click', function(e){ if (e.target === ov) ov.remove(); });
+}
+
+// 成分股異動明細（另開 modal）：新增／移除／比例變動
+function showEtfHoldingsDiff(etfId) {
+    var diff = getEtfHoldingsDiff(etfId);
+    if (!diff) { toast('尚無異動資料'); return; }
+    function nameCell(x) {
+        return esc(x.name || x.id) + (x.code ? ' <span style="color:var(--muted);font-size:11px">' + esc(x.code) + '</span>' : '');
+    }
+    function section(title, color, list, render) {
+        if (!list || !list.length) return '';
+        var s = '<div style="font-size:12px;font-weight:700;color:' + color + ';margin:14px 0 6px">' + title + '（' + list.length + '）</div>';
+        list.forEach(function(x){
+            s += '<div style="display:flex;align-items:center;gap:6px;padding:4px 4px;border-bottom:1px solid var(--border);font-size:13px">' + render(x) + '</div>';
+        });
+        return s;
+    }
+    var body = '';
+    body += section('新增', signColor(1), diff.added, function(x){
+        return '<span style="flex:1;min-width:0">' + nameCell(x) + '</span>' +
+            '<span style="flex:0 0 auto;color:' + signColor(1) + ';font-weight:600">' + (x.pct != null ? x.pct.toFixed(2) + '%' : '—') + '</span>';
+    });
+    body += section('移除', signColor(-1), diff.removed, function(x){
+        return '<span style="flex:1;min-width:0;color:var(--muted);text-decoration:line-through">' + nameCell(x) + '</span>' +
+            '<span style="flex:0 0 auto;color:var(--muted)">' + (x.pct != null ? x.pct.toFixed(2) + '%' : '—') + '</span>';
+    });
+    body += section('比例變動', 'var(--lux-navy)', diff.changed, function(x){
+        var up = x.to >= x.from;
+        return '<span style="flex:1;min-width:0">' + nameCell(x) + '</span>' +
+            '<span style="flex:0 0 auto;color:var(--muted);font-size:12px">' + x.from.toFixed(2) + '% → </span>' +
+            '<span style="flex:0 0 auto;color:' + signColor(up ? 1 : -1) + ';font-weight:600">' + x.to.toFixed(2) + '%</span>' +
+            '<span style="flex:0 0 auto;color:' + signColor(up ? 1 : -1) + ';font-size:11px">(' + (up ? '+' : '') + (x.to - x.from).toFixed(2) + ')</span>';
+    });
+    if (!body) { toast('本次無異動'); return; }
+    var ov = document.createElement('div');
+    ov.className = 'overlay';
+    ov.style.alignItems = 'flex-start';
+    ov.style.paddingTop = '6vh';
+    ov.style.overflowY = 'auto';
+    ov.innerHTML = '<div class="modal" style="width:460px;max-width:94vw;display:flex;flex-direction:column;max-height:84vh">' +
+        '<h3 style="margin:0 0 4px;flex:none"><i class="ti ti-arrows-exchange"></i> ' + esc(etfId) + ' 成分股異動</h3>' +
+        '<div style="font-size:11px;color:var(--muted);margin-bottom:6px;flex:none">與上次抓取的成分股相比</div>' +
+        '<div style="flex:1;overflow-y:auto">' + body + '</div>' +
         '<div class="modal-btns" style="margin-top:12px;flex:none"><button onclick="this.closest(\'.overlay\').remove()" style="flex:1">關閉</button></div>' +
         '</div>';
     document.body.appendChild(ov);
