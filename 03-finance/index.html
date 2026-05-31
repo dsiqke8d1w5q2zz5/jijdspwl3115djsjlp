@@ -9689,49 +9689,53 @@ function _fundamentalsInnerHtml(d) {
         html += '</div>';
     }
 
-    // ── 三率（獲利品質）──
+    // ── 獲利品質（三率）＋ 財務體質：併同一排（flex 兩欄，窄了自動換行）──
+    var cardHalf = 'border:1px solid var(--border);border-radius:10px;padding:8px 14px;flex:1 1 300px';
+    // 三率卡片內容
+    var marginInner = '';
     if (hasMargin) {
-        html += cardOpen;
-        html += '<div style="' + titleStyle + '">獲利品質' + (d.marginQuarter ? '（' + d.marginQuarter + '）' : '') + '</div>';
-        html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+        marginInner = '<div style="' + titleStyle + '">獲利品質' + (d.marginQuarter ? '（' + d.marginQuarter + '）' : '') + '</div>';
+        marginInner += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
         function _marginCell(label, v) {
             if (v === null) return '';
-            return '<div style="flex:1;min-width:80px;text-align:center;border:1px solid var(--border);border-radius:8px;padding:6px 4px">' +
+            return '<div style="flex:1;min-width:72px;text-align:center;border:1px solid var(--border);border-radius:8px;padding:6px 4px">' +
                 '<div style="font-size:11px;color:var(--muted)">' + label + '</div>' +
                 '<div style="font-size:16px;font-weight:700;color:' + signColor(v) + '">' + v.toFixed(1) + '%</div></div>';
         }
-        html += _marginCell('毛利率', d.grossMargin);
-        html += _marginCell('營益率', d.opMargin);
-        html += _marginCell('淨利率', d.netMargin);
-        html += '</div>';
-        html += '</div>';
+        marginInner += _marginCell('毛利率', d.grossMargin);
+        marginInner += _marginCell('營益率', d.opMargin);
+        marginInner += _marginCell('淨利率', d.netMargin);
+        marginInner += '</div>';
     }
-
-    // ── 財務體質（負債比 / 流動比 / 每股淨值）──
+    // 財務體質卡片內容
+    var healthInner = '';
     if (d.debtRatio != null || d.currentRatio != null || d.bookValuePerShare != null) {
-        html += cardOpen;
-        html += '<div style="' + titleStyle + '">財務體質' + (d.bsQuarter ? '<span style="font-weight:400;color:var(--muted);font-size:11px">（' + d.bsQuarter + '）</span>' : '') + '</div>';
-        html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+        healthInner = '<div style="' + titleStyle + '">財務體質' + (d.bsQuarter ? '<span style="font-weight:400;color:var(--muted);font-size:11px">（' + d.bsQuarter + '）</span>' : '') + '</div>';
+        healthInner += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
         function _healthCell(label, valStr, color, hint) {
-            return '<div style="flex:1;min-width:90px;text-align:center;border:1px solid var(--border);border-radius:8px;padding:6px 4px">' +
+            return '<div style="flex:1;min-width:72px;text-align:center;border:1px solid var(--border);border-radius:8px;padding:6px 4px">' +
                 '<div style="font-size:11px;color:var(--muted)">' + label + '</div>' +
                 '<div style="font-size:16px;font-weight:700;color:' + color + '">' + valStr + '</div>' +
                 (hint ? '<div style="font-size:10px;color:var(--muted);margin-top:1px">' + hint + '</div>' : '') + '</div>';
         }
         if (d.debtRatio != null) {
-            // 負債比：<40% 佳(綠)、40~60% 普(預設)、>60% 偏高(紅)
             var dColor = d.debtRatio < 40 ? signColor(1) : d.debtRatio > 60 ? signColor(-1) : 'var(--text)';
-            html += _healthCell('負債比', d.debtRatio.toFixed(1) + '%', dColor, d.debtRatio < 40 ? '偏低' : d.debtRatio > 60 ? '偏高' : '');
+            healthInner += _healthCell('負債比', d.debtRatio.toFixed(1) + '%', dColor, d.debtRatio < 40 ? '偏低' : d.debtRatio > 60 ? '偏高' : '');
         }
         if (d.currentRatio != null) {
-            // 流動比：>200% 佳(綠)、100~200% 普、<100% 偏弱(紅)
             var cColor = d.currentRatio >= 200 ? signColor(1) : d.currentRatio < 100 ? signColor(-1) : 'var(--text)';
-            html += _healthCell('流動比', d.currentRatio.toFixed(0) + '%', cColor, d.currentRatio >= 200 ? '充裕' : d.currentRatio < 100 ? '偏弱' : '');
+            healthInner += _healthCell('流動比', d.currentRatio.toFixed(0) + '%', cColor, d.currentRatio >= 200 ? '充裕' : d.currentRatio < 100 ? '偏弱' : '');
         }
         if (d.bookValuePerShare != null) {
-            html += _healthCell('每股淨值', d.bookValuePerShare.toFixed(2), 'var(--lux-navy)', '元');
+            healthInner += _healthCell('每股淨值', d.bookValuePerShare.toFixed(2), 'var(--lux-navy)', '元');
         }
-        html += '</div></div>';
+        healthInner += '</div>';
+    }
+    if (marginInner || healthInner) {
+        html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">';
+        if (marginInner) html += '<div style="' + cardHalf + '">' + marginInner + '</div>';
+        if (healthInner) html += '<div style="' + cardHalf + '">' + healthInner + '</div>';
+        html += '</div>';
     }
 
     html += '<div style="font-size:11px;color:var(--muted);line-height:1.6">※ 資料來源：FinMind（月營收、季財報、資產負債表、官方本益比）。PER／PB／殖利率為 TWSE／TPEX 官方公告值；ROE＝近四季淨利÷最新股東權益。負債比＝總負債÷總資產（低較穩健）；流動比＝流動資產÷流動負債（高較有短期償債力）；每股淨值＝股東權益÷股數。</div>';
