@@ -11873,11 +11873,11 @@ function _buildSectionCalendarHtml(key) {
     var months = Object.keys(monthSet).sort().reverse();
     var curMonth = (_sectionCalendarMonth[key] && monthSet[_sectionCalendarMonth[key]]) ? _sectionCalendarMonth[key] : months[0];
 
-    // 月合計
+    // 月合計：當月每一天的當日變化加總（含當月第一天 vs 上月最後一筆快照的變化）。
+    // dailyChange[d].delta 已是「該日 vs 前一筆快照」，僅全期間最初一筆 delta=0（無前可比），加總不受影響。
     var monthDates = Object.keys(dailyChange).filter(function(d){ return d.slice(0,7) === curMonth; }).sort();
     var monthDelta = 0;
-    monthDates.forEach(function(d, idx){
-        if (idx === 0) return; // 第一天不算（沒有對應的前一日比較）
+    monthDates.forEach(function(d){
         monthDelta += dailyChange[d].delta;
     });
 
