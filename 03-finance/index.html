@@ -12329,6 +12329,10 @@ try { scheduleDailySnapshot(); } catch(_) {}
 // 初始頁籤（收入/支出）載入上次的排序偏好（持久化）
 if (currentTab === 'income' || currentTab === 'expense') _loadSortStateFor(currentTab);
 render();
+// 預設開台股頁時，初始 render() 不經 switchTab('stock')，需另行觸發除權息抓取
+if (currentTab === 'stock' && (!_dividendAlertChecked || _dividendNeedsRefresh)) {
+    try { checkDividendAlerts(); } catch(e) { console.error('[init checkDividendAlerts]', e); }
+}
 // 啟動時：自動快照 + 背景抓匯率/金價（不擋畫面）
 try { maybeAutoSnapshot(); } catch(e) { console.error('[maybeAutoSnapshot init]', e); }
 setTimeout(function(){
