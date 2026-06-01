@@ -9988,7 +9988,15 @@ function _dividendSummaryHtml(stockId) {
         if (d >= oneYearAgo && d <= now) cnt++;
     });
     if (ttmCps <= 0 && cnt === 0) return '';
-    var freqLabel = cnt >= 11 ? '月配' : cnt >= 4 ? '季配' : cnt === 2 ? '半年配' : cnt === 1 ? '年配' : '—';
+    // 官方配息頻率（後端 etfinfo 從 MoneyDJ 章程抓）優先；沒有才用近一年次數推估並標「推估」
+    var officialFreq = (_etfInfoCache[stockId] && _etfInfoCache[stockId].data && _etfInfoCache[stockId].data.dividendFreq) || '';
+    var freqLabel, freqIsEstimate = false;
+    if (officialFreq) {
+        freqLabel = officialFreq;
+    } else {
+        freqLabel = cnt >= 11 ? '月配' : cnt >= 4 ? '季配' : cnt === 2 ? '半年配' : cnt === 1 ? '年配' : '—';
+        freqIsEstimate = (freqLabel !== '—');
+    }
     var price = _currentPriceFor(stockId);
     var yieldTxt = (price && ttmCps > 0) ? (ttmCps / price * 100).toFixed(2) + '%' : '—';
     var html = '<div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px">';
@@ -9996,7 +10004,10 @@ function _dividendSummaryHtml(stockId) {
     html += '<div style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px">';
     html += '<span>近一年每股配息 <b style="color:var(--lux-navy)">' + (ttmCps > 0 ? '$' + ttmCps.toFixed(3) : '—') + '</b></span>';
     html += '<span>年化殖利率 <b style="color:var(--lux-navy)">' + yieldTxt + '</b></span>';
-    html += '<span>配息頻率 <b>' + freqLabel + (cnt ? '（近一年 ' + cnt + ' 次）' : '') + '</b></span>';
+    html += '<span>配息頻率 <b>' + freqLabel + '</b>' +
+        (freqIsEstimate ? '<span style="font-size:11px;color:var(--muted)">（推估・近一年 ' + cnt + ' 次）</span>'
+                        : (cnt ? '<span style="font-size:11px;color:var(--muted)">（近一年 ' + cnt + ' 次）</span>' : '')) +
+        '</span>';
     html += '</div></div>';
     return html;
 }
