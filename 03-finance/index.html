@@ -10012,12 +10012,24 @@ function _dividendSummaryHtml(stockId) {
         freqIsEstimate = (freqLabel !== '—');
     }
     var price = _currentPriceFor(stockId);
-    var yieldTxt = (price && ttmCps > 0) ? (ttmCps / price * 100).toFixed(2) + '%' : '—';
+    // 年化殖利率：配滿一年用實際 ttmCps；新標的（近一年次數 < 官方頻率應有次數）則用「單次平均×頻率次數」推估年化
+    var freqCount = { '月配': 12, '季配': 4, '半年配': 2, '年配': 1 }[officialFreq] || 0;
+    var annualCps = ttmCps;       // 預設用近一年實配加總
+    var yieldIsEstimate = false;
+    if (freqCount > 0 && cnt > 0 && cnt < freqCount) {
+        // 還沒配滿一年：用近一年單次平均 × 應有次數推估全年
+        annualCps = (ttmCps / cnt) * freqCount;
+        yieldIsEstimate = true;
+    }
+    var yieldVal = (price && annualCps > 0) ? (annualCps / price * 100) : null;
+    var yieldTxt = yieldVal != null ? (yieldIsEstimate ? '~' : '') + yieldVal.toFixed(2) + '%' : '—';
     var html = '<div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px">';
     html += '<div style="font-size:12px;color:var(--lux-navy);font-weight:700;letter-spacing:.5px;margin-bottom:10px">配息表現</div>';
     html += '<div style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px">';
     html += '<span>近一年每股配息 <b style="color:var(--lux-navy)">' + (ttmCps > 0 ? '$' + ttmCps.toFixed(3) : '—') + '</b></span>';
-    html += '<span>年化殖利率 <b style="color:var(--lux-navy)">' + yieldTxt + '</b></span>';
+    html += '<span>年化殖利率 <b style="color:var(--lux-navy)">' + yieldTxt + '</b>' +
+        (yieldIsEstimate ? '<span style="font-size:11px;color:var(--muted)">（推估・單次 $' + (ttmCps / cnt).toFixed(3) + '×' + freqCount + '）</span>' : '') +
+        '</span>';
     html += '<span>配息頻率 <b>' + freqLabel + '</b>' +
         (freqIsEstimate ? '<span style="font-size:11px;color:var(--muted)">（推估・近一年 ' + cnt + ' 次）</span>'
                         : (cnt ? '<span style="font-size:11px;color:var(--muted)">（近一年 ' + cnt + ' 次）</span>' : '')) +
