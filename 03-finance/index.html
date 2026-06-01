@@ -6025,7 +6025,7 @@ function showDividendAlertModal() {
         var ay = _annualizedCashPerShare(a.stockId);
         var yieldText = '—';
         if (price && ay.annualCps > 0) {
-            yieldText = (ay.isEstimate ? '~' : '') + (ay.annualCps / price * 100).toFixed(2) + '%';
+            yieldText = (ay.annualCps / price * 100).toFixed(2) + '%';
         }
 
         var td = 'padding:10px 8px;border-bottom:1px solid var(--border);vertical-align:top;';
@@ -8661,18 +8661,21 @@ function showCalDaySnapshot(dateStr) {
             '<th style="padding:8px 4px;white-space:nowrap;text-align:center"><span style="display:inline-block;min-width:80px;text-align:right">成交金額</span></th>' +
             '<th style="padding:8px 4px;white-space:nowrap;text-align:center"><span style="display:inline-block;min-width:80px;text-align:right">已實現</span></th>' +
             '</tr></thead><tbody>';
+        var sumAmt = 0, sumRz = 0, hasRz = false;
         todayTrades.forEach(function(t){
             var isBuy = t.type === 'buy';
             var label = isBuy
                 ? '<span style="display:inline-block;background:rgba(22,163,74,0.12);color:var(--green);padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600">買</span>'
                 : '<span style="display:inline-block;background:rgba(239,68,68,0.12);color:var(--red);padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600">賣</span>';
             var amt = (typeof t.amount === 'number') ? t.amount : (t.shares || 0) * (t.price || 0);
+            sumAmt += amt;
             var amtCell = '<span style="color:var(--muted)">' + fmt(amt) + '</span>';
             var rzCell;
             if (isBuy) {
                 rzCell = '<span style="color:var(--muted)">—</span>';
             } else {
                 var realized = t.realized || 0;
+                sumRz += realized; hasRz = true;
                 rzCell = '<span style="color:' + signColor(realized) + ';font-weight:600">' + signedFmt(realized) + '</span>';
             }
             html += '<tr style="border-bottom:1px solid var(--border)">' +
@@ -8684,7 +8687,11 @@ function showCalDaySnapshot(dateStr) {
                 '<td style="padding:8px 4px;text-align:center;font-weight:600"><span style="display:inline-block;text-align:right;min-width:80px">' + rzCell + '</span></td>' +
                 '</tr>';
         });
-        html += '</tbody></table>';
+        html += '</tbody><tfoot><tr style="border-top:2px solid var(--border);font-weight:700">' +
+            '<td style="padding:8px 4px;text-align:center" colspan="4"><span style="display:inline-block;text-align:left">合計</span></td>' +
+            '<td style="padding:8px 4px;text-align:center"><span style="display:inline-block;text-align:right;min-width:80px;color:var(--text)">' + fmt(sumAmt) + '</span></td>' +
+            '<td style="padding:8px 4px;text-align:center"><span style="display:inline-block;text-align:right;min-width:80px;color:' + (hasRz ? signColor(sumRz) : 'var(--muted)') + '">' + (hasRz ? signedFmt(sumRz) : '—') + '</span></td>' +
+            '</tr></tfoot></table>';
     }
 
     html += '<div style="font-size:11px;color:var(--muted);margin-top:12px;line-height:1.6">※ 股數是從目前部位反推（之後的買賣紀錄回算），股價來自 priceHistory（若該日無快照則用前一筆，標註日期）。成本以目前均價估算，僅供參考。</div>';
@@ -10117,7 +10124,7 @@ function _dividendSummaryHtml(stockId) {
     var ay = _annualizedCashPerShare(stockId);
     var yieldIsEstimate = ay.isEstimate;
     var yieldVal = (price && ay.annualCps > 0) ? (ay.annualCps / price * 100) : null;
-    var yieldTxt = yieldVal != null ? (yieldIsEstimate ? '~' : '') + yieldVal.toFixed(2) + '%' : '—';
+    var yieldTxt = yieldVal != null ? yieldVal.toFixed(2) + '%' : '—';
     var html = '<div style="border:1px solid var(--border);border-radius:10px;padding:8px 16px;margin-bottom:12px">';
     html += '<div style="font-size:12px;color:var(--lux-navy);font-weight:700;letter-spacing:.5px;margin-bottom:5px">配息表現</div>';
     html += '<div style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px">';
