@@ -888,6 +888,13 @@ th.archived-col { opacity: 0.4; }
 }
 .toggle-archive.active { background: linear-gradient(135deg, #1a3a5c 0%, #2a5a8c 50%, #3a6aa0 100%) !important; border-color: var(--lux-gold) !important; color: #FAFAF9 !important; }
 
+/* 排序切換鈕（預設 / 當月） */
+.sort-toggle { display: inline-flex; border: 1px solid var(--lux-gold); border-radius: var(--radius-xs); overflow: hidden; box-shadow: 0 2px 8px rgba(15,40,71,.25); }
+.sort-toggle-btn { font-size: 12px; font-family: inherit; font-weight: 700; letter-spacing: .5px; cursor: pointer; padding: 8px 14px; border: none; background: #0f2847; color: #cdd8e6; transition: all .18s; }
+.sort-toggle-btn:not(:last-child) { border-right: 1px solid rgba(200,164,90,.4); }
+.sort-toggle-btn:hover { color: #FAFAF9; }
+.sort-toggle-btn.active { background: linear-gradient(135deg, #1a3a5c 0%, #2a5a8c 50%, #3a6aa0 100%); color: #FAFAF9; }
+
 th.sortable {
     cursor: pointer;
     user-select: none;
@@ -2552,6 +2559,12 @@ function renderIncomeExpense(section) {
     var recurLabel = section === 'income' ? '定期收入' : '定期支出';
     html += '<button class="btn-add" onclick="' + recurFn + '()"><i class="ti ti-repeat"></i> <span class="lbl-full">' + recurLabel + '</span><span class="lbl-short">定期</span></button>';
     html += '<button class="toggle-archive' + (showArchived?' active':'') + '" onclick="toggleShowArchived()"><span class="lbl-full">' + (showArchived?'隱藏封存':'顯示封存') + '</span><span class="lbl-short">封存</span></button>';
+    // 排序切換：左=預設順序、右=當月排序（最高在上，跨月跟最新月）
+    var _curMonthSort = (sortState.col === 'month' && sortState.monthMode === 'latest');
+    html += '<div class="sort-toggle" title="切換列排序：預設順序 ／ 當月金額最高在上">' +
+        '<button type="button" class="sort-toggle-btn' + (!_curMonthSort ? ' active' : '') + '" onclick="setIESortMode(\'default\')">預設</button>' +
+        '<button type="button" class="sort-toggle-btn' + (_curMonthSort ? ' active' : '') + '" onclick="setIESortMode(\'month\')">當月</button>' +
+        '</div>';
     html += '</div>';
 
     var MONTH_LABELS = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
@@ -2690,6 +2703,18 @@ function sortArrowMonth(m) {
     }
     return sortState.dir === 'asc' ? ' <span style="color:var(--lux-gold);font-size:11px">▲</span>' : ' <span style="color:var(--lux-gold);font-size:11px">▼</span>';
 }
+// 排序切換鈕：'default' = 預設順序、'month' = 當月金額最高在上（跨月跟最新月）
+function setIESortMode(mode) {
+    var section = currentTab; // 'income' | 'expense'
+    if (mode === 'month') {
+        sortState = { col: 'month', year: selectedIEYear, month: _latestMonthWithData(section, selectedIEYear), dir: 'desc', monthMode: 'latest' };
+    } else {
+        sortState = { col: null, year: null, dir: 'desc' };
+    }
+    if (section === 'income' || section === 'expense') _persistSortStateFor(section);
+    render();
+}
+
 function toggleSortMonth(m) {
     var section = currentTab; // 'income' | 'expense'
     if (sortState.col === 'month' && sortState.month === m && sortState.year === selectedIEYear) {
