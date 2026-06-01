@@ -9104,6 +9104,7 @@ function showStockCalendarModal(stockId, initialTab) {
     ov.innerHTML = '<div class="modal" style="width:680px;max-width:94vw;display:flex;flex-direction:column">' +
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;flex:none">' +
             '<h3 style="margin:0;flex:1;font-size:24px;letter-spacing:0"><i class="ti ti-chart-bar" style="font-size:22px;color:var(--lux-gold)"></i> <span style="color:var(--lux-navy)">' + esc(stockId) + '</span> ' + esc(name) + '</h3>' +
+            '<button type="button" id="stock-modal-refresh" onclick="refreshStockModalData(\'' + esc(stockId) + '\')" title="強制重抓最新基本面／籌碼面／ETF 資訊（平常有快取不會每次抓）" style="flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border:1px solid var(--border);border-radius:8px;background:var(--card);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:var(--text)"><i class="ti ti-refresh"></i> 重新整理</button>' +
             '<button type="button" onclick="showStockBackfillModal(\'' + esc(stockId) + '\')" title="補抓這檔的歷史每日收盤價" style="flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border:1px solid var(--border);border-radius:8px;background:var(--card);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:var(--text)"><i class="ti ti-history"></i> 補歷史價</button>' +
         '</div>' +
         _stockModalNavBar(stockId, 'calendar') +
@@ -9160,6 +9161,27 @@ function switchStockCalTab(tab) {
     _stockCalModalState.tab = tab;
     _renderStockCalModalTabs();
     _renderStockCalModalBody();
+}
+
+// 手動「重新整理」：強制重抓當前這檔的基本面／籌碼面／ETF 資訊（繞過 TTL 節流）
+function refreshStockModalData(stockId) {
+    // 把三類快取的 fetchedAt 清掉 → 下次 fetch 視為過期、會重抓
+    if (_fundamentalsCache[stockId]) _fundamentalsCache[stockId].fetchedAt = 0;
+    if (_chipsCache[stockId]) _chipsCache[stockId].fetchedAt = 0;
+    if (_etfInfoCache[stockId]) _etfInfoCache[stockId].fetchedAt = 0;
+    // 按鈕轉圈回饋
+    var btn = document.getElementById('stock-modal-refresh');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> 重抓中…'; }
+    // 重繪當前分頁（_build* 會觸發 fetch，因 fetchedAt=0 → 重抓最新）
+    _renderStockCalModalBody();
+    // 順手也抓一次最新股價
+    if (typeof refreshPrices === 'function') { try { refreshPrices(); } catch(e){} }
+    // 1.2 秒後復原按鈕（重抓是非同步，畫面會在抓完各自更新）
+    setTimeout(function(){
+        var b = document.getElementById('stock-modal-refresh');
+        if (b) { b.disabled = false; b.innerHTML = '<i class="ti ti-refresh"></i> 重新整理'; }
+    }, 1200);
+    toast('已重新抓取最新資料');
 }
 
 function _renderStockCalModalBody() {
