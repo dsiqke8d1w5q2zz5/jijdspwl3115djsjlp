@@ -5950,19 +5950,32 @@ function _trailing12mDivCount(stockId) {
     return cnt;
 }
 
-// 年化每股配息：配滿一年用近一年實配加總；新標的(近一年次數<官方頻率應有次數)用「單次平均×頻率次數」推估
-// 回傳 { annualCps, isEstimate, count, freqCount, ttmCps }
+// 最近一次現金配息額（依除息日最新者，cash>0）；無則回 0
+function _latestCashPerShare(stockId) {
+    var latest = null;
+    (_dividendCacheItems || []).forEach(function(item) {
+        if (item.stockId !== stockId || !item.cash || item.cash <= 0) return;
+        if (!item.exDate) return;
+        if (!latest || item.exDate > latest.exDate) latest = item;
+    });
+    return latest ? latest.cash : 0;
+}
+
+// 年化每股配息：配滿一年用近一年實配加總；新標的(近一年次數<官方頻率應有次數)用「最新一次配息×頻率次數」推估
+// 回傳 { annualCps, isEstimate, count, freqCount, ttmCps, unitCps }
 function _annualizedCashPerShare(stockId) {
     var ttmCps = _trailing12mCashPerShare(stockId);
     var cnt = _trailing12mDivCount(stockId);
     var officialFreq = (_etfInfoCache[stockId] && _etfInfoCache[stockId].data && _etfInfoCache[stockId].data.dividendFreq) || '';
     var freqCount = { '月配': 12, '季配': 4, '半年配': 2, '年配': 1 }[officialFreq] || 0;
-    var annualCps = ttmCps, isEstimate = false;
+    var annualCps = ttmCps, isEstimate = false, unitCps = 0;
     if (freqCount > 0 && cnt > 0 && cnt < freqCount) {
-        annualCps = (ttmCps / cnt) * freqCount;
+        // 還沒配滿一年：用「最新一次配息額」×頻率次數推估（反映目前配息水準，不被舊的較低配息拉低）
+        unitCps = _latestCashPerShare(stockId);
+        annualCps = unitCps * freqCount;
         isEstimate = true;
     }
-    return { annualCps: annualCps, isEstimate: isEstimate, count: cnt, freqCount: freqCount, ttmCps: ttmCps };
+    return { annualCps: annualCps, isEstimate: isEstimate, count: cnt, freqCount: freqCount, ttmCps: ttmCps, unitCps: unitCps };
 }
 
 function showDividendAlertModal() {
@@ -6007,7 +6020,8 @@ function showDividendAlertModal() {
         var estText = estParts.length ? estParts.join('<br>') : '—';
 
         // 年化殖利率：ETF 配不滿一年時按官方頻率推估（與歷史配息分頁同一套邏輯）
-        var price = stockData.prices[a.stockId] ? stockData.prices[a.stockId].price : null;
+        // 股價用 _currentPriceFor（與持股總覽同一來源，含 priceHistory fallback），避免 stockData.prices 舊值
+        var price = _currentPriceFor(a.stockId);
         var ay = _annualizedCashPerShare(a.stockId);
         var yieldText = '—';
         if (price && ay.annualCps > 0) {
@@ -10097,23 +10111,17 @@ function _dividendSummaryHtml(stockId) {
         freqIsEstimate = (freqLabel !== '—');
     }
     var price = _currentPriceFor(stockId);
-    // 年化殖利率：配滿一年用實際 ttmCps；新標的（近一年次數 < 官方頻率應有次數）則用「單次平均×頻率次數」推估年化
-    var freqCount = { '月配': 12, '季配': 4, '半年配': 2, '年配': 1 }[officialFreq] || 0;
-    var annualCps = ttmCps;       // 預設用近一年實配加總
-    var yieldIsEstimate = false;
-    if (freqCount > 0 && cnt > 0 && cnt < freqCount) {
-        // 還沒配滿一年：用近一年單次平均 × 應有次數推估全年
-        annualCps = (ttmCps / cnt) * freqCount;
-        yieldIsEstimate = true;
-    }
-    var yieldVal = (price && annualCps > 0) ? (annualCps / price * 100) : null;
+    // 年化殖利率：用共用函式（配滿一年用實際 ttmCps；新標的用「最新一次配息×頻率次數」推估）
+    var ay = _annualizedCashPerShare(stockId);
+    var yieldIsEstimate = ay.isEstimate;
+    var yieldVal = (price && ay.annualCps > 0) ? (ay.annualCps / price * 100) : null;
     var yieldTxt = yieldVal != null ? (yieldIsEstimate ? '~' : '') + yieldVal.toFixed(2) + '%' : '—';
     var html = '<div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px">';
     html += '<div style="font-size:12px;color:var(--lux-navy);font-weight:700;letter-spacing:.5px;margin-bottom:10px">配息表現</div>';
     html += '<div style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px">';
     html += '<span>近一年每股配息 <b style="color:var(--lux-navy)">' + (ttmCps > 0 ? '$' + ttmCps.toFixed(3) : '—') + '</b></span>';
     html += '<span>年化殖利率 <b style="color:var(--lux-navy)">' + yieldTxt + '</b>' +
-        (yieldIsEstimate ? '<span style="font-size:11px;color:var(--muted)">（推估・單次 $' + (ttmCps / cnt).toFixed(3) + '×' + freqCount + '）</span>' : '') +
+        (yieldIsEstimate ? '<span style="font-size:11px;color:var(--muted)">（推估・最新 $' + ay.unitCps.toFixed(3) + '×' + ay.freqCount + '）</span>' : '') +
         '</span>';
     html += '<span>配息頻率 <b>' + freqLabel + '</b>' +
         (freqIsEstimate ? '<span style="font-size:11px;color:var(--muted)">（推估・近一年 ' + cnt + ' 次）</span>'
