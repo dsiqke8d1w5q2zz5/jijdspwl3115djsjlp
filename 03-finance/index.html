@@ -8557,27 +8557,30 @@ function showCalDaySnapshot(dateStr) {
             '<th style="padding:8px 4px;text-align:center"><span style="display:inline-block;min-width:120px;text-align:left">代號／名稱</span></th>' +
             '<th style="padding:8px 4px;white-space:nowrap;text-align:center"><span style="display:inline-block;min-width:60px;text-align:right">股數</span></th>' +
             '<th style="padding:8px 4px;white-space:nowrap;text-align:center"><span style="display:inline-block;min-width:70px;text-align:right">價格</span></th>' +
-            '<th style="padding:8px 4px;white-space:nowrap;text-align:center"><span style="display:inline-block;min-width:80px;text-align:center">金額／已實現</span></th>' +
+            '<th style="padding:8px 4px;white-space:nowrap;text-align:center"><span style="display:inline-block;min-width:80px;text-align:right">金額</span></th>' +
+            '<th style="padding:8px 4px;white-space:nowrap;text-align:center"><span style="display:inline-block;min-width:80px;text-align:right">已實現</span></th>' +
             '</tr></thead><tbody>';
         todayTrades.forEach(function(t){
             var isBuy = t.type === 'buy';
             var label = isBuy
                 ? '<span style="display:inline-block;background:rgba(22,163,74,0.12);color:var(--green);padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600">買</span>'
                 : '<span style="display:inline-block;background:rgba(239,68,68,0.12);color:var(--red);padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600">賣</span>';
-            var rightCell;
+            var amt = (typeof t.amount === 'number') ? t.amount : (t.shares || 0) * (t.price || 0);
+            var amtCell = '<span style="color:var(--muted)">' + fmt(amt) + '</span>';
+            var rzCell;
             if (isBuy) {
-                var amt = (typeof t.amount === 'number') ? t.amount : (t.shares || 0) * (t.price || 0);
-                rightCell = '<span style="color:var(--muted)">' + fmt(amt) + '</span>';
+                rzCell = '<span style="color:var(--muted)">—</span>';
             } else {
                 var realized = t.realized || 0;
-                rightCell = '<span style="color:' + signColor(realized) + ';font-weight:600">' + signedFmt(realized) + '</span>';
+                rzCell = '<span style="color:' + signColor(realized) + ';font-weight:600">' + signedFmt(realized) + '</span>';
             }
             html += '<tr style="border-bottom:1px solid var(--border)">' +
                 '<td style="padding:8px 4px;text-align:center">' + label + '</td>' +
                 '<td style="padding:8px 4px;text-align:center"><span style="display:inline-block;text-align:left;min-width:120px"><b>' + esc(t.id || '') + '</b> <span style="color:var(--muted);font-size:12px">' + esc(t.name || '') + '</span></span></td>' +
                 '<td style="padding:8px 4px;text-align:center"><span style="display:inline-block;text-align:right;min-width:60px">' + fmt(t.shares || 0) + '</span></td>' +
                 '<td style="padding:8px 4px;text-align:center"><span style="display:inline-block;text-align:right;min-width:70px">' + (typeof t.price === 'number' ? t.price.toFixed(2) : '-') + '</span></td>' +
-                '<td style="padding:8px 4px;text-align:center;font-weight:600"><span style="display:inline-block;text-align:right;min-width:80px">' + rightCell + '</span></td>' +
+                '<td style="padding:8px 4px;text-align:center;font-weight:600"><span style="display:inline-block;text-align:right;min-width:80px">' + amtCell + '</span></td>' +
+                '<td style="padding:8px 4px;text-align:center;font-weight:600"><span style="display:inline-block;text-align:right;min-width:80px">' + rzCell + '</span></td>' +
                 '</tr>';
         });
         html += '</tbody></table>';
