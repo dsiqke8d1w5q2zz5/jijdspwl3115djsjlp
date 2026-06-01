@@ -9261,7 +9261,21 @@ function _renderStockCalModalBody() {
     } else if (tab === 'chips') {
         box.innerHTML = _buildChipsHtml(_stockCalModalState.stockId);
     } else if (tab === 'dividends') {
-        box.innerHTML = _buildStockDividendsHtml(_stockCalModalState.stockId);
+        var divId = _stockCalModalState.stockId;
+        box.innerHTML = _buildStockDividendsHtml(divId);
+        // ETF：配息頻率優先用 etfinfo 的官方值。若 etfinfo 還沒抓、或舊快取沒有 dividendFreq，背景抓一次後重畫。
+        var _ec = _etfInfoCache[divId];
+        var _needFetch = !(_ec && _ec.data) || !(_ec.data.dividendFreq);
+        if (/^00/.test(String(divId)) && _needFetch) {
+            // 舊快取沒 freq 欄位 → 清 fetchedAt 繞過 6h TTL 強制重抓
+            if (_ec && _ec.data && !_ec.data.dividendFreq) _ec.fetchedAt = 0;
+            fetchEtfInfo(divId, function(){
+                if (_stockCalModalState.tab === 'dividends' && _stockCalModalState.stockId === divId) {
+                    var b = document.getElementById('stock-cal-modal-body');
+                    if (b) b.innerHTML = _buildStockDividendsHtml(divId);
+                }
+            });
+        }
     } else if (tab === 'trend') {
         box.innerHTML = _buildStockTrendHtml(_stockCalModalState.stockId);
         // 走勢分頁需要在 HTML 注入後才能畫圖
