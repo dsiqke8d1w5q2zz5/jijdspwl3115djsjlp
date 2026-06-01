@@ -1629,10 +1629,10 @@ th.sortable.sort-active .sort-arrow { color: var(--lux-gold); font-weight: 700; 
 <div class="tab-bar">
     <div class="tab-bar-wrap">
         <div class="tab-bar-inner">
-            <button class="tab-btn active" onclick="switchTab('income')">收入</button>
+            <button class="tab-btn" onclick="switchTab('income')">收入</button>
             <button class="tab-btn" onclick="switchTab('expense')">支出</button>
             <button class="tab-btn" onclick="switchTab('trend')">月記錄</button>
-            <button class="tab-btn" onclick="switchTab('stock')">台股投資</button>
+            <button class="tab-btn active" onclick="switchTab('stock')">台股投資</button>
             <button class="tab-btn" onclick="switchTab('passive')">被動收入</button>
             <button class="tab-btn" onclick="switchTab('assets')">淨資產</button>
         </div>
@@ -1672,7 +1672,7 @@ var DEFAULT_PASSIVE_SOURCES = [];
 var DEFAULT_YEARS = ['115'];
 
 var DATA = null;
-var currentTab = 'income';
+var currentTab = 'stock';   // 預設開台股投資頁
 var _overviewOpen = { income: false, expense: false }; // 收入/支出總覽預設收合
 // 排序狀態: { col: 'year'|'month'|'rate'|null, year:'113'|..., month:1-12, dir:'asc'|'desc', monthMode:'latest'|null }
 // monthMode='latest' 表示「按當下最新有資料的月份」排序，跨月自動跟進（month 欄位僅作快取）
@@ -5932,6 +5932,39 @@ function _trailing12mCashPerShare(stockId) {
     return sum;
 }
 
+// 近一年配息「次數」（去重，cash>0）
+function _trailing12mDivCount(stockId) {
+    var now = new Date();
+    var oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+    var seen = {}, cnt = 0;
+    (_dividendCacheItems || []).forEach(function(item) {
+        if (item.stockId !== stockId || !item.cash || item.cash <= 0) return;
+        var d = new Date(item.exDate);
+        if (isNaN(d.getTime())) return;
+        if (d < oneYearAgo || d > now) return;
+        var key = stockId + '|' + item.exDate;
+        if (seen[key]) return;
+        seen[key] = true;
+        cnt++;
+    });
+    return cnt;
+}
+
+// 年化每股配息：配滿一年用近一年實配加總；新標的(近一年次數<官方頻率應有次數)用「單次平均×頻率次數」推估
+// 回傳 { annualCps, isEstimate, count, freqCount, ttmCps }
+function _annualizedCashPerShare(stockId) {
+    var ttmCps = _trailing12mCashPerShare(stockId);
+    var cnt = _trailing12mDivCount(stockId);
+    var officialFreq = (_etfInfoCache[stockId] && _etfInfoCache[stockId].data && _etfInfoCache[stockId].data.dividendFreq) || '';
+    var freqCount = { '月配': 12, '季配': 4, '半年配': 2, '年配': 1 }[officialFreq] || 0;
+    var annualCps = ttmCps, isEstimate = false;
+    if (freqCount > 0 && cnt > 0 && cnt < freqCount) {
+        annualCps = (ttmCps / cnt) * freqCount;
+        isEstimate = true;
+    }
+    return { annualCps: annualCps, isEstimate: isEstimate, count: cnt, freqCount: freqCount, ttmCps: ttmCps };
+}
+
 function showDividendAlertModal() {
     if (_dividendAlerts.length === 0) return;
     var ov = document.createElement('div');
@@ -5973,12 +6006,12 @@ function showDividendAlertModal() {
         if (estStockShares > 0) estParts.push('股票 ' + estStockShares.toFixed(2) + ' 股');
         var estText = estParts.length ? estParts.join('<br>') : '—';
 
-        // 年化殖利率（過去 12 個月每股現金股利 / 現價）
+        // 年化殖利率：ETF 配不滿一年時按官方頻率推估（與歷史配息分頁同一套邏輯）
         var price = stockData.prices[a.stockId] ? stockData.prices[a.stockId].price : null;
-        var annualCps = _trailing12mCashPerShare(a.stockId);
+        var ay = _annualizedCashPerShare(a.stockId);
         var yieldText = '—';
-        if (price && annualCps > 0) {
-            yieldText = (annualCps / price * 100).toFixed(2) + '%';
+        if (price && ay.annualCps > 0) {
+            yieldText = (ay.isEstimate ? '~' : '') + (ay.annualCps / price * 100).toFixed(2) + '%';
         }
 
         var td = 'padding:10px 8px;border-bottom:1px solid var(--border);vertical-align:top;';
@@ -6028,6 +6061,29 @@ function showDividendAlertModal() {
                 toast('重新抓取失敗，請稍後再試');
             });
     };
+
+    // 持股中的 ETF 若還沒拿到官方配息頻率，背景抓 etfinfo（用於殖利率年化推估），抓完重畫一次
+    var etfNeedFreq = (stockData.holdings || []).filter(function(h){
+        if (!/^00/.test(String(h.id))) return false;
+        var ec = _etfInfoCache[h.id];
+        return !(ec && ec.data && ec.data.dividendFreq);
+    });
+    if (etfNeedFreq.length && !showDividendAlertModal._freqFetching) {
+        showDividendAlertModal._freqFetching = true;
+        var pend = etfNeedFreq.length;
+        etfNeedFreq.forEach(function(h){
+            var ec = _etfInfoCache[h.id];
+            if (ec && ec.data && !ec.data.dividendFreq) ec.fetchedAt = 0; // 繞過 TTL 重抓舊快取
+            fetchEtfInfo(h.id, function(){
+                pend--;
+                if (pend <= 0) {
+                    showDividendAlertModal._freqFetching = false;
+                    // 視窗還開著才重畫（避免使用者已關閉時硬開）
+                    if (document.body.contains(ov)) { ov.remove(); showDividendAlertModal(); }
+                }
+            });
+        });
+    }
 }
 
 function openDividendAlertSettings() {
