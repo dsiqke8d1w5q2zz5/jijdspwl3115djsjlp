@@ -10197,10 +10197,50 @@ function _buildStockDividendsHtml(stockId) {
     var arrowOn = arrowBase + ';cursor:pointer';
     var arrowOff = arrowBase + ';opacity:0.3;cursor:not-allowed';
 
+    // 判定「年配」：官方頻率為年配，或（無官方頻率時）每個有資料的年份都最多 1 筆
+    var officialFreqDiv = (_etfInfoCache[stockId] && _etfInfoCache[stockId].data && _etfInfoCache[stockId].data.dividendFreq) || '';
+    var isAnnualPay;
+    if (officialFreqDiv) {
+        isAnnualPay = (officialFreqDiv === '年配');
+    } else {
+        isAnnualPay = years.every(function(y){ return byYear[y].items.length <= 1; });
+    }
+
+    var html = _dividendSummaryHtml(stockId);
+
+    // 年配：不分年，直接列近 10 年全部配息（新→舊）
+    if (isAnnualPay) {
+        var tenYearsAgo = String(new Date().getFullYear() - 10);
+        var recent = all.filter(function(e){ return e.date.substring(0,4) >= tenYearsAgo; })
+                        .sort(function(a, b){ return b.date.localeCompare(a.date); });
+        if (recent.length === 0) recent = all.slice().sort(function(a, b){ return b.date.localeCompare(a.date); });
+        var sumCps = recent.reduce(function(s, e){ return s + e.cps; }, 0);
+        var sumStock = recent.reduce(function(s, e){ return s + e.stockDiv; }, 0);
+        var sumLbl = '近 ' + recent.length + ' 次合計 <b style="color:var(--lux-navy);font-size:15px">' + sumCps.toFixed(3) + '</b>';
+        if (sumStock > 0) sumLbl += '　配股 <b style="color:var(--lux-navy)">' + sumStock.toFixed(3) + '</b>';
+        html += '<div style="display:flex;align-items:center;margin-bottom:10px"><span style="font-size:13px;font-weight:600;color:var(--text)">歷年配息（近 10 年）</span>' +
+            '<span style="margin-left:auto;font-size:13px;color:var(--muted)">' + sumLbl + '</span></div>';
+        html += '<table class="stock-table" style="width:100%;font-size:13px"><thead><tr>' +
+            '<th style="text-align:left;padding:6px 4px">除息日</th>' +
+            (hasPayCol ? '<th style="text-align:left;padding:6px 4px">發放日</th>' : '') +
+            '<th style="text-align:right;padding:6px 4px">每股配息</th>' +
+            (hasStockCol ? '<th style="text-align:right;padding:6px 4px">股票股利</th>' : '') +
+            '</tr></thead><tbody>';
+        recent.forEach(function(e){
+            html += '<tr style="border-bottom:1px solid var(--border)">' +
+                '<td style="text-align:left;padding:6px 4px">' + esc(_toROCDate(e.date) || '—') + '</td>' +
+                (hasPayCol ? '<td style="text-align:left;padding:6px 4px;color:var(--muted)">' + (e.payDate ? esc(_toROCDate(e.payDate)) : '—') + '</td>' : '') +
+                '<td style="text-align:right;padding:6px 4px;color:var(--lux-navy);font-weight:600">' + (e.cps > 0 ? e.cps.toFixed(3) : '-') + '</td>' +
+                (hasStockCol ? '<td style="text-align:right;padding:6px 4px;color:var(--green);font-weight:600">' + (e.stockDiv > 0 ? e.stockDiv.toFixed(3) : '-') + '</td>' : '') +
+                '</tr>';
+        });
+        html += '</tbody></table>';
+        return html;
+    }
+
     var g = byYear[curYear];
     var sumLabel = '每股合計 <b style="color:var(--lux-navy);font-size:15px">' + g.cps.toFixed(3) + '</b>';
     if (g.stockDiv > 0) sumLabel += '　配股 <b style="color:var(--lux-navy)">' + g.stockDiv.toFixed(3) + '</b>';
-    var html = _dividendSummaryHtml(stockId);
     html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">';
     html += prevYear
         ? '<button type="button" onclick="onStockDivYearChange(\'' + prevYear + '\')" title="上一年" style="' + arrowOn + '"><i class="ti ti-chevron-left"></i></button>'
