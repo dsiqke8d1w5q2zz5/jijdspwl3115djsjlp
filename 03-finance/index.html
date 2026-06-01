@@ -5639,12 +5639,13 @@ function setDividendAlertRange(before) {
     checkDividendAlerts();
 }
 
-function checkDividendAlerts() {
+function checkDividendAlerts(onReady) {
     _dividendNeedsRefresh = false; // 已開始這次背景更新
     _dividendAlerts = [];
     _dividendCacheUpdatedAt = null;
     if (stockData.holdings.length === 0) {
         _dividendAlertChecked = true;
+        if (typeof onReady === 'function') onReady();
         return;
     }
     var pending = stockData.holdings.length;
@@ -5789,7 +5790,8 @@ function checkDividendAlerts() {
         _dividendAlerts.sort(_sortByNextEvent);
         _dividendAlertChecked = true;
         renderStock();
-    }).catch(function() {});
+        if (typeof onReady === 'function') onReady();
+    }).catch(function() { if (typeof onReady === 'function') onReady(); });
 
     cachePromise.then(function() {
         stockData.holdings.forEach(function(h) {
@@ -5935,7 +5937,8 @@ function showDividendAlertModal() {
     var ov = document.createElement('div');
     ov.className = 'overlay';
     var html = '<div class="modal" style="width:720px;max-width:92vw;">';
-    html += '<h3><i class="ti ti-speakerphone"></i> 除權息提醒</h3>';
+    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px"><h3 style="margin:0"><i class="ti ti-speakerphone"></i> 除權息提醒</h3>' +
+        '<button type="button" id="div-alert-refresh" title="強制向後端重抓配息資料(含 MoneyDJ/FinMind)" style="margin-left:auto;padding:5px 12px;border:1px solid var(--border);border-radius:8px;background:var(--card);cursor:pointer;font-family:inherit;font-size:12px;color:var(--lux-navy);font-weight:600;display:inline-flex;align-items:center;gap:5px"><i class="ti ti-refresh"></i> 重新抓取</button></div>';
     if (_dividendCacheUpdatedAt) {
         html += '<div style="font-size:12px;color:var(--text-light);margin-bottom:8px;">資料更新於 ' + esc(_dividendCacheUpdatedAt) + '</div>';
     }
@@ -5999,6 +6002,32 @@ function showDividendAlertModal() {
     ov.innerHTML = html;
     document.body.appendChild(ov);
     document.getElementById('div-alert-ok').onclick = function() { ov.remove(); };
+    var _refreshBtn = document.getElementById('div-alert-refresh');
+    if (_refreshBtn) _refreshBtn.onclick = function() {
+        if (_refreshBtn.disabled) return;
+        _refreshBtn.disabled = true;
+        _refreshBtn.style.opacity = '0.6';
+        _refreshBtn.innerHTML = '<i class="ti ti-loader"></i> 抓取中…';
+        // ① 強制後端重建配息快取（含 MoneyDJ/FinMind）→ ② 前端重讀快取並重畫提醒
+        var ids = (stockData.holdings || []).map(function(h){ return h.id; }).filter(Boolean).join(',');
+        fetchWithTimeout(CLOUD_URL + '?action=refreshDividends&format=json&ids=' + encodeURIComponent(ids) + '&t=' + Date.now(), {}, 120000)
+            .then(function(r){ return r.json(); })
+            .then(function(){
+                ov.remove();
+                _dividendAlertChecked = false;
+                // 重抓三路（含剛更新的後端快取），抓完才重開提醒視窗顯示最新
+                checkDividendAlerts(function(){
+                    toast('已重新抓取配息資料');
+                    showDividendAlertModal();
+                });
+            })
+            .catch(function(){
+                _refreshBtn.disabled = false;
+                _refreshBtn.style.opacity = '1';
+                _refreshBtn.innerHTML = '<i class="ti ti-refresh"></i> 重新抓取';
+                toast('重新抓取失敗，請稍後再試');
+            });
+    };
 }
 
 function openDividendAlertSettings() {
