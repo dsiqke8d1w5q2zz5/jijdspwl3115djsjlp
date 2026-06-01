@@ -9372,7 +9372,7 @@ function getEtfHoldingsDiff(stockId) { return _readLS(_ETF_HOLD_DIFF_KEY)[stockI
 function _computeEtfHoldingsDiff(stockId, newHoldings) {
     var prevAll = _readLS(_ETF_HOLD_PREV_KEY);
     var oldList = prevAll[stockId];
-    var newList = (newHoldings || []).map(function(x){ return { id: x.id || x.code || x.name, name: x.name, code: x.code, pct: (x.pct != null ? x.pct : null) }; });
+    var newList = (newHoldings || []).map(function(x){ return { id: x.id || x.code || x.name, name: x.name, code: x.code, pct: (x.pct != null ? x.pct : null), shares: (x.shares != null ? x.shares : null) }; });
     // 首次沒有基準：建立基準，不產生 diff（避免把全部當新增）
     if (!Array.isArray(oldList)) {
         prevAll[stockId] = newList; _writeLS(_ETF_HOLD_PREV_KEY, prevAll);
@@ -9387,7 +9387,7 @@ function _computeEtfHoldingsDiff(stockId, newHoldings) {
     newList.forEach(function(x){
         var o = oldMap[x.id];
         if (o && o.pct != null && x.pct != null && Math.abs(o.pct - x.pct) >= 0.01) {
-            changed.push({ id: x.id, name: x.name, code: x.code, from: o.pct, to: x.pct });
+            changed.push({ id: x.id, name: x.name, code: x.code, from: o.pct, to: x.pct, sharesFrom: (o.shares != null ? o.shares : null), sharesTo: (x.shares != null ? x.shares : null) });
         }
     });
     var hasDiff = added.length || removed.length || changed.length;
@@ -9470,6 +9470,15 @@ function _etfFeeNavPlaceholder() {
         '<div style="font-size:13px;color:var(--muted)">—</div>';
 }
 
+// 成分股持有股數 → 「N 張」字串（1 張=1000 股）；無資料回 ''
+function _etfLotsLabel(shares) {
+    if (shares == null || isNaN(shares) || shares <= 0) return '';
+    var lots = shares / 1000;
+    // 1 張以上取整數張顯示；不足 1 張（零股）顯示到小數 1 位
+    var txt = lots >= 1 ? Math.round(lots).toLocaleString('en-US') : lots.toFixed(1);
+    return txt + ' 張';
+}
+
 function _etfInfoHtml(d) {
     if (!d) return '<div style="font-size:12px;color:var(--muted);padding:8px 0">查無此 ETF 的持股資料。</div>';
     var html = '';
@@ -9526,9 +9535,11 @@ function _etfInfoHtml(d) {
         html += '<div style="margin-top:10px">';
         html += '<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:repeat(' + Math.ceil(top.length / 2) + ',auto);grid-auto-flow:column;gap:0 20px;font-size:13px">';
         top.forEach(function(x, i){
+            var lots = _etfLotsLabel(x.shares);
             html += '<div style="display:flex;align-items:center;gap:6px;padding:3px 4px;border-bottom:1px solid var(--border)">' +
                 '<span style="flex:0 0 18px;text-align:right;color:var(--muted);font-size:11px">' + (i+1) + '</span>' +
                 '<span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(x.name) + (x.code ? ' <span style="color:var(--muted);font-size:11px">' + esc(x.code) + '</span>' : '') + '</span>' +
+                (lots ? '<span style="flex:0 0 auto;text-align:right;color:var(--muted);font-size:11px;margin-right:8px">' + lots + '</span>' : '') +
                 '<span style="flex:0 0 auto;text-align:right;color:var(--lux-navy);font-weight:600">' + (x.pct != null ? x.pct.toFixed(2) + '%' : '—') + '</span></div>';
         });
         html += '</div>';
@@ -9575,9 +9586,11 @@ function showEtfAllHoldings(etfId) {
     ov.style.overflowY = 'auto';
     var rows = '';
     rec.holdings.forEach(function(x, i){
+        var lots = _etfLotsLabel(x.shares);
         rows += '<div style="display:flex;align-items:center;gap:6px;padding:5px 4px;border-bottom:1px solid var(--border);font-size:13px">' +
             '<span style="flex:0 0 28px;color:var(--muted);font-size:11px;text-align:right">' + (i+1) + '</span>' +
             '<span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(x.name) + (x.code ? ' <span style="color:var(--muted);font-size:11px">' + esc(x.code) + '</span>' : '') + '</span>' +
+            (lots ? '<span style="flex:0 0 auto;text-align:right;color:var(--muted);font-size:11px;margin-right:8px">' + lots + '</span>' : '') +
             '<span style="flex:0 0 auto;text-align:right;color:var(--lux-navy);font-weight:600">' + (x.pct != null ? x.pct.toFixed(2) + '%' : '—') + '</span></div>';
     });
     ov.innerHTML = '<div class="modal" style="width:560px;max-width:94vw;display:flex;flex-direction:column;max-height:84vh">' +
@@ -9605,19 +9618,32 @@ function showEtfHoldingsDiff(etfId) {
     }
     var body = '';
     body += section('新增', signColor(1), diff && diff.added, function(x){
+        var lots = _etfLotsLabel(x.shares);
         return '<span style="flex:1;min-width:0">' + nameCell(x) + '</span>' +
+            (lots ? '<span style="flex:0 0 auto;color:var(--muted);font-size:11px;margin-right:8px">' + lots + '</span>' : '') +
             '<span style="flex:0 0 auto;color:' + signColor(1) + ';font-weight:600">' + (x.pct != null ? x.pct.toFixed(2) + '%' : '—') + '</span>';
     });
     body += section('移除', signColor(-1), diff && diff.removed, function(x){
+        var lots = _etfLotsLabel(x.shares);
         return '<span style="flex:1;min-width:0;color:var(--muted);text-decoration:line-through">' + nameCell(x) + '</span>' +
+            (lots ? '<span style="flex:0 0 auto;color:var(--muted);font-size:11px;margin-right:8px">' + lots + '</span>' : '') +
             '<span style="flex:0 0 auto;color:var(--muted)">' + (x.pct != null ? x.pct.toFixed(2) + '%' : '—') + '</span>';
     });
     body += section('比例變動', 'var(--lux-navy)', diff && diff.changed, function(x){
         var up = x.to >= x.from;
+        // 張數變化（若兩版都有 shares）
+        var lotsLine = '';
+        if (x.sharesFrom != null && x.sharesTo != null) {
+            var lotDelta = (x.sharesTo - x.sharesFrom) / 1000;
+            var lUp = lotDelta >= 0;
+            var deltaTxt = (lUp ? '+' : '−') + Math.abs(Math.round(lotDelta)).toLocaleString('en-US') + ' 張';
+            lotsLine = '<span style="flex:0 0 auto;color:' + signColor(lUp ? 1 : -1) + ';font-size:11px;margin-left:6px">' + deltaTxt + '</span>';
+        }
         return '<span style="flex:1;min-width:0">' + nameCell(x) + '</span>' +
             '<span style="flex:0 0 auto;color:var(--muted);font-size:12px">' + x.from.toFixed(2) + '% → </span>' +
             '<span style="flex:0 0 auto;color:' + signColor(up ? 1 : -1) + ';font-weight:600">' + x.to.toFixed(2) + '%</span>' +
-            '<span style="flex:0 0 auto;color:' + signColor(up ? 1 : -1) + ';font-size:11px">(' + (up ? '+' : '') + (x.to - x.from).toFixed(2) + ')</span>';
+            '<span style="flex:0 0 auto;color:' + signColor(up ? 1 : -1) + ';font-size:11px">(' + (up ? '+' : '') + (x.to - x.from).toFixed(2) + ')</span>' +
+            lotsLine;
     });
     // 無異動：顯示友善空狀態（首次建基準後、或成分股沒變時）
     if (!body) {
