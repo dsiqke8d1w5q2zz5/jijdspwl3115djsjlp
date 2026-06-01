@@ -10116,8 +10116,8 @@ function _dividendSummaryHtml(stockId) {
     var yieldIsEstimate = ay.isEstimate;
     var yieldVal = (price && ay.annualCps > 0) ? (ay.annualCps / price * 100) : null;
     var yieldTxt = yieldVal != null ? (yieldIsEstimate ? '~' : '') + yieldVal.toFixed(2) + '%' : '—';
-    var html = '<div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px">';
-    html += '<div style="font-size:12px;color:var(--lux-navy);font-weight:700;letter-spacing:.5px;margin-bottom:10px">配息表現</div>';
+    var html = '<div style="border:1px solid var(--border);border-radius:10px;padding:8px 16px;margin-bottom:12px">';
+    html += '<div style="font-size:12px;color:var(--lux-navy);font-weight:700;letter-spacing:.5px;margin-bottom:5px">配息表現</div>';
     html += '<div style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px">';
     html += '<span>近一年每股配息 <b style="color:var(--lux-navy)">' + (ttmCps > 0 ? '$' + ttmCps.toFixed(3) : '—') + '</b></span>';
     html += '<span>年化殖利率 <b style="color:var(--lux-navy)">' + yieldTxt + '</b>' +
