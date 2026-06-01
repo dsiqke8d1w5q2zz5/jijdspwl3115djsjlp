@@ -7072,16 +7072,18 @@ function _buildDividendForecastHtml() {
         var p = it.exDate.split('-');
         if (p.length !== 3) return;
         var d = new Date(+p[0], +p[1]-1, +p[2]);
-        if (d < oneYearAgo || d > now) return; // 只取過去 12 個月
+        // 太舊的（超過一年前）一律不要
+        if (d < oneYearAgo) return;
         var id = it.stockId;
-        freq[id] = (freq[id] || 0) + 1;
-        // 最近一次（除息日最新者）的現金與配股
+        // 最近一次（除息日最新者）的現金與配股：含「未來但已公告」的最新一筆（才能用最新配息推估，不被舊值卡住）
         if (!lastEx[id] || it.exDate > lastEx[id]) { lastEx[id] = it.exDate; lastCps[id] = c; lastStockDiv[id] = sd; }
-        // 發放月份：優先 payDate，否則除息月
+        // 發放月份：優先 payDate，否則除息月（含未來已公告，讓未來月份能據此推估）
         var payP = (it.payDate || '').split('-');
         var payMon = (payP.length === 3) ? +payP[1] : +p[1];
         if (!payMonths[id]) payMonths[id] = {};
         payMonths[id][payMon] = true;
+        // 年配次數 freq：只計過去 12 個月內、已發生（除息日 ≤ 今天）的，反映實際配息頻率
+        if (d <= now) freq[id] = (freq[id] || 0) + 1;
     });
 
     // 逐檔預估年配息（最近一次每股 × 年配次數 × 股數）+ 總市值
