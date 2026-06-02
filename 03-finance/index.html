@@ -9821,7 +9821,13 @@ function showEtfHoldingsDiff(etfId) {
             (lots ? '<span style="flex:0 0 auto;color:var(--muted);font-size:11px;margin-right:8px">' + lots + '</span>' : '') +
             '<span style="flex:0 0 auto;color:var(--muted)">' + (x.pct != null ? x.pct.toFixed(2) + '%' : '—') + '</span>';
     });
-    body += section('比例變動', 'var(--lux-navy)', diff && diff.changed, function(x){
+    // 只列「張數有實際變動」的（基金真的買賣）；純股價浮動造成的比例變化（張數沒動）不列。
+    // 無 shares 資料者（舊基準）保留，避免漏掉。
+    var changedReal = (diff && diff.changed || []).filter(function(x){
+        if (x.sharesFrom == null || x.sharesTo == null) return true;        // 無張數資料 → 保留
+        return Math.round((x.sharesTo - x.sharesFrom) / 1000) !== 0;        // 張數變化 ≠ 0 才留
+    });
+    body += section('張數變動', 'var(--lux-navy)', changedReal, function(x){
         var up = x.to >= x.from;
         // 現有張數（變動後＝目前持有）
         var curLots = _etfLotsLabel(x.sharesTo);
