@@ -6728,11 +6728,19 @@ function renderStockHoldings() {
         }
         if (_twseTurnover && _twseTurnover.amount > 0) {
             var yi = _twseTurnover.amount / 1e8; // 元 → 億
+            // 台灣今天日期 YYYY-MM-DD
+            var twNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+            var twToday = twNow.getFullYear() + '-' + ('0'+(twNow.getMonth()+1)).slice(-2) + '-' + ('0'+twNow.getDate()).slice(-2);
+            var dataIsToday = _twseTurnover.date && _twseTurnover.date === twToday;
             html += '<span style="display:inline-flex;align-items:baseline;gap:8px"><span style="color:var(--muted)">成交</span>';
             html += '<b style="font-size:15px;color:var(--lux-navy)">' + fmt(Math.round(yi)) + ' 億</b>';
-            // 盤中：依已開盤時間比例推估當日全天成交（盤後累計已是全日，不再顯示預估）
+            // 資料日期標註：當日不標、非當日明確標「(MM/DD)」避免誤會成今天
+            if (_twseTurnover.date && !dataIsToday) {
+                html += '<span style="color:var(--muted);font-size:11px">(' + _twseTurnover.date.slice(5).replace('-', '/') + ')</span>';
+            }
+            // 預估全日：僅「資料就是今天」且盤中時才算（昨天的全日值不可拿來推估今天）
             var openFrac = _marketOpenFraction();
-            if (openFrac > 0 && openFrac < 1) {
+            if (dataIsToday && openFrac > 0 && openFrac < 1) {
                 var estYi = yi / openFrac;
                 html += '<span style="color:var(--muted);font-size:12px">預估全日 ~' + fmt(Math.round(estYi)) + ' 億</span>';
             }
