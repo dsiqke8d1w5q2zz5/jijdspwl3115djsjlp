@@ -4660,6 +4660,22 @@ function fetchYahooQuotes(holdings, callback) {
     });
 }
 
+// ── 大盤資訊（加權指數＋成交金額）localStorage：載入時先顯示上次值，背景再更新 ──
+var _marketRefreshedThisSession = false;  // 本次開啟網頁是否已背景刷新過大盤資訊
+var _MARKET_LS_KEY = 'twseMarketInfo';
+function _saveMarketInfoLS() {
+    try { localStorage.setItem(_MARKET_LS_KEY, JSON.stringify({ index: _twseIndex, turnover: _twseTurnover })); } catch(e) {}
+}
+function _loadMarketInfoLS() {
+    try {
+        var o = JSON.parse(localStorage.getItem(_MARKET_LS_KEY) || 'null');
+        if (o && typeof o === 'object') {
+            if (o.index && typeof o.index.price === 'number') _twseIndex = o.index;
+            if (o.turnover && typeof o.turnover.amount === 'number') _twseTurnover = o.turnover;
+        }
+    } catch(e) {}
+}
+
 // ── 台股加權指數（TAIEX）：用同一個 Yahoo quote 後端抓 ^TWII ──
 var _twseIndex = null;        // { price, change, pct, time }
 var _twseIndexFetching = false;
@@ -4676,6 +4692,7 @@ function fetchTwseIndex(onDone) {
                 var chg = q.change || 0;
                 var prev = q.price - chg;
                 _twseIndex = { price: q.price, change: chg, pct: (prev !== 0 ? chg / prev * 100 : 0), time: q.time || 0 };
+                _saveMarketInfoLS();
             }
             _twseIndexFetching = false;
             if (onDone) onDone();
@@ -4707,6 +4724,7 @@ function fetchTwseTurnover(onDone) {
                             var dt = String(j.date || '');
                             var dateStr = (dt.length === 8) ? (dt.slice(0,4)+'-'+dt.slice(4,6)+'-'+dt.slice(6,8)) : '';
                             _twseTurnover = { amount: amt, date: dateStr };
+                            _saveMarketInfoLS();
                         }
                     }
                 }
@@ -6564,11 +6582,10 @@ function renderStock() {
     var container = document.getElementById('tab-stock');
     if (!container) return;
 
-    // 加權指數 + 大盤成交金額：尚未抓過就背景抓一次，抓完重畫（只在台股頁時）
-    if (!_twseIndex && !_twseIndexFetching) {
+    // 加權指數 + 大盤成交金額：開頁先用 localStorage 快取顯示，本次 session 首次進台股頁時背景刷新一次（更新到才變）
+    if (!_marketRefreshedThisSession) {
+        _marketRefreshedThisSession = true;
         fetchTwseIndex(function(){ if (currentTab === 'stock') renderStock(); });
-    }
-    if (!_twseTurnover && !_twseTurnoverFetching) {
         fetchTwseTurnover(function(){ if (currentTab === 'stock') renderStock(); });
     }
 
@@ -12442,6 +12459,7 @@ function editAssetAccount(sectionKey, id) {
 // ── 初始化 ──
 loadData();
 loadStockData();
+_loadMarketInfoLS();   // 先載入上次的大盤指數/成交金額，開頁立即顯示，背景再更新
 updateLastExportLabel();
 // 開啟網頁立即更新一次股價；之後盤中每 5 分鐘自動刷新（不論目前在哪個頁籤）
 try { startStockAutoRefresh(); } catch(_) {}
