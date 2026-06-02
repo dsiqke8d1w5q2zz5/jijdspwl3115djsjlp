@@ -7361,8 +7361,8 @@ function renderStockDividend() {
             '<span style="font-weight:600"><b>' + esc(g.id) + '</b> <span style="color:var(--muted);font-size:13px;font-weight:400">' + esc(g.name) + '</span></span>' +
             // 右側固定三欄：現金／股票／筆數 各自靠右對齊，跨列垂直對齊整齊
             '<span style="margin-left:auto;display:inline-flex;align-items:baseline;gap:18px;font-size:13px;color:var(--muted)">' +
-                '<span style="display:inline-block;min-width:130px;text-align:right">' + (g.cash > 0 ? '現金 <b style="color:var(--green)">$' + fmt(g.cash) + '</b>' : '<span style="color:var(--border)">—</span>') + '</span>' +
-                '<span style="display:inline-block;min-width:110px;text-align:right">' + (g.stockShares > 0 ? '股票 <b style="color:#7C3AED">' + fmt(g.stockShares) + ' 股</b>' : '<span style="color:var(--border)">—</span>') + '</span>' +
+                '<span style="display:inline-block;min-width:130px;text-align:right">' + (g.cash > 0 ? '<b style="color:var(--green)">$' + fmt(g.cash) + '</b>' : '<span style="color:var(--border)">—</span>') + '</span>' +
+                '<span style="display:inline-block;min-width:110px;text-align:right">' + (g.stockShares > 0 ? '<b style="color:#7C3AED">' + fmt(g.stockShares) + ' 股</b>' : '<span style="color:var(--border)">—</span>') + '</span>' +
                 '<span style="display:inline-block;min-width:44px;text-align:right;font-size:12px">' + g.list.length + ' 筆</span>' +
             '</span></div>';
         // 展開的逐筆明細
