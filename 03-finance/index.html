@@ -6730,6 +6730,12 @@ function renderStockHoldings() {
             var yi = _twseTurnover.amount / 1e8; // 元 → 億
             html += '<span style="display:inline-flex;align-items:baseline;gap:8px"><span style="color:var(--muted)">成交</span>';
             html += '<b style="font-size:15px;color:var(--lux-navy)">' + fmt(Math.round(yi)) + ' 億</b>';
+            // 盤中：依已開盤時間比例推估當日全天成交（盤後累計已是全日，不再顯示預估）
+            var openFrac = _marketOpenFraction();
+            if (openFrac > 0 && openFrac < 1) {
+                var estYi = yi / openFrac;
+                html += '<span style="color:var(--muted);font-size:12px">預估全日 ~' + fmt(Math.round(estYi)) + ' 億</span>';
+            }
             html += '</span>';
         }
         html += '</div>';
@@ -10922,6 +10928,18 @@ function _isMarketHours() {
     var hh = tw.getHours(), mm = tw.getMinutes();
     var minutes = hh * 60 + mm;
     return minutes >= 9 * 60 && minutes <= 13 * 60 + 30;
+}
+
+// 台股當日已開盤時間比例（9:00~13:30 共 270 分）：盤前回 0、盤中回 0~1、盤後/週末回 1（=當日已是全日，不需推估）
+function _marketOpenFraction() {
+    var tw = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+    var wd = tw.getDay();
+    if (wd === 0 || wd === 6) return 1; // 週末：以最近交易日全日視之
+    var minutes = tw.getHours() * 60 + tw.getMinutes();
+    var open = 9 * 60, close = 13 * 60 + 30, span = close - open; // 270 分
+    if (minutes <= open) return 0;     // 盤前
+    if (minutes >= close) return 1;    // 盤後（累計已是全日實際）
+    return (minutes - open) / span;    // 盤中比例
 }
 
 function startStockAutoRefresh() {
