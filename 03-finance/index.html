@@ -6642,9 +6642,8 @@ function renderStockHoldings() {
 
     // 更新按鈕列
     html += '<div class="stock-refresh-bar">';
-    html += '<button class="btn-refresh" id="btn-fetch-price" onclick="refreshPrices()"><i class="ti ti-antenna-bars-5"></i> <span class="lbl-full">更新股價</span><span class="lbl-short">更新</span></button>';
-    html += '<button class="btn-refresh" style="background:linear-gradient(135deg,#0f2847 0%,#1a3a5c 50%,#2a5a8c 100%);border:1px solid var(--lux-gold)" onclick="toggleStockColumn()"><i class="ti ti-columns"></i> 欄位</button>';
     html += '<button class="btn-refresh" onclick="buyHolding(null)" title="新增持股（可選擇是否記入交易紀錄）"><i class="ti ti-plus"></i> <span class="lbl-full">新增持股</span><span class="lbl-short">新增</span></button>';
+    html += '<button class="btn-refresh" id="btn-fetch-price" onclick="refreshPrices()"><i class="ti ti-antenna-bars-5"></i> <span class="lbl-full">更新股價</span><span class="lbl-short">更新</span></button>';
     html += '<button class="btn-refresh" onclick="showStockSearchModal()" title="輸入股票代號，查任意個股的漲跌日曆"><i class="ti ti-search"></i> <span class="lbl-full">搜尋個股</span><span class="lbl-short">搜尋</span></button>';
     html += '<span class="last-update" style="color:var(--muted)">' + _stockPriceFreshnessLabel() + '</span>';
     html += '<button class="btn-refresh btn-drop-calc" onclick="showDropCalcModal()" title="跌幅分批試算"><i class="ti ti-calculator"></i> <span class="lbl-full">跌幅試算</span><span class="lbl-short">試算</span></button>';
