@@ -5333,12 +5333,18 @@ function showDropCalcModal() {
         if (price < 1000) return 1;
         return 5;
     }
-    // 向下取到最接近的合法檔位
+    // 向下取到最接近的合法檔位（用於分批掛買參考價，掛低一點）
     function _floorToTick(price) {
         var t = _tickSize(price);
         // 用整數運算避免浮點誤差（t 最小 0.01，乘 100 後為整數）
         var scale = 100;
         return Math.floor((price * scale) / (t * scale)) * t;
+    }
+    // 四捨五入到合法檔位（用於「跌停價」，台股法定算法＝基準×0.9 後按檔位四捨五入）
+    function _roundToTick(price) {
+        var t = _tickSize(price);
+        var scale = 100;
+        return Math.round((price * scale) / (t * scale)) * t;
     }
     function _fmtTick(price) {
         return price < 10 ? price.toFixed(2) : (price < 100 ? price.toFixed(2) : price.toFixed(1));
@@ -5355,9 +5361,10 @@ function showDropCalcModal() {
             '</tr></thead><tbody>';
         for (var i = 1; i <= 10; i++) {
             var price = p * (1 - i / 100);
-            var orderPrice = _floorToTick(price);
-            var diff = orderPrice - p;
             var isLimit = (i === 10);
+            // 跌停（-10%）用法定四捨五入；其餘為分批掛買參考價，向下取整（掛低一點）
+            var orderPrice = isLimit ? _roundToTick(price) : _floorToTick(price);
+            var diff = orderPrice - p;
             var bg = isLimit ? 'background:var(--green);color:#fff;font-weight:700' : '';
             var subColor = isLimit ? '#fff' : 'var(--green)';
             html += '<tr style="border-top:1px solid var(--border);' + bg + '">' +
@@ -5369,7 +5376,7 @@ function showDropCalcModal() {
         }
         html += '</tbody></table>' +
             '<div style="margin-top:8px;font-size:11px;color:var(--muted);line-height:1.5">' +
-            '檔位：<10 元 0.01／<50 元 0.05／<100 元 0.1／<500 元 0.5／<1000 元 1／≥1000 元 5。可下單價皆向下取整。' +
+            '檔位：<10 元 0.01／<50 元 0.05／<100 元 0.1／<500 元 0.5／<1000 元 1／≥1000 元 5。-1%～-9% 為分批掛買參考（向下取整）；跌停價依台股法定算法（基準×0.9 後四捨五入到檔位）。' +
             '</div>';
         resBox.innerHTML = html;
     });
