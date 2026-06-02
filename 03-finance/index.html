@@ -7310,30 +7310,46 @@ function renderStockDividend() {
 
     var years = Object.keys(byYear).sort().reverse(); // 新→舊
     var currentYear = String(new Date().getFullYear());
-    // 選定年份：使用者切換的 > 今年 > 最新有資料的年
-    var curY = window._divListYear;
-    if (!curY || years.indexOf(curY) < 0) curY = (years.indexOf(currentYear) >= 0) ? currentYear : years[0];
+    var isCum = (mode === 'cumulative');
 
-    // 年份左右切換（years 新→舊：上一年=較舊=index+1、下一年=較新=index-1）
-    var ci = years.indexOf(curY);
-    var prevY = (ci >= 0 && ci < years.length - 1) ? years[ci + 1] : '';
-    var nextY = (ci > 0) ? years[ci - 1] : '';
-    var aBase = 'flex:0 0 auto;width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:8px;background:var(--card);font-size:16px;color:var(--text)';
-    var aOn = aBase + ';cursor:pointer', aOff = aBase + ';opacity:0.3;cursor:not-allowed';
-    var items = byYear[curY] || [];
-    var yearTotal = 0; items.forEach(function(it){ yearTotal += (it.d.cash || 0); });
-    // 把年份清單（西元年，舊→新）暫存到全域，讓中間框點下去可叫出年份選單直接挑年；顯示用民國
-    window._yearPickerData = window._yearPickerData || {};
-    window._yearPickerData['onDivListYearChange'] = years.slice().reverse();
+    var items, curY = '';
+    if (isCum) {
+        // 累積：列出全部年度的股利（不分年、不顯示年份切換）
+        items = [];
+        years.forEach(function(y){ items = items.concat(byYear[y]); });
+    } else {
+        // 本年：選定年份（使用者切換的 > 今年 > 最新有資料的年），保留年份切換列
+        curY = window._divListYear;
+        if (!curY || years.indexOf(curY) < 0) curY = (years.indexOf(currentYear) >= 0) ? currentYear : years[0];
+        items = byYear[curY] || [];
+    }
+    var listTotal = 0; items.forEach(function(it){ listTotal += (it.d.cash || 0); });
 
-    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">';
-    html += prevY ? '<button type="button" onclick="onDivListYearChange(\'' + esc(prevY) + '\')" title="上一年" style="' + aOn + '"><i class="ti ti-chevron-left"></i></button>'
-                  : '<button type="button" disabled style="' + aOff + '"><i class="ti ti-chevron-left"></i></button>';
-    html += '<button type="button" onclick="openYearPicker(\'onDivListYearChange\',\'' + esc(curY) + '\',\'_yearLabelROC\')" title="點選年份" style="min-width:120px;height:34px;display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1px solid var(--border);border-radius:8px;background:var(--card);font-size:15px;font-weight:600;color:var(--text);cursor:pointer;font-family:inherit"><span>' + (parseInt(curY,10) ? (parseInt(curY,10)-1911) : curY) + ' 年</span><i class="ti ti-chevron-down" style="font-size:12px;color:var(--muted)"></i></button>';
-    html += nextY ? '<button type="button" onclick="onDivListYearChange(\'' + esc(nextY) + '\')" title="下一年" style="' + aOn + '"><i class="ti ti-chevron-right"></i></button>'
-                  : '<button type="button" disabled style="' + aOff + '"><i class="ti ti-chevron-right"></i></button>';
-    html += '<span style="margin-left:auto;font-size:13px;color:var(--muted)">合計 <b style="color:var(--lux-navy);font-size:15px">$' + fmt(yearTotal) + '</b>　' + items.length + ' 筆</span>';
-    html += '</div>';
+    if (isCum) {
+        // 累積：只顯示合計列，無年份切換
+        html += '<div style="display:flex;align-items:center;margin-bottom:10px">';
+        html += '<span style="font-size:15px;font-weight:600;color:var(--text)">累積股利（全部年度）</span>';
+        html += '<span style="margin-left:auto;font-size:13px;color:var(--muted)">合計 <b style="color:var(--lux-navy);font-size:15px">$' + fmt(listTotal) + '</b>　' + items.length + ' 筆</span>';
+        html += '</div>';
+    } else {
+        // 本年：年份左右切換（years 新→舊：上一年=較舊=index+1、下一年=較新=index-1）
+        var ci = years.indexOf(curY);
+        var prevY = (ci >= 0 && ci < years.length - 1) ? years[ci + 1] : '';
+        var nextY = (ci > 0) ? years[ci - 1] : '';
+        var aBase = 'flex:0 0 auto;width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:8px;background:var(--card);font-size:16px;color:var(--text)';
+        var aOn = aBase + ';cursor:pointer', aOff = aBase + ';opacity:0.3;cursor:not-allowed';
+        // 把年份清單（西元年，舊→新）暫存到全域，讓中間框點下去可叫出年份選單直接挑年；顯示用民國
+        window._yearPickerData = window._yearPickerData || {};
+        window._yearPickerData['onDivListYearChange'] = years.slice().reverse();
+        html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">';
+        html += prevY ? '<button type="button" onclick="onDivListYearChange(\'' + esc(prevY) + '\')" title="上一年" style="' + aOn + '"><i class="ti ti-chevron-left"></i></button>'
+                      : '<button type="button" disabled style="' + aOff + '"><i class="ti ti-chevron-left"></i></button>';
+        html += '<button type="button" onclick="openYearPicker(\'onDivListYearChange\',\'' + esc(curY) + '\',\'_yearLabelROC\')" title="點選年份" style="min-width:120px;height:34px;display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1px solid var(--border);border-radius:8px;background:var(--card);font-size:15px;font-weight:600;color:var(--text);cursor:pointer;font-family:inherit"><span>' + (parseInt(curY,10) ? (parseInt(curY,10)-1911) : curY) + ' 年</span><i class="ti ti-chevron-down" style="font-size:12px;color:var(--muted)"></i></button>';
+        html += nextY ? '<button type="button" onclick="onDivListYearChange(\'' + esc(nextY) + '\')" title="下一年" style="' + aOn + '"><i class="ti ti-chevron-right"></i></button>'
+                      : '<button type="button" disabled style="' + aOff + '"><i class="ti ti-chevron-right"></i></button>';
+        html += '<span style="margin-left:auto;font-size:13px;color:var(--muted)">合計 <b style="color:var(--lux-navy);font-size:15px">$' + fmt(listTotal) + '</b>　' + items.length + ' 筆</span>';
+        html += '</div>';
+    }
 
     // 該年依「股票」分組，每檔一行（年合計＋筆數），點開看逐筆明細
     var byStock = {};
@@ -7353,7 +7369,7 @@ function renderStockDividend() {
 
     html += '<div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">';
     groups.forEach(function(g){
-        var key = curY + '|' + g.id;
+        var key = (isCum ? 'CUM' : curY) + '|' + g.id;
         var open = !!window._divExpandStock[key];
         // 分組標題列（可點展開）
         html += '<div onclick="toggleDivStock(\'' + esc(key) + '\')" style="display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;background:var(--card);border-bottom:1px solid var(--border)">' +
@@ -7366,16 +7382,9 @@ function renderStockDividend() {
             '</span></div>';
         // 展開的逐筆明細
         if (open) {
-            html += '<div class="table-wrap"><table class="stock-table" style="margin:0"><thead><tr>' +
-                '<th style="text-align:left;padding:6px 8px">日期</th>' +
-                '<th style="text-align:right;padding:6px 8px">每股配息</th>' +
-                '<th style="text-align:right;padding:6px 8px">現金股利</th>' +
-                '<th style="text-align:right;padding:6px 8px">股票股利</th>' +
-                '<th style="width:56px"></th>' +
-                '</tr></thead><tbody>';
-            g.list.forEach(function(item){
+            var rowHtml = function(item){
                 var d = item.d;
-                html += '<tr>' +
+                return '<tr>' +
                     '<td style="text-align:left;padding:6px 8px">' + esc(_toROCDate(d.date)) + '</td>' +
                     '<td style="text-align:right;padding:6px 8px">' + (d.cashPerShare > 0 ? d.cashPerShare.toFixed(3) : '-') + '</td>' +
                     '<td style="text-align:right;padding:6px 8px;color:var(--green);font-weight:600">' + (d.cash > 0 ? fmt(d.cash) : '-') + '</td>' +
@@ -7384,8 +7393,39 @@ function renderStockDividend() {
                         '<button onclick="event.stopPropagation();editDividend(' + item.idx + ')" title="編輯" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;font-size:14px;line-height:1"><i class="ti ti-pencil"></i></button>' +
                         '<button class="btn-del" onclick="event.stopPropagation();deleteDividend(' + item.idx + ')"><i class="ti ti-x" style="font-size:14px"></i></button>' +
                     '</td></tr>';
-            });
-            html += '</tbody></table></div>';
+            };
+            var thead = '<thead><tr>' +
+                '<th style="text-align:left;padding:6px 8px">日期</th>' +
+                '<th style="text-align:right;padding:6px 8px">每股配息</th>' +
+                '<th style="text-align:right;padding:6px 8px">現金股利</th>' +
+                '<th style="text-align:right;padding:6px 8px">股票股利</th>' +
+                '<th style="width:56px"></th>' +
+                '</tr></thead>';
+            if (isCum) {
+                // 累積：該檔逐筆「依年份分組」呈現（每年一個小標＋該年明細＋年合計）
+                var byY = {};
+                g.list.forEach(function(item){
+                    var y = item.d.date ? item.d.date.substring(0,4) : '未知';
+                    if (!byY[y]) byY[y] = [];
+                    byY[y].push(item);
+                });
+                Object.keys(byY).sort().reverse().forEach(function(y){
+                    var yItems = byY[y].slice().sort(function(a,b){ return (b.d.date||'').localeCompare(a.d.date||''); });
+                    var yCash = 0; yItems.forEach(function(it){ yCash += (it.d.cash || 0); });
+                    var yLabel = (parseInt(y,10) ? (parseInt(y,10)-1911) + ' 年' : y);
+                    html += '<div style="display:flex;align-items:center;padding:6px 14px;background:var(--bg);border-bottom:1px solid var(--border);font-size:12px">' +
+                        '<span style="font-weight:700;color:var(--lux-navy)">' + yLabel + '</span>' +
+                        '<span style="margin-left:auto;color:var(--muted)">現金 <b style="color:var(--green)">$' + fmt(yCash) + '</b>　' + yItems.length + ' 筆</span></div>';
+                    html += '<div class="table-wrap"><table class="stock-table" style="margin:0">' + thead + '<tbody>';
+                    yItems.forEach(function(item){ html += rowHtml(item); });
+                    html += '</tbody></table></div>';
+                });
+            } else {
+                // 本年：平鋪逐筆
+                html += '<div class="table-wrap"><table class="stock-table" style="margin:0">' + thead + '<tbody>';
+                g.list.forEach(function(item){ html += rowHtml(item); });
+                html += '</tbody></table></div>';
+            }
         }
     });
     html += '</div>';
