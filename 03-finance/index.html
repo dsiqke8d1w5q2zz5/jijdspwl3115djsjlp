@@ -7398,12 +7398,18 @@ function renderStockDividend() {
                     var yItems = byY[y].slice().sort(function(a,b){ return (b.d.date||'').localeCompare(a.d.date||''); });
                     var yCash = 0; yItems.forEach(function(it){ yCash += (it.d.cash || 0); });
                     var yLabel = (parseInt(y,10) ? (parseInt(y,10)-1911) + ' 年' : y);
-                    html += '<div style="display:flex;align-items:center;padding:6px 14px;background:var(--bg);border-bottom:1px solid var(--border);font-size:12px">' +
+                    // 年份小標可點收合，預設收合（只看年合計，點了才展開該年逐筆）
+                    var yKey = key + '|Y|' + y;
+                    var yOpen = !!window._divExpandStock[yKey];
+                    html += '<div onclick="toggleDivStock(\'' + esc(yKey) + '\')" style="display:flex;align-items:center;gap:6px;padding:6px 14px;background:var(--bg);border-bottom:1px solid var(--border);font-size:12px;cursor:pointer">' +
+                        '<i class="ti ti-chevron-' + (yOpen ? 'down' : 'right') + '" style="font-size:12px;color:var(--muted)"></i>' +
                         '<span style="font-weight:700;color:var(--lux-navy)">' + yLabel + '</span>' +
                         '<span style="margin-left:auto;color:var(--muted)">現金 <b style="color:var(--green)">$' + fmt(yCash) + '</b>　' + yItems.length + ' 筆</span></div>';
-                    html += '<div class="table-wrap"><table class="stock-table" style="margin:0">' + thead + '<tbody>';
-                    yItems.forEach(function(item){ html += rowHtml(item); });
-                    html += '</tbody></table></div>';
+                    if (yOpen) {
+                        html += '<div class="table-wrap"><table class="stock-table" style="margin:0">' + thead + '<tbody>';
+                        yItems.forEach(function(item){ html += rowHtml(item); });
+                        html += '</tbody></table></div>';
+                    }
                 });
             } else {
                 // 本年：平鋪逐筆
