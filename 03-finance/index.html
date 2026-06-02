@@ -6716,21 +6716,33 @@ function renderStockHoldings() {
 
     // 加權指數 + 大盤成交金額列（摘要列上方）
     if ((_twseIndex && typeof _twseIndex.price === 'number') || _twseTurnover) {
+        // 台灣今天日期 YYYY-MM-DD（指數與成交金額共用，判斷資料是否為當日）
+        var twNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+        var twToday = twNow.getFullYear() + '-' + ('0'+(twNow.getMonth()+1)).slice(-2) + '-' + ('0'+twNow.getDate()).slice(-2);
+        // 把 unix 秒轉成台灣日期 YYYY-MM-DD
+        function _twDateFromUnix(sec) {
+            if (!sec) return '';
+            var d = new Date(new Date(sec * 1000).toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+            return d.getFullYear() + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + ('0'+d.getDate()).slice(-2);
+        }
         html += '<div style="display:flex;align-items:baseline;gap:10px 18px;flex-wrap:wrap;font-size:14px;margin-bottom:8px;padding:6px 12px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow)">';
         if (_twseIndex && typeof _twseIndex.price === 'number') {
             var idxChg = _twseIndex.change || 0;
             var idxPct = _twseIndex.pct || 0;
             var idxColor = signColor(idxChg);
             var arrow = idxChg > 0 ? '▲' : (idxChg < 0 ? '▼' : '');
+            var idxDate = _twDateFromUnix(_twseIndex.time);
             html += '<span style="display:inline-flex;align-items:baseline;gap:8px"><span style="color:var(--muted)">加權指數</span>';
             html += '<b style="font-size:17px;color:var(--text)">' + _twseIndex.price.toFixed(2) + '</b>';
-            html += '<span style="color:' + idxColor + ';font-weight:600">' + arrow + ' ' + (idxChg>=0?'+':'') + idxChg.toFixed(2) + '（' + (idxPct>=0?'+':'') + idxPct.toFixed(2) + '%）</span></span>';
+            html += '<span style="color:' + idxColor + ';font-weight:600">' + arrow + ' ' + (idxChg>=0?'+':'') + idxChg.toFixed(2) + '（' + (idxPct>=0?'+':'') + idxPct.toFixed(2) + '%）</span>';
+            // 報價日期非今天才標（避免誤會成今天）
+            if (idxDate && idxDate !== twToday) {
+                html += '<span style="color:var(--muted);font-size:11px">(' + idxDate.slice(5).replace('-', '/') + ')</span>';
+            }
+            html += '</span>';
         }
         if (_twseTurnover && _twseTurnover.amount > 0) {
             var yi = _twseTurnover.amount / 1e8; // 元 → 億
-            // 台灣今天日期 YYYY-MM-DD
-            var twNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
-            var twToday = twNow.getFullYear() + '-' + ('0'+(twNow.getMonth()+1)).slice(-2) + '-' + ('0'+twNow.getDate()).slice(-2);
             var dataIsToday = _twseTurnover.date && _twseTurnover.date === twToday;
             html += '<span style="display:inline-flex;align-items:baseline;gap:8px"><span style="color:var(--muted)">成交</span>';
             html += '<b style="font-size:15px;color:var(--lux-navy)">' + fmt(Math.round(yi)) + ' 億</b>';
