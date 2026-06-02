@@ -7343,6 +7343,15 @@ function renderStockDividend() {
     if (!window._divExpandStock) window._divExpandStock = {};
 
     html += '<div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">';
+    // 表頭：股名／現金股利／股票股利／筆數（欄寬與資料列對齊）
+    html += '<div style="display:flex;align-items:center;gap:8px;padding:7px 14px;background:var(--bg);border-bottom:1px solid var(--border);font-size:12px;color:var(--muted);font-weight:600">' +
+        '<span style="width:14px;flex:0 0 auto"></span>' +   // 對齊資料列的展開箭頭
+        '<span>股名</span>' +
+        '<span style="margin-left:auto;display:inline-flex;align-items:baseline;gap:18px">' +
+            '<span style="display:inline-block;min-width:130px;text-align:right">現金股利</span>' +
+            '<span style="display:inline-block;min-width:110px;text-align:right">股票股利</span>' +
+            '<span style="display:inline-block;min-width:44px;text-align:right">筆數</span>' +
+        '</span></div>';
     groups.forEach(function(g){
         var key = (isCum ? 'CUM' : curY) + '|' + g.id;
         var open = !!window._divExpandStock[key];
