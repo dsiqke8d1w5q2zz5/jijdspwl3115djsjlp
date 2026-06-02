@@ -4660,18 +4660,17 @@ function fetchYahooQuotes(holdings, callback) {
     });
 }
 
-// ── 大盤資訊（加權指數＋成交金額）localStorage：載入時先顯示上次值，背景再更新 ──
+// ── 大盤資訊（加權指數）localStorage：載入時先顯示上次值，背景再更新 ──
 var _marketRefreshedThisSession = false;  // 本次開啟網頁是否已背景刷新過大盤資訊
 var _MARKET_LS_KEY = 'twseMarketInfo';
 function _saveMarketInfoLS() {
-    try { localStorage.setItem(_MARKET_LS_KEY, JSON.stringify({ index: _twseIndex, turnover: _twseTurnover })); } catch(e) {}
+    try { localStorage.setItem(_MARKET_LS_KEY, JSON.stringify({ index: _twseIndex })); } catch(e) {}
 }
 function _loadMarketInfoLS() {
     try {
         var o = JSON.parse(localStorage.getItem(_MARKET_LS_KEY) || 'null');
         if (o && typeof o === 'object') {
             if (o.index && typeof o.index.price === 'number') _twseIndex = o.index;
-            if (o.turnover && typeof o.turnover.amount === 'number') _twseTurnover = o.turnover;
         }
     } catch(e) {}
 }
@@ -4698,41 +4697,6 @@ function fetchTwseIndex(onDone) {
             if (onDone) onDone();
         })
         .catch(function(){ _twseIndexFetching = false; if (onDone) onDone(); });
-}
-
-// ── 台股大盤總成交金額（證券合計）：TWSE MI_INDEX type=MS table6 ──
-var _twseTurnover = null;     // { amount(元), date }
-var _twseTurnoverFetching = false;
-function fetchTwseTurnover(onDone) {
-    if (_twseTurnoverFetching) { if (onDone) onDone(); return; }
-    _twseTurnoverFetching = true;
-    // 不帶 date：TWSE 回最新交易日的大盤統計
-    var url = 'https://www.twse.com.tw/exchangeReport/MI_INDEX?response=json&type=MS&t=' + Date.now();
-    fetchWithTimeout(url, {}, 12000)
-        .then(function(r){ return r.json(); })
-        .then(function(j){
-            if (j && j.stat === 'OK' && Array.isArray(j.tables)) {
-                // 找含「成交統計／成交金額」的表
-                var tbl = j.tables.find(function(t){ return t.fields && t.fields.join('').indexOf('成交金額') >= 0; });
-                if (tbl && Array.isArray(tbl.data)) {
-                    // 優先取「證券合計」列，否則退回「一般股票」
-                    var row = tbl.data.find(function(r){ return /證券合計/.test(r[0]); })
-                           || tbl.data.find(function(r){ return /一般股票/.test(r[0]); });
-                    if (row) {
-                        var amt = parseFloat(String(row[1]).replace(/,/g, ''));
-                        if (!isNaN(amt) && amt > 0) {
-                            var dt = String(j.date || '');
-                            var dateStr = (dt.length === 8) ? (dt.slice(0,4)+'-'+dt.slice(4,6)+'-'+dt.slice(6,8)) : '';
-                            _twseTurnover = { amount: amt, date: dateStr };
-                            _saveMarketInfoLS();
-                        }
-                    }
-                }
-            }
-            _twseTurnoverFetching = false;
-            if (onDone) onDone();
-        })
-        .catch(function(){ _twseTurnoverFetching = false; if (onDone) onDone(); });
 }
 
 function fetchAllPrices(onDone) {
@@ -6582,11 +6546,10 @@ function renderStock() {
     var container = document.getElementById('tab-stock');
     if (!container) return;
 
-    // 加權指數 + 大盤成交金額：開頁先用 localStorage 快取顯示，本次 session 首次進台股頁時背景刷新一次（更新到才變）
+    // 加權指數：開頁先用 localStorage 快取顯示，本次 session 首次進台股頁時背景刷新一次（更新到才變）
     if (!_marketRefreshedThisSession) {
         _marketRefreshedThisSession = true;
         fetchTwseIndex(function(){ if (currentTab === 'stock') renderStock(); });
-        fetchTwseTurnover(function(){ if (currentTab === 'stock') renderStock(); });
     }
 
     var html = '';
@@ -6714,49 +6677,27 @@ function renderStockHoldings() {
     var totalPL = totalMarket - totalCost;
     var totalRate = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
 
-    // 加權指數 + 大盤成交金額列（摘要列上方）
-    if ((_twseIndex && typeof _twseIndex.price === 'number') || _twseTurnover) {
-        // 台灣今天日期 YYYY-MM-DD（指數與成交金額共用，判斷資料是否為當日）
+    // 加權指數列（摘要列上方）
+    if (_twseIndex && typeof _twseIndex.price === 'number') {
         var twNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
         var twToday = twNow.getFullYear() + '-' + ('0'+(twNow.getMonth()+1)).slice(-2) + '-' + ('0'+twNow.getDate()).slice(-2);
-        // 把 unix 秒轉成台灣日期 YYYY-MM-DD
         function _twDateFromUnix(sec) {
             if (!sec) return '';
             var d = new Date(new Date(sec * 1000).toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
             return d.getFullYear() + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + ('0'+d.getDate()).slice(-2);
         }
-        html += '<div style="display:flex;align-items:baseline;gap:10px 18px;flex-wrap:wrap;font-size:14px;margin-bottom:8px;padding:6px 12px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow)">';
-        if (_twseIndex && typeof _twseIndex.price === 'number') {
-            var idxChg = _twseIndex.change || 0;
-            var idxPct = _twseIndex.pct || 0;
-            var idxColor = signColor(idxChg);
-            var arrow = idxChg > 0 ? '▲' : (idxChg < 0 ? '▼' : '');
-            var idxDate = _twDateFromUnix(_twseIndex.time);
-            html += '<span style="display:inline-flex;align-items:baseline;gap:8px"><span style="color:var(--muted)">加權指數</span>';
-            html += '<b style="font-size:17px;color:var(--text)">' + _twseIndex.price.toFixed(2) + '</b>';
-            html += '<span style="color:' + idxColor + ';font-weight:600">' + arrow + ' ' + (idxChg>=0?'+':'') + idxChg.toFixed(2) + '（' + (idxPct>=0?'+':'') + idxPct.toFixed(2) + '%）</span>';
-            // 報價日期非今天才標（避免誤會成今天）
-            if (idxDate && idxDate !== twToday) {
-                html += '<span style="color:var(--muted);font-size:11px">(' + idxDate.slice(5).replace('-', '/') + ')</span>';
-            }
-            html += '</span>';
-        }
-        if (_twseTurnover && _twseTurnover.amount > 0) {
-            var yi = _twseTurnover.amount / 1e8; // 元 → 億
-            var dataIsToday = _twseTurnover.date && _twseTurnover.date === twToday;
-            html += '<span style="display:inline-flex;align-items:baseline;gap:8px"><span style="color:var(--muted)">成交</span>';
-            html += '<b style="font-size:15px;color:var(--lux-navy)">' + fmt(Math.round(yi)) + ' 億</b>';
-            // 資料日期標註：當日不標、非當日明確標「(MM/DD)」避免誤會成今天
-            if (_twseTurnover.date && !dataIsToday) {
-                html += '<span style="color:var(--muted);font-size:11px">(' + _twseTurnover.date.slice(5).replace('-', '/') + ')</span>';
-            }
-            // 預估全日：僅「資料就是今天」且盤中時才算（昨天的全日值不可拿來推估今天）
-            var openFrac = _marketOpenFraction();
-            if (dataIsToday && openFrac > 0 && openFrac < 1) {
-                var estYi = yi / openFrac;
-                html += '<span style="color:var(--muted);font-size:12px">預估全日 ~' + fmt(Math.round(estYi)) + ' 億</span>';
-            }
-            html += '</span>';
+        var idxChg = _twseIndex.change || 0;
+        var idxPct = _twseIndex.pct || 0;
+        var idxColor = signColor(idxChg);
+        var arrow = idxChg > 0 ? '▲' : (idxChg < 0 ? '▼' : '');
+        var idxDate = _twDateFromUnix(_twseIndex.time);
+        html += '<div style="display:flex;align-items:baseline;gap:10px;font-size:14px;margin-bottom:8px;padding:6px 12px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow)">';
+        html += '<span style="color:var(--muted)">加權指數</span>';
+        html += '<b style="font-size:17px;color:var(--text)">' + _twseIndex.price.toFixed(2) + '</b>';
+        html += '<span style="color:' + idxColor + ';font-weight:600">' + arrow + ' ' + (idxChg>=0?'+':'') + idxChg.toFixed(2) + '（' + (idxPct>=0?'+':'') + idxPct.toFixed(2) + '%）</span>';
+        // 報價日期非今天才標（避免誤會成今天）
+        if (idxDate && idxDate !== twToday) {
+            html += '<span style="color:var(--muted);font-size:11px">(' + idxDate.slice(5).replace('-', '/') + ')</span>';
         }
         html += '</div>';
     }
@@ -10926,7 +10867,6 @@ function refreshPrices(silent) {
     var btn = document.getElementById('btn-fetch-price');
     if (btn) { btn.disabled = true; btn.textContent = '⏳ 更新中...'; }
     fetchTwseIndex();      // 順帶刷新加權指數（手動更新時強制重抓）
-    fetchTwseTurnover();   // 順帶刷新大盤成交金額
     fetchAllPrices(function(errors) {
         _stockFetching = false;
         renderStock();
@@ -10948,18 +10888,6 @@ function _isMarketHours() {
     var hh = tw.getHours(), mm = tw.getMinutes();
     var minutes = hh * 60 + mm;
     return minutes >= 9 * 60 && minutes <= 13 * 60 + 30;
-}
-
-// 台股當日已開盤時間比例（9:00~13:30 共 270 分）：盤前回 0、盤中回 0~1、盤後/週末回 1（=當日已是全日，不需推估）
-function _marketOpenFraction() {
-    var tw = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
-    var wd = tw.getDay();
-    if (wd === 0 || wd === 6) return 1; // 週末：以最近交易日全日視之
-    var minutes = tw.getHours() * 60 + tw.getMinutes();
-    var open = 9 * 60, close = 13 * 60 + 30, span = close - open; // 270 分
-    if (minutes <= open) return 0;     // 盤前
-    if (minutes >= close) return 1;    // 盤後（累計已是全日實際）
-    return (minutes - open) / span;    // 盤中比例
 }
 
 function startStockAutoRefresh() {
