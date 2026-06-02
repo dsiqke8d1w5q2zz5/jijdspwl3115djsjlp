@@ -4683,6 +4683,40 @@ function fetchTwseIndex(onDone) {
         .catch(function(){ _twseIndexFetching = false; if (onDone) onDone(); });
 }
 
+// ── 台股大盤總成交金額（證券合計）：TWSE MI_INDEX type=MS table6 ──
+var _twseTurnover = null;     // { amount(元), date }
+var _twseTurnoverFetching = false;
+function fetchTwseTurnover(onDone) {
+    if (_twseTurnoverFetching) { if (onDone) onDone(); return; }
+    _twseTurnoverFetching = true;
+    // 不帶 date：TWSE 回最新交易日的大盤統計
+    var url = 'https://www.twse.com.tw/exchangeReport/MI_INDEX?response=json&type=MS&t=' + Date.now();
+    fetchWithTimeout(url, {}, 12000)
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+            if (j && j.stat === 'OK' && Array.isArray(j.tables)) {
+                // 找含「成交統計／成交金額」的表
+                var tbl = j.tables.find(function(t){ return t.fields && t.fields.join('').indexOf('成交金額') >= 0; });
+                if (tbl && Array.isArray(tbl.data)) {
+                    // 優先取「證券合計」列，否則退回「一般股票」
+                    var row = tbl.data.find(function(r){ return /證券合計/.test(r[0]); })
+                           || tbl.data.find(function(r){ return /一般股票/.test(r[0]); });
+                    if (row) {
+                        var amt = parseFloat(String(row[1]).replace(/,/g, ''));
+                        if (!isNaN(amt) && amt > 0) {
+                            var dt = String(j.date || '');
+                            var dateStr = (dt.length === 8) ? (dt.slice(0,4)+'-'+dt.slice(4,6)+'-'+dt.slice(6,8)) : '';
+                            _twseTurnover = { amount: amt, date: dateStr };
+                        }
+                    }
+                }
+            }
+            _twseTurnoverFetching = false;
+            if (onDone) onDone();
+        })
+        .catch(function(){ _twseTurnoverFetching = false; if (onDone) onDone(); });
+}
+
 function fetchAllPrices(onDone) {
     if (stockData.holdings.length === 0) { if (onDone) onDone(); return; }
     // 先試 Yahoo（一個批次請求），剩下 Yahoo 沒料的再走 TWSE/TPEX/FinMind
@@ -6530,9 +6564,12 @@ function renderStock() {
     var container = document.getElementById('tab-stock');
     if (!container) return;
 
-    // 加權指數：尚未抓過就背景抓一次，抓完重畫（只在台股頁時）
+    // 加權指數 + 大盤成交金額：尚未抓過就背景抓一次，抓完重畫（只在台股頁時）
     if (!_twseIndex && !_twseIndexFetching) {
         fetchTwseIndex(function(){ if (currentTab === 'stock') renderStock(); });
+    }
+    if (!_twseTurnover && !_twseTurnoverFetching) {
+        fetchTwseTurnover(function(){ if (currentTab === 'stock') renderStock(); });
     }
 
     var html = '';
@@ -6660,16 +6697,24 @@ function renderStockHoldings() {
     var totalPL = totalMarket - totalCost;
     var totalRate = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
 
-    // 加權指數列（摘要列上方）
-    if (_twseIndex && typeof _twseIndex.price === 'number') {
-        var idxChg = _twseIndex.change || 0;
-        var idxPct = _twseIndex.pct || 0;
-        var idxColor = signColor(idxChg);
-        var arrow = idxChg > 0 ? '▲' : (idxChg < 0 ? '▼' : '');
-        html += '<div style="display:flex;align-items:baseline;gap:10px;font-size:14px;margin-bottom:8px;padding:6px 12px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow)">';
-        html += '<span style="color:var(--muted)">加權指數</span>';
-        html += '<b style="font-size:17px;color:var(--text)">' + _twseIndex.price.toFixed(2) + '</b>';
-        html += '<span style="color:' + idxColor + ';font-weight:600">' + arrow + ' ' + (idxChg>=0?'+':'') + idxChg.toFixed(2) + '（' + (idxPct>=0?'+':'') + idxPct.toFixed(2) + '%）</span>';
+    // 加權指數 + 大盤成交金額列（摘要列上方）
+    if ((_twseIndex && typeof _twseIndex.price === 'number') || _twseTurnover) {
+        html += '<div style="display:flex;align-items:baseline;gap:10px 18px;flex-wrap:wrap;font-size:14px;margin-bottom:8px;padding:6px 12px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow)">';
+        if (_twseIndex && typeof _twseIndex.price === 'number') {
+            var idxChg = _twseIndex.change || 0;
+            var idxPct = _twseIndex.pct || 0;
+            var idxColor = signColor(idxChg);
+            var arrow = idxChg > 0 ? '▲' : (idxChg < 0 ? '▼' : '');
+            html += '<span style="display:inline-flex;align-items:baseline;gap:8px"><span style="color:var(--muted)">加權指數</span>';
+            html += '<b style="font-size:17px;color:var(--text)">' + _twseIndex.price.toFixed(2) + '</b>';
+            html += '<span style="color:' + idxColor + ';font-weight:600">' + arrow + ' ' + (idxChg>=0?'+':'') + idxChg.toFixed(2) + '（' + (idxPct>=0?'+':'') + idxPct.toFixed(2) + '%）</span></span>';
+        }
+        if (_twseTurnover && _twseTurnover.amount > 0) {
+            var yi = _twseTurnover.amount / 1e8; // 元 → 億
+            html += '<span style="display:inline-flex;align-items:baseline;gap:8px"><span style="color:var(--muted)">成交</span>';
+            html += '<b style="font-size:15px;color:var(--lux-navy)">' + fmt(Math.round(yi)) + ' 億</b>';
+            html += '</span>';
+        }
         html += '</div>';
     }
 
@@ -10837,7 +10882,8 @@ function refreshPrices(silent) {
     _stockFetching = true;
     var btn = document.getElementById('btn-fetch-price');
     if (btn) { btn.disabled = true; btn.textContent = '⏳ 更新中...'; }
-    fetchTwseIndex();   // 順帶刷新加權指數（手動更新時強制重抓）
+    fetchTwseIndex();      // 順帶刷新加權指數（手動更新時強制重抓）
+    fetchTwseTurnover();   // 順帶刷新大盤成交金額
     fetchAllPrices(function(errors) {
         _stockFetching = false;
         renderStock();
