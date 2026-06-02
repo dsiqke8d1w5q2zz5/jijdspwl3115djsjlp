@@ -9823,6 +9823,8 @@ function showEtfHoldingsDiff(etfId) {
     });
     body += section('比例變動', 'var(--lux-navy)', diff && diff.changed, function(x){
         var up = x.to >= x.from;
+        // 現有張數（變動後＝目前持有）
+        var curLots = _etfLotsLabel(x.sharesTo);
         // 張數變化（若兩版都有 shares）
         var lotsLine = '';
         if (x.sharesFrom != null && x.sharesTo != null) {
@@ -9832,6 +9834,7 @@ function showEtfHoldingsDiff(etfId) {
             lotsLine = '<span style="flex:0 0 auto;color:' + signColor(lUp ? 1 : -1) + ';font-size:11px;margin-left:6px">' + deltaTxt + '</span>';
         }
         return '<span style="flex:1;min-width:0">' + nameCell(x) + '</span>' +
+            (curLots ? '<span style="flex:0 0 auto;color:var(--muted);font-size:11px;margin-right:8px">' + curLots + '</span>' : '') +
             '<span style="flex:0 0 auto;color:var(--muted);font-size:12px">' + x.from.toFixed(2) + '% → </span>' +
             '<span style="flex:0 0 auto;color:' + signColor(up ? 1 : -1) + ';font-weight:600">' + x.to.toFixed(2) + '%</span>' +
             '<span style="flex:0 0 auto;color:' + signColor(up ? 1 : -1) + ';font-size:11px">(' + (up ? '+' : '') + (x.to - x.from).toFixed(2) + ')</span>' +
