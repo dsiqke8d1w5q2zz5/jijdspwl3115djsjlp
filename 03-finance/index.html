@@ -9376,7 +9376,7 @@ function showStockCalendarModal(stockId, initialTab) {
     var ov = document.createElement('div');
     ov.className = 'overlay stock-cal-modal-overlay';
     // body 固定高度，三個分頁切換時容器不會跳
-    ov.innerHTML = '<div class="modal" style="width:680px;max-width:94vw;display:flex;flex-direction:column">' +
+    ov.innerHTML = '<div class="modal" style="width:680px;max-width:94vw;max-height:90vh;display:flex;flex-direction:column">' +
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;flex:none">' +
             '<h3 style="margin:0;flex:1;font-size:24px;letter-spacing:0"><i class="ti ti-chart-bar" style="font-size:22px;color:var(--lux-gold)"></i> <span style="color:var(--lux-navy)">' + esc(stockId) + '</span> ' + esc(name) + '</h3>' +
             '<button type="button" id="stock-modal-refresh" onclick="refreshStockModalData(\'' + esc(stockId) + '\')" title="強制重抓最新基本面／籌碼面／ETF 資訊（平常有快取不會每次抓）" style="flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border:1px solid var(--border);border-radius:8px;background:var(--card);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:var(--text)"><i class="ti ti-refresh"></i> 重新整理</button>' +
@@ -9384,7 +9384,7 @@ function showStockCalendarModal(stockId, initialTab) {
         '</div>' +
         _stockModalNavBar(stockId, 'calendar') +
         '<div id="stock-cal-modal-tabs" style="display:flex;gap:6px;margin:8px 0;border-bottom:1px solid var(--border);flex:none"></div>' +
-        '<div id="stock-cal-modal-body" style="min-height:480px;flex:none"></div>' +
+        '<div id="stock-cal-modal-body" style="min-height:0;flex:1;overflow-y:auto"></div>' +
         '<div class="modal-btns" style="margin-top:12px;flex:none"><button onclick="closeStockCalModal()" style="flex:1">關閉</button></div>' +
         '</div>';
     document.body.appendChild(ov);
