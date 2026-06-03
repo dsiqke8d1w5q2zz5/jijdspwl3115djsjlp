@@ -2481,6 +2481,8 @@ function switchTab(tab) {
     });
     document.getElementById('tab-' + tab).classList.add('active');
     if (tab === 'stock') {
+        // 每次切入台股頁，子分頁固定回「持股總覽」
+        stockSubTab = 'holdings';
         // 沒查過、或這次是用 localStorage 快取先顯示（需背景更新一次）→ 觸發
         if (!_dividendAlertChecked || _dividendNeedsRefresh) checkDividendAlerts();
     }
