@@ -1701,9 +1701,16 @@ function _latestMonthWithData(section, year) {
     }
     return 12;
 }
-// 解析「實際要排序的月份」：monthMode='latest' 時動態取最新月，否則用記住的 month
+// 解析「實際要排序的月份」：monthMode='latest'（「當月」模式）時——
+//   檢視的是「當前民國年」→ 用今天的實際月份（例：6/3 就是 6 月）；
+//   檢視的是過去年度 → 退回該年最新有資料的月。
 function _effectiveSortMonth(section, year) {
-    if (sortState.monthMode === 'latest') return _latestMonthWithData(section, year);
+    if (sortState.monthMode === 'latest') {
+        var tw = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+        var curROC = String(tw.getFullYear() - 1911);
+        if (String(year) === curROC) return tw.getMonth() + 1; // 當前年：用真實當月
+        return _latestMonthWithData(section, year);            // 過去年度：用最新有資料月
+    }
     return sortState.month;
 }
 var selectedIEYear = null; // 收入/支出當前檢視年度（民國年字串）
