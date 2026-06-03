@@ -8784,7 +8784,8 @@ function showCalDaySnapshot(dateStr) {
                 : '<span style="display:inline-block;background:rgba(239,68,68,0.12);color:var(--red);padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600">賣</span>';
             var amt = (typeof t.amount === 'number') ? t.amount : (t.shares || 0) * (t.price || 0);
             sumAmt += amt;
-            var amtCell = '<span style="color:var(--muted)">' + fmt(amt) + '</span>';
+            // 成交金額依買賣上色：買綠、賣紅（與左側買/賣標籤一致），一眼分辨方向
+            var amtCell = '<span style="color:' + (isBuy ? 'var(--green)' : 'var(--red)') + ';font-weight:600">' + fmt(amt) + '</span>';
             var rzCell;
             if (isBuy) {
                 rzCell = '<span style="color:var(--muted)">—</span>';
