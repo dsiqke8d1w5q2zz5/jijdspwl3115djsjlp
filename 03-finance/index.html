@@ -8776,14 +8776,14 @@ function showCalDaySnapshot(dateStr) {
             '<th style="padding:8px 4px;white-space:nowrap;text-align:center"><span style="display:inline-block;min-width:80px;text-align:right">成交金額</span></th>' +
             '<th style="padding:8px 4px;white-space:nowrap;text-align:center"><span style="display:inline-block;min-width:80px;text-align:right">已實現</span></th>' +
             '</tr></thead><tbody>';
-        var sumAmt = 0, sumRz = 0, hasRz = false;
+        var sumBuy = 0, sumSell = 0, sumRz = 0, hasRz = false;
         todayTrades.forEach(function(t){
             var isBuy = t.type === 'buy';
             var label = isBuy
                 ? '<span style="display:inline-block;background:rgba(22,163,74,0.12);color:var(--green);padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600">買</span>'
                 : '<span style="display:inline-block;background:rgba(239,68,68,0.12);color:var(--red);padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600">賣</span>';
             var amt = (typeof t.amount === 'number') ? t.amount : (t.shares || 0) * (t.price || 0);
-            sumAmt += amt;
+            if (isBuy) sumBuy += amt; else sumSell += amt;
             // 成交金額依買賣上色：買綠、賣紅（與左側買/賣標籤一致），一眼分辨方向
             var amtCell = '<span style="color:' + (isBuy ? 'var(--green)' : 'var(--red)') + ';font-weight:600">' + fmt(amt) + '</span>';
             var rzCell;
@@ -8803,10 +8803,15 @@ function showCalDaySnapshot(dateStr) {
                 '<td style="padding:8px 4px;text-align:center;font-weight:600"><span style="display:inline-block;text-align:right;min-width:80px">' + rzCell + '</span></td>' +
                 '</tr>';
         });
+        // 成交金額合計：買、賣分開顯示（買綠賣紅，與列一致）
+        var amtTotalParts = [];
+        if (sumBuy > 0) amtTotalParts.push('<span style="color:var(--green)">買 ' + fmt(sumBuy) + '</span>');
+        if (sumSell > 0) amtTotalParts.push('<span style="color:var(--red)">賣 ' + fmt(sumSell) + '</span>');
+        var amtTotalHtml = amtTotalParts.length ? amtTotalParts.join('<br>') : '—';
         html += '</tbody><tfoot><tr style="border-top:2px solid var(--border);font-weight:700">' +
             '<td style="padding:8px 4px;text-align:center" colspan="4"><span style="display:inline-block;text-align:left">合計</span></td>' +
-            '<td style="padding:8px 4px;text-align:center"><span style="display:inline-block;text-align:right;min-width:80px;color:var(--text)">' + fmt(sumAmt) + '</span></td>' +
-            '<td style="padding:8px 4px;text-align:center"><span style="display:inline-block;text-align:right;min-width:80px;color:' + (hasRz ? signColor(sumRz) : 'var(--muted)') + '">' + (hasRz ? signedFmt(sumRz) : '—') + '</span></td>' +
+            '<td style="padding:8px 4px;text-align:center;vertical-align:top"><span style="display:inline-block;text-align:right;min-width:80px;font-size:13px;line-height:1.5">' + amtTotalHtml + '</span></td>' +
+            '<td style="padding:8px 4px;text-align:center;vertical-align:top"><span style="display:inline-block;text-align:right;min-width:80px;color:' + (hasRz ? signColor(sumRz) : 'var(--muted)') + '">' + (hasRz ? signedFmt(sumRz) : '—') + '</span></td>' +
             '</tr></tfoot></table>';
     }
 
