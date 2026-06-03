@@ -2025,15 +2025,15 @@ function _onCloudSyncFail() {
     _setCloudStatus('<span style="color:#EF4444">同步失敗（待網路恢復重試）</span> <button onclick="cloudSyncNow()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:2px 8px;cursor:pointer;font-size:11px;margin-left:4px">重試</button>');
 }
 
-// 網路恢復或回到頁面 → 自動補傳待同步資料，並主動拉雲端取最新
+// 網路恢復或回到頁面 → 只「補傳」本機待同步資料（上傳安全）；
+// ★ 不再自動從雲端下載覆蓋本機（避免把本機新資料拉回雲端舊版造成回退/遺失）。
+//   要從雲端拉，請手動點「雲端下載」。
 window.addEventListener('online', function() {
     if (_hasPendingSync()) cloudSyncNow();
-    else setTimeout(function(){ cloudRestore({ silent: true }); }, 500);
 });
 document.addEventListener('visibilitychange', function() {
     if (document.visibilityState !== 'visible' || navigator.onLine === false) return;
     if (_hasPendingSync()) cloudSyncNow();
-    else cloudRestore({ silent: true }); // 回前景主動拉一次，但不騷擾狀態列
 });
 function cloudRestore(opts) {
     opts = opts || {};
@@ -2046,15 +2046,22 @@ function cloudRestore(opts) {
                 if (!silent) _setCloudStatus('<span style="color:rgba(255,255,255,.6)">雲端尚無資料</span>');
                 return false;
             }
+            // 一般帳務（finTracker）與台股（finTracker_stock）各自獨立比對 editAt，
+            // 本機較新的那一項「絕不」被雲端舊版覆蓋（避免剛改完台股卻被拉回舊版）。
             var localEdit = (DATA && DATA._lastEditAt) ? new Date(DATA._lastEditAt).getTime() : 0;
             var cloudEdit = (cloud.finTracker && cloud.finTracker._lastEditAt) ? new Date(cloud.finTracker._lastEditAt).getTime() : 0;
-            if (!opts.force && localEdit >= cloudEdit) {
-                // 本機 >= 雲端：沒新東西。靜默 return；手動模式才顯示訊息
+            var localStockEdit = 0;
+            try { var ls = JSON.parse(localStorage.getItem('finTracker_stock')||'null'); if (ls && ls._stockEditAt) localStockEdit = new Date(ls._stockEditAt).getTime(); } catch(e) {}
+            var cloudStockEdit = (cloud.finTracker_stock && cloud.finTracker_stock._stockEditAt) ? new Date(cloud.finTracker_stock._stockEditAt).getTime() : 0;
+
+            var pullFin = opts.force || (cloudEdit > localEdit);
+            var pullStock = opts.force || (cloudStockEdit > localStockEdit);
+            if (!pullFin && !pullStock) {
                 if (!silent) _setCloudStatus('<span style="color:rgba(255,255,255,.6)">無新資料</span>');
                 return false;
             }
-            var okFin = cloud.finTracker ? _safeWriteCloudToLocal('finTracker', cloud.finTracker, _isValidFinTrackerCloud) : true;
-            var okStock = cloud.finTracker_stock ? _safeWriteCloudToLocal('finTracker_stock', cloud.finTracker_stock, _isValidStockCloud) : true;
+            var okFin = (pullFin && cloud.finTracker) ? _safeWriteCloudToLocal('finTracker', cloud.finTracker, _isValidFinTrackerCloud) : true;
+            var okStock = (pullStock && cloud.finTracker_stock) ? _safeWriteCloudToLocal('finTracker_stock', cloud.finTracker_stock, _isValidStockCloud) : true;
             if (!okFin || !okStock) {
                 _setCloudStatus('<span style="color:#EF4444">雲端資料異常，已拒絕同步</span>');
                 return false;
@@ -2072,13 +2079,8 @@ function cloudRestore(opts) {
             return false;
         });
 }
-// 每 60 秒自動拉雲端取最新（前景+有網+無 pending 才跑；silent 模式除非真的拉到更新才顯示訊息）
-var _cloudPullTimer = setInterval(function() {
-    if (document.visibilityState !== 'visible') return;
-    if (navigator.onLine === false) return;
-    if (_hasPendingSync()) return; // 本機有東西還沒上傳，先別拉免得打架
-    cloudRestore({ silent: true });
-}, 60 * 1000);
+// ★ 已停用「每 60 秒自動拉雲端」——避免自動下載把本機新資料覆蓋成雲端舊版。
+//   仍會自動「上傳」(scheduleCloudSync)；要從雲端取資料請手動點「雲端下載」。
 // 開頁時自動拉雲端（但不強制覆蓋本機較新的資料）
 // 用 sessionStorage 避免「還原 → reload → 又還原」的無窮迴圈
 window.addEventListener('load', function() {
@@ -4063,6 +4065,10 @@ function saveStockData(opts) {
         return;
     }
     try {
+        // 真實編輯（非背景價格/快照）才蓋台股編輯時間戳，供雲端衝突比對用
+        if (!(opts && opts.skipCloudSync)) {
+            stockData._stockEditAt = new Date().toISOString();
+        }
         var json = JSON.stringify(stockData);
         localStorage.setItem(STOCK_KEY, json);
         // 同步更新筆數基準，讓「大幅減少警告」有依據
