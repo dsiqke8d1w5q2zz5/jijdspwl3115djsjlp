@@ -9184,8 +9184,11 @@ function drawStockAnalysisCharts() {
 }
 
 // 取得個股 modal 的「上一檔／下一檔」代號（按 id 排序，循環）
+// 只含目前仍持有（股數>0）的，與持股總覽一致；已賣完的不出現在切換序列。
 function _stockModalNav(stockId) {
-    var ids = (stockData.holdings || []).map(function(h){ return h.id; })
+    var ids = (stockData.holdings || [])
+        .filter(function(h){ return (h.shares || 0) > 0; })
+        .map(function(h){ return h.id; })
         .sort(function(a, b){ return String(a).localeCompare(String(b)); });
     if (ids.length < 2) return { prev: '', next: '' };
     var idx = ids.indexOf(stockId);
