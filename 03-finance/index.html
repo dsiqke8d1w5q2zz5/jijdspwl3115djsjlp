@@ -6793,10 +6793,25 @@ function renderStockHoldings() {
     // 過濾已賣完的持股（shares <= 0），但 trades 紀錄仍保留在報酬日曆
     rows = rows.filter(function(r){ return (r.h.shares || 0) > 0; });
 
-    // 預設依代號由小到大排序
-    rows.sort(function(a, b){ return String(a.h.id || '').localeCompare(String(b.h.id || '')); });
+    // 預設排序（使用者未手動指定欄位時）：盤中依「今日損益」由大到小，收盤後依代號由小到大。
+    if (!ss.col) {
+        if (_isMarketHours()) {
+            var _nl = -Infinity;
+            rows.sort(function(a, b){
+                var va = a.dayPL !== null ? a.dayPL : _nl;
+                var vb = b.dayPL !== null ? b.dayPL : _nl;
+                if (va !== vb) return vb - va; // 大到小
+                return String(a.h.id || '').localeCompare(String(b.h.id || '')); // 同值再依代號
+            });
+        } else {
+            rows.sort(function(a, b){ return String(a.h.id || '').localeCompare(String(b.h.id || '')); });
+        }
+    } else {
+        // 先依代號排，作為手動排序的同值穩定基準
+        rows.sort(function(a, b){ return String(a.h.id || '').localeCompare(String(b.h.id || '')); });
+    }
 
-    // 排序
+    // 排序（使用者手動點欄位）
     if (ss.col) {
         var dir = ss.dir === 'desc' ? -1 : 1;
         var nullLow = -Infinity;
