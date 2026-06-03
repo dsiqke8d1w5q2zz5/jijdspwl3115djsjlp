@@ -3860,11 +3860,19 @@ function getSnapshots() {
 }
 
 // 新增一份快照，最多保留 5 份（最舊的自動剔除）
-function pushSnapshot(rawJson) {
+// respectInterval=true：例行開頁載入用，距上一份未滿 6 小時就略過（拉長頻率，讓 5 份涵蓋更久）；
+//   保護性備份（匯入前/還原前/雲端覆寫前）不傳此參數，一定拍。
+var _SNAPSHOT_MIN_INTERVAL_MS = 6 * 3600 * 1000; // 6 小時
+function pushSnapshot(rawJson, respectInterval) {
     try {
         var snaps = getSnapshots();
         // 若最新一份跟目前完全相同就不重複存
         if (snaps.length > 0 && snaps[snaps.length-1].data === rawJson) return;
+        // 例行載入：距上一份未滿間隔就略過
+        if (respectInterval && snaps.length > 0) {
+            var lastT = new Date(snaps[snaps.length-1].time).getTime();
+            if (!isNaN(lastT) && (Date.now() - lastT) < _SNAPSHOT_MIN_INTERVAL_MS) return;
+        }
         snaps.push({ time: new Date().toISOString(), data: rawJson });
         while (snaps.length > 5) snaps.shift();
         localStorage.setItem(STOCK_SNAPSHOT_KEY, JSON.stringify(snaps));
@@ -3943,8 +3951,8 @@ function loadStockData() {
             }, function onNo() {
                 // 繼續載入：解除鎖定
                 delete stockData._loadFailed;
-                // 存快照 + 更新筆數基準
-                pushSnapshot(raw);
+                // 存快照 + 更新筆數基準（例行載入，套 6 小時間隔）
+                pushSnapshot(raw, true);
                 localStorage.setItem(STOCK_LAST_COUNT_KEY, String(nowCount));
                 renderStock();
             }, { title: '<i class="ti ti-alert-triangle"></i> 股利紀錄大幅減少', okText: '鎖定防覆寫', cancelText: '繼續載入' });
@@ -3952,8 +3960,8 @@ function loadStockData() {
         return;
     }
 
-    // ★ 成功載入 → 存快照（輪替保留最近 5 份）
-    pushSnapshot(raw);
+    // ★ 成功載入 → 存快照（輪替保留最近 5 份；例行載入套 6 小時間隔，拉長頻率）
+    pushSnapshot(raw, true);
     // 更新「上次啟動筆數」基準
     localStorage.setItem(STOCK_LAST_COUNT_KEY, String(nowCount));
     // ★ 不再無條件 saveStockData()，避免任何意外覆寫
