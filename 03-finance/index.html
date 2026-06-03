@@ -8820,15 +8820,13 @@ function showCalDaySnapshot(dateStr) {
                 '<td style="padding:8px 4px;text-align:center;font-weight:600"><span style="display:inline-block;text-align:right;min-width:80px">' + rzCell + '</span></td>' +
                 '</tr>';
         });
-        // 成交金額合計：買、賣分開顯示（買綠賣紅，與列一致）
-        var amtTotalParts = [];
-        if (sumBuy > 0) amtTotalParts.push('<span style="color:var(--green)">買 ' + fmt(sumBuy) + '</span>');
-        if (sumSell > 0) amtTotalParts.push('<span style="color:var(--red)">賣 ' + fmt(sumSell) + '</span>');
-        var amtTotalHtml = amtTotalParts.length ? amtTotalParts.join('<br>') : '—';
+        // 成交金額合計：淨額＝賣−買（正＝淨流入現金，紅；負＝淨流出，綠，符合台股紅漲綠跌）
+        var netAmt = sumSell - sumBuy;
+        var amtTotalHtml = '<span style="color:' + signColor(netAmt) + '">' + signedFmt(netAmt) + '</span>';
         html += '</tbody><tfoot><tr style="border-top:2px solid var(--border);font-weight:700">' +
             '<td style="padding:8px 4px;text-align:center" colspan="4"><span style="display:inline-block;text-align:left">合計</span></td>' +
-            '<td style="padding:8px 4px;text-align:center;vertical-align:top"><span style="display:inline-block;text-align:right;min-width:80px;font-size:13px;line-height:1.5">' + amtTotalHtml + '</span></td>' +
-            '<td style="padding:8px 4px;text-align:center;vertical-align:top"><span style="display:inline-block;text-align:right;min-width:80px;color:' + (hasRz ? signColor(sumRz) : 'var(--muted)') + '">' + (hasRz ? signedFmt(sumRz) : '—') + '</span></td>' +
+            '<td style="padding:8px 4px;text-align:center"><span style="display:inline-block;text-align:right;min-width:80px">' + amtTotalHtml + '</span></td>' +
+            '<td style="padding:8px 4px;text-align:center"><span style="display:inline-block;text-align:right;min-width:80px;color:' + (hasRz ? signColor(sumRz) : 'var(--muted)') + '">' + (hasRz ? signedFmt(sumRz) : '—') + '</span></td>' +
             '</tr></tfoot></table>';
     }
 
