@@ -10569,11 +10569,12 @@ function _saveVolumeLS() {
 }
 _loadVolumeLS();
 
-function fetchStockVolume(stockId, onDone) {
+function fetchStockVolume(stockId, onDone, force) {
     var c = _volumeCache[stockId];
-    if (c && c.map) { if (onDone) onDone(c.map); return; }
+    if (c && c.map && !force) { if (onDone) onDone(c.map); return; } // 已有快取且非強制→直接用
     if (c && c.loading) return; // 抓取中，避免重複
-    _volumeCache[stockId] = { loading: true };
+    // force 重抓時保留舊 map 供畫面繼續顯示，只標 loading
+    _volumeCache[stockId] = (c && c.map) ? { map: c.map, loading: true } : { loading: true };
     var url = _withFinMindToken('https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=' + encodeURIComponent(stockId) + '&start_date=2023-01-01');
     fetchWithTimeout(url, {}, 15000)
         .then(function(r){ return r.json(); })
@@ -10611,14 +10612,21 @@ function _repaintActiveCalendars(stockId) {
 
 function _buildStockCalendarHtml(stockId, curMonthOpt, onChangeFn) {
     onChangeFn = onChangeFn || 'onStockCalMonthChange';
-    // 確保有成交量資料：沒有就背景抓一次，抓完重繪
     var _vc = _volumeCache[stockId];
     var volMap = (_vc && _vc.map) ? _vc.map : null;
-    if (!_vc && !/^00/.test(String(stockId))) {
-        fetchStockVolume(stockId, function(){ _repaintActiveCalendars(stockId); });
-    }
     var ph = (stockData.priceHistory || {})[stockId] || [];
     ph = ph.slice().sort(function(a, b){ return (a.date || '').localeCompare(b.date || ''); });
+    // 確保成交量資料：沒抓過就抓；已有但「量的最新日期落後於股價最新日期」(如5月抓的、6月新交易日沒量) → 強制重抓補上
+    if (!/^00/.test(String(stockId)) && !(_vc && _vc.loading)) {
+        var phLatest = ph.length ? (ph[ph.length-1].date || '') : '';
+        var volLatest = '';
+        if (volMap) { var vks = Object.keys(volMap); if (vks.length) volLatest = vks.sort()[vks.length-1]; }
+        if (!_vc) {
+            fetchStockVolume(stockId, function(){ _repaintActiveCalendars(stockId); });
+        } else if (volMap && phLatest && volLatest && volLatest < phLatest) {
+            fetchStockVolume(stockId, function(){ _repaintActiveCalendars(stockId); }, true); // 量落後→強制重抓
+        }
+    }
     var dailyPnL = {};
     var allMonthSet = {};
     for (var i = 1; i < ph.length; i++) {
