@@ -5863,6 +5863,7 @@ function checkDividendAlerts(onReady) {
         _dividendAlerts.sort(_sortByNextEvent);
         _dividendAlertChecked = true;
         renderStock();
+        _maybeAutoPopDividendModal();
         if (typeof onReady === 'function') onReady();
     }).catch(function() { if (typeof onReady === 'function') onReady(); });
 
@@ -5895,6 +5896,7 @@ function checkDividendAlerts(onReady) {
                         _dividendAlerts.sort(_sortByNextEvent);
                         _dividendAlertChecked = true;
                         renderStock();
+                        _maybeAutoPopDividendModal();
                     }
                 })
                 .catch(function() {
@@ -6049,6 +6051,24 @@ function _annualizedCashPerShare(stockId) {
         isEstimate = true;
     }
     return { annualCps: annualCps, isEstimate: isEstimate, count: cnt, freqCount: freqCount, ttmCps: ttmCps, unitCps: unitCps };
+}
+
+// 配息/除息「當天」自動彈出提醒視窗：每天最多彈一次（localStorage 記當日字串去重）
+function _maybeAutoPopDividendModal() {
+    if (!_dividendAlertChecked || !_dividendAlerts || _dividendAlerts.length === 0) return;
+    // 今天有「除息日」或「配息日」的標的才彈
+    var hasToday = _dividendAlerts.some(function(a) {
+        return a.diff === 0 || a.payDiff === 0;
+    });
+    if (!hasToday) return;
+    var t = new Date();
+    var todayKey = t.getFullYear() + '-' +
+        ('0' + (t.getMonth() + 1)).slice(-2) + '-' + ('0' + t.getDate()).slice(-2);
+    try {
+        if (localStorage.getItem('dividendAutoPopShown') === todayKey) return; // 今天已彈過
+        localStorage.setItem('dividendAutoPopShown', todayKey);
+    } catch (e) {}
+    showDividendAlertModal();
 }
 
 function showDividendAlertModal() {
@@ -8739,8 +8759,10 @@ function showCalDaySnapshot(dateStr) {
 
     var ov = document.createElement('div');
     ov.className = 'overlay';
-    var html = '<div class="modal" style="width:760px;max-width:96vw;max-height:90vh;overflow-y:auto">' +
-        '<h3 style="margin:0 0 10px"><i class="ti ti-calendar"></i> ' + esc(dateStr) + ' 持股快照</h3>';
+    // flex 直排：標題＋可捲動內容＋固定底部按鈕。讓「關閉」永遠釘在底部不被內容推出可視範圍
+    var html = '<div class="modal" style="width:760px;max-width:96vw;max-height:90vh;display:flex;flex-direction:column">' +
+        '<h3 style="margin:0 0 10px;flex:0 0 auto"><i class="ti ti-calendar"></i> ' + esc(dateStr) + ' 持股快照</h3>' +
+        '<div style="flex:1 1 auto;overflow-y:auto;min-height:0">';
 
     if (rows.length === 0) {
         html += '<div style="padding:30px;text-align:center;color:var(--muted)">該日無持股紀錄。</div>';
@@ -8838,7 +8860,8 @@ function showCalDaySnapshot(dateStr) {
     }
 
     html += '<div style="font-size:11px;color:var(--muted);margin-top:12px;line-height:1.6">※ 股數是從目前部位反推（之後的買賣紀錄回算），股價來自 priceHistory（若該日無快照則用前一筆，標註日期）。成本以目前均價估算，僅供參考。</div>';
-    html += '<div class="modal-btns" style="margin-top:12px"><button onclick="this.closest(\'.overlay\').remove()" style="flex:1">關閉</button></div>';
+    html += '</div>'; // 結束可捲動內容區
+    html += '<div class="modal-btns" style="margin-top:12px;flex:0 0 auto"><button onclick="this.closest(\'.overlay\').remove()" style="flex:1">關閉</button></div>';
     html += '</div>';
     ov.innerHTML = html;
     document.body.appendChild(ov);
@@ -10047,6 +10070,7 @@ function _fundamentalsInnerHtml(d) {
         html += '<b style="font-size:22px;color:var(--text)">' + (r.value/1e8).toFixed(2) + '<span style="font-size:13px;font-weight:400;color:var(--muted)"> 億</span></b>';
         if (r.mom !== null) html += '<span style="font-size:13px">月增 <b style="color:' + signColor(r.mom) + '">' + signPrefix(r.mom) + r.mom.toFixed(1) + '%</b></span>';
         if (r.yoy !== null) html += '<span style="font-size:13px">年增 <b style="color:' + signColor(r.yoy) + '">' + signPrefix(r.yoy) + r.yoy.toFixed(1) + '%</b></span>';
+        else html += '<span style="font-size:13px;color:var(--muted)">年增 <b>—</b><span style="font-size:11px"> (去年同月無資料)</span></span>';
         html += '</div>';
         // 近 12 月迷你長條圖
         if (d.revTrend && d.revTrend.length > 1) {
@@ -11402,30 +11426,53 @@ function runStockSearch() {
 }
 
 // 用全市場清單（上市 + 上櫃）以「名稱關鍵字」反查代號
+// 完整上市個股名稱清單（TWSE OpenAPI，含公司簡稱，不依當日行情；快取 1 天）
+var _twseNameDictCache = null, _twseNameDictTime = 0;
+function fetchTwseNameDict(callback) {
+    if (_twseNameDictCache && (Date.now() - _twseNameDictTime < 86400000)) { callback(_twseNameDictCache); return; }
+    fetchWithTimeout('https://openapi.twse.com.tw/v1/opendata/t187ap03_L', {}, 15000)
+        .then(function(r){ return r.json(); })
+        .then(function(arr){
+            var map = {};
+            if (Array.isArray(arr)) arr.forEach(function(x){
+                var id = String(x['公司代號'] || '').trim();
+                var name = String(x['公司簡稱'] || '').trim();
+                if (id && name) map[id] = name;
+            });
+            if (Object.keys(map).length) { _twseNameDictCache = map; _twseNameDictTime = Date.now(); }
+            callback(map);
+        })
+        .catch(function(){ callback({}); });
+}
+
 function _searchStockByName(kw, callback) {
     var key = kw.toLowerCase();
     fetchTWSEAll(function(e1, twse) {
         fetchTPEXAll(function(e2, tpex) {
-            var matches = [];
-            function scan(map, market) {
-                if (!map) return;
-                Object.keys(map).forEach(function(id){
-                    var name = (map[id] && map[id].name) || '';
-                    if (name && name.toLowerCase().indexOf(key) >= 0) {
-                        matches.push({ id: id, name: name, market: market });
-                    }
+            fetchTwseNameDict(function(nameDict) {
+                var matches = [];
+                var seen = {};
+                function add(id, name, market) {
+                    if (!name || seen[id]) return;
+                    if (name.toLowerCase().indexOf(key) >= 0) { matches.push({ id: id, name: name, market: market }); seen[id] = true; }
+                }
+                function scan(map, market) {
+                    if (!map) return;
+                    Object.keys(map).forEach(function(id){ add(id, (map[id] && map[id].name) || '', market); });
+                }
+                scan(twse, '上市');
+                scan(tpex, '上櫃');
+                // 補：完整上市個股名稱清單（涵蓋當日行情清單沒有的，如未開盤日/這環境未來日期）
+                if (nameDict) Object.keys(nameDict).forEach(function(id){ add(id, nameDict[id], '上市'); });
+                // 名稱完全相同的排前面，其次依代號
+                matches.sort(function(a, b){
+                    var aExact = a.name === kw ? 0 : 1;
+                    var bExact = b.name === kw ? 0 : 1;
+                    if (aExact !== bExact) return aExact - bExact;
+                    return a.id < b.id ? -1 : (a.id > b.id ? 1 : 0);
                 });
-            }
-            scan(twse, '上市');
-            scan(tpex, '上櫃');
-            // 名稱完全相同的排前面，其次依代號
-            matches.sort(function(a, b){
-                var aExact = a.name === kw ? 0 : 1;
-                var bExact = b.name === kw ? 0 : 1;
-                if (aExact !== bExact) return aExact - bExact;
-                return a.id < b.id ? -1 : (a.id > b.id ? 1 : 0);
+                callback(matches);
             });
-            callback(matches);
         });
     });
 }
