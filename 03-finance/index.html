@@ -1834,6 +1834,80 @@ function _healDataStructure() {
             DATA.passive[y][name] = _ensureMonths(DATA.passive[y][name]);
         });
     });
+    // 自癒：合併「名稱含多餘空格（全形 U+3000／半形）的幽靈分類」回正式分類
+    _mergeWhitespaceGhostCategories();
+}
+
+// 分類名稱正規化：去掉前後與中間的全形(U+3000)／半形空格。
+// 例：「租　賃」→「租賃」、「借　款」→「借款」。用於比對與防止幽靈分類產生。
+function _normCatName(s) {
+    return String(s == null ? '' : s).replace(/[\s　]+/g, '');
+}
+
+// 一次性自癒：把 income/expense/passive 裡「正規化後與某正式分類同名」的幽靈分類，
+// 合併回正式分類後刪除。合併規則：只在「正式分類該月為 0(空)」時才填入幽靈值，
+// 避免與已存在的值疊加造成重複計算（如借款5月正式已有15000、幽靈也有15000→維持15000不變30000）。
+// 同步清理 recurring 規則的 source 與 _passiveSyncSnapshot 的 key。冪等，每次載入跑都安全。
+function _mergeWhitespaceGhostCategories() {
+    function mergeBucket(bucket) {
+        if (!bucket || typeof bucket !== 'object') return;
+        Object.keys(bucket).forEach(function(year) {
+            var yearObj = bucket[year];
+            if (!yearObj || typeof yearObj !== 'object') return;
+            Object.keys(yearObj).forEach(function(cat) {
+                var clean = _normCatName(cat);
+                if (clean === cat) return;            // 本來就乾淨，跳過
+                if (!clean) { delete yearObj[cat]; return; } // 整串都是空白→直接刪
+                var ghost = _ensureMonths(yearObj[cat]);
+                var target = _ensureMonths(yearObj[clean]); // 正式分類（沒有就建空的）
+                for (var m = 1; m <= 12; m++) {
+                    var c = Number(target[m]) || 0, g = Number(ghost[m]) || 0;
+                    if (c === 0 && g !== 0) target[m] = g; // 只補空格、不疊加
+                }
+                yearObj[clean] = target;
+                delete yearObj[cat];                  // 移除幽靈分類
+            });
+        });
+    }
+    mergeBucket(DATA.income);
+    mergeBucket(DATA.expense);
+    mergeBucket(DATA.passive);
+    // recurring 規則的 source 正規化（讓既有壞規則之後寫入乾淨分類，不再生幽靈）
+    (DATA.recurring || []).forEach(function(r) {
+        if (r && typeof r.source === 'string') {
+            var clean = _normCatName(r.source);
+            if (clean && clean !== r.source) r.source = clean;
+        }
+    });
+    // 一次性清理：刪除兩條「跟既有 passive 規則語意重複」的 income 幽靈循環規則
+    // （727 租賃2300 與 625 代管2300同步重複；211 借款15000 與 430 借款15000重複）。
+    // 用 ID 精準鎖定，並再驗 tab+label 避免將來 ID 巧合誤刪；冪等（刪過就找不到，不會出錯）。
+    if (Array.isArray(DATA.recurring)) {
+        var _ghostRuleIds = {
+            'r_1777656548194_727': { tab: 'income', label: '超級F1-88號6樓' },
+            'r_1777656565805_211': { tab: 'income', label: '馥華松苑' }
+        };
+        DATA.recurring = DATA.recurring.filter(function(r) {
+            var g = r && _ghostRuleIds[r.id];
+            if (g && (r.tab || 'passive') === g.tab && r.label === g.label) return false; // 確認無誤才刪
+            return true;
+        });
+    }
+    // _passiveSyncSnapshot 的 key 也清理（避免同步差額用到幽靈 key）
+    var snap = DATA._passiveSyncSnapshot;
+    if (snap && typeof snap === 'object') {
+        Object.keys(snap).forEach(function(year) {
+            var yObj = snap[year];
+            if (!yObj || typeof yObj !== 'object') return;
+            Object.keys(yObj).forEach(function(key) {
+                var clean = _normCatName(key);
+                if (clean !== key) {
+                    if (clean && yObj[clean] === undefined) yObj[clean] = yObj[key];
+                    delete yObj[key];
+                }
+            });
+        });
+    }
 }
 
 function loadData() {
@@ -3362,16 +3436,18 @@ function runRecurringAutoPost() {
     var totalAmount = 0;
     pending.forEach(function(p) {
         var tab = p.rule.tab || 'passive';
+        // 寫入前正規化 source，杜絕「租　賃」這類含空格的幽靈分類（防呆，即使規則本身殘留空格）
+        var src = _normCatName(p.rule.source);
         if (tab === 'passive') {
-            _ensurePassiveSlot(p.rocYear, p.rule.source);
-            DATA.passive[p.rocYear][p.rule.source][p.month] =
-                (DATA.passive[p.rocYear][p.rule.source][p.month] || 0) + p.amount;
+            _ensurePassiveSlot(p.rocYear, src);
+            DATA.passive[p.rocYear][src][p.month] =
+                (DATA.passive[p.rocYear][src][p.month] || 0) + p.amount;
         } else if (tab === 'income' || tab === 'expense') {
             var section = tab; // 'income' | 'expense'
             if (!DATA[section][p.rocYear]) DATA[section][p.rocYear] = {};
-            DATA[section][p.rocYear][p.rule.source] = _ensureMonths(DATA[section][p.rocYear][p.rule.source]);
-            DATA[section][p.rocYear][p.rule.source][p.month] =
-                (DATA[section][p.rocYear][p.rule.source][p.month] || 0) + p.amount;
+            DATA[section][p.rocYear][src] = _ensureMonths(DATA[section][p.rocYear][src]);
+            DATA[section][p.rocYear][src][p.month] =
+                (DATA[section][p.rocYear][src][p.month] || 0) + p.amount;
         }
         if (!p.rule.processedMonths) p.rule.processedMonths = [];
         p.rule.processedMonths.push(_monthKey(p.rocYear, p.month));
@@ -3466,7 +3542,8 @@ function _recurringForm(existing, tab) {
     bindDateInput(document.getElementById('rec-start'));
     bindDateInput(document.getElementById('rec-end'));
     document.getElementById('rec-save').onclick = function() {
-        var source = document.getElementById('rec-source').value;
+        // 正規化分類名稱：去掉多餘空格(全形/半形)，防止「租　賃」這類幽靈分類產生
+        var source = _normCatName(document.getElementById('rec-source').value);
         var label = document.getElementById('rec-label').value.trim();
         var amount = parseFloat(document.getElementById('rec-amount').value) || 0;
         var day = parseInt(document.getElementById('rec-day').value, 10);
