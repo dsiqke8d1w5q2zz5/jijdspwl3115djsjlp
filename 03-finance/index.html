@@ -5761,7 +5761,10 @@ function checkDividendAlerts(onReady) {
         var idKey = String(h.id || '').trim().toUpperCase();
         var key = idKey + '|' + exDateNorm;
         // 歷史事件持久化：不論是否在未來範圍內，都先存到 dividendHistory 用於還原權息計算
+        // （已賣完的持股也要存歷史：過去除息日若有持股，會影響還原權息計算，故記錄在過濾之前）
         recordDividendHistory(h.id, exDateNorm, Number(cash) || 0, Number(stockDiv) || 0);
+        // 已賣完（shares<=0）的持股不顯示在「除權息提醒」清單（與持股總覽一致），但上面的歷史仍保留
+        if (!(Number(h.shares) > 0)) return;
         if (seen[key]) return;
         var exDiff = _diffDays(exDateNorm);
         if (exDiff === null) return;
