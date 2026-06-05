@@ -8759,6 +8759,13 @@ function showCalDaySnapshot(dateStr) {
         if (r.pl !== null) totalPL += r.pl;
         if (r.dayPL !== null) { totalDayPL += r.dayPL; hasDayPL = true; }
     });
+    // 當日已實現：今天賣出單的 realized 加總（與下方「當日交易」表的已實現欄同源）
+    var dayRealized = 0, hasDayRealized = false;
+    (stockData.trades || []).forEach(function(t){
+        if (t.date === dateStr && t.type === 'sell' && typeof t.realized === 'number') {
+            dayRealized += t.realized; hasDayRealized = true;
+        }
+    });
 
     var ov = document.createElement('div');
     ov.className = 'overlay';
@@ -8782,6 +8789,16 @@ function showCalDaySnapshot(dateStr) {
         }
         if (hasDayPL) {
             html += '<span style="color:var(--muted)">當日損益 <b style="color:' + signColor(totalDayPL) + '">' + signedFmt(totalDayPL) + '</b></span>';
+        }
+        if (hasDayRealized) {
+            html += '<span style="color:var(--muted)">當日已實現 <b style="color:' + signColor(dayRealized) + '">' + signedFmt(dayRealized) + '</b></span>';
+        }
+        // 當日整體損益 = 未實現波動(當日損益) + 已實現。只在「當天有賣出(已實現)」時才顯示，
+        // 否則整體就等於當日損益、多一列反而冗餘
+        if (hasDayRealized) {
+            var dayTotal = (hasDayPL ? totalDayPL : 0) + dayRealized;
+            html += '<span style="color:var(--muted)">當日整體 <b style="color:' + signColor(dayTotal) + '">' + signedFmt(dayTotal) +
+                '</b> <span style="font-size:11px">(波動' + signedFmt(hasDayPL ? totalDayPL : 0) + ' + 已實現' + signedFmt(dayRealized) + ')</span></span>';
         }
         html += '</div>';
 
