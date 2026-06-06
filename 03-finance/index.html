@@ -6999,7 +6999,8 @@ function renderStockHoldings() {
     var totalPLwithDiv = totalPL + totalCumDiv;
     var totalRateWithDiv = totalCost > 0 ? (totalPLwithDiv / totalCost) * 100 : 0;
 
-    // 加權指數列（摘要列上方）
+    // 加權指數內容（併入下方摘要列同一卡片，省一行空間）
+    var _idxHtml = '';
     if (_twseIndex && typeof _twseIndex.price === 'number') {
         var twNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
         var twToday = twNow.getFullYear() + '-' + ('0'+(twNow.getMonth()+1)).slice(-2) + '-' + ('0'+twNow.getDate()).slice(-2);
@@ -7013,19 +7014,16 @@ function renderStockHoldings() {
         var idxColor = signColor(idxChg);
         var arrow = idxChg > 0 ? '▲' : (idxChg < 0 ? '▼' : '');
         var idxDate = _twDateFromUnix(_twseIndex.time);
-        html += '<div style="display:flex;align-items:baseline;gap:10px;font-size:14px;margin-bottom:8px;padding:6px 12px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow)">';
-        html += '<span style="color:var(--muted)">加權指數</span>';
-        html += '<b style="font-size:17px;color:var(--text)">' + _twseIndex.price.toFixed(2) + '</b>';
-        html += '<span style="color:' + idxColor + ';font-weight:600">' + arrow + ' ' + (idxChg>=0?'+':'') + idxChg.toFixed(2) + '（' + (idxPct>=0?'+':'') + idxPct.toFixed(2) + '%）</span>';
-        // 報價日期非今天才標（避免誤會成今天）
-        if (idxDate && idxDate !== twToday) {
-            html += '<span style="color:var(--muted);font-size:11px">(' + idxDate.slice(5).replace('-', '/') + ')</span>';
-        }
-        html += '</div>';
+        _idxHtml = '<span style="color:var(--muted)">加權 <b style="color:var(--text)">' + _twseIndex.price.toFixed(2) + '</b> ' +
+            '<span style="color:' + idxColor + ';font-weight:600">' + arrow + (idxChg>=0?'+':'') + idxChg.toFixed(2) + '（' + (idxPct>=0?'+':'') + idxPct.toFixed(2) + '%）</span>' +
+            ((idxDate && idxDate !== twToday) ? ' <span style="font-size:11px">(' + idxDate.slice(5).replace('-', '/') + ')</span>' : '') +
+            '</span>' +
+            '<span style="color:var(--border)">｜</span>'; // 與持股摘要之間的分隔線
     }
 
-    // 摘要列：成本→市值→損益→含息損益→今日損益（本金→現值→績效→含息績效→當日變動，閱讀動線一氣呵成）
-    html += '<div class="stock-summary-bar" style="display:flex;flex-wrap:wrap;gap:6px 20px;font-size:14px;margin-bottom:10px;padding:8px 12px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow)">';
+    // 摘要列：加權指數 ｜ 成本→市值→損益→含息損益→今日損益（合併成同一卡片一行）
+    html += '<div class="stock-summary-bar" style="display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;font-size:14px;margin-bottom:10px;padding:8px 12px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow)">';
+    html += _idxHtml;
     html += '<span style="color:var(--muted)">成本 <b style="color:var(--text)">' + fmt(totalCost) + '</b></span>';
     html += '<span style="color:var(--muted)">市值 <b style="color:var(--lux-gold)">' + fmt(totalMarket) + '</b></span>';
     html += '<span style="color:var(--muted)"><span class="lbl-full">損益</span><span class="lbl-short">累積損益</span> <b class="' + (totalPL>=0?'pos':'neg') + '">' + (totalPL>=0?'+':'') + fmt(totalPL) + ' (' + fmtRate(totalRate) + ')</b></span>';
