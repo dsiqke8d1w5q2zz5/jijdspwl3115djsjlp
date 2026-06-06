@@ -6525,7 +6525,7 @@ var _trendCustom = { start: null, end: null }; // 自訂範圍，民國年月字
 var _trendShow = { income: true, expense: true, balance: true };
 var _trendYearOpen = {}; // 歷史表格年份展開狀態 { '115': true, '114': false }
 var _trendYearSel = null; // 歷史表格目前顯示的年份（左右切換），null = 自動取最新
-var _trendByYear = false; // true = 左圖跟右表同一年（切年觸發）；點上方範圍鈕會關掉、回跨年模式
+var _trendByYear = true; // 預設 true：左圖跟右表同一年（預設顯示今年/最新年）；點上方範圍鈕會關掉、回跨年模式
 
 function renderTrend() {
     var container = document.getElementById('tab-trend');
