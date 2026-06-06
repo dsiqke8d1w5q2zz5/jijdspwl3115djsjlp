@@ -5036,24 +5036,19 @@ function openBrokerManageModal() {
     var ov = document.createElement('div');
     ov.className = 'overlay';
 
-    // ① 預設鎖定區：顯示目前鎖定狀態 + 切換鈕
-    var lockedLabel = lockedBroker ? esc(lockedBroker) : '全部券商';
-    var isLocked = (lockedBroker !== '');
-    var curLabel = currentBroker ? esc(currentBroker) : '全部券商';
-    var lockState = isLocked
-        ? '<span style="color:var(--lux-gold);font-weight:600"><i class="ti ti-lock"></i> 已鎖定：' + lockedLabel + '</span>'
-        : '<span style="color:var(--muted)"><i class="ti ti-lock-open"></i> 未鎖定（每次進入顯示全部）</span>';
-    // 鎖定鈕：若目前選擇已是鎖定值 → 顯示「解除」；否則「鎖定目前選擇（curLabel）」
-    var lockBtnLabel = (lockedBroker === currentBroker && (lockedBroker !== '' || currentBroker === ''))
-        ? '<i class="ti ti-lock-open"></i> 解除鎖定'
-        : '<i class="ti ti-lock"></i> 鎖定「' + curLabel + '」為預設';
+    // ① 預設鎖定區：直接在視窗內用下拉選「要鎖哪家當預設」（不鎖定＝每次進入顯示全部）
+    // 「鎖定全部」與「不鎖定」載入結果相同(都顯示全部)，故合併為單一「不鎖定」選項，避免語意混淆
+    var _hasLockVal = (lockedBroker !== '');
+    var lockOpts = '<option value="__none__"' + (!_hasLockVal ? ' selected' : '') + '>不鎖定（每次進入顯示全部）</option>' +
+        brokers.map(function(b){
+            return '<option value="' + esc(b) + '"' + (lockedBroker === b ? ' selected' : '') + '>固定顯示「' + esc(b) + '」</option>';
+        }).join('');
     var lockSection =
         '<div style="padding:10px 8px;border-bottom:1px solid var(--border)">' +
         '<div style="font-size:12px;color:var(--muted);margin-bottom:6px">預設券商（開啟頁面時自動套用的檢視）</div>' +
-        '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">' +
-        '<span style="flex:1;font-size:13px">' + lockState + '</span>' +
-        '<button onclick="toggleLockBroker();openBrokerManageModal()" style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:var(--card);cursor:pointer;font-family:inherit;font-size:12px;color:var(--lux-navy)">' + lockBtnLabel + '</button>' +
-        '</div></div>';
+        '<select onchange="setLockedBrokerFromModal(this.value)" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--card);cursor:pointer;font-family:inherit;font-size:13px;color:var(--lux-navy);font-weight:600">' +
+        lockOpts + '</select>' +
+        '</div>';
 
     // ② 排序區（≥2 家才有意義）
     var sortSection = '';
@@ -5171,6 +5166,22 @@ function toggleLockBroker() {
         toast(lockedBroker ? ('已鎖定預設券商：' + lockedBroker) : '已鎖定預設為「全部券商」');
     }
     renderStock();
+}
+
+// 從「券商設定」modal 的下拉直接設定預設鎖定。val: '__none__'=不鎖定 / 券商名=鎖定該家
+function setLockedBrokerFromModal(val) {
+    if (val === '__none__') {
+        lockedBroker = '';
+        try { localStorage.removeItem('lockedBroker'); } catch(e) {}
+        toast('已取消預設鎖定');
+    } else {
+        lockedBroker = val;
+        currentBroker = val; // 同步切換目前檢視，讓使用者立刻看到效果
+        try { localStorage.setItem('lockedBroker', val); } catch(e) {}
+        toast('已將預設鎖定為「' + val + '」');
+    }
+    renderStock();
+    openBrokerManageModal(); // 重開刷新狀態
 }
 
 // 從 holdings 撈出曾用過的券商清單（去重、去空白）
