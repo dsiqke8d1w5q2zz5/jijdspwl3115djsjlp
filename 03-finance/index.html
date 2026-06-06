@@ -46,12 +46,10 @@
 }
 * { margin:0; padding:0; box-sizing:border-box; }
 .mi { font-size: 16px; vertical-align: middle; display: inline-block; line-height: 1; }
-/* 細窄捲軸 */
-html { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,.15) transparent; background: var(--bg); }
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(0,0,0,.15); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,.3); }
+/* 全域隱藏捲軸（仍可滾輪／觸控／鍵盤捲動）：畫面更乾淨，不顯示任何捲軸條 */
+html { background: var(--bg); }
+* { scrollbar-width: none; -ms-overflow-style: none; }       /* Firefox / 舊 Edge */
+*::-webkit-scrollbar { width: 0; height: 0; display: none; } /* Chrome / Edge / Safari */
 html, body { overflow: hidden; height: 100vh; }
 body {
     font-family: 'Outfit', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft JhengHei', sans-serif;
