@@ -6956,6 +6956,8 @@ function renderStockHoldings() {
     html += '<button class="btn-refresh" onclick="showStockSearchModal()" title="輸入股票代號，查任意個股的漲跌日曆"><i class="ti ti-search"></i> <span class="lbl-full">搜尋個股</span><span class="lbl-short">搜尋</span></button>';
     html += '<span class="last-update" style="color:var(--muted)">' + _stockPriceFreshnessLabel() + '</span>';
     html += '<button class="btn-refresh btn-drop-calc" onclick="showDropCalcModal()" title="跌幅分批試算"><i class="ti ti-calculator"></i> <span class="lbl-full">跌幅試算</span><span class="lbl-short">試算</span></button>';
+    // 標準/緊湊 行高切換（移到此按鈕列，跟跌幅試算同排）
+    html += '<button class="btn-refresh" onclick="toggleStockCompact()" title="切換表格行高鬆緊" style="' + (_stockCompact?'background:var(--lux-navy);color:#fff':'') + '"><i class="ti ti-' + (_stockCompact?'baseline-density-medium':'baseline-density-small') + '"></i> <span class="lbl-full">' + (_stockCompact?'緊湊':'標準') + '</span><span class="lbl-short">' + (_stockCompact?'緊湊':'標準') + '</span></button>';
     html += '</div>';
 
     // 券商過濾後的持股清單（保留原 stockData.holdings 索引以便 editHolding 對應）
@@ -7147,12 +7149,11 @@ function renderStockHoldings() {
         rows = _pinned.concat(_rest);
     }
 
-    // 表格上方小工具列：緊湊模式切換（置頂提示）
+    // 置頂提示（緊湊切換已移到上方按鈕列）：只在有置頂時顯示一行小字
     var _pinCount = rows.filter(function(r){ return isStockPinned(r.h.id); }).length;
-    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:12px;color:var(--muted)">';
-    if (_pinCount > 0) html += '<span><i class="ti ti-pinned-filled" style="color:var(--lux-gold)"></i> ' + _pinCount + ' 檔置頂</span>';
-    html += '<button onclick="toggleStockCompact()" title="切換行高鬆緊" style="margin-left:auto;padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:' + (_stockCompact?'var(--lux-navy)':'var(--card)') + ';color:' + (_stockCompact?'#fff':'var(--lux-navy)') + ';cursor:pointer;font-family:inherit;font-size:12px;display:inline-flex;align-items:center;gap:4px"><i class="ti ti-' + (_stockCompact?'baseline-density-medium':'baseline-density-small') + '"></i> ' + (_stockCompact?'緊湊':'標準') + '</button>';
-    html += '</div>';
+    if (_pinCount > 0) {
+        html += '<div style="margin-bottom:6px;font-size:12px;color:var(--muted)"><i class="ti ti-pinned-filled" style="color:var(--lux-gold)"></i> ' + _pinCount + ' 檔置頂</div>';
+    }
 
     var _compactCls = _stockCompact ? ' compact' : '';
     html += '<div class="table-wrap holdings-scroll"><table class="stock-table holdings-table' + _compactCls + '"><thead><tr>';
