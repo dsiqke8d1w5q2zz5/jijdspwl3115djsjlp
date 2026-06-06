@@ -697,12 +697,14 @@ tfoot td:first-child { text-align: left; position: sticky; left: 0; background: 
 .holdings-scroll .holdings-table thead th {
     position: sticky; top: 0; z-index: 3;
 }
-/* 緊湊模式：縮小列上下 padding 與子標籤間距，同螢幕多看幾檔 */
-.holdings-table.compact tbody td { padding-top: 4px; padding-bottom: 4px; }
-.holdings-table.compact tbody td.stock-name-cell { padding-top: 4px; padding-bottom: 4px; }
+/* 緊湊模式：大幅縮小列上下 padding、子標籤字級與行距，同螢幕明顯多看好幾檔 */
+.holdings-table.compact tbody td { padding-top: 1px !important; padding-bottom: 1px !important; line-height: 1.15; }
+.holdings-table.compact tbody td.stock-name-cell { padding-top: 1px !important; padding-bottom: 1px !important; }
 .holdings-table.compact .stock-sub-val,
-.holdings-table.compact .stock-name-sub { font-size: 10px; }
-.holdings-table.compact tbody td br { line-height: 1; }
+.holdings-table.compact .stock-name-sub,
+.holdings-table.compact .stock-sub-label { font-size: 10px !important; }
+.holdings-table.compact tbody td b { font-size: 12px; }
+.holdings-table.compact tbody td br { line-height: 0.9; }
 /* 置頂列：金色淡底 + 左側金條，pin 鈕本身金色 */
 .holdings-table tbody tr.row-pinned { background: rgba(212, 175, 55, 0.10); }
 .holdings-table tbody tr.row-pinned td:first-child { box-shadow: inset 3px 0 0 var(--lux-gold); }
@@ -7173,16 +7175,17 @@ function renderStockHoldings() {
         var _isPin = isStockPinned(h.id);
         html += '<tr' + (_isPin ? ' class="row-pinned"' : '') + '>';
         // 庫存股：代號／名稱點擊看走勢、右側按鈕區
+        // 名稱 + 操作鈕：靠左自然排列（不用 space-between，避免中間整片空白），按鈕群緊湊貼在名稱後
         html += '<td class="stock-name-cell">' +
-            '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px">' +
-                '<span style="cursor:pointer;flex:1;min-width:0" onclick="showStockCalendarModal(' + escJs(h.id) + ')" title="點看漲跌日曆">' +
+            '<div style="display:flex;align-items:center;gap:2px">' +
+                '<span style="cursor:pointer;min-width:0;margin-right:6px" onclick="showStockCalendarModal(' + escJs(h.id) + ')" title="點看漲跌日曆">' +
                     '<b style="text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;color:var(--lux-navy)">' + esc(h.id) + '</b>' +
                     '<br><span class="stock-name-sub" style="font-size:12px;color:var(--muted);font-weight:400">' + esc(h.name) + '</span>' +
                 '</span>' +
-                '<button class="holdings-pin-btn' + (_isPin ? ' pinned' : '') + '" onclick="event.stopPropagation();toggleStockPin(' + escJs(h.id) + ')" title="' + (_isPin ? '取消置頂' : '置頂') + '" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:5px;flex-shrink:0;font-size:18px;line-height:1"><i class="ti ' + (_isPin ? 'ti-pinned-filled' : 'ti-pin') + '"></i></button>' +
-                '<button onclick="event.stopPropagation();buyHolding(' + r.idx + ')" title="買入／加碼" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:5px;flex-shrink:0;font-size:18px;line-height:1"><i class="ti ti-plus"></i></button>' +
-                '<button onclick="event.stopPropagation();sellHolding(' + r.idx + ')" title="賣出" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:5px;flex-shrink:0;font-size:18px;line-height:1"><i class="ti ti-cash"></i></button>' +
-                '<button onclick="event.stopPropagation();editHolding(' + r.idx + ')" title="編輯持股" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:5px;flex-shrink:0;font-size:18px;line-height:1"><i class="ti ti-pencil"></i></button>' +
+                '<button class="holdings-pin-btn' + (_isPin ? ' pinned' : '') + '" onclick="event.stopPropagation();toggleStockPin(' + escJs(h.id) + ')" title="' + (_isPin ? '取消置頂' : '置頂') + '" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:3px;flex-shrink:0;font-size:17px;line-height:1"><i class="ti ' + (_isPin ? 'ti-pinned-filled' : 'ti-pin') + '"></i></button>' +
+                '<button onclick="event.stopPropagation();buyHolding(' + r.idx + ')" title="買入／加碼" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:3px;flex-shrink:0;font-size:17px;line-height:1"><i class="ti ti-plus"></i></button>' +
+                '<button onclick="event.stopPropagation();sellHolding(' + r.idx + ')" title="賣出" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:3px;flex-shrink:0;font-size:17px;line-height:1"><i class="ti ti-cash"></i></button>' +
+                '<button onclick="event.stopPropagation();editHolding(' + r.idx + ')" title="編輯持股" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:3px;flex-shrink:0;font-size:17px;line-height:1"><i class="ti ti-pencil"></i></button>' +
             '</div></td>';
         // 今日損益
         if (vis.dayPL !== false) {
