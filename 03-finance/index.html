@@ -693,7 +693,11 @@ tfoot td:first-child { text-align: left; position: sticky; left: 0; background: 
     max-height: 62vh;
     overflow-y: auto;
     overflow-x: auto;
+    /* 隱藏這條垂直捲軸(避免與頁面捲軸並排兩條)，滾輪/觸控仍可捲、表頭仍釘頂 */
+    scrollbar-width: none;        /* Firefox */
+    -ms-overflow-style: none;     /* 舊 Edge/IE */
 }
+.holdings-scroll::-webkit-scrollbar { width: 0; height: 0; }  /* Chrome/Edge/Safari */
 .holdings-scroll .holdings-table thead th {
     position: sticky; top: 0; z-index: 3;
 }
