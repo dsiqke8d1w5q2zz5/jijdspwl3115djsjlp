@@ -3895,6 +3895,7 @@ var STOCK_COLUMNS = [
     { key: 'dayPL',   label: '今日損益',            default: true },
     { key: 'price',   label: '股價（含漲跌幅）',     default: true },
     { key: 'pl',      label: '總損益（含報酬率）',   default: true },
+    { key: 'cumDiv',  label: '累積股利',           default: true },
     { key: 'plWithDiv', label: '含息總損益（含累積股利）', default: true },
     { key: 'shares',  label: '股數（含質押／借券）', default: true },
     { key: 'cost',    label: '均價（含總成本）',     default: true },
@@ -6890,13 +6891,14 @@ function renderStockHoldings() {
     ).filter(function(h){ return (h.shares || 0) > 0; });
 
     // 計算總覽（用過濾後的範圍）
-    var totalCost = 0, totalMarket = 0, todayPL = 0;
+    var totalCost = 0, totalMarket = 0, todayPL = 0, totalCumDiv = 0;
     visibleHoldings.forEach(function(h) {
         var cost = h.shares * h.cost;
         var p = stockData.prices[h.id];
         var market = p ? h.shares * p.price : cost;
         totalCost += cost;
         totalMarket += market;
+        totalCumDiv += _cumCashDividend(h.id); // 累積已領現金股利（摘要列「含息損益」用）
         // 今日損益：優先用 Yahoo 即時 change（相對前一交易日官方收盤、最即時也最準）；
         // 沒抓到才退回 priceHistory 最後兩筆相減
         var ch = null;
@@ -6912,6 +6914,9 @@ function renderStockHoldings() {
     });
     var totalPL = totalMarket - totalCost;
     var totalRate = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
+    // 含息損益＝價差損益 + 全部累積已領現金股利；含息報酬率＝含息損益 / 成本
+    var totalPLwithDiv = totalPL + totalCumDiv;
+    var totalRateWithDiv = totalCost > 0 ? (totalPLwithDiv / totalCost) * 100 : 0;
 
     // 加權指數列（摘要列上方）
     if (_twseIndex && typeof _twseIndex.price === 'number') {
@@ -6942,6 +6947,10 @@ function renderStockHoldings() {
     html += '<div class="stock-summary-bar" style="display:flex;flex-wrap:wrap;gap:6px 20px;font-size:14px;margin-bottom:10px;padding:8px 12px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow)">';
     html += '<span style="color:var(--muted)">成本 <b style="color:var(--text)">' + fmt(totalCost) + '</b></span>';
     html += '<span style="color:var(--muted)"><span class="lbl-full">損益</span><span class="lbl-short">累積損益</span> <b class="' + (totalPL>=0?'pos':'neg') + '">' + (totalPL>=0?'+':'') + fmt(totalPL) + ' (' + fmtRate(totalRate) + ')</b></span>';
+    // 含息損益：價差損益 + 累積已領現金股利（只在實際有股利時顯示，否則與損益相同無意義）
+    if (totalCumDiv > 0) {
+        html += '<span style="color:var(--muted)">含息損益 <b class="' + (totalPLwithDiv>=0?'pos':'neg') + '">' + (totalPLwithDiv>=0?'+':'') + fmt(totalPLwithDiv) + ' (' + fmtRate(totalRateWithDiv) + ')</b></span>';
+    }
     html += '<span style="color:var(--muted)">市值 <b style="color:var(--lux-gold)">' + fmt(totalMarket) + '</b></span>';
     html += '<span style="color:var(--muted)">今日損益 <b class="' + (todayPL>=0?'pos':'neg') + '">' + (todayPL>=0?'+':'') + fmt(todayPL) + '</b></span>';
     html += '</div>';
@@ -7043,6 +7052,7 @@ function renderStockHoldings() {
                 case 'dayPL':   va = a.dayPL !== null ? a.dayPL : nullLow; vb = b.dayPL !== null ? b.dayPL : nullLow; break;
                 case 'price':   va = a.curPrice !== null ? a.curPrice : nullLow; vb = b.curPrice !== null ? b.curPrice : nullLow; break;
                 case 'pl':      va = a.pl !== null ? a.pl : nullLow; vb = b.pl !== null ? b.pl : nullLow; break;
+                case 'cumDiv':  va = a.cumDiv || 0; vb = b.cumDiv || 0; break;
                 case 'plWithDiv': va = a.plWithDiv !== null ? a.plWithDiv : nullLow; vb = b.plWithDiv !== null ? b.plWithDiv : nullLow; break;
                 case 'shares':  va = a.h.shares || 0; vb = b.h.shares || 0; break;
                 case 'cost':    va = a.h.cost || 0; vb = b.h.cost || 0; break;
@@ -7060,6 +7070,7 @@ function renderStockHoldings() {
     if (vis.dayPL !== false) html += '<th class="col-daypl" style="cursor:pointer;user-select:none" onclick="toggleStockSort(\'dayPL\')">今日損益' + _sArr('dayPL') + '</th>';
     if (vis.price !== false) html += '<th class="col-price" style="cursor:pointer;user-select:none" onclick="toggleStockSort(\'price\')"><span class="col-title">股價</span><br><span class="stock-sub-label" style="font-size:11px;color:var(--muted);font-weight:400">漲跌幅</span>' + _sArr('price') + '</th>';
     if (vis.pl !== false) html += '<th class="col-pl" style="cursor:pointer;user-select:none" onclick="toggleStockSort(\'pl\')">總損益<br><span class="stock-sub-label" style="font-size:11px;color:var(--muted);font-weight:400">報酬率</span>' + _sArr('pl') + '</th>';
+    if (vis.cumDiv !== false) html += '<th class="col-cum-div" style="cursor:pointer;user-select:none" title="累積已領現金股利（來自股利紀錄，僅現金股利）" onclick="toggleStockSort(\'cumDiv\')">累積股利' + _sArr('cumDiv') + '</th>';
     if (vis.plWithDiv !== false) html += '<th class="col-pl-div" style="cursor:pointer;user-select:none" title="含息總損益＝價差損益＋累積已領現金股利（來自股利紀錄）" onclick="toggleStockSort(\'plWithDiv\')">含息總損益<br><span class="stock-sub-label" style="font-size:11px;color:var(--muted);font-weight:400">含息報酬率</span>' + _sArr('plWithDiv') + '</th>';
     if (vis.shares !== false) html += '<th class="col-shares" style="cursor:pointer;user-select:none" onclick="toggleStockSort(\'shares\')"><span class="col-title">股數</span>' + _sArr('shares') + '</th>';
     if (vis.cost !== false) html += '<th class="col-cost" style="cursor:pointer;user-select:none" onclick="toggleStockSort(\'cost\')"><span class="col-title">均價</span><br><span class="stock-sub-label" style="font-size:11px;color:var(--muted);font-weight:400">總成本</span>' + _sArr('cost') + '</th>';
@@ -7079,9 +7090,9 @@ function renderStockHoldings() {
                     '<b style="text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;color:var(--lux-navy)">' + esc(h.id) + '</b>' +
                     '<br><span class="stock-name-sub" style="font-size:12px;color:var(--muted);font-weight:400">' + esc(h.name) + '</span>' +
                 '</span>' +
-                '<button onclick="event.stopPropagation();buyHolding(' + r.idx + ')" title="買入／加碼" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;flex-shrink:0;font-size:14px;line-height:1"><i class="ti ti-plus"></i></button>' +
-                '<button onclick="event.stopPropagation();sellHolding(' + r.idx + ')" title="賣出" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;flex-shrink:0;font-size:14px;line-height:1"><i class="ti ti-cash"></i></button>' +
-                '<button onclick="event.stopPropagation();editHolding(' + r.idx + ')" title="編輯持股" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;flex-shrink:0;font-size:14px;line-height:1"><i class="ti ti-pencil"></i></button>' +
+                '<button onclick="event.stopPropagation();buyHolding(' + r.idx + ')" title="買入／加碼" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:5px;flex-shrink:0;font-size:18px;line-height:1"><i class="ti ti-plus"></i></button>' +
+                '<button onclick="event.stopPropagation();sellHolding(' + r.idx + ')" title="賣出" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:5px;flex-shrink:0;font-size:18px;line-height:1"><i class="ti ti-cash"></i></button>' +
+                '<button onclick="event.stopPropagation();editHolding(' + r.idx + ')" title="編輯持股" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:5px;flex-shrink:0;font-size:18px;line-height:1"><i class="ti ti-pencil"></i></button>' +
             '</div></td>';
         // 今日損益
         if (vis.dayPL !== false) {
@@ -7116,9 +7127,18 @@ function renderStockHoldings() {
             }
             html += '<td class="' + plCls + '" style="font-weight:600">' + plHtml + rateHtml + '</td>';
         }
+        // 累積股利（已領現金股利加總）；無股利紀錄顯示 -
+        if (vis.cumDiv !== false) {
+            if (r.cumDiv > 0) {
+                html += '<td class="pos" style="font-weight:600">+' + fmt(r.cumDiv) + '</td>';
+            } else {
+                html += '<td style="color:var(--muted)">-</td>';
+            }
+        }
         // 含息總損益 / 含息報酬率（價差損益 + 累積已領現金股利）
+        // 無股利紀錄時含息＝總損益、無額外意義 → 顯示 -（與「累積股利」欄一致）
         if (vis.plWithDiv !== false) {
-            if (r.plWithDiv === null) {
+            if (r.plWithDiv === null || !(r.cumDiv > 0)) {
                 html += '<td style="color:var(--muted)">-</td>';
             } else {
                 var pdCls = r.plWithDiv >= 0 ? 'pos' : 'neg';
