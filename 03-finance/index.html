@@ -7176,12 +7176,12 @@ function renderStockHoldings() {
         var _isPin = isStockPinned(h.id);
         html += '<tr' + (_isPin ? ' class="row-pinned"' : '') + '>';
         // 庫存股：代號／名稱點擊看走勢、右側按鈕區
-        // 名稱 + 操作鈕：靠左自然排列（不用 space-between，避免中間整片空白），按鈕群緊湊貼在名稱後
+        // 名稱 + 操作鈕：名稱區固定寬(flex:0 0)讓各列按鈕群從同一 x 起點 → 垂直對齊；不隨代號長短浮動
         html += '<td class="stock-name-cell">' +
             '<div style="display:flex;align-items:center;gap:2px">' +
-                '<span style="cursor:pointer;min-width:0;margin-right:6px" onclick="showStockCalendarModal(' + escJs(h.id) + ')" title="點看漲跌日曆">' +
-                    '<b style="text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;color:var(--lux-navy)">' + esc(h.id) + '</b>' +
-                    '<br><span class="stock-name-sub" style="font-size:12px;color:var(--muted);font-weight:400">' + esc(h.name) + '</span>' +
+                '<span style="cursor:pointer;flex:0 0 78px;width:78px;min-width:0;overflow:hidden;margin-right:4px" onclick="showStockCalendarModal(' + escJs(h.id) + ')" title="點看漲跌日曆">' +
+                    '<b style="text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;color:var(--lux-navy);white-space:nowrap">' + esc(h.id) + '</b>' +
+                    '<br><span class="stock-name-sub" style="font-size:12px;color:var(--muted);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block">' + esc(h.name) + '</span>' +
                 '</span>' +
                 '<button class="holdings-pin-btn' + (_isPin ? ' pinned' : '') + '" onclick="event.stopPropagation();toggleStockPin(' + escJs(h.id) + ')" title="' + (_isPin ? '取消置頂' : '置頂') + '" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:3px;flex-shrink:0;font-size:17px;line-height:1"><i class="ti ' + (_isPin ? 'ti-pinned-filled' : 'ti-pin') + '"></i></button>' +
                 '<button onclick="event.stopPropagation();buyHolding(' + r.idx + ')" title="買入／加碼" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:3px;flex-shrink:0;font-size:17px;line-height:1"><i class="ti ti-plus"></i></button>' +
