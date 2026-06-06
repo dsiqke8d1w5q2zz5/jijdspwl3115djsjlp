@@ -6943,15 +6943,15 @@ function renderStockHoldings() {
         html += '</div>';
     }
 
-    // 摘要列
+    // 摘要列：成本→市值→損益→含息損益→今日損益（本金→現值→績效→含息績效→當日變動，閱讀動線一氣呵成）
     html += '<div class="stock-summary-bar" style="display:flex;flex-wrap:wrap;gap:6px 20px;font-size:14px;margin-bottom:10px;padding:8px 12px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow)">';
     html += '<span style="color:var(--muted)">成本 <b style="color:var(--text)">' + fmt(totalCost) + '</b></span>';
+    html += '<span style="color:var(--muted)">市值 <b style="color:var(--lux-gold)">' + fmt(totalMarket) + '</b></span>';
     html += '<span style="color:var(--muted)"><span class="lbl-full">損益</span><span class="lbl-short">累積損益</span> <b class="' + (totalPL>=0?'pos':'neg') + '">' + (totalPL>=0?'+':'') + fmt(totalPL) + ' (' + fmtRate(totalRate) + ')</b></span>';
     // 含息損益：價差損益 + 累積已領現金股利（只在實際有股利時顯示，否則與損益相同無意義）
     if (totalCumDiv > 0) {
         html += '<span style="color:var(--muted)">含息損益 <b class="' + (totalPLwithDiv>=0?'pos':'neg') + '">' + (totalPLwithDiv>=0?'+':'') + fmt(totalPLwithDiv) + ' (' + fmtRate(totalRateWithDiv) + ')</b></span>';
     }
-    html += '<span style="color:var(--muted)">市值 <b style="color:var(--lux-gold)">' + fmt(totalMarket) + '</b></span>';
     html += '<span style="color:var(--muted)">今日損益 <b class="' + (todayPL>=0?'pos':'neg') + '">' + (todayPL>=0?'+':'') + fmt(todayPL) + '</b></span>';
     html += '</div>';
 
