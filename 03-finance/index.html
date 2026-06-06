@@ -5027,12 +5027,45 @@ function _brokerHoldingCount(broker) {
     }).length;
 }
 
-// 管理券商 modal：列出所有券商，可改名或刪除（刪除＝把該券商從持股上清空，歸入「全部/未指定」）
+// 券商設定 modal：整合「預設鎖定 / 排序 / 改名 / 刪除」（工具列只留下拉 + 齒輪入口）
 function openBrokerManageModal() {
     var brokers = getKnownBrokers();
     if (brokers.length === 0) { toast('目前沒有任何券商'); return; }
+    // 先關掉已開的同類視窗，避免疊加（鎖定/排序後會重開刷新）
+    document.querySelectorAll('.overlay .brk-manage-modal').forEach(function(m){ var o = m.closest('.overlay'); if (o) o.remove(); });
     var ov = document.createElement('div');
     ov.className = 'overlay';
+
+    // ① 預設鎖定區：顯示目前鎖定狀態 + 切換鈕
+    var lockedLabel = lockedBroker ? esc(lockedBroker) : '全部券商';
+    var isLocked = (lockedBroker !== '');
+    var curLabel = currentBroker ? esc(currentBroker) : '全部券商';
+    var lockState = isLocked
+        ? '<span style="color:var(--lux-gold);font-weight:600"><i class="ti ti-lock"></i> 已鎖定：' + lockedLabel + '</span>'
+        : '<span style="color:var(--muted)"><i class="ti ti-lock-open"></i> 未鎖定（每次進入顯示全部）</span>';
+    // 鎖定鈕：若目前選擇已是鎖定值 → 顯示「解除」；否則「鎖定目前選擇（curLabel）」
+    var lockBtnLabel = (lockedBroker === currentBroker && (lockedBroker !== '' || currentBroker === ''))
+        ? '<i class="ti ti-lock-open"></i> 解除鎖定'
+        : '<i class="ti ti-lock"></i> 鎖定「' + curLabel + '」為預設';
+    var lockSection =
+        '<div style="padding:10px 8px;border-bottom:1px solid var(--border)">' +
+        '<div style="font-size:12px;color:var(--muted);margin-bottom:6px">預設券商（開啟頁面時自動套用的檢視）</div>' +
+        '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">' +
+        '<span style="flex:1;font-size:13px">' + lockState + '</span>' +
+        '<button onclick="toggleLockBroker();openBrokerManageModal()" style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:var(--card);cursor:pointer;font-family:inherit;font-size:12px;color:var(--lux-navy)">' + lockBtnLabel + '</button>' +
+        '</div></div>';
+
+    // ② 排序區（≥2 家才有意義）
+    var sortSection = '';
+    if (brokers.length >= 2) {
+        sortSection =
+            '<div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--border)">' +
+            '<span style="flex:1;font-size:13px;color:var(--muted)">下拉選單的券商排列順序</span>' +
+            '<button onclick="this.closest(\'.overlay\').remove();openBrokerOrderModal()" style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:var(--card);cursor:pointer;font-family:inherit;font-size:12px;color:var(--lux-navy)"><i class="ti ti-arrows-sort"></i> 調整順序</button>' +
+            '</div>';
+    }
+
+    // ③ 改名 / 刪除清單
     var rows = brokers.map(function(b) {
         var cnt = _brokerHoldingCount(b);
         return '<div style="display:flex;align-items:center;gap:8px;padding:10px 8px;border-bottom:1px solid var(--border)">' +
@@ -5042,10 +5075,13 @@ function openBrokerManageModal() {
             '<button onclick="deleteBroker(' + JSON.stringify(b).replace(/"/g,'&quot;') + ')" style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:var(--card);cursor:pointer;font-family:inherit;font-size:12px;color:var(--red)"><i class="ti ti-trash"></i> 刪除</button>' +
             '</div>';
     }).join('');
-    ov.innerHTML = '<div class="modal" style="max-width:440px"><h3><i class="ti ti-building-bank"></i> 管理券商</h3>' +
+
+    ov.innerHTML = '<div class="modal brk-manage-modal" style="max-width:460px"><h3><i class="ti ti-settings"></i> 券商設定</h3>' +
+        '<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:10px">' +
+        lockSection + sortSection + rows +
+        '</div>' +
         '<div style="font-size:11px;color:var(--muted);margin-bottom:10px">「刪除」只會把該券商從持股的券商欄清空（持股本身不刪），那些持股之後歸入「全部券商」檢視。</div>' +
-        '<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden">' + rows + '</div>' +
-        '<div class="modal-btns" style="margin-top:12px"><button class="btn-primary" onclick="this.closest(\'.overlay\').remove()">完成</button></div></div>';
+        '<div class="modal-btns"><button class="btn-primary" onclick="this.closest(\'.overlay\').remove()">完成</button></div></div>';
     document.body.appendChild(ov);
 }
 
@@ -6822,28 +6858,15 @@ function renderStock() {
         var _title = _disabled ? '券商過濾僅適用於持股總覽' : '切換券商';
         html += '<div style="display:inline-flex;align-items:stretch;gap:0">';
         html += '<select class="stock-broker-filter"' + (_disabled?' disabled':'') + ' onchange="onBrokerFilterChange(this.value)" title="' + _title + '" style="padding:8px 12px;border:1px solid ' + _border + ';border-right:none;border-top-right-radius:0;border-bottom-right-radius:0;border-top-left-radius:var(--radius-xs);border-bottom-left-radius:var(--radius-xs);background:' + _bg + ';color:' + _color + ';font-family:inherit;font-size:13px;font-weight:600;cursor:' + (_disabled?'not-allowed':'pointer') + '">' + _brokerOpts + '</select>';
-        // 鎖定按鈕：選擇等於鎖定值時顯示實心鎖（金色），否則空鎖（灰）
-        var _isLockedHere = (lockedBroker === currentBroker) && (lockedBroker !== '' || currentBroker === '');
-        // 額外條件：目前 currentBroker === '' 且 lockedBroker === '' 時，按鈕顯示為「未鎖定」(空鎖)，因為沒鎖定意義不大
-        // 重新判定：實心 = 已鎖定且鎖定值就是目前值
-        _isLockedHere = (lockedBroker !== '' || currentBroker === '') ? (lockedBroker === currentBroker) : false;
-        var _lockIcon = _isLockedHere ? 'ti-lock' : 'ti-lock-open';
-        var _lockColor = _isLockedHere ? 'var(--lux-gold)' : 'var(--muted-2)';
-        var _lockTitle = _isLockedHere
-            ? '已鎖定為預設（點擊解除）'
-            : '鎖定目前選擇為預設券商';
-        var _lockDisabled = _disabled;
-        var _lockBg = _lockDisabled ? '#F5F5F4' : 'white';
-        var _lockCursor = _lockDisabled ? 'not-allowed' : 'pointer';
-        // 按鈕群組順序：鎖頭 →(排序,若≥2家)→ 管理(永遠最後、右側圓角)。鎖頭與排序皆中段不圓角
-        var _hasSortBtn = _knownBrokers.length >= 2;
-        // 鎖頭後面一定還有「管理」按鈕，故永遠中段樣式（無右圓角、無右邊框）
-        html += '<button' + (_lockDisabled?' disabled':'') + ' onclick="toggleLockBroker()" title="' + esc(_lockTitle) + '" style="padding:8px 10px;border:1px solid ' + _border + ';border-right:none;background:' + _lockBg + ';color:' + _lockColor + ';font-family:inherit;font-size:14px;cursor:' + _lockCursor + ';display:inline-flex;align-items:center;justify-content:center"><i class="ti ' + _lockIcon + '"></i></button>';
-        if (_hasSortBtn) {
-            html += '<button onclick="openBrokerOrderModal()" title="調整券商順序" style="padding:8px 10px;border:1px solid ' + _border + ';border-right:none;background:white;color:var(--lux-navy);font-family:inherit;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center"><i class="ti ti-arrows-sort"></i></button>';
-        }
-        // 管理券商按鈕（改名/刪除）：永遠顯示、為群組最後一顆 → 右側圓角
-        html += '<button onclick="openBrokerManageModal()" title="管理券商（改名／刪除）" style="padding:8px 10px;border:1px solid ' + _border + ';border-top-right-radius:var(--radius-xs);border-bottom-right-radius:var(--radius-xs);background:white;color:var(--lux-navy);font-family:inherit;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center"><i class="ti ti-settings"></i></button>';
+        // 設定齒輪：鎖定／排序／改名／刪除全部整合進此 modal（工具列只留下拉 + 齒輪）
+        // 「有鎖定」＝ lockedBroker 有實際值（鎖定某一家券商）。鎖全部('')不算特別狀態、不變色
+        var _hasLock = (lockedBroker !== '');
+        var _gearColor = _hasLock ? 'var(--lux-gold)' : 'var(--lux-navy)';
+        var _gearTitle = _hasLock ? '券商設定（已鎖定：' + esc(lockedBroker) + '）' : '券商設定（鎖定／排序／改名／刪除）';
+        var _gearDisabled = _disabled;
+        var _gearBg = _gearDisabled ? '#F5F5F4' : 'white';
+        var _gearCursor = _gearDisabled ? 'not-allowed' : 'pointer';
+        html += '<button' + (_gearDisabled?' disabled':'') + ' onclick="openBrokerManageModal()" title="' + esc(_gearTitle) + '" style="padding:8px 10px;border:1px solid ' + _border + ';border-top-right-radius:var(--radius-xs);border-bottom-right-radius:var(--radius-xs);background:' + _gearBg + ';color:' + _gearColor + ';font-family:inherit;font-size:14px;cursor:' + _gearCursor + ';display:inline-flex;align-items:center;justify-content:center"><i class="ti ti-settings"></i></button>';
         html += '</div>';
     }
     html += '<div class="stock-sub-tabs">';
