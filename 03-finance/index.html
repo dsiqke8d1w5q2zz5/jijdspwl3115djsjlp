@@ -700,15 +700,15 @@ tfoot td:first-child { text-align: left; position: sticky; left: 0; background: 
     position: sticky; top: 0; z-index: 3;
 }
 /* 緊湊模式：大幅縮小列上下 padding、子標籤字級與行距，同螢幕明顯多看好幾檔 */
-.holdings-table.compact tbody td { padding-top: 0 !important; padding-bottom: 0 !important; line-height: 1.05; }
-.holdings-table.compact tbody td.stock-name-cell { padding-top: 0 !important; padding-bottom: 0 !important; }
+.holdings-table.compact tbody td { padding-top: 2px !important; padding-bottom: 2px !important; line-height: 1.2; }
+.holdings-table.compact tbody td.stock-name-cell { padding-top: 2px !important; padding-bottom: 2px !important; }
 .holdings-table.compact .stock-sub-val,
 .holdings-table.compact .stock-name-sub,
 .holdings-table.compact .stock-sub-label { font-size: 10px !important; }
 .holdings-table.compact tbody td b { font-size: 12px; }
-.holdings-table.compact tbody td br { line-height: 0.85; }
-/* 緊湊時操作鈕也縮小：按鈕高度才是撐住列高的主因，font 17→15、padding 3→1 */
-.holdings-table.compact tbody td.stock-name-cell button { font-size: 15px !important; padding: 1px !important; }
+.holdings-table.compact tbody td br { line-height: 1; }
+/* 緊湊時操作鈕也縮小：按鈕高度才是撐住列高的主因，font 17→15、padding 給一點點呼吸 */
+.holdings-table.compact tbody td.stock-name-cell button { font-size: 15px !important; padding: 2px !important; }
 /* 置頂列：金色淡底 + 左側金條，pin 鈕本身金色 */
 .holdings-table tbody tr.row-pinned { background: rgba(212, 175, 55, 0.10); }
 .holdings-table tbody tr.row-pinned td:first-child { box-shadow: inset 3px 0 0 var(--lux-gold); }
