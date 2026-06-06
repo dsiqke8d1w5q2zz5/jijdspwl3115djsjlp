@@ -7183,7 +7183,7 @@ function renderStockHoldings() {
         // 名稱 + 操作鈕：名稱區固定寬(flex:0 0)讓各列按鈕群從同一 x 起點 → 垂直對齊；不隨代號長短浮動
         html += '<td class="stock-name-cell">' +
             '<div style="display:flex;align-items:center;gap:2px">' +
-                '<span style="cursor:pointer;flex:0 0 78px;width:78px;min-width:0;overflow:hidden;margin-right:4px" onclick="showStockCalendarModal(' + escJs(h.id) + ')" title="點看漲跌日曆">' +
+                '<span style="cursor:pointer;flex:0 0 92px;width:92px;min-width:0;overflow:hidden;margin-right:10px" onclick="showStockCalendarModal(' + escJs(h.id) + ')" title="點看漲跌日曆">' +
                     '<b style="text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;color:var(--lux-navy);white-space:nowrap">' + esc(h.id) + '</b>' +
                     '<br><span class="stock-name-sub" style="font-size:12px;color:var(--muted);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block">' + esc(h.name) + '</span>' +
                 '</span>' +
