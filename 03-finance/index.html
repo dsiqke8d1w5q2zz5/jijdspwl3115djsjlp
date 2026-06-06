@@ -7292,12 +7292,8 @@ function toggleStockSort(col) {
 }
 
 // 切換持股置頂（用於兩檔以上比較）。狀態僅本次瀏覽有效，重整即清空。
-function toggleStockPin(stockId) {
-    if (!window._stockPinned) window._stockPinned = {};
-    if (window._stockPinned[stockId]) delete window._stockPinned[stockId];
-    else window._stockPinned[stockId] = true;
-    renderStock();
-}
+// （舊的 toggleStockPin 已移除：它寫 window._stockPinned，與正式版 _pinnedStocks 不同步，
+//   且函式同名會覆蓋正式版導致置頂無效。正式版在上方 isStockPinned/toggleStockPin。）
 
 function toggleDivYear(year) {
     if (!window._divExpanded) window._divExpanded = {};
