@@ -10916,13 +10916,24 @@ function _saveVolumeLS() {
 }
 _loadVolumeLS();
 
-function fetchStockVolume(stockId, onDone, force) {
+function fetchStockVolume(stockId, onDone, force, _attempt) {
     var c = _volumeCache[stockId];
     if (c && c.map && !force) { if (onDone) onDone(c.map); return; } // 已有快取且非強制→直接用
-    if (c && c.loading) return; // 抓取中，避免重複
+    if (c && c.loading && !_attempt) return; // 抓取中，避免重複（重試自身的遞迴呼叫帶 _attempt 不擋）
+    _attempt = _attempt || 1;
+    var MAX_ATTEMPT = 3; // FinMind 免費端常 timeout/塞，自動重試提高成功率
     // force 重抓時保留舊 map 供畫面繼續顯示，只標 loading
     _volumeCache[stockId] = (c && c.map) ? { map: c.map, loading: true } : { loading: true };
     var url = _withFinMindToken('https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=' + encodeURIComponent(stockId) + '&start_date=2023-01-01');
+    function _retryOrFail() {
+        if (_attempt < MAX_ATTEMPT) {
+            // 退避重試：第2次等 1.2s、第3次 2.4s（避開瞬間塞車/額度尖峰）
+            setTimeout(function(){ fetchStockVolume(stockId, onDone, force, _attempt + 1); }, 1200 * _attempt);
+        } else {
+            delete _volumeCache[stockId]; // 連 3 次都失敗：清標記，下次開又會重試
+            if (onDone) onDone({});
+        }
+    }
     fetchWithTimeout(url, {}, 15000)
         .then(function(r){ return r.json(); })
         .then(function(json){
@@ -10937,15 +10948,12 @@ function fetchStockVolume(stockId, onDone, force) {
             if (Object.keys(map).length) {
                 _volumeCache[stockId] = { map: map };
                 _saveVolumeLS(); // 抓到才持久化
+                if (onDone) onDone(map);
             } else {
-                delete _volumeCache[stockId]; // 額度滿(402)/無資料：清標記，下次可重試（不存空 map）
+                _retryOrFail(); // status 非200(額度/timeout回空)或無資料 → 重試
             }
-            if (onDone) onDone(map);
         })
-        .catch(function(){
-            delete _volumeCache[stockId]; // 失敗清標記，下次可重試
-            if (onDone) onDone({});
-        });
+        .catch(function(){ _retryOrFail(); }); // 網路/timeout → 重試
 }
 
 // 量抓好後，重繪頁面上正在顯示這檔日曆的容器
@@ -11068,9 +11076,13 @@ function _buildStockCalendarHtml(stockId, curMonthOpt, onChangeFn) {
                 var closeRow = (typeof entry.price === 'number')
                     ? '<div class="cal-cell-sub" style="color:var(--muted)">收 ' + entry.price.toFixed(2) + '</div>'
                     : '';
-                var volRow = (volMap && typeof volMap[dStr] === 'number')
-                    ? '<div class="cal-cell-sub" style="color:var(--muted);font-weight:400">量 ' + fmt(volMap[dStr]) + '</div>'
-                    : '';
+                // 量：有資料顯示張數；正在抓(loading)且這天還沒量 → 顯示「量 …」提示載入中(非永久空白)
+                var volRow = '';
+                if (volMap && typeof volMap[dStr] === 'number') {
+                    volRow = '<div class="cal-cell-sub" style="color:var(--muted);font-weight:400">量 ' + fmt(volMap[dStr]) + '</div>';
+                } else if (_vc && _vc.loading && !/^00/.test(String(stockId))) {
+                    volRow = '<div class="cal-cell-sub" style="color:var(--muted-2);font-weight:400">量 …</div>';
+                }
                 html += '<div class="cal-cell cal-cell--sm" style="background:' + _pctBg(entry.pct) + '">' +
                     '<div class="cal-cell-day">' + dayNum + '</div>' +
                     '<div class="cal-cell-main" style="color:' + signColor(entry.pct) + '">' + signPrefix(entry.pct) + entry.pct.toFixed(2) + '%</div>' +
