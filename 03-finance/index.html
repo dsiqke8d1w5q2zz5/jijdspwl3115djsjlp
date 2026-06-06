@@ -6525,6 +6525,7 @@ var _trendCustom = { start: null, end: null }; // 自訂範圍，民國年月字
 var _trendShow = { income: true, expense: true, balance: true };
 var _trendYearOpen = {}; // 歷史表格年份展開狀態 { '115': true, '114': false }
 var _trendYearSel = null; // 歷史表格目前顯示的年份（左右切換），null = 自動取最新
+var _trendByYear = false; // true = 左圖跟右表同一年（切年觸發）；點上方範圍鈕會關掉、回跨年模式
 
 function renderTrend() {
     var container = document.getElementById('tab-trend');
@@ -6543,7 +6544,7 @@ function renderTrend() {
         customLabel = _trendCustom.start + ' ~ ' + _trendCustom.end;
     }
     [[12,'近 12 個月','12月'],[24,'近 24 個月','24月'],[0,'全部','全部'],[-1, customLabel, customLabel]].forEach(function(r) {
-        var active = _trendRange === r[0];
+        var active = !_trendByYear && _trendRange === r[0]; // 依年模式時範圍鈕都不亮
         var onclick = r[0] === -1 ? 'onclick="openTrendCustomRange()"' : 'onclick="setTrendRange(' + r[0] + ')"';
         html += '<button class="trend-range-btn" ' + onclick + ' style="border:1px solid var(--border);border-radius:6px;background:' + (active?'var(--lux-navy)':'var(--card)') + ';color:' + (active?'white':'var(--text)') + ';cursor:pointer;font-family:inherit"><span class="lbl-full">' + esc(r[1]) + '</span><span class="lbl-short">' + esc(r[2]) + '</span></button>';
     });
@@ -6660,6 +6661,7 @@ function renderTrend() {
 
 function setTrendRange(n) {
     _trendRange = n;
+    _trendByYear = false; // 點範圍鈕 → 離開「依年」模式，回到跨年範圍
     renderTrend();
 }
 
@@ -6708,6 +6710,7 @@ function toggleTrendYear(y) {
 
 function setTrendYear(y) {
     _trendYearSel = y;
+    _trendByYear = true; // 切年 → 左圖只顯示該年（直到使用者點上方範圍鈕才回跨年）
     renderTrend();
 }
 
@@ -6725,9 +6728,12 @@ function _drawTrendChart(all) {
     var canvas = document.getElementById('trend-chart');
     if (!canvas || typeof Chart === 'undefined') return;
 
-    // 根據 _trendRange 切片
+    // 根據模式切片：依年（跟右表同年）優先，否則照 _trendRange
     var data;
-    if (_trendRange > 0) {
+    if (_trendByYear && _trendYearSel) {
+        // 左圖只顯示右表選的那一年（民國年），與右表連動
+        data = all.filter(function(r){ return String(r.month).split('/')[0] === String(_trendYearSel); });
+    } else if (_trendRange > 0) {
         data = all.slice(-_trendRange);
     } else if (_trendRange === -1 && _trendCustom.start && _trendCustom.end) {
         var s = _monthSortKey(_trendCustom.start);
