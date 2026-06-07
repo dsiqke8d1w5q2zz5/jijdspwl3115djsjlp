@@ -450,7 +450,7 @@
             .layout { margin-top: 0; height: auto; }
             .header-title { display: none; }
             .mobile-cloud { flex: 1 1 100% !important; max-width: 100%; justify-content: flex-start; order: 1; }
-            .mobile-cloud button.mc-main { flex: 1; max-width: calc(25% - 4px); text-align: center; }
+            .mobile-cloud button.mc-main, .mobile-cloud button.mc-checkin { flex: 1; max-width: calc(25% - 3px); text-align: center; }
             .search-wrap { order: 2; flex: 1 1 calc(50% - 4px); max-width: calc(50% - 4px); }
             .btn-add { order: 3; flex: 1 1 calc(50% - 4px); max-width: calc(50% - 4px); padding: 10px 0; font-size: 14px; text-align: center; }
 
@@ -738,6 +738,10 @@
         .mobile-cloud { display: none; gap: 4px; align-items: center; }
         .mobile-cloud button { background: rgba(255,255,255,0.15); border: none; color: #FAFAF9; padding: 6px 10px; border-radius: 8px; font-size: 12px; cursor: pointer; white-space: nowrap; }
         .mobile-cloud button:hover { background: rgba(255,255,255,0.25); }
+        .mobile-cloud button.mc-checkin { display: inline-flex; align-items: center; justify-content: center; gap: 3px; }
+        .mc-checkin-cnt { background: #10B981; color: #fff; border-radius: 9px; font-size: 11px; font-weight: 800; line-height: 1; min-width: 16px; padding: 2px 5px; text-align: center; }
+        .mc-checkin.just-checked { animation: mcPop 0.32s ease; }
+        @keyframes mcPop { 0%{transform:scale(1)} 40%{transform:scale(1.14)} 100%{transform:scale(1)} }
         .mobile-cloud-status { font-size: 10px; color: rgba(250,250,249,0.6); }
         .card-menu-popup { position:fixed;background:white;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.18);z-index:9998;min-width:120px;overflow:hidden; }
         .card-menu-popup button { display:block;width:100%;text-align:left;padding:12px 16px;border:none;background:none;font-size:14px;cursor:pointer;color:var(--text); }
@@ -803,6 +807,7 @@
     <div class="mobile-cloud">
         <button class="mc-main" onclick="openPerformance()"><i class="ti ti-chart-bar" style="font-size:16px;color:#2563EB"></i> 業績</button>
         <button class="mc-main" onclick="openTemplates()"><i class="ti ti-file-text" style="font-size:16px;color:#8B7355"></i> 範本</button>
+        <button class="mc-checkin" onclick="doCheckIn()" aria-label="打卡"><i class="ti ti-map-pin-check" style="font-size:16px;color:#10B981"></i> 打卡<span class="mc-checkin-cnt" id="checkInCount">0</span></button>
         <span style="flex:1"></span>
         <button onclick="toggleMobileSetting()" id="mobileSettingBtn" aria-label="更多選項" title="更多選項"><i class="ti ti-dots" style="font-size:18px"></i></button>
     </div>
@@ -11470,6 +11475,31 @@ var _mnavObs = new MutationObserver(function() {
     document.querySelectorAll('.overlay').forEach(function(o) { if (o.style.display === 'flex') anyOpen = true; });
     nav.style.display = anyOpen ? 'none' : '';
 });
+// ── 打卡（每月歸零）──
+function _checkInMonthKey() {
+    var d = new Date();
+    return d.getFullYear() + '-' + (d.getMonth() + 1); // 例：2026-6
+}
+function getCheckInCount() {
+    var data;
+    try { data = JSON.parse(localStorage.getItem('checkIn') || '{}'); } catch(e) { data = {}; }
+    if (data.month !== _checkInMonthKey()) return 0; // 跨月自動歸零
+    var n = parseInt(data.count, 10);
+    return isNaN(n) ? 0 : n;
+}
+function renderCheckInCount() {
+    var el = document.getElementById('checkInCount');
+    if (el) el.textContent = getCheckInCount();
+}
+function doCheckIn() {
+    var n = getCheckInCount() + 1;
+    try { localStorage.setItem('checkIn', JSON.stringify({ month: _checkInMonthKey(), count: n })); } catch(e) { console.error('打卡儲存失敗', e); }
+    renderCheckInCount();
+    var btn = document.querySelector('.mc-checkin');
+    if (btn) { btn.classList.remove('just-checked'); void btn.offsetWidth; btn.classList.add('just-checked'); }
+    if (typeof showToast === 'function') showToast('已打卡，本月第 ' + n + ' 次');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // 手機版固定 header + nav
     function _fixMobileHeader() {
@@ -11484,6 +11514,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     _fixMobileHeader();
     window.addEventListener('resize', function() { setTimeout(_fixMobileHeader, 100); });
+    renderCheckInCount();
 
     document.querySelectorAll('.overlay').forEach(function(o) {
         _mnavObs.observe(o, { attributes: true, attributeFilter: ['style'] });
