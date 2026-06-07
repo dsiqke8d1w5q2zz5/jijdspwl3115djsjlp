@@ -11535,9 +11535,10 @@ function renderCheckInCount() {
 function doCheckIn() {
     var data;
     try { data = JSON.parse(localStorage.getItem('checkIn') || '{}'); } catch(e) { data = {}; }
-    // 同一天已打過卡 → 擋下不計數，跳提醒
+    // 同一天已打過卡 → 擋下不計數，跳提醒（仍補推一次同步，確保本機數字有上雲）
     if (data.lastDay === _checkInDayKey()) {
         if (typeof showToast === 'function') showToast('今天已經打過卡囉，一天只能打一次', 'warn');
+        if (typeof autoSync === 'function') { setTimeout(autoSync, 300); }
         return;
     }
     var n = getCheckInCount() + 1;
@@ -11547,6 +11548,8 @@ function doCheckIn() {
         btn.classList.remove('just-checked'); void btn.offsetWidth; btn.classList.add('just-checked');
     });
     if (typeof showToast === 'function') showToast('已打卡，本月第 ' + n + ' 次');
+    // 觸發雲端上傳（打卡不經 persistDB，需主動排程同步）
+    if (typeof autoSync === 'function') { setTimeout(autoSync, 300); }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
