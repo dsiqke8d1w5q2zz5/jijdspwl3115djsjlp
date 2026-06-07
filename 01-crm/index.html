@@ -11481,6 +11481,10 @@ function _checkInMonthKey() {
     var d = new Date();
     return d.getFullYear() + '-' + (d.getMonth() + 1); // 例：2026-6
 }
+function _checkInDayKey() {
+    var d = new Date();
+    return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); // 例：2026-6-7
+}
 function getCheckInCount() {
     var data;
     try { data = JSON.parse(localStorage.getItem('checkIn') || '{}'); } catch(e) { data = {}; }
@@ -11496,8 +11500,15 @@ function renderCheckInCount() {
     });
 }
 function doCheckIn() {
+    var data;
+    try { data = JSON.parse(localStorage.getItem('checkIn') || '{}'); } catch(e) { data = {}; }
+    // 同一天已打過卡 → 擋下不計數，跳提醒
+    if (data.lastDay === _checkInDayKey()) {
+        if (typeof showToast === 'function') showToast('今天已經打過卡囉，一天只能打一次', 'warn');
+        return;
+    }
     var n = getCheckInCount() + 1;
-    try { localStorage.setItem('checkIn', JSON.stringify({ month: _checkInMonthKey(), count: n })); } catch(e) { console.error('打卡儲存失敗', e); }
+    try { localStorage.setItem('checkIn', JSON.stringify({ month: _checkInMonthKey(), count: n, lastDay: _checkInDayKey() })); } catch(e) { console.error('打卡儲存失敗', e); }
     renderCheckInCount();
     document.querySelectorAll('.mc-checkin').forEach(function(btn) {
         btn.classList.remove('just-checked'); void btn.offsetWidth; btn.classList.add('just-checked');
