@@ -2278,7 +2278,7 @@ function autoSync() {
     });
 }
 function _autoSyncPush(status) {
-    var syncData = DB.filter(function(c){ return !c.__perfRecords && !c.__templates && !c.__signingTemplates && !c.__otherTemplates; }).concat([{__perfRecords: true, records: _perfRecords}]).concat([{__templates: true, items: _templates}]).concat([{__signingTemplates: true, items: _signingTemplates}]).concat([{__otherTemplates: true, items: _otherTemplates}]);
+    var syncData = DB.filter(function(c){ return !c.__perfRecords && !c.__templates && !c.__signingTemplates && !c.__otherTemplates && !c.__checkIn; }).concat([{__perfRecords: true, records: _perfRecords}]).concat([{__templates: true, items: _templates}]).concat([{__signingTemplates: true, items: _signingTemplates}]).concat([{__otherTemplates: true, items: _otherTemplates}]).concat([{__checkIn: true, data: getCheckInData()}]);
     var payload = JSON.stringify(syncData);
     // 記下本次預期上傳完成後的雲端筆數（不含 __perf/__templates 標記只含真實客戶）
     _expectedCloudCount = DB.length;
@@ -2494,6 +2494,10 @@ function autoFetchCloud(force, onDone) {
             var otplMeta = cloudData.filter(function(c){ return c.__otherTemplates; })[0];
             var cloudOTpl = otplMeta && Array.isArray(otplMeta.items) ? otplMeta.items : null;
             cloudData = cloudData.filter(function(c){ return !c.__otherTemplates; });
+            // 提取打卡資料並合併（獨立於 DB diff，確保打卡一定同步）
+            var ciMeta = cloudData.filter(function(c){ return c.__checkIn; })[0];
+            cloudData = cloudData.filter(function(c){ return !c.__checkIn; });
+            if (ciMeta && ciMeta.data) mergeCheckIn(ciMeta.data);
             var cloudJSON = JSON.stringify(cloudData);
             var localJSON = JSON.stringify(DB);
             // 資料不同才更新
@@ -11360,7 +11364,9 @@ function doCloudRestore() {
                 _otherTemplates = otplMeta.items;
                 try { localStorage.setItem('crmOtherTemplates', JSON.stringify(_otherTemplates)); } catch(e) { console.error('localStorage寫入失敗', e); }
             }
-            return arr.filter(function(c){ return !c.__perfRecords && !c.__templates && !c.__signingTemplates && !c.__otherTemplates; });
+            var ciMeta = arr.filter(function(c){ return c.__checkIn; })[0];
+            if (ciMeta && ciMeta.data) mergeCheckIn(ciMeta.data);
+            return arr.filter(function(c){ return !c.__perfRecords && !c.__templates && !c.__signingTemplates && !c.__otherTemplates && !c.__checkIn; });
         }
         function parseRaw(raw) {
             try { var obj = JSON.parse(raw); if (obj && obj.payload && typeof obj.payload === 'string') raw = obj.payload; } catch(e) {}
@@ -11485,12 +11491,39 @@ function _checkInDayKey() {
     var d = new Date();
     return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); // 例：2026-6-7
 }
-function getCheckInCount() {
+function getCheckInData() {
     var data;
     try { data = JSON.parse(localStorage.getItem('checkIn') || '{}'); } catch(e) { data = {}; }
+    return (data && typeof data === 'object') ? data : {};
+}
+function getCheckInCount() {
+    var data = getCheckInData();
     if (data.month !== _checkInMonthKey()) return 0; // 跨月自動歸零
     var n = parseInt(data.count, 10);
     return isNaN(n) ? 0 : n;
+}
+// 合併雲端打卡資料：同月取較大次數、保留較新的 lastDay
+function mergeCheckIn(cloud) {
+    if (!cloud || typeof cloud !== 'object') return;
+    var local = getCheckInData();
+    var month = _checkInMonthKey();
+    // 雙方都不是本月 → 視為已歸零，無須處理
+    var localCnt = (local.month === month) ? (parseInt(local.count, 10) || 0) : 0;
+    var cloudCnt = (cloud.month === month) ? (parseInt(cloud.count, 10) || 0) : 0;
+    function _dayVal(k) { // 'YYYY-M-D' → 可比較數值
+        if (!k) return 0;
+        var p = String(k).split('-');
+        return (parseInt(p[0],10)||0)*10000 + (parseInt(p[1],10)||0)*100 + (parseInt(p[2],10)||0);
+    }
+    var merged = {
+        month: month,
+        count: Math.max(localCnt, cloudCnt),
+        lastDay: (_dayVal(cloud.lastDay) > _dayVal(local.lastDay)) ? cloud.lastDay : (local.lastDay || cloud.lastDay || '')
+    };
+    var before = JSON.stringify(local);
+    if (JSON.stringify(merged) === before) return; // 無變化
+    try { localStorage.setItem('checkIn', JSON.stringify(merged)); } catch(e) { console.error('打卡合併寫入失敗', e); }
+    renderCheckInCount();
 }
 function renderCheckInCount() {
     var n = getCheckInCount();
