@@ -710,7 +710,9 @@ tfoot td:first-child { text-align: left; position: sticky; left: 0; background: 
 /* 緊湊時操作鈕也縮小：按鈕高度才是撐住列高的主因，font 17→15、padding 給一點點呼吸 */
 .holdings-table.compact tbody td.stock-name-cell button { font-size: 15px !important; padding: 2px !important; }
 /* 置頂列：金色淡底 + 左側金條，pin 鈕本身金色 */
-.holdings-table tbody tr.row-pinned { background: rgba(212, 175, 55, 0.10); }
+/* 金色底設在「每個 td」而非僅 tr——因 sticky 的第一欄/最後一欄有自帶 var(--card) 白底會蓋掉 tr 底，
+   故 td 層級用不透明金色底(等同白底+10%金)強制覆蓋，整列才會均勻上色、前後欄不漏色 */
+.holdings-table tbody tr.row-pinned > td { background: #FBF6E9 !important; }
 .holdings-table tbody tr.row-pinned td:first-child { box-shadow: inset 3px 0 0 var(--lux-gold); }
 .holdings-pin-btn.pinned { color: var(--lux-gold) !important; }
 .stock-table td.stock-name-cell {
