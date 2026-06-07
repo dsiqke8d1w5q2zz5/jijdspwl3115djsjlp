@@ -7170,7 +7170,7 @@ function renderStockHoldings() {
     if (vis.market !== false) html += '<th class="col-market" style="cursor:pointer;user-select:none" onclick="toggleStockSort(\'market\')"><span class="col-title">市值</span><br><span class="stock-sub-label" style="font-size:11px;color:var(--muted);font-weight:400">佔比</span>' + _sArr('market') + '</th>';
     if (vis.chg7d   !== false) html += '<th class="col-price-chg col-7d" style="text-align:right;cursor:pointer;user-select:none" title="近 7 日純價格漲跌（已還原權息／股票股利／分割），不受定期定額影響" onclick="toggleStockSort(\'chg7d\')">週' + _sArr('chg7d') + '</th>';
     if (vis.chg30d  !== false) html += '<th class="col-price-chg col-30d" style="text-align:right;cursor:pointer;user-select:none" title="近 30 日純價格漲跌（已還原權息／股票股利／分割），不受定期定額影響" onclick="toggleStockSort(\'chg30d\')">月' + _sArr('chg30d') + '</th>';
-    html += '<th class="col-del" style="width:36px"></th>';
+    html += '<th class="col-del" style="width:64px"></th>';
     html += '</tr></thead><tbody>';
 
     rows.forEach(function(r) {
@@ -7185,7 +7185,6 @@ function renderStockHoldings() {
                     '<b style="text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;color:var(--lux-navy);white-space:nowrap">' + esc(h.id) + '</b>' +
                     '<br><span class="stock-name-sub" style="font-size:12px;color:var(--muted);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block">' + esc(h.name) + '</span>' +
                 '</span>' +
-                '<button class="holdings-pin-btn' + (_isPin ? ' pinned' : '') + '" onclick="event.stopPropagation();toggleStockPin(' + escJs(h.id) + ')" title="' + (_isPin ? '取消置頂' : '置頂') + '" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:3px;flex-shrink:0;font-size:17px;line-height:1"><i class="ti ' + (_isPin ? 'ti-pinned-filled' : 'ti-pin') + '"></i></button>' +
                 '<button onclick="event.stopPropagation();buyHolding(' + r.idx + ')" title="買入／加碼" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:3px;flex-shrink:0;font-size:17px;line-height:1"><i class="ti ti-plus"></i></button>' +
                 '<button onclick="event.stopPropagation();sellHolding(' + r.idx + ')" title="賣出" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:3px;flex-shrink:0;font-size:17px;line-height:1"><i class="ti ti-cash"></i></button>' +
                 '<button onclick="event.stopPropagation();editHolding(' + r.idx + ')" title="編輯持股" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:3px;flex-shrink:0;font-size:17px;line-height:1"><i class="ti ti-pencil"></i></button>' +
@@ -7268,7 +7267,10 @@ function renderStockHoldings() {
         // 週 / 月 漲跌
         if (vis.chg7d   !== false) html += '<td class="col-price-chg col-7d" style="text-align:right">'   + fmtPriceChange(r.chg7d)   + '</td>';
         if (vis.chg30d  !== false) html += '<td class="col-price-chg col-30d" style="text-align:right">'  + fmtPriceChange(r.chg30d)  + '</td>';
-        html += '<td class="col-del" style="text-align:center"><button onclick="event.stopPropagation();deleteHolding(' + r.idx + ')" title="刪除持股" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;font-size:15px;line-height:1"><i class="ti ti-x"></i></button></td>';
+        html += '<td class="col-del" style="text-align:center;white-space:nowrap">' +
+            '<button class="holdings-pin-btn' + (_isPin ? ' pinned' : '') + '" onclick="event.stopPropagation();toggleStockPin(' + escJs(h.id) + ')" title="' + (_isPin ? '取消置頂' : '置頂') + '" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;font-size:15px;line-height:1"><i class="ti ' + (_isPin ? 'ti-pinned-filled' : 'ti-pin') + '"></i></button>' +
+            '<button onclick="event.stopPropagation();deleteHolding(' + r.idx + ')" title="刪除持股" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;font-size:15px;line-height:1"><i class="ti ti-x"></i></button>' +
+            '</td>';
         html += '</tr>';
     });
 
