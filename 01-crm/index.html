@@ -738,7 +738,7 @@
         .mobile-cloud { display: none; gap: 4px; align-items: center; }
         .mobile-cloud button { background: rgba(255,255,255,0.15); border: none; color: #FAFAF9; padding: 6px 10px; border-radius: 8px; font-size: 12px; cursor: pointer; white-space: nowrap; }
         .mobile-cloud button:hover { background: rgba(255,255,255,0.25); }
-        .mobile-cloud button.mc-checkin { display: inline-flex; align-items: center; justify-content: center; gap: 3px; }
+        button.mc-checkin { display: inline-flex; align-items: center; justify-content: center; gap: 3px; }
         .mc-checkin-cnt { background: #10B981; color: #fff; border-radius: 9px; font-size: 11px; font-weight: 800; line-height: 1; min-width: 16px; padding: 2px 5px; text-align: center; }
         .mc-checkin.just-checked { animation: mcPop 0.32s ease; }
         @keyframes mcPop { 0%{transform:scale(1)} 40%{transform:scale(1.14)} 100%{transform:scale(1)} }
@@ -813,6 +813,7 @@
     </div>
     <div style="flex:1"></div>
     <div class="header-tools" style="display:flex;gap:8px;align-items:center">
+        <button onclick="doCheckIn()" class="header-btn mc-checkin" data-hover-color="#57534E"><i class="ti ti-map-pin-check" style="font-size:18px;color:#10B981"></i> 打卡<span class="mc-checkin-cnt" id="checkInCountDesktop">0</span></button>
         <button onclick="openTemplates()" class="header-btn" data-hover-color="#57534E"><i class="ti ti-file-text" style="font-size:18px;color:#8B7355"></i> 常用範本</button>
         <button onclick="openPerformance()" class="header-btn" data-hover-color="#57534E"><i class="ti ti-chart-bar" style="font-size:18px;color:#2563EB"></i> 業績儀表板</button>
         <!-- 更多選單 -->
@@ -11488,15 +11489,19 @@ function getCheckInCount() {
     return isNaN(n) ? 0 : n;
 }
 function renderCheckInCount() {
-    var el = document.getElementById('checkInCount');
-    if (el) el.textContent = getCheckInCount();
+    var n = getCheckInCount();
+    ['checkInCount', 'checkInCountDesktop'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = n;
+    });
 }
 function doCheckIn() {
     var n = getCheckInCount() + 1;
     try { localStorage.setItem('checkIn', JSON.stringify({ month: _checkInMonthKey(), count: n })); } catch(e) { console.error('打卡儲存失敗', e); }
     renderCheckInCount();
-    var btn = document.querySelector('.mc-checkin');
-    if (btn) { btn.classList.remove('just-checked'); void btn.offsetWidth; btn.classList.add('just-checked'); }
+    document.querySelectorAll('.mc-checkin').forEach(function(btn) {
+        btn.classList.remove('just-checked'); void btn.offsetWidth; btn.classList.add('just-checked');
+    });
     if (typeof showToast === 'function') showToast('已打卡，本月第 ' + n + ' 次');
 }
 
