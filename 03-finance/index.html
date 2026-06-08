@@ -11206,12 +11206,33 @@ function renderWatchlist() {
             fetchYahooQuotes(needPrice.map(function(w){ return { id: w.id }; }), function(){ if (stockSubTab === 'watch') renderStock(); });
         }
     }
+    // 名稱補抓：早期加入或抓不到名稱的(name 空或等於代號)→ 背景查股名補上,只查一次
+    if (typeof lookupStockName === 'function') {
+        _watchlist.forEach(function(w){
+            var hasName = w.name && w.name !== w.id;
+            if (!hasName && !w._nameLooking) {
+                w._nameLooking = true;
+                lookupStockName(w.id, function(err, nm){
+                    if (!err && nm && nm !== w.id) {
+                        w.name = nm;
+                        if (!window._searchedNames) window._searchedNames = {};
+                        _searchedNames[w.id] = nm;
+                        _saveWatchlist();
+                        if (stockSubTab === 'watch') renderStock();
+                    }
+                });
+            }
+        });
+    }
 
     html += '<div class="table-wrap holdings-scroll"><table class="stock-table holdings-table"><thead><tr>';
     html += '<th class="col-holdings-name">代號／名稱</th>';
     html += '<th style="text-align:right">現價<br><span class="stock-sub-label" style="font-size:11px;color:var(--muted);font-weight:400">漲跌幅</span></th>';
     html += '<th class="col-price-chg" style="text-align:right">週</th>';
     html += '<th class="col-price-chg" style="text-align:right">月</th>';
+    html += '<th class="col-price-chg" style="text-align:right">季</th>';
+    html += '<th class="col-price-chg" style="text-align:right">半年</th>';
+    html += '<th class="col-price-chg" style="text-align:right">一年</th>';
     html += '<th class="col-del" style="width:36px"></th>';
     html += '</tr></thead><tbody>';
     _watchlist.forEach(function(w) {
@@ -11219,11 +11240,16 @@ function renderWatchlist() {
         var curPrice = p ? p.price : null;
         var change = (p && typeof p.change === 'number') ? p.change : null;
         var changePct = (change !== null && curPrice !== null && curPrice - change !== 0) ? (change / (curPrice - change)) * 100 : null;
-        var nm = w.name || ((window._searchedNames && _searchedNames[w.id]) || w.id);
+        var nm = w.name || (window._searchedNames && _searchedNames[w.id]) || '';
+        if (nm === w.id) nm = ''; // 名稱等於代號→當作無名稱、不重複顯示
+        // 名稱列：有名稱顯示股名；還沒查到顯示淡色「查詢中…」而非重複代號
+        var nameSubHtml = nm
+            ? '<span class="stock-name-sub" style="font-size:12px;color:var(--muted);font-weight:400">' + esc(nm) + '</span>'
+            : '<span class="stock-name-sub" style="font-size:11px;color:var(--muted-2);font-weight:400">查詢中…</span>';
         html += '<tr>';
         html += '<td class="stock-name-cell"><span style="cursor:pointer" onclick="showStockCalendarModal(' + escJs(w.id) + ')" title="點看漲跌日曆／走勢／基本面">' +
             '<b style="text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;color:var(--lux-navy)">' + esc(w.id) + '</b>' +
-            '<br><span class="stock-name-sub" style="font-size:12px;color:var(--muted);font-weight:400">' + esc(nm) + '</span></span></td>';
+            '<br>' + nameSubHtml + '</span></td>';
         // 現價 / 漲跌幅
         var priceTxt = curPrice !== null ? curPrice.toFixed(2) : '<span style="color:var(--muted)">—</span>';
         var pctTxt = (changePct !== null && !isNaN(changePct))
@@ -11232,6 +11258,9 @@ function renderWatchlist() {
         html += '<td style="text-align:right;font-weight:600">' + priceTxt + pctTxt + '</td>';
         html += '<td class="col-price-chg" style="text-align:right">' + fmtPriceChange(getStockPriceChange(w.id, 7)) + '</td>';
         html += '<td class="col-price-chg" style="text-align:right">' + fmtPriceChange(getStockPriceChange(w.id, 30)) + '</td>';
+        html += '<td class="col-price-chg" style="text-align:right">' + fmtPriceChange(getStockPriceChange(w.id, 90)) + '</td>';
+        html += '<td class="col-price-chg" style="text-align:right">' + fmtPriceChange(getStockPriceChange(w.id, 180)) + '</td>';
+        html += '<td class="col-price-chg" style="text-align:right">' + fmtPriceChange(getStockPriceChange(w.id, 365)) + '</td>';
         html += '<td class="col-del" style="text-align:center"><button onclick="event.stopPropagation();removeFromWatch(' + escJs(w.id) + ')" title="移除觀察" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;font-size:15px;line-height:1"><i class="ti ti-x"></i></button></td>';
         html += '</tr>';
     });
@@ -11504,8 +11533,13 @@ function startStockAutoRefresh() {
     if (stockData.holdings.length > 0) refreshPrices(true);
     // 之後每 5 分鐘檢查：盤中才打 Yahoo（省 Apps Script 配額）
     _stockAutoTimer = setInterval(function() {
-        if (stockData.holdings.length > 0 && _isMarketHours()) {
-            refreshPrices(true);
+        if (!_isMarketHours()) return;
+        if (stockData.holdings.length > 0) refreshPrices(true);
+        // 觀察股：只在「目前正看著觀察分頁」時才順帶抓現價（省配額，沒在看就不抓）
+        if (currentTab === 'stock' && stockSubTab === 'watch' && typeof _watchlist !== 'undefined' && _watchlist.length > 0) {
+            fetchYahooQuotes(_watchlist.map(function(w){ return { id: w.id }; }), function(){
+                if (currentTab === 'stock' && stockSubTab === 'watch') renderStock();
+            });
         }
     }, 5 * 60 * 1000);
 }
