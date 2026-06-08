@@ -9552,10 +9552,17 @@ function drawStockAnalysisCharts() {
 // 取得個股 modal 的「上一檔／下一檔」代號（按 id 排序，循環）
 // 只含目前仍持有（股數>0）的，與持股總覽一致；已賣完的不出現在切換序列。
 function _stockModalNav(stockId) {
-    var ids = (stockData.holdings || [])
+    // 序列來源：持股(shares>0)優先；若該股不在持股、但在觀察清單→用觀察清單序列切換
+    var holdIds = (stockData.holdings || [])
         .filter(function(h){ return (h.shares || 0) > 0; })
         .map(function(h){ return h.id; })
         .sort(function(a, b){ return String(a).localeCompare(String(b)); });
+    var ids = holdIds;
+    if (holdIds.indexOf(stockId) < 0 && typeof _watchlist !== 'undefined' && _watchlist.length) {
+        // 不在持股 → 看觀察清單（依清單原順序，不排序，跟畫面一致）
+        var watchIds = _watchlist.map(function(w){ return w.id; });
+        if (watchIds.indexOf(stockId) >= 0) ids = watchIds;
+    }
     if (ids.length < 2) return { prev: '', next: '' };
     var idx = ids.indexOf(stockId);
     if (idx < 0) return { prev: '', next: '' };
@@ -12112,8 +12119,10 @@ function onStockSearchMonthChange(m) {
 // 單檔補歷史價（從個股 modal 標題列觸發）
 function showStockBackfillModal(stockId) {
     var holding = (stockData.holdings || []).find(function(h){ return h.id === stockId; });
-    if (!holding) { toast('找不到此股票'); return; }
-    var name = holding.name || stockId;
+    // 補歷史價不限持股：觀察清單/搜尋的股票也能補。名稱依序 持股→觀察→搜尋→代號
+    var _w = (typeof _watchlist !== 'undefined') ? _watchlist.find(function(w){ return w.id === stockId; }) : null;
+    var name = (holding && holding.name) || (_w && _w.name) ||
+               (window._searchedNames && _searchedNames[stockId]) || stockId;
     var now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
     var thisYM = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
     var ov = document.createElement('div');
