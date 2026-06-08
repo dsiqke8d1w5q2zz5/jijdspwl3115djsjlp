@@ -9771,7 +9771,13 @@ function showStockCalendarModal(stockId, initialTab) {
     if (_stockPriceTrendChart) { try { _stockPriceTrendChart.destroy(); } catch(_){} _stockPriceTrendChart = null; }
 
     var holding = stockData.holdings.find(function(h){ return h.id === stockId; });
-    var name = holding ? (holding.name || stockId) : ((window._searchedNames && _searchedNames[stockId]) || stockId);
+    // 名稱來源優先序：持股 → 觀察清單 → 搜尋過的名稱 → 代號。避免抓不到名稱時顯示成「代號 代號」
+    var _watchHit = (typeof _watchlist !== 'undefined') ? _watchlist.find(function(w){ return w.id === stockId; }) : null;
+    var name = (holding && holding.name) ||
+               (_watchHit && _watchHit.name) ||
+               (window._searchedNames && _searchedNames[stockId]) ||
+               '';
+    if (name === stockId) name = ''; // 名稱等於代號就不重複顯示
     _stockCalModalState.stockId = stockId;
     _stockCalModalState.month = null;
     _stockCalModalState.divYear = null;
@@ -9782,7 +9788,7 @@ function showStockCalendarModal(stockId, initialTab) {
     // body 固定高度，三個分頁切換時容器不會跳
     ov.innerHTML = '<div class="modal" style="width:680px;max-width:94vw;max-height:90vh;display:flex;flex-direction:column">' +
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;flex:none">' +
-            '<h3 style="margin:0;flex:1;font-size:24px;letter-spacing:0"><i class="ti ti-chart-bar" style="font-size:22px;color:var(--lux-gold)"></i> <span style="color:var(--lux-navy)">' + esc(stockId) + '</span> ' + esc(name) + '</h3>' +
+            '<h3 style="margin:0;flex:1;font-size:24px;letter-spacing:0"><i class="ti ti-chart-bar" style="font-size:22px;color:var(--lux-gold)"></i> <span style="color:var(--lux-navy)">' + esc(stockId) + '</span>' + (name ? ' ' + esc(name) : '') + '</h3>' +
             '<button type="button" id="stock-modal-refresh" onclick="refreshStockModalData(\'' + esc(stockId) + '\')" title="強制重抓最新基本面／籌碼面／ETF 資訊（平常有快取不會每次抓）" style="flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border:1px solid var(--border);border-radius:8px;background:var(--card);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:var(--text)"><i class="ti ti-refresh"></i> 重新整理</button>' +
             '<button type="button" onclick="showStockBackfillModal(\'' + esc(stockId) + '\')" title="補抓這檔的歷史每日收盤價" style="flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border:1px solid var(--border);border-radius:8px;background:var(--card);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:var(--text)"><i class="ti ti-history"></i> 補歷史價</button>' +
         '</div>' +
@@ -9792,6 +9798,10 @@ function showStockCalendarModal(stockId, initialTab) {
         '<div class="modal-btns" style="margin-top:12px;flex:none"><button onclick="closeStockCalModal()" style="flex:1">關閉</button></div>' +
         '</div>';
     document.body.appendChild(ov);
+    // 上方固定對齊：分頁切換時內容高度變化不會讓 modal 上下跳動（與搜尋個股 modal 同手法）
+    ov.style.alignItems = 'flex-start';
+    ov.style.paddingTop = '5vh';
+    ov.style.overflowY = 'auto';
     var _md = false;
     ov.addEventListener('mousedown', function(e){ _md = (e.target === ov); });
     ov.addEventListener('click', function(e){ if (e.target === ov && _md) closeStockCalModal(); _md = false; });
@@ -11145,11 +11155,24 @@ function addToWatch(id, name) {
     id = String(id || '').trim().toUpperCase();
     if (!id) return;
     if (isWatched(id)) { toast('「' + id + '」已在觀察清單'); return; }
-    _watchlist.push({ id: id, name: name || ((window._searchedNames && _searchedNames[id]) || id) });
+    var entry = { id: id, name: name || ((window._searchedNames && _searchedNames[id]) || '') };
+    _watchlist.push(entry);
     _saveWatchlist();
     // 背景抓現價（沿用 Yahoo 報價，填入 stockData.prices）
     if (typeof fetchYahooQuotes === 'function') {
         fetchYahooQuotes([{ id: id }], function(){ if (stockSubTab === 'watch') renderStock(); });
+    }
+    // 沒名稱 → 背景查股名補上（與搜尋個股同一套 lookupStockName）
+    if (!entry.name && typeof lookupStockName === 'function') {
+        lookupStockName(id, function(err, nm){
+            if (!err && nm) {
+                entry.name = nm;
+                if (!window._searchedNames) window._searchedNames = {};
+                _searchedNames[id] = nm;
+                _saveWatchlist();
+                if (stockSubTab === 'watch') renderStock();
+            }
+        });
     }
     if (stockSubTab === 'watch') renderStock();
     toast('已加入觀察：' + id);
