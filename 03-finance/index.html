@@ -11198,7 +11198,9 @@ function renderWatchlist() {
     html += '<div class="stock-refresh-bar">';
     html += '<button class="btn-refresh" style="background:var(--lux-navy)" onclick="openAddWatchModal()"><i class="ti ti-plus"></i> <span class="lbl-full">加入觀察</span><span class="lbl-short">加入</span></button>';
     html += '<button class="btn-refresh" onclick="refreshWatchPrices()"><i class="ti ti-antenna-bars-5"></i> <span class="lbl-full">更新現價</span><span class="lbl-short">更新</span></button>';
-    html += '<span class="last-update" style="color:var(--muted);font-size:12px">點代號看漲跌日曆／走勢／基本面…</span>';
+    // 現價更新時間（沿用持股總覽那套，掃 stockData.prices 取最新 Yahoo 報價時間）
+    html += '<span class="last-update" style="color:var(--muted);font-size:12px">' + _stockPriceFreshnessLabel() + '</span>';
+    html += '<span style="color:var(--muted-2);font-size:12px;margin-left:8px">點代號看漲跌日曆／走勢／基本面…</span>';
     html += '</div>';
 
     if (_watchlist.length === 0) {
