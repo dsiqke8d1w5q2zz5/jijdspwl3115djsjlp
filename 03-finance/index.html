@@ -6137,6 +6137,9 @@ function checkDividendAlerts(onReady) {
 
     var cachePromise = Promise.all([cacheP, twseP, tpexP]).then(function(all){
         var allItems = all[0].concat(all[1]).concat(all[2]);
+        // 合併三來源後補 payDate：TWSE/TPEX 除權息「預告」的 payDate 一律空，
+        // 但雲端快取(同股同除息日)常有正確配息日 → 用它補空,避免「除息月≠配息月」時誤歸到除息月。
+        allItems = _mergeDividendPayDate(allItems);
         _dividendCacheItems = allItems.slice();
         _saveDividendCacheLS(); // 存快取供下次立即顯示
         allItems.forEach(function(d) {
@@ -6189,6 +6192,27 @@ function checkDividendAlerts(onReady) {
                 });
         });
     });
+}
+
+// 合併同股同除息日的紀錄、補 payDate（配息日）：來源中只要任一筆有 payDate 就補給空的，
+// 並去掉完全重複。修正「TWSE/TPEX 除權息預告 payDate 空 → 跨月配息誤歸到除息月」。
+function _mergeDividendPayDate(items) {
+    var byKey = {};   // 'id|exDate' → 已選代表
+    var order = [];   // 維持出現順序
+    (items || []).forEach(function(it){
+        if (!it || !it.stockId || !it.exDate) return;
+        var key = it.stockId + '|' + it.exDate;
+        if (!byKey[key]) { byKey[key] = Object.assign({}, it); order.push(key); }
+        else {
+            var cur = byKey[key];
+            // 補 payDate：現有沒有、這筆有 → 用這筆的
+            if (!cur.payDate && it.payDate) cur.payDate = it.payDate;
+            // 金額/配股取較大的非零值（預告有時為 0/待公告，正式值較準）
+            if ((Number(it.cash)||0) > (Number(cur.cash)||0)) cur.cash = it.cash;
+            if ((Number(it.stockDiv)||0) > (Number(cur.stockDiv)||0)) cur.stockDiv = it.stockDiv;
+        }
+    });
+    return order.map(function(k){ return byKey[k]; });
 }
 
 var _dividendCacheUpdatedAt = null;
