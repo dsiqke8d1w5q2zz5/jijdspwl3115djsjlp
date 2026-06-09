@@ -11190,7 +11190,8 @@ function removeFromWatch(id) {
     if (stockSubTab === 'watch') renderStock();
 }
 
-var _watchPricesFetched = false; // 進觀察分頁時背景抓一次現價
+var _watchPricesFetching = false; // 觀察股現價抓取中旗標（防 render→抓→render 迴圈）
+var _watchPricesFetchedAt = 0;    // 上次抓觀察股現價的時間戳，30 秒節流用
 function renderWatchlist() {
     var html = '';
     // 工具列：加入觀察 + 更新現價
@@ -11205,12 +11206,17 @@ function renderWatchlist() {
         return html;
     }
 
-    // 進分頁首次自動抓一次現價（背景，抓到再重畫）
-    if (!_watchPricesFetched) {
-        _watchPricesFetched = true;
-        var needPrice = _watchlist.filter(function(w){ return !stockData.prices[w.id]; });
-        if (needPrice.length && typeof fetchYahooQuotes === 'function') {
-            fetchYahooQuotes(needPrice.map(function(w){ return { id: w.id }; }), function(){ if (stockSubTab === 'watch') renderStock(); });
+    // 進觀察分頁背景抓一次「全部觀察股」最新現價。用 30 秒節流避免「抓完重畫→又抓」的迴圈，
+    // 同時讓每次切進來(距上次>30s)都會重抓最新價（不再只抓首次/無價的）
+    if (!_watchPricesFetching && typeof fetchYahooQuotes === 'function') {
+        var _nowMs = Date.now();
+        if (_nowMs - _watchPricesFetchedAt > 30000) {
+            _watchPricesFetching = true;
+            _watchPricesFetchedAt = _nowMs;
+            fetchYahooQuotes(_watchlist.map(function(w){ return { id: w.id }; }), function(){
+                _watchPricesFetching = false;
+                if (currentTab === 'stock' && stockSubTab === 'watch') renderStock();
+            });
         }
     }
     // 名稱補抓：早期加入或抓不到名稱的(name 空或等於代號)→ 背景查股名補上,只查一次
