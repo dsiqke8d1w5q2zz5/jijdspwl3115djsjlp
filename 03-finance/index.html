@@ -7565,11 +7565,11 @@ function _buildDividendForecastHtml() {
         if (payP.length === 3) announcedKey[it.stockId + '|' + (+payP[0]) + '-' + (+payP[1])] = true;
     });
 
-    // 未來 6 個月各月預估（用各檔「發放月份」推算該月會配，每次金額 = 最近一次每股 × 股數）
+    // 本月起 6 個月各月預估（含當月；用各檔「發放月份」推算該月會配，每次金額 = 最近一次每股 × 股數）
     var monthEst = {};    // 'YYYY-M' → 金額
     var monthDetail = {}; // 'YYYY-M' → [{ id, name, amt, cpsPerTime, shares, announced }]  逐檔明細
     var monthNames = [];
-    for (var k = 1; k <= 6; k++) {
+    for (var k = 0; k <= 5; k++) {
         var dt = new Date(now.getFullYear(), now.getMonth() + k, 1);
         var ym = dt.getFullYear() + '-' + (dt.getMonth() + 1);
         monthNames.push({ ym: ym, mon: dt.getMonth() + 1, label: (dt.getMonth() + 1) + '月' });
