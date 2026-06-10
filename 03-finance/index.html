@@ -5350,6 +5350,7 @@ function editHolding(idx) {
         '<input type="number" id="edit-stock-shares" value="' + h.shares + '">' +
         '<label style="font-size:12px;color:var(--muted)">付出成本</label>' +
         '<input type="number" id="edit-stock-cost" value="' + Math.round(h.shares * h.cost) + '" step="1">' +
+        '<div style="font-size:11px;color:var(--muted-2);margin-top:4px;line-height:1.5"><i class="ti ti-info-circle"></i> 把股數「調多」並一起改大成本 → 系統自動記一筆今日買進（成交價＝成本差÷股數差）。賣出請用持股列的賣出鈕。</div>' +
         '<div style="display:flex;gap:8px;margin-top:6px">' +
             '<div style="flex:1"><label style="font-size:12px;color:var(--muted)">類型</label>' +
                 '<select id="edit-stock-asset-type" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px">' +
@@ -5365,17 +5366,43 @@ function editHolding(idx) {
         '<button class="btn-primary" id="edit-stock-save">儲存</button></div></div>';
     document.body.appendChild(ov);
     document.getElementById('edit-stock-save').onclick = function() {
+        // 編輯前的原值（用來和新值對照，自動補「當日買進」交易）
+        var oldShares = h.shares || 0;
+        var oldTotalCost = Math.round(oldShares * (h.cost || 0));
+
         h.name = document.getElementById('edit-stock-name').value.trim() || h.name;
-        h.shares = parseInt(document.getElementById('edit-stock-shares').value) || h.shares;
+        var newShares = parseInt(document.getElementById('edit-stock-shares').value);
+        if (isNaN(newShares)) newShares = h.shares;
+        h.shares = newShares;
         var totalCost = parseFloat(document.getElementById('edit-stock-cost').value);
+        var newTotalCost = !isNaN(totalCost) ? totalCost : oldTotalCost;
         if (!isNaN(totalCost) && h.shares > 0) h.cost = totalCost / h.shares;
         h.assetType = document.getElementById('edit-stock-asset-type').value || 'stock';
         h.region = document.getElementById('edit-stock-region').value || '台灣';
         h.broker = (document.getElementById('edit-stock-broker').value || '').trim();
+
+        // 自動補「當日買進」：股數變多 → 視為今天加碼，成交價 = 成本差 ÷ 股數差（你照常填股數+成本即可，不必另記交易）
+        var dShares = newShares - oldShares;
+        var dCost = newTotalCost - oldTotalCost;
+        var autoBuyMsg = '';
+        if (dShares > 0 && dCost > 0) {
+            var buyPrice = dCost / dShares;
+            var today = new Date();
+            var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+            if (!Array.isArray(stockData.trades)) stockData.trades = [];
+            stockData.trades.push({
+                date: todayStr, id: h.id, name: h.name, type: 'buy',
+                shares: dShares, price: buyPrice, amount: Math.round(dCost),
+                _autoFromEdit: true   // 標記：由編輯持股自動產生，方便日後辨識
+            });
+            try { _syncTradesToCashflow(); saveData(true); } catch(e){ console.error('[editHolding autoBuy syncTrades]', e); }
+            autoBuyMsg = '，已自動記今日買進 ' + fmt(dShares) + ' 股（@' + buyPrice.toFixed(2) + '）';
+        }
+
         saveStockData();
         ov.remove();
         renderStock();
-        toast('已更新 ' + h.name);
+        toast('已更新 ' + h.name + autoBuyMsg);
     };
     // 已移除點空白關閉行為（避免誤觸）
 }
