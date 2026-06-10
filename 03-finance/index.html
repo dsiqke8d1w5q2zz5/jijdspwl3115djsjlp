@@ -4180,6 +4180,11 @@ function saveStockData(opts) {
         // 真實編輯（非背景價格/快照）才蓋台股編輯時間戳，供雲端衝突比對用
         if (!(opts && opts.skipCloudSync)) {
             stockData._stockEditAt = new Date().toISOString();
+            // 真實編輯時順手更新「今日股數快照」（覆寫當日那筆），確保昨日vs今日永遠有最新依據
+            try {
+                var _tw = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+                snapshotStockShares(_localDateStr(_tw));
+            } catch(_s){}
         }
         var json = JSON.stringify(stockData);
         localStorage.setItem(STOCK_KEY, json);
@@ -11782,6 +11787,8 @@ function maybeAutoSnapshot() {
         }
         // 順便快照當日股價（若有現價則記錄，方便日後算「N 日價格漲跌」）
         try { snapshotStockPrices(today); } catch(_){}
+        // 每日股數快照（不限時間，捕捉當天最新股數，供「昨日 vs 今日」比對）
+        try { snapshotStockShares(today); } catch(_){}
         // 快照整體持倉市值（給報酬日曆用）
         try { snapshotPortfolioMarket(); } catch(_){}
         saveData(true);
@@ -11909,6 +11916,38 @@ function snapshotStockPrices(today) {
         }
     });
     if (dirty && typeof saveStockData === 'function') saveStockData();
+}
+
+// 每日股數快照：記下「今天各檔的持有股數」。獨立於交易反推，讓「昨日 vs 今日」永遠有依據、
+// 不怕漏記交易。每天覆寫當日那筆（同一天多次編輯只留最後狀態）。
+function snapshotStockShares(today) {
+    if (!stockData) return;
+    if (!Array.isArray(stockData.sharesHistory)) stockData.sharesHistory = [];
+    var hist = stockData.sharesHistory;
+    // 當天各檔股數（只記 shares>0 的，省空間；已清空的不記）
+    var snap = {};
+    (stockData.holdings || []).forEach(function(h){
+        if (h && h.id && (h.shares || 0) > 0) snap[h.id] = h.shares;
+    });
+    var last = hist[hist.length - 1];
+    if (last && last.date === today) {
+        last.shares = snap; // 同一天覆寫成最新
+    } else {
+        hist.push({ date: today, shares: snap });
+        if (hist.length > 1500) hist.splice(0, hist.length - 1500); // 約 4 年上限
+    }
+}
+
+// 取「某日(或之前最近一日)」的股數快照 map；找不到回 null
+function _sharesSnapshotAt(dateStr) {
+    var hist = (stockData && stockData.sharesHistory) || [];
+    var best = null;
+    for (var i = 0; i < hist.length; i++) {
+        if (hist[i] && hist[i].date && hist[i].date <= dateStr) {
+            if (!best || hist[i].date > best.date) best = hist[i];
+        }
+    }
+    return best ? best.shares : null;
 }
 
 // ── 補歷史每日收盤價（透過 Apps Script proxy 打 TWSE / TPEX）──
