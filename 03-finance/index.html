@@ -7025,6 +7025,7 @@ function renderStockHoldings() {
     html += '<button class="btn-refresh" onclick="buyHolding(null)" title="新增持股（可選擇是否記入交易紀錄）"><i class="ti ti-plus"></i> <span class="lbl-full">新增持股</span><span class="lbl-short">新增</span></button>';
     html += '<button class="btn-refresh" id="btn-fetch-price" onclick="refreshPrices()"><i class="ti ti-antenna-bars-5"></i> <span class="lbl-full">更新股價</span><span class="lbl-short">更新</span></button>';
     html += '<button class="btn-refresh" onclick="showStockSearchModal()" title="輸入股票代號，查任意個股的漲跌日曆"><i class="ti ti-search"></i> <span class="lbl-full">搜尋個股</span><span class="lbl-short">搜尋</span></button>';
+    html += '<button class="btn-refresh" onclick="openReconcileModal()" title="比對昨日股數快照與今日股數，把差額一鍵補成今日買進交易（賣出仍請用賣出鈕）"><i class="ti ti-arrows-exchange"></i> <span class="lbl-full">對帳補單</span><span class="lbl-short">對帳</span></button>';
     html += '<span class="last-update" style="color:var(--muted)">' + _stockPriceFreshnessLabel() + '</span>';
     html += '<button class="btn-refresh btn-drop-calc" onclick="showDropCalcModal()" title="跌幅分批試算"><i class="ti ti-calculator"></i> <span class="lbl-full">跌幅試算</span><span class="lbl-short">試算</span></button>';
     // 標準/緊湊 行高切換（移到此按鈕列，跟跌幅試算同排）
@@ -11948,6 +11949,101 @@ function _sharesSnapshotAt(dateStr) {
         }
     }
     return best ? best.shares : null;
+}
+
+// 對帳補單：比對「今日之前最近的股數快照」vs 今日股數，把「股數變多」的差額補成今日買進交易。
+// 賣出(股數變少)只提示、不自動補(需成交價算已實現,交給賣出鈕)。逐筆勾選確認後才寫入。
+function openReconcileModal() {
+    var tw = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+    var todayStr = _localDateStr(tw);
+    // 基準：今天「之前」最近一筆快照（不含今天，否則拿到的是改完的今日值）
+    var hist = (stockData && stockData.sharesHistory) || [];
+    var base = null;
+    for (var i = 0; i < hist.length; i++) {
+        if (hist[i] && hist[i].date && hist[i].date < todayStr) {
+            if (!base || hist[i].date > base.date) base = hist[i];
+        }
+    }
+    if (!base) {
+        toast('還沒有「之前的股數快照」可比對。系統從今天起才開始每日記錄，明天起即可對帳。', true);
+        return;
+    }
+    var baseShares = base.shares || {};
+    // 今日各檔股數
+    var diffs = []; // {id, name, from, to, dShares, price, hasTodayTrade}
+    (stockData.holdings || []).forEach(function(h){
+        if (!h || !h.id) return;
+        var from = baseShares[h.id] || 0;
+        var to = h.shares || 0;
+        if (to === from) return;
+        var dShares = to - from;
+        var p = stockData.prices && stockData.prices[h.id];
+        var price = (p && typeof p.price === 'number') ? p.price : 0;
+        var hasTodayTrade = (stockData.trades || []).some(function(t){ return t.id === h.id && t.date === todayStr; });
+        diffs.push({ id: h.id, name: h.name || h.id, from: from, to: to, dShares: dShares, price: price, hasTodayTrade: hasTodayTrade });
+    });
+    if (diffs.length === 0) {
+        toast('與 ' + base.date + ' 相比股數沒有變動，無需補單');
+        return;
+    }
+
+    var ov = document.createElement('div');
+    ov.className = 'overlay';
+    ov.style.alignItems = 'flex-start';
+    ov.style.paddingTop = '6vh';
+    ov.style.overflowY = 'auto';
+    var rows = diffs.map(function(d, idx){
+        var isBuy = d.dShares > 0;
+        var dlabel = (isBuy ? '+' : '') + fmt(d.dShares) + ' 股';
+        var dColor = isBuy ? 'var(--green)' : 'var(--red)';
+        // 賣出列：不勾選、灰底提示用賣出鈕
+        if (!isBuy) {
+            return '<tr style="border-bottom:1px solid var(--border);opacity:0.6"><td style="padding:8px 6px"><b>' + esc(d.id) + '</b> <span style="color:var(--muted);font-size:12px">' + esc(d.name) + '</span></td>' +
+                '<td style="padding:8px 6px;text-align:right;font-size:12px;color:var(--muted)">' + fmt(d.from) + '→' + fmt(d.to) + '</td>' +
+                '<td style="padding:8px 6px;text-align:right;color:' + dColor + ';font-weight:600">' + dlabel + '</td>' +
+                '<td colspan="2" style="padding:8px 6px;text-align:right;font-size:11px;color:var(--red)">股數減少請用「賣出」鈕</td></tr>';
+        }
+        var warn = d.hasTodayTrade ? '<div style="font-size:10px;color:#D97706;margin-top:2px"><i class="ti ti-alert-triangle"></i> 今日已有交易，注意重複</div>' : '';
+        return '<tr style="border-bottom:1px solid var(--border)">' +
+            '<td style="padding:8px 6px"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" class="rec-cb" data-idx="' + idx + '" checked style="width:16px;height:16px"> <span><b>' + esc(d.id) + '</b> <span style="color:var(--muted);font-size:12px">' + esc(d.name) + '</span>' + warn + '</span></label></td>' +
+            '<td style="padding:8px 6px;text-align:right;font-size:12px;color:var(--muted)">' + fmt(d.from) + '→' + fmt(d.to) + '</td>' +
+            '<td style="padding:8px 6px;text-align:right;color:' + dColor + ';font-weight:600">' + dlabel + '</td>' +
+            '<td style="padding:8px 6px;text-align:right"><input type="number" class="rec-price" data-idx="' + idx + '" value="' + (d.price || '') + '" step="0.01" placeholder="成交價" style="width:78px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px;text-align:right"></td>' +
+            '<td style="padding:8px 6px;text-align:right;font-size:11px;color:var(--muted)">買進</td></tr>';
+    }).join('');
+
+    ov.innerHTML = '<div class="modal" style="width:600px;max-width:94vw"><h3><i class="ti ti-arrows-exchange"></i> 對帳補單</h3>' +
+        '<div style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:10px">比對基準：<b>' + base.date + '</b> 的股數快照 → 今天（' + todayStr + '）。<br>勾選要補的「股數變多」項目，成交價預設今日現價（可改），確認後補成今日買進交易。</div>' +
+        '<div style="max-height:50vh;overflow-y:auto;border:1px solid var(--border);border-radius:8px"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:var(--muted);font-size:11px;border-bottom:1px solid var(--border)"><th style="padding:6px;text-align:left">股票</th><th style="padding:6px;text-align:right">昨→今</th><th style="padding:6px;text-align:right">差額</th><th style="padding:6px;text-align:right">成交價</th><th style="padding:6px;text-align:right">動作</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+        '<div class="modal-btns" style="margin-top:12px"><button onclick="this.closest(\'.overlay\').remove()">取消</button><button class="btn-primary" id="rec-confirm">確認補單</button></div></div>';
+    document.body.appendChild(ov);
+
+    document.getElementById('rec-confirm').onclick = function() {
+        var cbs = ov.querySelectorAll('.rec-cb');
+        var added = 0;
+        if (!Array.isArray(stockData.trades)) stockData.trades = [];
+        cbs.forEach(function(cb){
+            if (!cb.checked) return;
+            var idx = +cb.dataset.idx;
+            var d = diffs[idx];
+            if (!d || d.dShares <= 0) return;
+            var priceInput = ov.querySelector('.rec-price[data-idx="' + idx + '"]');
+            var price = priceInput ? parseFloat(priceInput.value) : d.price;
+            if (isNaN(price) || price <= 0) { toast(d.id + ' 缺成交價，已略過', true); return; }
+            stockData.trades.push({
+                date: todayStr, id: d.id, name: d.name, type: 'buy',
+                shares: d.dShares, price: price, amount: Math.round(d.dShares * price),
+                _autoFromReconcile: true
+            });
+            added++;
+        });
+        if (added === 0) { toast('沒有勾選任何要補的項目'); return; }
+        try { _syncTradesToCashflow(); saveData(true); } catch(e){ console.error('[reconcile syncTrades]', e); }
+        saveStockData();
+        ov.remove();
+        renderStock();
+        toast('已補 ' + added + ' 筆今日買進交易');
+    };
 }
 
 // ── 補歷史每日收盤價（透過 Apps Script proxy 打 TWSE / TPEX）──
