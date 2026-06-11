@@ -7025,7 +7025,7 @@ function renderStockHoldings() {
     html += '<button class="btn-refresh" onclick="buyHolding(null)" title="新增持股（可選擇是否記入交易紀錄）"><i class="ti ti-plus"></i> <span class="lbl-full">新增持股</span><span class="lbl-short">新增</span></button>';
     html += '<button class="btn-refresh" id="btn-fetch-price" onclick="refreshPrices()"><i class="ti ti-antenna-bars-5"></i> <span class="lbl-full">更新股價</span><span class="lbl-short">更新</span></button>';
     html += '<button class="btn-refresh" onclick="showStockSearchModal()" title="輸入股票代號，查任意個股的漲跌日曆"><i class="ti ti-search"></i> <span class="lbl-full">搜尋個股</span><span class="lbl-short">搜尋</span></button>';
-    html += '<button class="btn-refresh" onclick="openReconcileModal()" title="比對昨日股數快照與今日股數，把差額一鍵補成今日買進交易（賣出仍請用賣出鈕）"><i class="ti ti-arrows-exchange"></i> <span class="lbl-full">對帳補單</span><span class="lbl-short">對帳</span></button>';
+    // 「對帳補單」按鈕已移除：編輯持股改股數時已自動補當日買進，此功能重複（openReconcileModal 函式保留備用）
     html += '<span class="last-update" style="color:var(--muted)">' + _stockPriceFreshnessLabel() + '</span>';
     html += '<button class="btn-refresh btn-drop-calc" onclick="showDropCalcModal()" title="跌幅分批試算"><i class="ti ti-calculator"></i> <span class="lbl-full">跌幅試算</span><span class="lbl-short">試算</span></button>';
     // 標準/緊湊 行高切換（移到此按鈕列，跟跌幅試算同排）
