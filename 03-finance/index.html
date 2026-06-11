@@ -827,7 +827,7 @@ tfoot td:first-child { text-align: left; position: sticky; left: 0; background: 
     .chart-legend-wrap { justify-content: flex-start; }
 }
 .stock-sub-tab {
-    padding: 9px 6px;
+    padding: 9px 16px;
     border: 1.5px solid var(--border);
     border-radius: var(--radius-xs);
     background: var(--card);
@@ -7021,11 +7021,11 @@ function renderStock() {
         html += '</div>';
     }
     html += '<div class="stock-sub-tabs">';
-    html += '<button class="stock-sub-tab' + (stockSubTab==='holdings'?' active':'') + '" onclick="stockSubTab=\'holdings\';renderStock()"><span class="lbl-full">持股總覽</span><span class="lbl-short">總覽</span></button>';
-    html += '<button class="stock-sub-tab' + (stockSubTab==='dividend'?' active':'') + '" onclick="stockSubTab=\'dividend\';renderStock()"><span class="lbl-full">股利紀錄</span><span class="lbl-short">股利</span></button>';
-    html += '<button class="stock-sub-tab' + (stockSubTab==='pledge'?' active':'') + '" onclick="stockSubTab=\'pledge\';renderStock()"><span class="lbl-full">質押借券</span><span class="lbl-short">質押</span></button>';
-    html += '<button class="stock-sub-tab' + (stockSubTab==='analysis'?' active':'') + '" onclick="stockSubTab=\'analysis\';renderStock()"><span class="lbl-full">報酬日曆</span><span class="lbl-short">日曆</span></button>';
-    html += '<button class="stock-sub-tab' + (stockSubTab==='watch'?' active':'') + '" onclick="stockSubTab=\'watch\';renderStock()"><span class="lbl-full">觀察清單</span><span class="lbl-short">觀察</span></button>';
+    html += '<button class="stock-sub-tab' + (stockSubTab==='holdings'?' active':'') + '" onclick="stockSubTab=\'holdings\';renderStock()"><span class="lbl-full">總覽</span><span class="lbl-short">總覽</span></button>';
+    html += '<button class="stock-sub-tab' + (stockSubTab==='dividend'?' active':'') + '" onclick="stockSubTab=\'dividend\';renderStock()"><span class="lbl-full">股利</span><span class="lbl-short">股利</span></button>';
+    html += '<button class="stock-sub-tab' + (stockSubTab==='pledge'?' active':'') + '" onclick="stockSubTab=\'pledge\';renderStock()"><span class="lbl-full">質押</span><span class="lbl-short">質押</span></button>';
+    html += '<button class="stock-sub-tab' + (stockSubTab==='analysis'?' active':'') + '" onclick="stockSubTab=\'analysis\';renderStock()"><span class="lbl-full">日曆</span><span class="lbl-short">日曆</span></button>';
+    html += '<button class="stock-sub-tab' + (stockSubTab==='watch'?' active':'') + '" onclick="stockSubTab=\'watch\';renderStock()"><span class="lbl-full">觀察</span><span class="lbl-short">觀察</span></button>';
     html += '</div>';
     html += renderDividendAlerts();
     html += '</div>';
@@ -7522,10 +7522,12 @@ function _renderDivMonthDetail(ov, ym, label) {
     var _label = function(y){ var m = String(y).split('-')[1]; return m + '月'; };
 
     // 日期顯示：YYYY-MM-DD → MM/DD（同年省略年份，跨年才補年）
+    // 注意：本函式無外層 now，年份自行取得（先前誤用未定義的 now 會丟錯導致明細開不起來）
+    var _curYear = new Date().getFullYear();
     var _mmdd = function(ds){
         var p = (ds || '').split('-');
         if (p.length !== 3) return '';
-        var sameYear = (+p[0]) === now.getFullYear();
+        var sameYear = (+p[0]) === _curYear;
         return sameYear ? (+p[1]) + '/' + (+p[2]) : (p[0].slice(2)) + '/' + (+p[1]) + '/' + (+p[2]);
     };
     var rows = list.map(function(x){
