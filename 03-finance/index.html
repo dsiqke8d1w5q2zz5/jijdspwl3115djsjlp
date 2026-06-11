@@ -9133,7 +9133,8 @@ function showCalDaySnapshot(dateStr) {
     rows.sort(function(a, b){ return String(a.id || '').localeCompare(String(b.id || '')); });
 
     // 當日交易
-    var todayTrades = (stockData.trades || []).filter(function(t){ return t.date === dateStr; });
+    var todayTrades = (stockData.trades || []).filter(function(t){ return t.date === dateStr; })
+        .sort(function(a, b){ return String(a.id || '').localeCompare(String(b.id || ''), 'en', { numeric: true }); });
 
     // 總計
     var totalMarket = 0, totalCost = 0, totalPL = 0, totalDayPL = 0, hasDayPL = false;
