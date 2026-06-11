@@ -6326,6 +6326,31 @@ function renderDividendAlerts() {
         '</div>';
 }
 
+// 配息「基準股數」：除息日當天有資格領息的股數＝除息日前一天收盤時持有的股數。
+// 作法：從「目前股數」往回沖銷所有「除息日(含)當天及之後」的交易（買回沖、賣補回），
+// 因為目前股數是鐵地真值，只要扣掉除息日後才發生的買賣，就還原出除息日前的部位。
+// 例：台積今天 13 股，6/11 除息，6/11 買 1 股 → 13-1=12（那 1 股當天才買，不能領）。
+// 未來除息日（exDate > 今天）：直接用目前股數（之後可能還會買賣，先以現況估）。
+function _sharesEligibleForDividend(stockId, exDate) {
+    var holding = (stockData.holdings || []).find(function(h){ return h.id === stockId; });
+    var cur = holding ? (holding.shares || 0) : 0;
+    var ex = String(exDate || '').slice(0, 10);
+    if (!ex) return cur;
+    var todayStr = _localDateStr(new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' })));
+    if (ex > todayStr) return cur; // 未來除息：用目前股數估
+    var adj = cur;
+    (stockData.trades || []).forEach(function(t){
+        if (!t || t.id !== stockId) return;
+        if (t.type !== 'buy' && t.type !== 'sell') return;
+        var td = String(t.date || '').slice(0, 10);
+        if (!td || td < ex) return;          // 除息日「之前」的交易：已反映在目前股數的歷史中，不沖銷
+        var s = Number(t.shares) || 0;
+        if (t.type === 'buy') adj -= s;       // 除息日(含)之後買的 → 沒資格，扣掉
+        else adj += s;                        // 除息日(含)之後賣的 → 當時還在，加回來
+    });
+    return adj < 0 ? 0 : adj;
+}
+
 // 計算過去 12 個月（從今天往前）的每股現金股利加總，用來估年化殖利率
 // 資料來源：dividend cache（每筆 cash 是 per-share，與 stockData.dividends 的總額不同）
 function _trailing12mCashPerShare(stockId) {
@@ -6442,15 +6467,21 @@ function showDividendAlertModal() {
         if (a.stockDiv > 0) amount.push('股票 ' + a.stockDiv.toFixed(4) + ' 股');
         var amountText = amount.length ? amount.join('<br>') : '—';
 
-        // 預估配息金額（以目前持股股數計算）
+        // 預估配息金額：用「除息日基準股數」（除息日前一天持有），而非目前股數。
+        // 避免除息後才買進的股被誤算進這次配息（如台積 6/11 除息、6/11 多買 1 股不該領）。
         var holding = (stockData.holdings || []).find(function(h){ return h.id === a.stockId; });
-        var shares = holding ? holding.shares : 0;
+        var curShares = holding ? (holding.shares || 0) : 0;
+        var shares = _sharesEligibleForDividend(a.stockId, a.exDate);
         var estCash = shares * (a.cash || 0);
         var estStockShares = shares * (a.stockDiv || 0);
         var estParts = [];
         if (estCash > 0) estParts.push('現金 $' + fmt(estCash));
         if (estStockShares > 0) estParts.push('股票 ' + estStockShares.toFixed(2) + ' 股');
         var estText = estParts.length ? estParts.join('<br>') : '—';
+        // 基準股數與目前股數不同時（除息後有買賣）→ 標註，讓你知道為何不是用最新股數
+        var sharesNote = (shares !== curShares)
+            ? '持有 ' + fmt(shares) + ' 股 <span style="color:#B45309" title="除息日當天有資格領息的股數（除息後新買進的不計）">(除息日基準)</span>'
+            : '持有 ' + fmt(shares) + ' 股';
 
         // 年化殖利率：ETF 配不滿一年時按官方頻率推估（與歷史配息分頁同一套邏輯）
         // 股價用 _currentPriceFor（與持股總覽同一來源，含 priceHistory fallback），避免 stockData.prices 舊值
@@ -6471,7 +6502,7 @@ function showDividendAlertModal() {
         } else {
             html += '<td style="' + td + '">—</td>';
         }
-        html += '<td style="' + td + 'text-align:right;white-space:nowrap;"><b style="color:var(--lux-navy)">' + estText + '</b><br><span style="color:var(--text-light);font-size:11px;">持有 ' + fmt(shares) + ' 股</span></td>';
+        html += '<td style="' + td + 'text-align:right;white-space:nowrap;"><b style="color:var(--lux-navy)">' + estText + '</b><br><span style="color:var(--text-light);font-size:11px;">' + sharesNote + '</span></td>';
         html += '<td style="' + td + 'padding-right:0;text-align:right;white-space:nowrap;"><b style="color:var(--lux-navy)">' + esc(yieldText) + '</b></td>';
         html += '</tr>';
     });
@@ -7490,6 +7521,13 @@ function _renderDivMonthDetail(ov, ym, label) {
     var nextYm = (ci >= 0 && ci < ymList.length - 1) ? ymList[ci + 1] : '';
     var _label = function(y){ var m = String(y).split('-')[1]; return m + '月'; };
 
+    // 日期顯示：YYYY-MM-DD → MM/DD（同年省略年份，跨年才補年）
+    var _mmdd = function(ds){
+        var p = (ds || '').split('-');
+        if (p.length !== 3) return '';
+        var sameYear = (+p[0]) === now.getFullYear();
+        return sameYear ? (+p[1]) + '/' + (+p[2]) : (p[0].slice(2)) + '/' + (+p[1]) + '/' + (+p[2]);
+    };
     var rows = list.map(function(x){
         // 已公告：金額原色(navy)＋標「已公告」；純推估：金額紅色＋標「預估」
         var amtColor = x.announced ? 'var(--lux-navy)' : '#DC2626';
@@ -7503,8 +7541,18 @@ function _renderDivMonthDetail(ov, ym, label) {
         var stockCell = (x.stockShares > 0)
             ? '<span style="color:#7C3AED">≈ ' + fmt(Math.round(x.stockShares)) + u('股') + '</span>'
             : '<span style="color:var(--muted)">—</span>';
+        // 配息日：已公告且有配息日(payDate)才顯示；只有除息日則顯示除息日(標示)；純推估留「—」
+        var dateCell;
+        if (x.announced && x.payDate) {
+            dateCell = '<span style="color:var(--lux-navy);font-weight:600">' + _mmdd(x.payDate) + '</span>';
+        } else if (x.announced && x.exDate) {
+            dateCell = '<span style="color:var(--muted)" title="官方尚未公告配息發放日，先顯示除息日">' + _mmdd(x.exDate) + u(' 除息') + '</span>';
+        } else {
+            dateCell = '<span style="color:var(--muted)">—</span>';
+        }
         return '<tr style="border-bottom:1px solid var(--border)">' +
             '<td style="text-align:left;padding:8px 4px"><b>' + esc(x.id) + '</b> <span style="color:var(--muted);font-size:12px">' + esc(x.name) + '</span>' + tag + '</td>' +
+            '<td style="text-align:center;padding:8px 4px;font-size:12px;white-space:nowrap">' + dateCell + '</td>' +
             '<td style="text-align:right;padding:8px 4px;color:var(--muted);font-size:12px">' + perShareCell + '</td>' +
             '<td style="text-align:right;padding:8px 4px;font-weight:600;color:' + amtColor + '">' + cashCell + '</td>' +
             '<td style="text-align:right;padding:8px 4px;font-weight:600;font-size:12px">' + stockCell + '</td>' +
@@ -7528,12 +7576,13 @@ function _renderDivMonthDetail(ov, ym, label) {
             '　共 ' + list.length + ' 檔</div>' +
         (list.length ? '<table class="stock-table" style="width:100%;font-size:13px"><thead><tr>' +
             '<th style="text-align:left;padding:6px 4px">股票</th>' +
+            '<th style="text-align:center;padding:6px 4px">配息日</th>' +
             '<th style="text-align:right;padding:6px 4px">每股 × 股數</th>' +
             '<th style="text-align:right;padding:6px 4px">現金</th>' +
             '<th style="text-align:right;padding:6px 4px">配股</th>' +
             '</tr></thead><tbody>' + rows + '</tbody></table>'
           : '<div style="padding:20px;text-align:center;color:var(--muted)">此月無預估配息</div>') +
-        '<div style="font-size:11px;color:var(--muted);margin-top:8px">※ <span style="color:var(--green)">已公告</span>＝官方已定除息／配息；<span style="color:#DC2626">預估</span>＝以最近一次配息推估（未公告，僅供參考）。</div>' +
+        '<div style="font-size:11px;color:var(--muted);margin-top:8px">※ <span style="color:var(--green)">已公告</span>＝官方已定除息／配息；<span style="color:#DC2626">預估</span>＝以最近一次配息推估（未公告，僅供參考）。<br>※ 配息日＝官方公告的現金發放日；尚未公告發放日者顯示除息日（標「除息」），純推估則為「—」。</div>' +
         '<div class="modal-btns" style="margin-top:12px"><button class="btn-primary" onclick="this.closest(\'.overlay\').remove()">關閉</button></div>' +
         '</div>';
 
@@ -7613,13 +7662,13 @@ function _buildDividendForecastHtml() {
     // 其發放年月標為已公告。涵蓋「已除息、待發放」的情況（如月配 ETF 除息已過、配息日未到）。
     // key = 'id|YYYY-M'，供明細視窗判斷該檔該月是「已公告」還是「純推估」。
     var todayStr = _localDateStr(now);
-    var announcedKey = {};
+    var announcedKey = {};   // 'id|YYYY-M' → { payDate, exDate }  已公告者的官方日期（供明細顯示配息日）
     (_dividendCacheItems || []).forEach(function(it){
         if (!it || !it.stockId || !it.exDate) return;
         var refDate = it.payDate || it.exDate; // 以「實際入帳日」為準，沒配息日才退回除息日
         if (refDate < todayStr) return;        // 已入帳/過期的不算「未來已公告」
         var payP = refDate.split('-');
-        if (payP.length === 3) announcedKey[it.stockId + '|' + (+payP[0]) + '-' + (+payP[1])] = true;
+        if (payP.length === 3) announcedKey[it.stockId + '|' + (+payP[0]) + '-' + (+payP[1])] = { payDate: it.payDate || '', exDate: it.exDate || '' };
     });
 
     // 本月起 6 個月各月預估（含當月；用各檔「發放月份」推算該月會配，每次金額 = 最近一次每股 × 股數）
@@ -7638,13 +7687,19 @@ function _buildDividendForecastHtml() {
         if (!months) return;
         var cpsPerTime = lastCps[h.id] || 0;            // 最近一次每股現金配息
         var sdPerShare = lastStockDiv[h.id] || 0;       // 最近一次每股配股(元/股)
-        var perTime = cpsPerTime * (h.shares || 0);     // 每次現金配息估值（金額）
-        var stockSharesEst = (sdPerShare / 10) * (h.shares || 0); // 配股率(=元/10) × 股數 = 預估配股股數
-        if (perTime <= 0 && stockSharesEst <= 0) return;
+        var curShares = h.shares || 0;
+        if (cpsPerTime <= 0 && sdPerShare <= 0) return;
         monthNames.forEach(function(mn){
             if (months[mn.mon]) {
+                var ann = announcedKey[h.id + '|' + mn.ym];
+                // 已公告且已除息 → 用除息日基準股數（除息後才買的不算這次）；
+                // 預估列或除息日尚未到 → 用目前股數估（之後可能再買賣）。
+                var elig = (ann && ann.exDate) ? _sharesEligibleForDividend(h.id, ann.exDate) : curShares;
+                var perTime = cpsPerTime * elig;                  // 每次現金配息估值（金額）
+                var stockSharesEst = (sdPerShare / 10) * elig;    // 配股率(=元/10) × 股數 = 預估配股股數
+                if (perTime <= 0 && stockSharesEst <= 0) return;
                 monthEst[mn.ym] += perTime;
-                monthDetail[mn.ym].push({ id: h.id, name: h.name || h.id, amt: perTime, cpsPerTime: cpsPerTime, shares: h.shares || 0, stockShares: stockSharesEst, announced: !!announcedKey[h.id + '|' + mn.ym] });
+                monthDetail[mn.ym].push({ id: h.id, name: h.name || h.id, amt: perTime, cpsPerTime: cpsPerTime, shares: elig, stockShares: stockSharesEst, announced: !!ann, payDate: ann ? ann.payDate : '', exDate: ann ? ann.exDate : '' });
             }
         });
     });
