@@ -370,7 +370,7 @@ tfoot td:first-child { text-align: left; position: sticky; left: 0; background: 
 .stock-sub-tab .lbl-short, .btn-refresh .lbl-short, .last-update .lbl-short, .stock-summary-bar .lbl-short { display: none; }
 .header-btns .lbl-short { display: none; }
 /* 桌面版：台股子分頁與工具列按鈕同寬 */
-.stock-sub-tab, .stock-refresh-bar .btn-refresh { min-width: 110px; text-align: center; }
+.stock-sub-tab, .stock-refresh-bar .btn-refresh { min-width: 80px; text-align: center; }
 /* 桌面版：股利頁「+ 新增股利」與累積股利卡片同一排 */
 .div-summary-wrap { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .div-summary-wrap .div-cum-row { flex: 1; min-width: 0; }
@@ -827,7 +827,7 @@ tfoot td:first-child { text-align: left; position: sticky; left: 0; background: 
     .chart-legend-wrap { justify-content: flex-start; }
 }
 .stock-sub-tab {
-    padding: 9px 16px;
+    padding: 9px 10px;
     border: 1.5px solid var(--border);
     border-radius: var(--radius-xs);
     background: var(--card);
@@ -7530,7 +7530,17 @@ function _renderDivMonthDetail(ov, ym, label) {
         var sameYear = (+p[0]) === _curYear;
         return sameYear ? (+p[1]) + '/' + (+p[2]) : (p[0].slice(2)) + '/' + (+p[1]) + '/' + (+p[2]);
     };
-    var rows = list.map(function(x){
+    // 依「配息日」由早到晚排序（與顯示同優先：已公告 payDate→exDate；無日期者排最後）。
+    // slice() 複製避免動到快取陣列。
+    var _sortKey = function(x){
+        var d = (x.announced && x.payDate) ? x.payDate : (x.announced && x.exDate) ? x.exDate : '';
+        return d || '9999-99-99';
+    };
+    var sortedList = list.slice().sort(function(a, b){
+        var ka = _sortKey(a), kb = _sortKey(b);
+        return ka < kb ? -1 : ka > kb ? 1 : 0;
+    });
+    var rows = sortedList.map(function(x){
         // 已公告：金額原色(navy)＋標「已公告」；純推估：金額紅色＋標「預估」
         var amtColor = x.announced ? 'var(--lux-navy)' : '#DC2626';
         var tag = x.announced
