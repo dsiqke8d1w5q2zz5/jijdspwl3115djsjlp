@@ -7766,18 +7766,33 @@ function _buildDividendForecastHtml() {
     html += '</div>';
     // 進度條
     html += '<div style="height:6px;background:rgba(255,255,255,.15);border-radius:3px;overflow:hidden;margin-bottom:10px"><div style="height:100%;width:' + progPct.toFixed(1) + '%;background:var(--lux-gold)"></div></div>';
-    // 未來 12 個月（單行平均分配，桌面寬度足夠；不換行）
-    html += '<div style="display:flex;gap:5px;flex-wrap:nowrap">';
+    // 未來 12 個月：依西元年分組，每組上方標民國年（115年/116年），組內月份卡橫排平均。
+    // 各組寬度依該組月數按比例分配（flex 權重 = 月數），讓所有月份卡仍維持等寬。
+    var monthGroups = [];   // [{ year(西元), months: [mn...] }]
     monthNames.forEach(function(mn){
-        var amt = Math.round(monthEst[mn.ym]);
-        var clickable = amt > 0;
-        var cellStyle = 'flex:1 1 0;min-width:0;background:rgba(255,255,255,.08);border-radius:8px;padding:6px 4px;text-align:center';
-        if (clickable) cellStyle += ';cursor:pointer';
-        var attr = clickable ? ' onclick="showDivMonthDetail(\'' + mn.ym + '\',\'' + mn.label + '\')" title="點看 ' + mn.label + '配息明細"' : '';
-        html += '<div style="' + cellStyle + '"' + attr + '>' +
-            '<div style="font-size:11px;opacity:.75">' + mn.label + (clickable ? ' <i class="ti ti-chevron-right" style="font-size:10px;opacity:.6"></i>' : '') + '</div>' +
-            '<div style="font-size:14px;font-weight:600;color:' + (amt > 0 ? 'var(--lux-gold)' : 'rgba(255,255,255,.4)') + '">' + (amt > 0 ? '$' + fmt(amt) : '—') + '</div>' +
-            '</div>';
+        var yr = +String(mn.ym).split('-')[0];
+        var g = monthGroups.length ? monthGroups[monthGroups.length - 1] : null;
+        if (!g || g.year !== yr) { g = { year: yr, months: [] }; monthGroups.push(g); }
+        g.months.push(mn);
+    });
+    html += '<div style="display:flex;gap:10px;flex-wrap:nowrap;align-items:flex-end">';
+    monthGroups.forEach(function(g){
+        // 組外層：直向，年標籤在上、月份卡橫排在下；flex 權重 = 月數，確保月份卡等寬
+        html += '<div style="flex:' + g.months.length + ' 1 0;min-width:0">';
+        html += '<div style="font-size:11px;font-weight:600;color:var(--lux-gold);opacity:.9;margin-bottom:4px;padding-left:2px">' + (g.year - 1911) + '年</div>';
+        html += '<div style="display:flex;gap:5px;flex-wrap:nowrap">';
+        g.months.forEach(function(mn){
+            var amt = Math.round(monthEst[mn.ym]);
+            var clickable = amt > 0;
+            var cellStyle = 'flex:1 1 0;min-width:0;background:rgba(255,255,255,.08);border-radius:8px;padding:6px 4px;text-align:center';
+            if (clickable) cellStyle += ';cursor:pointer';
+            var attr = clickable ? ' onclick="showDivMonthDetail(\'' + mn.ym + '\',\'' + mn.label + '\')" title="點看 ' + mn.label + '配息明細"' : '';
+            html += '<div style="' + cellStyle + '"' + attr + '>' +
+                '<div style="font-size:11px;opacity:.75">' + mn.label + (clickable ? ' <i class="ti ti-chevron-right" style="font-size:10px;opacity:.6"></i>' : '') + '</div>' +
+                '<div style="font-size:14px;font-weight:600;color:' + (amt > 0 ? 'var(--lux-gold)' : 'rgba(255,255,255,.4)') + '">' + (amt > 0 ? '$' + fmt(amt) : '—') + '</div>' +
+                '</div>';
+        });
+        html += '</div></div>';
     });
     html += '</div>';
     html += '<div style="font-size:11px;opacity:.6;margin-top:8px">※ 以最近一次配息 × 目前股數推估，僅供參考；實際配息每年可能不同。</div>';
