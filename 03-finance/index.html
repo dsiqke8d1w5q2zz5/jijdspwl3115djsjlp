@@ -7775,7 +7775,7 @@ function _buildDividendForecastHtml() {
         if (!g || g.year !== yr) { g = { year: yr, months: [] }; monthGroups.push(g); }
         g.months.push(mn);
     });
-    html += '<div style="display:flex;gap:14px;flex-wrap:nowrap;align-items:stretch;margin-top:6px">';
+    html += '<div style="display:flex;gap:14px;flex-wrap:nowrap;align-items:stretch;margin-top:18px">';
     monthGroups.forEach(function(g){
         // 年份框：淡色外框＋淡背景包住整年月份卡，年標籤做成金底胸章浮在框左上角，分組一目了然。
         // flex 權重 = 月數，確保各年月份卡仍等寬。
