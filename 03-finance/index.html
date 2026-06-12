@@ -7540,10 +7540,19 @@ function _renderDivMonthDetail(ov, ym, label) {
         var ka = _sortKey(a), kb = _sortKey(b);
         return ka < kb ? -1 : ka > kb ? 1 : 0;
     });
+    // 今天（本地）YYYY-MM-DD 字串，用來判斷配息日是否已過 → 標「已配息」
+    var _today = (function(){
+        var d = new Date();
+        var p2 = function(n){ return (n < 10 ? '0' : '') + n; };
+        return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate());
+    })();
     var rows = sortedList.map(function(x){
-        // 已公告：金額原色(navy)＋標「已公告」；純推估：金額紅色＋標「預估」
+        // 已配息：已公告且配息日已過今天；已公告：官方已定除息/配息；純推估：紅色標「預估」
         var amtColor = x.announced ? 'var(--lux-navy)' : '#DC2626';
-        var tag = x.announced
+        var paid = x.announced && x.payDate && x.payDate <= _today;
+        var tag = paid
+            ? '<span style="font-size:11px;color:var(--lux-navy);margin-left:6px">已配息</span>'
+            : x.announced
             ? '<span style="font-size:11px;color:var(--green);margin-left:6px">已公告</span>'
             : '<span style="font-size:11px;color:#DC2626;margin-left:6px">預估</span>';
         var perShareCell = (x.cpsPerTime > 0)
