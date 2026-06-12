@@ -7706,11 +7706,11 @@ function _buildDividendForecastHtml() {
         if (payP.length === 3) announcedKey[it.stockId + '|' + (+payP[0]) + '-' + (+payP[1])] = { payDate: it.payDate || '', exDate: it.exDate || '' };
     });
 
-    // 本月起 6 個月各月預估（含當月；用各檔「發放月份」推算該月會配，每次金額 = 最近一次每股 × 股數）
+    // 本月起 12 個月各月預估（含當月；用各檔「發放月份」推算該月會配，每次金額 = 最近一次每股 × 股數）
     var monthEst = {};    // 'YYYY-M' → 金額
     var monthDetail = {}; // 'YYYY-M' → [{ id, name, amt, cpsPerTime, shares, announced }]  逐檔明細
     var monthNames = [];
-    for (var k = 0; k <= 5; k++) {
+    for (var k = 0; k <= 11; k++) {
         var dt = new Date(now.getFullYear(), now.getMonth() + k, 1);
         var ym = dt.getFullYear() + '-' + (dt.getMonth() + 1);
         monthNames.push({ ym: ym, mon: dt.getMonth() + 1, label: (dt.getMonth() + 1) + '月' });
@@ -7766,12 +7766,12 @@ function _buildDividendForecastHtml() {
     html += '</div>';
     // 進度條
     html += '<div style="height:6px;background:rgba(255,255,255,.15);border-radius:3px;overflow:hidden;margin-bottom:10px"><div style="height:100%;width:' + progPct.toFixed(1) + '%;background:var(--lux-gold)"></div></div>';
-    // 未來 6 個月
-    html += '<div style="display:flex;gap:6px;flex-wrap:wrap">';
+    // 未來 12 個月（單行平均分配，桌面寬度足夠；不換行）
+    html += '<div style="display:flex;gap:5px;flex-wrap:nowrap">';
     monthNames.forEach(function(mn){
         var amt = Math.round(monthEst[mn.ym]);
         var clickable = amt > 0;
-        var cellStyle = 'flex:1 1 90px;min-width:80px;background:rgba(255,255,255,.08);border-radius:8px;padding:6px 8px;text-align:center';
+        var cellStyle = 'flex:1 1 0;min-width:0;background:rgba(255,255,255,.08);border-radius:8px;padding:6px 4px;text-align:center';
         if (clickable) cellStyle += ';cursor:pointer';
         var attr = clickable ? ' onclick="showDivMonthDetail(\'' + mn.ym + '\',\'' + mn.label + '\')" title="點看 ' + mn.label + '配息明細"' : '';
         html += '<div style="' + cellStyle + '"' + attr + '>' +
