@@ -6197,11 +6197,19 @@ function checkDividendAlerts(onReady) {
                 .then(function(results) {
                     var preview = results[0];
                     var result = results[1];
+                    // FinMind preview 含「近期除息預告」，常比 TWSE/TPEX/雲端快取更新（如台虹今年 6/30 除息、
+                    // 7/23 配息）。除了 pushAlert 顯示提醒，也要合併回 _dividendCacheItems，月預估配息與
+                    // 殖利率才看得到這筆新除息（否則只進提醒清單、月明細用舊快取會漏檔或歸錯月）。
+                    var fmItems = [];
                     if (preview.status === 200 && preview.data) {
                         preview.data.forEach(function(d) {
-                            var exDate = d.CashExDividendTradingDate || d.StockExDividendTradingDate || '';
+                            var exDate = _normDate(d.CashExDividendTradingDate || d.StockExDividendTradingDate || '');
                             if (!exDate) return;
-                            pushAlert(h, exDate, d.CashEarningsDistribution, d.StockEarningsDistribution, d.CashDividendPaymentDate);
+                            var cash = Number(d.CashEarningsDistribution) || 0;
+                            var stockDiv = Number(d.StockEarningsDistribution) || 0;
+                            var payDate = _normDate(d.CashDividendPaymentDate || '');
+                            pushAlert(h, exDate, cash, stockDiv, payDate);
+                            fmItems.push({ stockId: h.id, exDate: exDate, cash: cash, stockDiv: stockDiv, payDate: payDate });
                         });
                     }
                     if (result.status === 200 && result.data) {
@@ -6209,6 +6217,12 @@ function checkDividendAlerts(onReady) {
                             if (!d.date) return;
                             pushAlert(h, d.date, d.stock_and_cache_dividend, 0, '');
                         });
+                    }
+                    // 合併進快取（_mergeDividendPayDate 以 id|exDate 去重、補 payDate、取較大金額），
+                    // 讓既有快取的較完整金額/日期不被覆蓋，新增的未來除息則補進來。
+                    if (fmItems.length) {
+                        _dividendCacheItems = _mergeDividendPayDate(_dividendCacheItems.concat(fmItems));
+                        _saveDividendCacheLS();
                     }
                     pending--;
                     if (pending <= 0) {
