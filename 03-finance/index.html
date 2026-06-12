@@ -7717,6 +7717,16 @@ function _buildDividendForecastHtml() {
         monthEst[ym] = 0;
         monthDetail[ym] = [];
     }
+    // 各檔在未來 6 個月視窗內「已公告」的月份集合（id → { 月(1-12): true }）。
+    // 年配/低頻股（freq≤1）一年只配一次：若今年那次已公告，舊配息月份殘留的「純預估」就是重複，須抑制。
+    // （月配 freq=12、季配 freq=5 等：每月/每季是不同次配息，不可抑制，故僅對 freq≤1 生效。）
+    var announcedMon = {};
+    monthNames.forEach(function(mn){
+        Object.keys(announcedKey).forEach(function(key){
+            var parts = key.split('|');
+            if (parts[1] === mn.ym) { if (!announcedMon[parts[0]]) announcedMon[parts[0]] = {}; announcedMon[parts[0]][mn.mon] = true; }
+        });
+    });
     holdings.forEach(function(h){
         var months = payMonths[h.id];
         if (!months) return;
@@ -7724,9 +7734,12 @@ function _buildDividendForecastHtml() {
         var sdPerShare = lastStockDiv[h.id] || 0;       // 最近一次每股配股(元/股)
         var curShares = h.shares || 0;
         if (cpsPerTime <= 0 && sdPerShare <= 0) return;
+        // 年配股（freq≤1）且已有任一月公告 → 只保留已公告月，抑制其餘純預估月（避免今年公告月＋去年舊月份重複）
+        var suppressUnannounced = (freq[h.id] || 0) <= 1 && announcedMon[h.id];
         monthNames.forEach(function(mn){
             if (months[mn.mon]) {
                 var ann = announcedKey[h.id + '|' + mn.ym];
+                if (!ann && suppressUnannounced) return; // 已公告的那次才是今年這次，舊月份預估不顯示
                 // 已公告且已除息 → 用除息日基準股數（除息後才買的不算這次）；
                 // 預估列或除息日尚未到 → 用目前股數估（之後可能再買賣）。
                 var elig = (ann && ann.exDate) ? _sharesEligibleForDividend(h.id, ann.exDate) : curShares;
