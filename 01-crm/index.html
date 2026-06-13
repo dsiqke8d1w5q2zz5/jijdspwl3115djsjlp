@@ -5232,6 +5232,16 @@ document.addEventListener('keydown', function(e) {
             e.preventDefault(); navEdit(dir); return;
         }
     }
+    // 編輯客戶頁面：按 Enter 直接儲存（textarea 內仍可換行）
+    if (e.key === 'Enter' && !e.shiftKey
+        && document.getElementById('fModal').style.display === 'flex') {
+        var el = document.activeElement;
+        if (el && el.tagName === 'TEXTAREA') return;
+        // 避免攔截「帶入聯絡人」等下拉選單操作
+        if (el && el.tagName === 'SELECT') return;
+        e.preventDefault();
+        saveClient();
+    }
 });
 
 // ── 預覽頁左右切換 ──
