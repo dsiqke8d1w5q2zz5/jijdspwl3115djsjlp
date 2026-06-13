@@ -11562,6 +11562,63 @@ function doCheckIn() {
     if (typeof autoSync === 'function') { setTimeout(autoSync, 300); }
 }
 
+// ── 編輯本月打卡次數（長按 / 右鍵打卡鈕觸發，補正忘記打卡的天數）──
+function editCheckIn() {
+    var cur = getCheckInCount();
+    var overlay = document.createElement('div');
+    overlay.className = 'fill-overlay';
+    var box = document.createElement('div');
+    box.className = 'fill-menu';
+    box.style.padding = '16px'; box.style.minWidth = '260px'; box.style.maxWidth = '320px';
+    box.innerHTML = '<div style="font-weight:700;font-size:15px;margin-bottom:4px"><i class="ti ti-map-pin-check" style="color:#10B981"></i> 編輯本月打卡次數</div>' +
+        '<div style="font-size:12px;color:#A8A29E;margin-bottom:12px">忘記打卡可在此補正本月累計次數</div>' +
+        '<input id="ci-edit-input" type="number" min="0" inputmode="numeric" value="' + cur + '" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;font-size:20px;font-weight:700;text-align:center;font-family:inherit;box-sizing:border-box;margin-bottom:14px">' +
+        '<div style="display:flex;gap:8px">' +
+            '<button onclick="closeOverlay(this.closest(\'.fill-overlay\'))" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:8px;background:white;font-size:14px;cursor:pointer;font-family:inherit">取消</button>' +
+            '<button id="ci-edit-save" style="flex:1;padding:10px;border:none;border-radius:8px;background:#10B981;color:white;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">儲存</button>' +
+        '</div>';
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    var input = document.getElementById('ci-edit-input');
+    function _save() {
+        var n = parseInt(input.value, 10);
+        if (isNaN(n) || n < 0) { showToast('請輸入 0 或正整數', 'warn'); return; }
+        var data = getCheckInData();
+        // 保留 lastDay：若有改動且本來就是本月，沿用；否則僅記月份（不擋當天再次打卡）
+        var lastDay = (data.month === _checkInMonthKey()) ? (data.lastDay || '') : '';
+        try { localStorage.setItem('checkIn', JSON.stringify({ month: _checkInMonthKey(), count: n, lastDay: lastDay })); } catch(e) { console.error('打卡編輯儲存失敗', e); }
+        renderCheckInCount();
+        overlay.remove();
+        if (typeof showToast === 'function') showToast('已更新本月打卡次數為 ' + n + ' 次');
+        if (typeof autoSync === 'function') { setTimeout(autoSync, 300); }
+    }
+    document.getElementById('ci-edit-save').onclick = _save;
+    box.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); _save(); } });
+    if (!window.matchMedia('(max-width:768px)').matches) { input.focus(); input.select(); }
+}
+
+// ── 打卡鈕：長按 / 右鍵 → 開啟編輯（單擊維持當天打卡）──
+function _bindCheckInEdit() {
+    document.querySelectorAll('.mc-checkin').forEach(function(btn) {
+        if (btn._ciEditBound) return;
+        btn._ciEditBound = true;
+        // 右鍵 → 編輯
+        btn.addEventListener('contextmenu', function(e) { e.preventDefault(); editCheckIn(); });
+        // 長按（滑鼠/觸控）→ 編輯，並標記避免長按放開又觸發 click 打卡
+        var timer = null, longPressed = false;
+        function start() { longPressed = false; timer = setTimeout(function() { longPressed = true; editCheckIn(); }, 550); }
+        function cancel() { if (timer) { clearTimeout(timer); timer = null; } }
+        btn.addEventListener('mousedown', start);
+        btn.addEventListener('mouseup', cancel);
+        btn.addEventListener('mouseleave', cancel);
+        btn.addEventListener('touchstart', start, { passive: true });
+        btn.addEventListener('touchend', cancel);
+        btn.addEventListener('touchmove', cancel);
+        // 長按結束後攔掉緊接著的 click，避免又打了一次卡
+        btn.addEventListener('click', function(e) { if (longPressed) { e.preventDefault(); e.stopPropagation(); longPressed = false; } }, true);
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // 手機版固定 header + nav
     function _fixMobileHeader() {
@@ -11577,6 +11634,7 @@ document.addEventListener('DOMContentLoaded', function() {
     _fixMobileHeader();
     window.addEventListener('resize', function() { setTimeout(_fixMobileHeader, 100); });
     renderCheckInCount();
+    _bindCheckInEdit();
 
     document.querySelectorAll('.overlay').forEach(function(o) {
         _mnavObs.observe(o, { attributes: true, attributeFilter: ['style'] });
