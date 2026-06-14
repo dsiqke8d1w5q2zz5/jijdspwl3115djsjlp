@@ -6510,13 +6510,16 @@ function showDividendAlertModal() {
         html += '<tr>';
         html += '<td style="' + td + 'padding-left:0;"><b>' + esc(a.stockId) + '</b><br><span style="color:var(--text-light);font-size:12px;">' + esc(a.stockName) + '</span></td>';
         html += '<td style="' + td + 'text-align:right;white-space:nowrap;">' + amountText + '</td>';
-        // 已發生（除息/配息日已過今天）→ 日期改淡灰、不加粗，與未來事件區分；未來事件維持橘褐色加粗。
+        // 已發生（除息/配息日已過今天）→ 日期加刪除線＋更淡的灰、不加粗，明確標示「已過去」；
+        // 未來事件維持橘褐色加粗。除息日、配息日各自獨立判斷。
+        var pastDateStyle = 'font-weight:400;color:#B8BCC4;text-decoration:line-through;';
+        var futureDateStyle = 'font-weight:700;color:#B45309;';
         var exPast = a.diff < 0;
-        var exDateStyle = exPast ? 'font-weight:400;color:var(--text-light);' : 'font-weight:700;color:#B45309;';
+        var exDateStyle = exPast ? pastDateStyle : futureDateStyle;
         html += '<td style="' + td + 'white-space:nowrap;"><span style="' + exDateStyle + '">' + esc(a.exDate) + '</span><br><span style="color:var(--text-light);font-size:11px;">' + exLabel + '</span></td>';
         if (a.payDate) {
             var payPast = (a.payDiff !== null && a.payDiff < 0);
-            var payDateStyle = payPast ? 'font-weight:400;color:var(--text-light);' : 'font-weight:700;color:#B45309;';
+            var payDateStyle = payPast ? pastDateStyle : futureDateStyle;
             html += '<td style="' + td + 'white-space:nowrap;"><span style="' + payDateStyle + '">' + esc(a.payDate) + '</span><br><span style="color:var(--text-light);font-size:11px;">' + payLabel + '</span></td>';
         } else {
             html += '<td style="' + td + '">—</td>';
