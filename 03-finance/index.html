@@ -5860,9 +5860,11 @@ function _applyDividendToIncome(dateStr, cash, delta) {
     return true;
 }
 
-function addDividend() {
+function addDividend(prefill) {
+    prefill = prefill || null; // { stockId, date, cashPerShare, cash, stockShares } 可選預填（配息日當天提醒帶入）
     var options = stockData.holdings.map(function(h) {
-        return '<option value="' + esc(h.id) + '">' + esc(h.id + ' ' + h.name) + '</option>';
+        var sel = (prefill && prefill.stockId === h.id) ? ' selected' : '';
+        return '<option value="' + esc(h.id) + '"' + sel + '>' + esc(h.id + ' ' + h.name) + '</option>';
     }).join('');
     var ov = document.createElement('div');
     ov.className = 'overlay';
@@ -5884,6 +5886,13 @@ function addDividend() {
     // 預設今天
     document.getElementById('div-date').value = new Date().toISOString().slice(0,10);
     bindDateInput(document.getElementById('div-date'));
+    // 配息日當天提醒帶入的預填值（日期、每股、現金、配股）。使用者仍可在視窗內修改後再存。
+    if (prefill) {
+        if (prefill.date) document.getElementById('div-date').value = prefill.date;
+        if (prefill.cashPerShare > 0) document.getElementById('div-cash-per-share').value = prefill.cashPerShare;
+        if (prefill.cash > 0) document.getElementById('div-cash').value = Math.round(prefill.cash);
+        if (prefill.stockShares > 0) document.getElementById('div-stock-shares').value = prefill.stockShares;
+    }
     document.getElementById('div-save').onclick = function() {
         var stockId = document.getElementById('div-stock').value;
         var date = document.getElementById('div-date').value;
@@ -6447,10 +6456,58 @@ function _maybeAutoPopDividendModal() {
         if (localStorage.getItem('dividendAutoPopShown') === todayKey) return; // 今天已彈過
         localStorage.setItem('dividendAutoPopShown', todayKey);
     } catch (e) {}
-    showDividendAlertModal();
+    // 自動彈出除權息提醒；使用者關閉後，若今天有配息再逐檔詢問是否記股利。
+    showDividendAlertModal(_promptRecordDividendsToday);
 }
 
-function showDividendAlertModal() {
+// 配息日當天：逐檔詢問「要不要記這筆股利」。按是→帶預填開新增股利表單；按否→今天此檔不再追問。
+// 已記過（同股同日已有股利紀錄）或當天已詢問過的，跳過，避免重複打擾。
+function _promptRecordDividendsToday() {
+    if (!_dividendAlertChecked || !_dividendAlerts || !_dividendAlerts.length) return;
+    var t = new Date();
+    var todayStr = t.getFullYear() + '-' + ('0' + (t.getMonth() + 1)).slice(-2) + '-' + ('0' + t.getDate()).slice(-2);
+    // 今天配息（payDiff===0）的標的
+    var dueToday = _dividendAlerts.filter(function(a){ return a.payDiff === 0 && (a.cash > 0 || a.stockDiv > 0); });
+    if (!dueToday.length) return;
+    // 排除：當天已詢問過、或已有同股同日的股利紀錄
+    var pending = dueToday.filter(function(a){
+        var handledKey = 'divRecordHandled-' + todayStr + '-' + a.stockId;
+        try { if (localStorage.getItem(handledKey) === '1') return false; } catch (e) {}
+        var already = (stockData.dividends || []).some(function(d){ return d.stockId === a.stockId && d.date === todayStr; });
+        if (already) { try { localStorage.setItem(handledKey, '1'); } catch (e) {} return false; }
+        return true;
+    });
+    if (!pending.length) return;
+    // 逐筆詢問（一次問一檔，避免同時彈多個視窗）
+    var i = 0;
+    function askNext() {
+        if (i >= pending.length) return;
+        var a = pending[i++];
+        var handledKey = 'divRecordHandled-' + todayStr + '-' + a.stockId;
+        var markHandled = function(){ try { localStorage.setItem(handledKey, '1'); } catch (e) {} };
+        // 預估金額：除息日基準股數 × 每股配息（與提醒清單同一套）
+        var shares = _sharesEligibleForDividend(a.stockId, a.exDate);
+        var estCash = shares * (a.cash || 0);
+        var estStockShares = shares * (a.stockDiv || 0);
+        var lines = [a.stockId + ' ' + (a.stockName || '') + ' 今天配息（' + todayStr + '）'];
+        if (a.cash > 0) lines.push('每股現金 $' + a.cash.toFixed(3) + ' × ' + fmt(shares) + ' 股 ≈ $' + fmt(Math.round(estCash)));
+        if (a.stockDiv > 0) lines.push('每股配股 ' + a.stockDiv.toFixed(4) + ' × ' + fmt(shares) + ' 股 ≈ ' + estStockShares.toFixed(2) + ' 股');
+        lines.push('\n要把這筆股利記進帳嗎？');
+        showConfirm2(lines.join('\n'), function() {
+            // 是 → 帶預填開新增股利表單（使用者可再調整後存）
+            markHandled();
+            addDividend({ stockId: a.stockId, date: todayStr, cashPerShare: a.cash || 0, cash: estCash, stockShares: estStockShares });
+            // 不接著問下一檔：開了表單就先讓使用者處理；其餘待下次開頁再問
+        }, function() {
+            // 否 → 今天此檔不再追問，續問下一檔
+            markHandled();
+            askNext();
+        }, { title: '<i class="ti ti-calendar-dollar"></i> 記錄股利', okText: '好，去記', cancelText: '不用' });
+    }
+    askNext();
+}
+
+function showDividendAlertModal(onClose) {
     if (_dividendAlerts.length === 0) return;
     var ov = document.createElement('div');
     ov.className = 'overlay';
@@ -6534,7 +6591,7 @@ function showDividendAlertModal() {
     html += '</div>';
     ov.innerHTML = html;
     document.body.appendChild(ov);
-    document.getElementById('div-alert-ok').onclick = function() { ov.remove(); };
+    document.getElementById('div-alert-ok').onclick = function() { ov.remove(); if (typeof onClose === 'function') onClose(); };
     var _refreshBtn = document.getElementById('div-alert-refresh');
     if (_refreshBtn) _refreshBtn.onclick = function() {
         if (_refreshBtn.disabled) return;
