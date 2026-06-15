@@ -7152,7 +7152,10 @@ function renderStockHoldings() {
     if (totalCumDiv > 0) {
         html += '<span style="color:var(--muted)">含息損益 <b class="' + (totalPLwithDiv>=0?'pos':'neg') + '">' + (totalPLwithDiv>=0?'+':'') + fmt(totalPLwithDiv) + ' (' + fmtRate(totalRateWithDiv) + ')</b></span>';
     }
-    html += '<span style="color:var(--muted)">今日損益 <b class="' + (todayPL>=0?'pos':'neg') + '">' + (todayPL>=0?'+':'') + fmt(todayPL) + '</b></span>';
+    // 今日損益率＝今日損益 ÷ 昨日市值（昨日市值＝今日市值−今日損益），即整體今日漲跌幅
+    var prevMarket = totalMarket - todayPL;
+    var todayRate = prevMarket > 0 ? (todayPL / prevMarket) * 100 : 0;
+    html += '<span style="color:var(--muted)">今日損益 <b class="' + (todayPL>=0?'pos':'neg') + '">' + (todayPL>=0?'+':'') + fmt(todayPL) + ' (' + (todayRate>=0?'+':'') + fmtRate(todayRate) + ')</b></span>';
     html += '</div>';
 
     // 持股明細表
