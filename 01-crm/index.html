@@ -3779,6 +3779,16 @@ function getData() {
             return true;
         });
     }
+    // 顯示封存時：把封存卡片提到最前面（穩定排序，維持各自原有順序與租案配對相鄰）
+    if (showArchived) {
+        var _idx = new Map();
+        list.forEach(function(c, i){ _idx.set(c, i); });
+        list.sort(function(a, b) {
+            var av = a.archived ? 0 : 1, bv = b.archived ? 0 : 1;
+            if (av !== bv) return av - bv;
+            return _idx.get(a) - _idx.get(b);
+        });
+    }
     return list;
 }
 
