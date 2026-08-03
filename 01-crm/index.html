@@ -5173,8 +5173,13 @@ function showDet(id, viewAs) {
             ${(function(){
                 if (!c.contactLog || !c.contactLog.length) return '';
                 var sorted = c.contactLog.slice().sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
-                return '<div class="det-sec">聯繫紀錄</div>' +
-                    sorted.map(function(log){ return '<div class="det-row"><span class="det-key" style="color:#059669;font-weight:700">'+esc(isoToROC(log.date))+'</span><span class="det-val">'+esc(log.memo)+'</span></div>'; }).join('');
+                var row = function(log){ return '<div class="det-row"><span class="det-key" style="color:#059669;font-weight:700">'+esc(isoToROC(log.date))+'</span><span class="det-val">'+esc(log.memo)+'</span></div>'; };
+                var html = '<div class="det-sec">聯繫紀錄</div>' + sorted.slice(0,10).map(row).join('');
+                if (sorted.length > 10) {
+                    html += '<div id="detLogMore" style="display:none">' + sorted.slice(10).map(row).join('') + '</div>' +
+                        '<div id="detLogToggle" onclick="toggleDetLog()" style="font-size:13px;color:#059669;font-weight:600;cursor:pointer;padding:6px 0;user-select:none">顯示其餘 '+(sorted.length-10)+' 筆 <i class="ti ti-chevron-down"></i></div>';
+                }
+                return html;
             })()}
         </div>`;
     document.getElementById('dModal').style.display='flex';
@@ -5194,6 +5199,14 @@ function showDet(id, viewAs) {
     navWrap.innerHTML = '<button class="btn-ic" onclick="navDet(-1)" title="上一筆" style="font-size:14px;padding:4px 8px;'+prevStyle+'"><i class="ti ti-chevron-left"></i></button>' +
         '<span style="font-size:12px;font-weight:600;color:var(--muted)">' + (detIdx+1) + ' / ' + detListCache.length + '</span>' +
         '<button class="btn-ic" onclick="navDet(1)" title="下一筆" style="font-size:14px;padding:4px 8px;'+nextStyle+'"><i class="ti ti-chevron-right"></i></button>';
+}
+function toggleDetLog(){
+    var more = document.getElementById('detLogMore'), btn = document.getElementById('detLogToggle');
+    if (!more || !btn) return;
+    var open = more.style.display !== 'none';
+    more.style.display = open ? 'none' : '';
+    btn.innerHTML = open ? '顯示其餘 '+more.children.length+' 筆 <i class="ti ti-chevron-down"></i>'
+                         : '收合 <i class="ti ti-chevron-up"></i>';
 }
 var _detFromPerf = false;
 function closeDet(){ document.getElementById('dModal').style.display='none'; if(_detFromPerf){ _detFromPerf=false; document.getElementById('perfModal').style.display='flex'; } detListCache=[]; currentDetId=null; currentDetIdx=-1; }
