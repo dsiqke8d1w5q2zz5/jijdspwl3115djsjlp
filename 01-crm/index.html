@@ -4354,6 +4354,8 @@ function renderCard(c) {
             var _sFloorPrice = cc.sFloorPrice || sp0.floorPrice || '';
             var _cEnd = cc.contractEnd || sp0.contractEnd || '';
             if (_cEnd) meta += `<div class="cmeta-row"><span class="cmeta-k">到期日</span><span class="cmeta-v" style="color:#D97706;font-weight:700">${esc(isoToROC(_cEnd))}</span></div>`;
+            var _isPass = !!(cc.spPass || sp0.spPass);
+            if (_isPass) meta += `<div class="cmeta-row"><span class="cmeta-v" style="background:#FEF3C7;color:#B45309;font-size:12px;font-weight:700;padding:1px 8px;border-radius:9px;border:1px solid #FCD9B6">PASS件</span></div>`;
             if (_ct) meta += `<div class="cmeta-row"><span class="cmeta-k">約種</span><span class="cmeta-v">${esc(_ct)}</span></div>`;
             if (_comm) meta += `<div class="cmeta-row"><span class="cmeta-k">社區</span><span class="cmeta-v">${esc(_comm)}</span></div>`;
             if (_sAddr) meta += `<div class="cmeta-row"><span class="cmeta-k">地址</span><span class="cmeta-v full">${esc(_sAddr)}</span></div>`;
@@ -4713,6 +4715,7 @@ function typeDetail(origC, viewAs) {
         function renderSpBlock(sp) {
             var r = [];
             if (sp.grade) r.push('<div class="det-row"><span class="det-key">物件等級</span><span class="det-val"><span class="tag grade-tag-'+esc(sp.grade).toLowerCase()+'" style="font-size:14px;padding:3px 12px">'+esc(sp.grade)+'級</span></span></div>');
+            if (sp.spPass) r.push('<div class="det-row"><span class="det-key">PASS件</span><span class="det-val"><span style="background:#FEF3C7;color:#B45309;font-size:12px;font-weight:700;padding:2px 9px;border-radius:9px;border:1px solid #FCD9B6">非本人委託</span></span></div>');
             r.push(dRow('約種',sp.contractType||''));
             r.push(dRow('社區大樓',sp.community||''));
             r.push(dRow('物件地址',sp.addr||''));
@@ -5401,6 +5404,7 @@ function addSellerProperty(data) {
             '<button type="button" class="rm-btn'+(d.contractType==='一般約'?' on':'')+'" onclick="pickSpContract(this,\'一般約\')">一般約</button>' +
             '<button type="button" class="rm-btn'+(d.contractType==='口頭約'?' on':'')+'" onclick="pickSpContract(this,\'口頭約\')">口頭約</button>' +
             '<input type="hidden" data-f="contractType" value="'+esc(d.contractType||'')+'">' +
+            '<label style="display:flex;align-items:center;gap:4px;margin-left:10px;font-size:13px;font-weight:600;color:#B45309;cursor:pointer;user-select:none" title="非本人委託，介紹給他人的案件"><input type="checkbox" data-f="spPass"'+(d.spPass?' checked':'')+' style="cursor:pointer;width:15px;height:15px;accent-color:#B45309">PASS件</label>' +
         '</div>' +
         // 社區+地址
         '<div class="sp-addr-row" style="display:grid;grid-template-columns:1fr 3fr;gap:8px;margin-bottom:6px">' +
@@ -5835,7 +5839,7 @@ function getSellerProperties() {
     document.querySelectorAll('#sPropertyList .person-block').forEach(function(block) {
         var get = function(f) { var el = block.querySelector('[data-f="'+f+'"]'); return el ? el.value.trim() : ''; };
         if (get('community') || get('addr') || get('price')) {
-            var _spArch = get('spArchived'); var _reasonEl = block.querySelector('.sp-pause-reason'); var _reason = _reasonEl ? _reasonEl.textContent.replace('暫停原因：','') : ''; r.push({ grade:get('grade'), contractType:get('contractType'), community:get('community'), addr:get('addr'), price:get('price'), floorPrice:get('floorPrice'), serviceFee:get('serviceFee'), baseLand:get('baseLand'), landShare:get('landShare'), mainBldg:get('mainBldg'), ancBldg:get('ancBldg'), common:get('common'), parkingSz:get('parkingSz'), parking:get('parking'), parkingPrice:get('parkingPrice'), parkingNo:get('parkingNo'), mgmtBuilding:get('mgmtBuilding'), mgmtCar:get('mgmtCar'), mgmtMoto:get('mgmtMoto'), mgmtOther:get('mgmtOther'), mgmtPeriod:get('mgmtPeriod'), contractStart:rocToISO(get('contractStart')), contractEnd:rocToISO(get('contractEnd')), spRenewals: block._spRenewals || [], spPriceHistory: block._spPriceHistory || [], spFloorPriceHistory: block._spFloorPriceHistory || [], spDriveUrl: block._spDriveUrl || '', spArchived: _spArch ? '1' : '', spArchiveReason: _reason, spPauseHistory: block._spPauseHistory || [] });
+            var _spArch = get('spArchived'); var _reasonEl = block.querySelector('.sp-pause-reason'); var _reason = _reasonEl ? _reasonEl.textContent.replace('暫停原因：','') : ''; var _passEl = block.querySelector('[data-f="spPass"]'); r.push({ grade:get('grade'), contractType:get('contractType'), spPass: (_passEl && _passEl.checked) ? '1' : '', community:get('community'), addr:get('addr'), price:get('price'), floorPrice:get('floorPrice'), serviceFee:get('serviceFee'), baseLand:get('baseLand'), landShare:get('landShare'), mainBldg:get('mainBldg'), ancBldg:get('ancBldg'), common:get('common'), parkingSz:get('parkingSz'), parking:get('parking'), parkingPrice:get('parkingPrice'), parkingNo:get('parkingNo'), mgmtBuilding:get('mgmtBuilding'), mgmtCar:get('mgmtCar'), mgmtMoto:get('mgmtMoto'), mgmtOther:get('mgmtOther'), mgmtPeriod:get('mgmtPeriod'), contractStart:rocToISO(get('contractStart')), contractEnd:rocToISO(get('contractEnd')), spRenewals: block._spRenewals || [], spPriceHistory: block._spPriceHistory || [], spFloorPriceHistory: block._spFloorPriceHistory || [], spDriveUrl: block._spDriveUrl || '', spArchived: _spArch ? '1' : '', spArchiveReason: _reason, spPauseHistory: block._spPauseHistory || [] });
         }
     });
     return r;
