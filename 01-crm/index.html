@@ -5493,6 +5493,46 @@ function moveSpToDev(btn) {
     if (list && list.lastElementChild) list.lastElementChild.scrollIntoView({ behavior:'smooth', block:'center' });
     showToast('已複製到商機物件，記得儲存', 'ok');
 }
+// ── 商機物件 → 庫存屋主 / 房東 ──
+function _devBlockData(btn) {
+    var block = btn.closest('.person-block'); if (!block) return null;
+    var get = function(f){ var el = block.querySelector('[data-f="'+f+'"]'); return el ? el.value.trim() : ''; };
+    var community = get('community'), addr = get('addr');
+    if (!community && !addr) { showToast('請先填寫社區或地址', 'warn'); return null; }
+    return { community:community, addr:addr, houseType:get('houseType'), landSz:get('landSz'),
+             bldgSz:get('bldgSz'), hasParking:get('hasParking'), parking:get('parking'), devType:get('devType') };
+}
+function moveDevToSp(btn) {
+    var d = _devBlockData(btn); if (!d) return;
+    if (!selectedTypes.includes('庫存屋主')) selectedTypes.push('庫存屋主');
+    activeView = '庫存屋主';
+    applyTypePicker();
+    addSellerProperty({
+        community: d.community,
+        addr: d.addr,
+        landShare: d.landSz,
+        mainBldg: d.bldgSz,
+        parking: d.hasParking === '有' ? d.parking : ''
+    });
+    var list = document.getElementById('sPropertyList');
+    if (list && list.lastElementChild) list.lastElementChild.scrollIntoView({ behavior:'smooth', block:'center' });
+    showToast('已複製到庫存物件，記得儲存', 'ok');
+}
+function moveDevToRental(btn) {
+    var d = _devBlockData(btn); if (!d) return;
+    if (!selectedTypes.includes('房東')) selectedTypes.push('房東');
+    activeView = '房東';
+    applyTypePicker();
+    addRentalProperty({
+        rCommunity: d.community,
+        rAddr: d.addr,
+        rSz: d.bldgSz,
+        rParking: d.hasParking === '有' ? d.parking : ''
+    });
+    var list = document.getElementById('rPropertyList');
+    if (list && list.lastElementChild) list.lastElementChild.scrollIntoView({ behavior:'smooth', block:'center' });
+    showToast('已複製到房東物件，記得儲存', 'ok');
+}
 function toggleSpArchive(btn) {
     var block = btn.closest('.person-block'); if (!block) return;
     var hidden = block.querySelector('[data-f="spArchived"]');
@@ -7241,7 +7281,7 @@ function addDAddrRow(data) {
     var parkOpts = ['','坡道平面','坡道機械','升降平面','升降機械','塔式車位','其他車位'];
     var parkHtml = parkOpts.map(function(p){ return '<option value="'+p+'"'+(d.parking===p?' selected':'')+'>'+(p||'選擇')+'</option>'; }).join('');
     var html = '<div class="person-block" id="da-'+dAddrId+'" style="border:1px solid var(--border);border-left:4px solid #92400E;border-radius:10px;padding:10px;margin-bottom:8px;background:#FAFAF9">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:12px;font-weight:700;color:#92400E">物件 '+localNum+'</span><span style="display:flex;gap:4px;align-items:center"><button type="button" class="btn-ic" onclick="moveDAddr(this,-1)" title="上移" style="font-size:12px;padding:2px 6px">↑</button><button type="button" class="btn-ic" onclick="moveDAddr(this,1)" title="下移" style="font-size:12px;padding:2px 6px">↓</button><button type="button" class="c-del" onclick="this.closest(\'.person-block\').remove();renumberDAddrs()">✕</button></span></div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:12px;font-weight:700;color:#92400E">物件 '+localNum+'</span><span style="display:flex;gap:4px;align-items:center"><button type="button" onclick="moveDevToSp(this)" title="把此物件複製到「庫存屋主」" style="font-size:12px;padding:3px 10px;border:1px solid #D6CFC7;border-radius:6px;background:#F5F0EB;color:#8B7355;cursor:pointer">轉庫存</button><button type="button" onclick="moveDevToRental(this)" title="把此物件複製到「房東」" style="font-size:12px;padding:3px 10px;border:1px solid #DDD6FE;border-radius:6px;background:#F5F3FF;color:#5B21B6;cursor:pointer;margin-right:2px">轉房東</button><button type="button" class="btn-ic" onclick="moveDAddr(this,-1)" title="上移" style="font-size:12px;padding:2px 6px">↑</button><button type="button" class="btn-ic" onclick="moveDAddr(this,1)" title="下移" style="font-size:12px;padding:2px 6px">↓</button><button type="button" class="c-del" onclick="this.closest(\'.person-block\').remove();renumberDAddrs()">✕</button></span></div>' +
         // 出售/出租 + 社區 + 地址
         '<div class="da-row1" style="display:grid;grid-template-columns:auto 1fr 2fr;gap:8px;margin-bottom:6px">' +
             '<div class="fg da-devtype" style="margin-bottom:0"><label style="font-size:12px">出售/出租</label><select data-f="devType" style="width:100%"><option value="出售"'+(d.devType==='出售'?' selected':'')+'>出售</option><option value="出租"'+(d.devType==='出租'?' selected':'')+'>出租</option></select></div>' +
