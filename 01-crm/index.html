@@ -4127,6 +4127,7 @@ function render() {
     document.getElementById('sortSel').style.display = (isDashboard || curFilter === 'all') ? 'none' : '';
     if (isDashboard) {
         document.getElementById('expireBanner').style.display = 'none';
+        updateActiveFilterBar();
         renderDashboard(); _alignSidebarToContent(); return;
     }
 
