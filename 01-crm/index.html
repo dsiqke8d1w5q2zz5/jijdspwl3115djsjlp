@@ -2280,8 +2280,9 @@ function autoSync() {
 function _autoSyncPush(status) {
     var syncData = DB.filter(function(c){ return !c.__perfRecords && !c.__templates && !c.__signingTemplates && !c.__otherTemplates && !c.__checkIn; }).concat([{__perfRecords: true, records: _perfRecords}]).concat([{__templates: true, items: _templates}]).concat([{__signingTemplates: true, items: _signingTemplates}]).concat([{__otherTemplates: true, items: _otherTemplates}]).concat([{__checkIn: true, data: getCheckInData()}]);
     var payload = JSON.stringify(syncData);
-    // 記下本次預期上傳完成後的雲端筆數（不含 __perf/__templates 標記只含真實客戶）
-    _expectedCloudCount = DB.length;
+    // 記下本次預期上傳完成後的雲端筆數（只算真實客戶，與 verifySyncResult 的 cnt 同口徑：
+    // 兩邊都排除 __perfRecords/__templates/__signingTemplates/__otherTemplates/__checkIn 標記）
+    _expectedCloudCount = syncData.filter(function(c){ return !c.__perfRecords && !c.__templates && !c.__signingTemplates && !c.__otherTemplates && !c.__checkIn; }).length;
     // 方式1: fetch（最可靠，有回傳結果）
     if (window.fetch) {
         fetch(CLOUD_URL, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'payload='+encodeURIComponent(payload), mode:'no-cors' })
@@ -2317,8 +2318,8 @@ function verifySyncResult(status) {
         delete window[vCb];
         if (vScript.parentNode) vScript.parentNode.removeChild(vScript);
         if (Array.isArray(data) && data.length > 0) {
-            var cnt = data.filter(function(c){ return !c.__perfRecords && !c.__templates && !c.__signingTemplates && !c.__otherTemplates; }).length;
-            var localCnt = DB.length;
+            var cnt = data.filter(function(c){ return !c.__perfRecords && !c.__templates && !c.__signingTemplates && !c.__otherTemplates && !c.__checkIn; }).length;
+            var localCnt = DB.filter(function(c){ return !c.__perfRecords && !c.__templates && !c.__signingTemplates && !c.__otherTemplates && !c.__checkIn; }).length;
             // 若記得本次預期筆數，嚴格比對（允許 ±1 容錯，因 Apps Script 有微小延遲）
             // 否則退回舊的 localCnt-3 寬容比（舊路徑）
             var expected = _expectedCloudCount;
