@@ -7847,15 +7847,18 @@ function _removeTodoById(todoId) {
 }
 
 function completeTodo(todoId) {
-    confirmAction('確定完成此待辦？', function() {
+    var _t0 = _getAllTodos().find(function(x){ return x.id === todoId; });
+    if (!_t0) return;
+    confirmAction('確定完成此待辦？', function(editedMemo) {
         var all = _getAllTodos();
         var t = all.find(function(x){ return x.id === todoId; });
         if (!t) return;
+        var memo = (typeof editedMemo === 'string') ? editedMemo : (t.memo || '');
         _removeTodoById(todoId);
-        _addDoneTodo({ clientId:t.clientId, clientName:t.clientName, memo:t.memo, personal:t.personal, addedAt:t.addedAt, doneAt:new Date().toISOString() });
+        _addDoneTodo({ clientId:t.clientId, clientName:t.clientName, memo:memo, personal:t.personal, addedAt:t.addedAt, doneAt:new Date().toISOString() });
         persistAndSyncNow();
         render();
-    });
+    }, { editPrefill: _t0.memo || '', editLabel: '待辦內容（可修改）' });
 }
 
 function deleteTodo(todoId) {
