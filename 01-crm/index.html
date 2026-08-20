@@ -3908,11 +3908,24 @@ function renderDashboard() {
     expSeller.sort(function(a,b) { return (a.contractEnd||'').localeCompare(b.contractEnd||''); });
     document.getElementById('dashExpiringSeller').innerHTML = _renderExpireCards(expSeller, 'contractEnd', function(c){ return c.info||''; }, '目前沒有即將到期的庫存合約');
 
-    // 租案合約即將到期（到期月前一個月1號起）
-    var expRental = DB.filter(function(c) {
-        return !c._system && !c._deleted && !c.archived && hasType(c,'房東') && c.rEndDate && isRentalExpiring(c.rEndDate)
-            && !_isDismissed('expire_' + c.id + '_' + (c.rEndDate || ''));
-    }).sort(function(a,b) { return (a.rEndDate||'').localeCompare(b.rEndDate||''); });
+    // 租案合約即將到期（45天內）— 同一房東名下多間物件各自列一筆
+    var expRental = [];
+    DB.forEach(function(c) {
+        if (c._system || c._deleted || c.archived || !hasType(c,'房東')) return;
+        var rps = (c.rProperties || []).filter(function(rp){ return rp && rp.rEndDate; });
+        if (rps.length) {
+            rps.forEach(function(rp, idx) {
+                if (!isRentalExpiring(rp.rEndDate)) return;
+                var dk = 'expire_' + c.id + '_rp' + idx + '_' + rp.rEndDate;
+                if (_isDismissed(dk)) return;
+                expRental.push({ id:c.id, name:c.name, rEndDate:rp.rEndDate, rCommunity:(rp.rCommunity||''), rAddr:(rp.rAddr||''), _dk:dk });
+            });
+        } else if (c.rEndDate && isRentalExpiring(c.rEndDate) && !_isDismissed('expire_' + c.id + '_' + c.rEndDate)) {
+            // 舊資料：沒有 rProperties，退回扁平欄位
+            expRental.push({ id:c.id, name:c.name, rEndDate:c.rEndDate, rCommunity:(c.rCommunity||''), rAddr:(c.rAddr||'') });
+        }
+    });
+    expRental.sort(function(a,b) { return (a.rEndDate||'').localeCompare(b.rEndDate||''); });
     document.getElementById('dashExpiringRental').innerHTML = _renderExpireCards(expRental, 'rEndDate', function(c){ return c.rCommunity||c.rAddr||''; }, '目前沒有即將到期的租案合約');
 
     // 近期行程（15天內）
