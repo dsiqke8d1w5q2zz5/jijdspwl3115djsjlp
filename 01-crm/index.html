@@ -7275,14 +7275,18 @@ function getBPersons() { return getPersonBlocks('bPersonList'); }
 function clearBPersons() { clearPersonBlocks('bPersonList'); }
 
 // ── 共用聯絡人 ──
+var _sharedContactsLoaded = false;
 function addSharedContact(data) { addPersonBlock('sharedContactsList', data); }
 function getSharedContacts() { return getPersonBlocks('sharedContactsList'); }
-function clearSharedContacts() { document.getElementById('sharedContactsList').innerHTML = ''; }
+function clearSharedContacts() { document.getElementById('sharedContactsList').innerHTML = ''; _sharedContactsLoaded = false; }
 function loadSharedContacts(c) {
     clearSharedContacts();
     if (c.contacts && c.contacts.length) {
         c.contacts.forEach(function(p){ addSharedContact(p); });
     }
+    // 標記「聯絡人區塊已由編輯表單載入」，讓存檔能分辨
+    // 「使用者刪光了」(要真的清空) 與「表單沒開過」(要保留舊資料)
+    _sharedContactsLoaded = true;
 }
 
 // ── 商機募集：屋主多筆（頁籤式） ──
@@ -10187,14 +10191,16 @@ function saveClient() {
         cDriveUrl: editId ? (DB.find(function(x){return x.id===editId;})||{}).cDriveUrl||'' : '',
         dDriveUrl: editId ? (DB.find(function(x){return x.id===editId;})||{}).dDriveUrl||'' : '',
     };
-    // 統一聯絡人：從共用聯絡人區塊讀取，如果空則保留舊的
+    // 統一聯絡人：以表單上實際存在的區塊為準。
+    // 注意不能用「讀出來是空的就保留舊資料」，否則使用者刪光聯絡人後存檔，
+    // 舊的又會被救回來（刪不掉）。用 _sharedContactsLoaded 旗標分辨
+    // 「刪光了」與「表單沒載入過」——兩者區塊數都是 0，光看數量無法判斷。
     var _sharedC = getSharedContacts();
-    if (_sharedC.length) {
+    if (_sharedContactsLoaded || !editId) {
         data.contacts = _sharedC;
-    } else if (editId) {
-        data.contacts = (DB.find(function(x){return x.id===editId;})||{}).contacts || [];
     } else {
-        data.contacts = [];
+        // 表單沒載入過聯絡人區塊才保留舊資料
+        data.contacts = (DB.find(function(x){return x.id===editId;})||{}).contacts || [];
     }
     // 向下相容：同步固定基本欄位到各類型欄位（DRY 重構）
     var _syncBase = {Name:name, Phone:phone, IdNo:_basicIdNo, Occupation:_basicOcc, Birthday:_basicBday, Email:_basicEmail};
@@ -10212,6 +10218,16 @@ function saveClient() {
         data.dPersons = [_basicPerson].concat(_allContacts);
         if (data.rLandlords && data.rLandlords.length) data.rLandlords = [data.rLandlords[0]].concat(_allContacts);
         if (data.rTenants && data.rTenants.length) data.rTenants = [data.rTenants[0]].concat(_allContacts);
+    } else {
+        // 聯絡人被刪光：舊欄位也要一起清掉，否則 migrateDB() 會從
+        // bPersons/sPersons/cContacts/dPersons/rLandlords[1+]/rTenants[1+]
+        // 把 contacts 重建回來，造成「刪掉又出現」。
+        data.bPersons = [];
+        data.sPersons = [];
+        data.cContacts = [_basicPerson];
+        data.dPersons = [_basicPerson];
+        if (data.rLandlords && data.rLandlords.length) data.rLandlords = [data.rLandlords[0]];
+        if (data.rTenants && data.rTenants.length) data.rTenants = [data.rTenants[0]];
     }
     // 銀行資料同步到 rLandlords[0]
     if (data.rLandlords && data.rLandlords.length) {
