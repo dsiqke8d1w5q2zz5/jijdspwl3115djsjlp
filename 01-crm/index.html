@@ -388,6 +388,19 @@
         .dash-item:last-child { border-bottom: none; }
         .dash-item:hover { background: #F0F4F8; }
         .dash-clickedit { cursor: pointer; }
+        /* 圖片工具 */
+        .it-sec { border-top:1px solid var(--border); padding-top:12px; margin-top:12px; transition:opacity .15s; }
+        .it-sec:first-of-type { border-top:none; padding-top:0; margin-top:0; }
+        .it-sec-t { font-weight:700; font-size:13px; margin-bottom:8px; display:flex; align-items:center; gap:5px; }
+        .it-lb { display:block; font-size:11px; color:var(--muted); margin:8px 0 3px; font-weight:600; }
+        .it-v { color:#0891B2; font-weight:700; }
+        .it-in { width:100%; padding:6px 9px; border:1px solid var(--border); border-radius:7px; font-size:13px; font-family:inherit; box-sizing:border-box; }
+        .it-chk { display:flex; align-items:center; gap:5px; font-size:13px; cursor:pointer; padding:5px 9px; border:1px solid var(--border); border-radius:8px; background:#fff; }
+        #imgToolModal input[type=range] { width:100%; margin:2px 0; }
+        .it-card { border:1px solid var(--border); border-radius:9px; overflow:hidden; background:#fff; }
+        .it-card canvas { display:block; width:100%; background:#F5F5F4; }
+        .it-card-b { display:flex; align-items:center; gap:4px; padding:5px 8px; border-top:1px solid var(--border); }
+        .it-nm { flex:1; min-width:0; font-size:11px; color:#57534E; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         .dash-clickedit .btn-ic, .dash-clickedit .dash-item-name[onclick] { cursor: pointer; }
         .dash-item-info { color: #1C1917; font-size: 16px; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
         .dash-item-name { font-weight: 600; flex: 1; min-width: 0; color: #1E40AF; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -816,6 +829,7 @@
     <div style="flex:1"></div>
     <div class="header-tools" style="display:flex;gap:8px;align-items:center">
         <button onclick="doCheckIn()" class="header-btn mc-checkin" data-hover-color="#57534E"><i class="ti ti-map-pin-check" style="font-size:18px;color:#10B981"></i> 打卡<span class="mc-checkin-cnt" id="checkInCountDesktop">0</span></button>
+        <button onclick="openImgTool()" class="header-btn" data-hover-color="#57534E"><i class="ti ti-photo-edit" style="font-size:18px;color:#0891B2"></i> 圖片工具</button>
         <button onclick="openTemplates()" class="header-btn" data-hover-color="#57534E"><i class="ti ti-file-text" style="font-size:18px;color:#8B7355"></i> 常用範本</button>
         <button onclick="openPerformance()" class="header-btn" data-hover-color="#57534E"><i class="ti ti-chart-bar" style="font-size:18px;color:#2563EB"></i> 業績儀表板</button>
         <!-- 更多選單 -->
@@ -1535,6 +1549,119 @@
 </div>
 
 <!-- 常用範本 -->
+<!-- 圖片工具：浮水印 + 加註文字 -->
+<div id="imgToolModal" class="overlay" style="display:none" onmousedown="if(event.target===this)closeImgTool()">
+    <div class="modal" style="max-width:1080px;width:96vw;height:92vh;display:flex;flex-direction:column" onclick="event.stopPropagation()">
+        <div class="modal-head">
+            <div class="modal-title"><i class="ti ti-photo-edit" style="color:#0891B2"></i> 圖片工具<span style="font-size:12px;font-weight:500;color:var(--muted);margin-left:8px">浮水印／加註文字・全在本機處理，不會上傳</span></div>
+            <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+                <button class="btn-x" onclick="closeImgTool()">✕</button>
+            </div>
+        </div>
+
+        <div style="flex:1;display:flex;min-height:0">
+            <!-- 左：設定 -->
+            <div style="width:330px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;padding:14px">
+
+                <div style="display:flex;gap:8px;margin-bottom:14px">
+                    <label class="it-chk"><input type="checkbox" id="itUseWm" checked onchange="itToggleSec();itRenderPreview()"> <b>浮水印</b></label>
+                    <label class="it-chk"><input type="checkbox" id="itUseCap" onchange="itToggleSec();itRenderPreview()"> <b>加註文字</b></label>
+                </div>
+
+                <!-- 浮水印設定 -->
+                <div id="itWmBox" class="it-sec">
+                    <div class="it-sec-t"><i class="ti ti-droplet" style="color:#0891B2"></i> 浮水印（滿版斜排）</div>
+                    <label class="it-lb">文字</label>
+                    <input id="itWmText" class="it-in" placeholder="例：王大明 0912-345-678" oninput="itRenderPreview()">
+                    <div style="display:flex;gap:8px">
+                        <div style="flex:1">
+                            <label class="it-lb">濃度 <span id="itWmOpV" class="it-v">18%</span></label>
+                            <input id="itWmOp" type="range" min="3" max="40" value="18" oninput="itRenderPreview()">
+                        </div>
+                        <div style="flex:1">
+                            <label class="it-lb">大小 <span id="itWmSzV" class="it-v">28</span></label>
+                            <input id="itWmSz" type="range" min="12" max="60" value="28" oninput="itRenderPreview()">
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:8px">
+                        <div style="flex:1">
+                            <label class="it-lb">間距 <span id="itWmGapV" class="it-v">1.6x</span></label>
+                            <input id="itWmGap" type="range" min="10" max="35" value="16" oninput="itRenderPreview()">
+                        </div>
+                        <div style="flex:1">
+                            <label class="it-lb">角度 <span id="itWmAgV" class="it-v">-30°</span></label>
+                            <input id="itWmAg" type="range" min="-60" max="60" value="-30" oninput="itRenderPreview()">
+                        </div>
+                    </div>
+                    <label class="it-lb">顏色<span style="font-weight:400;color:var(--muted)">（自動＝亮處用黑字、暗處用白字）</span></label>
+                    <div style="display:flex;gap:6px;align-items:center">
+                        <label class="it-chk" style="flex:1"><input type="radio" name="itWmCol" value="auto" checked onchange="itRenderPreview()"> 自動</label>
+                        <label class="it-chk" style="flex:1"><input type="radio" name="itWmCol" value="#FFFFFF" onchange="itRenderPreview()"> 白</label>
+                        <label class="it-chk" style="flex:1"><input type="radio" name="itWmCol" value="#000000" onchange="itRenderPreview()"> 黑</label>
+                    </div>
+                </div>
+
+                <!-- 加註文字設定 -->
+                <div id="itCapBox" class="it-sec" style="opacity:.45">
+                    <div class="it-sec-t"><i class="ti ti-text-caption" style="color:#7C3AED"></i> 加註文字（每張相同）</div>
+                    <label class="it-lb">內容（可多行）</label>
+                    <textarea id="itCapText" class="it-in" rows="2" placeholder="例：民生社區 3房2廳 1288萬" oninput="itRenderPreview()"></textarea>
+                    <label class="it-lb">位置</label>
+                    <select id="itCapPos" class="it-in" onchange="itRenderPreview()">
+                        <option value="bottom">底部橫幅</option>
+                        <option value="top">頂部橫幅</option>
+                        <option value="bl">左下角</option>
+                        <option value="br">右下角</option>
+                    </select>
+                    <div style="display:flex;gap:8px">
+                        <div style="flex:1">
+                            <label class="it-lb">字級 <span id="itCapSzV" class="it-v">34</span></label>
+                            <input id="itCapSz" type="range" min="16" max="72" value="34" oninput="itRenderPreview()">
+                        </div>
+                        <div style="flex:1">
+                            <label class="it-lb">底色 <span id="itCapBgV" class="it-v">55%</span></label>
+                            <input id="itCapBg" type="range" min="0" max="90" value="55" oninput="itRenderPreview()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="it-sec">
+                    <div class="it-sec-t"><i class="ti ti-download" style="color:#059669"></i> 輸出</div>
+                    <label class="it-lb">品質 <span id="itQV" class="it-v">92%</span></label>
+                    <input id="itQ" type="range" min="60" max="100" value="92" oninput="document.getElementById('itQV').textContent=this.value+'%'">
+                    <label class="it-lb">最長邊上限（0＝不縮）</label>
+                    <input id="itMax" class="it-in" type="number" value="1920" min="0" step="160">
+                    <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5">存檔後檔名會加 <b>_wm</b>，原圖不會被覆蓋。</div>
+                </div>
+            </div>
+
+            <!-- 右：圖片區 -->
+            <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+                <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <button onclick="document.getElementById('itFile').click()" style="padding:6px 14px;border:none;border-radius:8px;background:#0891B2;color:#fff;cursor:pointer;font-size:13px;font-weight:600"><i class="ti ti-photo-plus"></i> 選擇照片</button>
+                    <input id="itFile" type="file" accept="image/*" multiple style="display:none" onchange="itAddFiles(this.files);this.value=''">
+                    <span id="itCount" style="font-size:13px;color:var(--muted)">尚未選擇照片</span>
+                    <span style="margin-left:auto;display:flex;gap:8px">
+                        <button onclick="itClear()" style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;font-size:13px">清空</button>
+                        <button id="itGoBtn" onclick="itProcessAll()" style="padding:6px 16px;border:none;border-radius:8px;background:#059669;color:#fff;cursor:pointer;font-size:13px;font-weight:700"><i class="ti ti-wand"></i> 全部套用並下載</button>
+                    </span>
+                </div>
+                <div id="itDrop" style="flex:1;overflow-y:auto;padding:14px;background:#FAFAF9"
+                     ondragover="event.preventDefault();this.style.background='#ECFEFF'"
+                     ondragleave="this.style.background='#FAFAF9'"
+                     ondrop="itDropFiles(event)">
+                    <div id="itEmpty" style="text-align:center;color:var(--muted);padding:60px 20px;font-size:14px">
+                        <i class="ti ti-photo-up" style="font-size:48px;opacity:.4;display:block;margin-bottom:12px"></i>
+                        把照片拖進來，或按上面的「選擇照片」<br>
+                        <span style="font-size:12px">可一次選很多張，處理完一次全部下載</span>
+                    </div>
+                    <div id="itGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div id="tplModal" class="overlay" style="display:none" onmousedown="if(event.target===this)closeTemplates()">
     <div class="modal" style="max-width:600px;height:90vh;display:flex;flex-direction:column" onclick="event.stopPropagation()">
         <div class="modal-head">
@@ -12077,6 +12204,344 @@ function persistTemplates() {
 }
 
 var _tplTab = 'stock';
+// ── 圖片工具：滿版斜排浮水印 ＋ 統一加註文字（全在瀏覽器本機處理，不上傳） ──
+var _itFiles = [];          // [{id,name,url,w,h,img}]
+var _itSeq = 0;
+var _itPrevTimer = null;
+
+function openImgTool() {
+    document.getElementById('imgToolModal').style.display = 'flex';
+    // 帶入上次設定
+    try {
+        var cfg = JSON.parse(localStorage.getItem('_imgToolCfg') || '{}');
+        if (cfg.wmText !== undefined) document.getElementById('itWmText').value = cfg.wmText;
+        if (cfg.capText !== undefined) document.getElementById('itCapText').value = cfg.capText;
+        if (cfg.useWm !== undefined) document.getElementById('itUseWm').checked = !!cfg.useWm;
+        if (cfg.useCap !== undefined) document.getElementById('itUseCap').checked = !!cfg.useCap;
+        ['itWmOp','itWmSz','itWmGap','itWmAg','itCapSz','itCapBg','itQ','itMax','itCapPos'].forEach(function(k){
+            if (cfg[k] !== undefined) { var el=document.getElementById(k); if(el) el.value = cfg[k]; }
+        });
+        if (cfg.wmCol) {
+            var r = document.querySelector('input[name="itWmCol"][value="'+cfg.wmCol+'"]');
+            if (r) r.checked = true;
+        }
+    } catch(e) {}
+    itToggleSec();
+    itRenderPreview();
+}
+
+function closeImgTool() {
+    itSaveCfg();
+    document.getElementById('imgToolModal').style.display = 'none';
+}
+
+function itSaveCfg() {
+    try {
+        var cfg = {
+            wmText: document.getElementById('itWmText').value,
+            capText: document.getElementById('itCapText').value,
+            useWm: document.getElementById('itUseWm').checked,
+            useCap: document.getElementById('itUseCap').checked,
+            wmCol: (document.querySelector('input[name="itWmCol"]:checked')||{}).value || '#FFFFFF'
+        };
+        ['itWmOp','itWmSz','itWmGap','itWmAg','itCapSz','itCapBg','itQ','itMax','itCapPos'].forEach(function(k){
+            var el=document.getElementById(k); if(el) cfg[k]=el.value;
+        });
+        localStorage.setItem('_imgToolCfg', JSON.stringify(cfg));
+    } catch(e) {}
+}
+
+function itToggleSec() {
+    document.getElementById('itWmBox').style.opacity  = document.getElementById('itUseWm').checked ? '1' : '.45';
+    document.getElementById('itCapBox').style.opacity = document.getElementById('itUseCap').checked ? '1' : '.45';
+}
+
+function itDropFiles(ev) {
+    ev.preventDefault();
+    document.getElementById('itDrop').style.background = '#FAFAF9';
+    itAddFiles(ev.dataTransfer.files);
+}
+
+function itAddFiles(files) {
+    if (!files || !files.length) return;
+    var arr = Array.prototype.slice.call(files).filter(function(f){ return /^image\//.test(f.type); });
+    if (!arr.length) return;
+    var pending = arr.length;
+    arr.forEach(function(f) {
+        var url = URL.createObjectURL(f);
+        var img = new Image();
+        img.onload = function() {
+            _itFiles.push({ id:'it'+(++_itSeq), name:f.name, url:url, w:img.naturalWidth, h:img.naturalHeight, img:img });
+            if (--pending === 0) itRenderPreview();
+        };
+        img.onerror = function() {
+            URL.revokeObjectURL(url);
+            if (--pending === 0) itRenderPreview();
+        };
+        img.src = url;
+    });
+}
+
+function itClear() {
+    _itFiles.forEach(function(f){ try{ URL.revokeObjectURL(f.url); }catch(e){} });
+    _itFiles = [];
+    itRenderPreview();
+}
+
+function itRemove(id) {
+    var i = _itFiles.findIndex(function(f){ return f.id===id; });
+    if (i < 0) return;
+    try { URL.revokeObjectURL(_itFiles[i].url); } catch(e) {}
+    _itFiles.splice(i,1);
+    itRenderPreview();
+}
+
+// 讀目前設定
+function itOpts() {
+    var col = (document.querySelector('input[name="itWmCol"]:checked')||{}).value || '#FFFFFF';
+    return {
+        useWm:  document.getElementById('itUseWm').checked,
+        useCap: document.getElementById('itUseCap').checked,
+        wmText: document.getElementById('itWmText').value.trim(),
+        wmOp:   parseInt(document.getElementById('itWmOp').value,10)/100,
+        wmSz:   parseInt(document.getElementById('itWmSz').value,10),
+        wmGap:  parseInt(document.getElementById('itWmGap').value,10)/10,
+        wmAg:   parseInt(document.getElementById('itWmAg').value,10),
+        wmCol:  col,
+        capText:document.getElementById('itCapText').value,
+        capPos: document.getElementById('itCapPos').value,
+        capSz:  parseInt(document.getElementById('itCapSz').value,10),
+        capBg:  parseInt(document.getElementById('itCapBg').value,10)/100,
+        q:      parseInt(document.getElementById('itQ').value,10)/100,
+        max:    parseInt(document.getElementById('itMax').value,10) || 0
+    };
+}
+
+// 核心：把一張圖畫進 canvas 並套用效果
+// scaleRef：字級以此寬度為基準等比縮放，讓預覽跟實際輸出看起來一致
+function itDraw(canvas, img, o, outW, outH) {
+    canvas.width = outW; canvas.height = outH;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, outW, outH);
+
+    // 字級以 1000px 寬為基準等比換算
+    var k = outW / 1000;
+
+    // ① 滿版斜排浮水印
+    if (o.useWm && o.wmText) {
+        var fs = Math.max(8, o.wmSz * k);
+        var auto = (o.wmCol === 'auto');
+
+        // 自動模式：先取整張圖的亮度圖，讓每個字依底色決定黑/白，亮處暗處都看得見
+        var lum = null, LW = 0, LH = 0;
+        if (auto) {
+            try {
+                LW = Math.max(1, Math.min(120, Math.round(outW/12)));
+                LH = Math.max(1, Math.round(LW * outH / outW));
+                var lc = document.createElement('canvas');
+                lc.width = LW; lc.height = LH;
+                var lx = lc.getContext('2d');
+                lx.drawImage(canvas, 0, 0, LW, LH);
+                var ld = lx.getImageData(0, 0, LW, LH).data;
+                lum = new Float32Array(LW*LH);
+                for (var i = 0, j = 0; i < ld.length; i += 4, j++) {
+                    lum[j] = 0.299*ld[i] + 0.587*ld[i+1] + 0.114*ld[i+2];
+                }
+            } catch(e) { lum = null; }      // 取樣失敗就退回白字
+        }
+        function pickCol(px, py) {
+            if (!lum) return '#FFFFFF';
+            var gx = Math.min(LW-1, Math.max(0, Math.round(px/outW*LW)));
+            var gy = Math.min(LH-1, Math.max(0, Math.round(py/outH*LH)));
+            return lum[gy*LW+gx] > 140 ? '#000000' : '#FFFFFF';
+        }
+
+        ctx.save();
+        ctx.globalAlpha = o.wmOp;
+        ctx.font = '700 ' + fs + 'px "Microsoft JhengHei","PingFang TC",sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.lineWidth = Math.max(1, fs/22);
+
+        var tw = ctx.measureText(o.wmText).width;
+        var stepX = Math.max(40, tw * o.wmGap);
+        var stepY = Math.max(30, fs * o.wmGap * 2.2);
+        var diag = Math.sqrt(outW*outW + outH*outH);
+        var ang = o.wmAg * Math.PI / 180;
+        var cos = Math.cos(ang), sin = Math.sin(ang);
+
+        ctx.translate(outW/2, outH/2);
+        ctx.rotate(ang);
+        var rows = Math.ceil(diag/stepY) + 2, cols = Math.ceil(diag/stepX) + 2;
+        for (var r = -rows; r <= rows; r++) {
+            for (var c = -cols; c <= cols; c++) {
+                // 奇數列錯開半格，排列比較自然、也更難去除
+                var x = c*stepX + (r % 2 ? stepX/2 : 0);
+                var y = r*stepY;
+                var col;
+                if (auto) {
+                    // 旋轉座標轉回原圖座標，才知道這個字壓在哪塊底色上
+                    col = pickCol(x*cos - y*sin + outW/2, x*sin + y*cos + outH/2);
+                } else {
+                    col = o.wmCol;
+                }
+                ctx.fillStyle = col;
+                ctx.strokeStyle = (col === '#FFFFFF') ? 'rgba(0,0,0,.30)' : 'rgba(255,255,255,.35)';
+                ctx.strokeText(o.wmText, x, y);
+                ctx.fillText(o.wmText, x, y);
+            }
+        }
+        ctx.restore();
+    }
+
+    // ② 加註文字
+    var cap = (o.capText || '').replace(/\r/g,'').trim();
+    if (o.useCap && cap) {
+        var lines = cap.split('\n');
+        var cs = Math.max(10, o.capSz * k);
+        var lh = cs * 1.32;
+        var pad = cs * 0.55;
+        var blockH = lines.length * lh + pad*2 - (lh - cs)*0.5;
+
+        ctx.save();
+        ctx.font = '700 ' + cs + 'px "Microsoft JhengHei","PingFang TC",sans-serif';
+        ctx.textBaseline = 'top';
+
+        if (o.capPos === 'bottom' || o.capPos === 'top') {
+            var by = (o.capPos === 'bottom') ? outH - blockH : 0;
+            if (o.capBg > 0) {
+                var g = ctx.createLinearGradient(0, by, 0, by + blockH);
+                var a = o.capBg;
+                if (o.capPos === 'bottom') { g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(0.35,'rgba(0,0,0,'+(a*0.85)+')'); g.addColorStop(1,'rgba(0,0,0,'+a+')'); }
+                else { g.addColorStop(0,'rgba(0,0,0,'+a+')'); g.addColorStop(0.65,'rgba(0,0,0,'+(a*0.85)+')'); g.addColorStop(1,'rgba(0,0,0,0)'); }
+                ctx.fillStyle = g;
+                ctx.fillRect(0, by, outW, blockH);
+            }
+            ctx.fillStyle = '#FFFFFF';
+            ctx.textAlign = 'center';
+            ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = cs*0.25;
+            lines.forEach(function(t,i) { ctx.fillText(t, outW/2, by + pad + i*lh); });
+        } else {
+            var right = (o.capPos === 'br');
+            ctx.textAlign = right ? 'right' : 'left';
+            var mx = pad*1.6;
+            var tx = right ? outW - mx : mx;
+            var ty = outH - blockH - pad*0.6;
+            if (o.capBg > 0) {
+                var maxw = 0;
+                lines.forEach(function(t){ maxw = Math.max(maxw, ctx.measureText(t).width); });
+                var bx = right ? (tx - maxw - pad) : (tx - pad);
+                ctx.fillStyle = 'rgba(0,0,0,'+o.capBg+')';
+                var rr = cs*0.28, bw = maxw + pad*2, bh = blockH;
+                ctx.beginPath();
+                if (ctx.roundRect) { ctx.roundRect(bx, ty - pad*0.4, bw, bh, rr); }
+                else { ctx.rect(bx, ty - pad*0.4, bw, bh); }
+                ctx.fill();
+            }
+            ctx.fillStyle = '#FFFFFF';
+            ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = cs*0.25;
+            lines.forEach(function(t,i) { ctx.fillText(t, tx, ty + pad*0.3 + i*lh); });
+        }
+        ctx.restore();
+    }
+}
+
+// 依「最長邊上限」算輸出尺寸
+function itOutSize(f, o) {
+    var w = f.w, h = f.h;
+    if (o.max > 0 && Math.max(w,h) > o.max) {
+        var s = o.max / Math.max(w,h);
+        w = Math.round(w*s); h = Math.round(h*s);
+    }
+    return [w, h];
+}
+
+// 畫面預覽（縮小版，避免卡頓）
+function itRenderPreview() {
+    // 同步滑桿數值顯示
+    var q = function(id){ return document.getElementById(id); };
+    if (q('itWmOpV'))  q('itWmOpV').textContent  = q('itWmOp').value + '%';
+    if (q('itWmSzV'))  q('itWmSzV').textContent  = q('itWmSz').value;
+    if (q('itWmGapV')) q('itWmGapV').textContent = (parseInt(q('itWmGap').value,10)/10).toFixed(1) + 'x';
+    if (q('itWmAgV'))  q('itWmAgV').textContent  = q('itWmAg').value + '°';
+    if (q('itCapSzV')) q('itCapSzV').textContent = q('itCapSz').value;
+    if (q('itCapBgV')) q('itCapBgV').textContent = q('itCapBg').value + '%';
+    if (q('itQV'))     q('itQV').textContent     = q('itQ').value + '%';
+
+    var grid = document.getElementById('itGrid');
+    var empty = document.getElementById('itEmpty');
+    var cnt = document.getElementById('itCount');
+    empty.style.display = _itFiles.length ? 'none' : 'block';
+    cnt.textContent = _itFiles.length ? ('已選 ' + _itFiles.length + ' 張') : '尚未選擇照片';
+
+    // 卡片只建一次，之後只重畫 canvas
+    if (grid.childElementCount !== _itFiles.length) {
+        grid.innerHTML = _itFiles.map(function(f) {
+            return '<div class="it-card" data-id="'+f.id+'">' +
+                     '<canvas id="cv_'+f.id+'"></canvas>' +
+                     '<div class="it-card-b">' +
+                       '<span class="it-nm" title="'+esc(f.name)+'">'+esc(f.name)+'</span>' +
+                       '<button class="btn-ic" onclick="itRemove(\''+f.id+'\')" title="移除"><i class="ti ti-x" style="color:#DC2626"></i></button>' +
+                     '</div>' +
+                   '</div>';
+        }).join('');
+    }
+
+    clearTimeout(_itPrevTimer);
+    _itPrevTimer = setTimeout(function() {
+        var o = itOpts();
+        _itFiles.forEach(function(f) {
+            var cv = document.getElementById('cv_'+f.id);
+            if (!cv) return;
+            var pw = 420;                              // 預覽寬度
+            var ph = Math.round(f.h * pw / f.w);
+            itDraw(cv, f.img, o, pw, ph);
+            cv.style.width = '100%'; cv.style.height = 'auto';
+        });
+    }, 60);
+}
+
+// 批次處理並下載
+function itProcessAll() {
+    if (!_itFiles.length) { alert('請先選擇照片'); return; }
+    var o = itOpts();
+    if (!o.useWm && !o.useCap) { alert('請至少勾選「浮水印」或「加註文字」其中一項'); return; }
+    if (o.useWm && !o.wmText)  { alert('請輸入浮水印文字'); return; }
+    if (o.useCap && !o.capText.trim()) { alert('請輸入加註文字'); return; }
+    itSaveCfg();
+
+    var btn = document.getElementById('itGoBtn');
+    var old = btn.innerHTML;
+    btn.disabled = true;
+    var total = _itFiles.length, i = 0, okCount = 0;
+
+    function step() {
+        if (i >= total) {
+            btn.disabled = false; btn.innerHTML = old;
+            alert('完成，已下載 ' + okCount + ' 張。\n（原圖沒有被修改）');
+            return;
+        }
+        var f = _itFiles[i++];
+        btn.innerHTML = '處理中 ' + i + '/' + total;
+        var sz = itOutSize(f, o);
+        var cv = document.createElement('canvas');
+        itDraw(cv, f.img, o, sz[0], sz[1]);
+        cv.toBlob(function(blob) {
+            if (blob) {
+                var base = f.name.replace(/\.[^.]+$/, '');
+                var a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = base + '_wm.jpg';
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+                okCount++;
+            }
+            setTimeout(step, 220);      // 間隔一下，瀏覽器才不會擋連續下載
+        }, 'image/jpeg', o.q);
+    }
+    step();
+}
+
 function openTemplates() {
     setTplTab(_tplTab);
     document.getElementById('tplModal').style.display = 'flex';
