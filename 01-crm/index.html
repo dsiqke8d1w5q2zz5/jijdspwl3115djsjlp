@@ -756,6 +756,9 @@
         button.mc-checkin { display: inline-flex; align-items: center; justify-content: center; gap: 3px; }
         .mc-checkin-cnt { background: #10B981; color: #fff; border-radius: 9px; font-size: 11px; font-weight: 800; line-height: 1; min-width: 16px; padding: 2px 5px; text-align: center; }
         .mc-checkin.just-checked { animation: mcPop 0.32s ease; }
+        .mc-checkin.ci-exempt { opacity: .55; }
+        .mc-checkin.ci-exempt .mc-checkin-cnt { background: #A8A29E; }
+        .mc-checkin.ci-exempt i { color: #A8A29E !important; }
         @keyframes mcPop { 0%{transform:scale(1)} 40%{transform:scale(1.14)} 100%{transform:scale(1)} }
         .mobile-cloud-status { font-size: 10px; color: rgba(250,250,249,0.6); }
         .card-menu-popup { position:fixed;background:white;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.18);z-index:9998;min-width:120px;overflow:hidden; }
@@ -11783,6 +11786,11 @@ function getCheckInCount() {
     var n = parseInt(data.count, 10);
     return isNaN(n) ? 0 : n;
 }
+// 免打卡模式：只在本月有效，跨月自動失效
+function isNoCheckIn() {
+    var data = getCheckInData();
+    return data.month === _checkInMonthKey() && !!data.exempt;
+}
 // 合併雲端打卡資料：同月取較大次數、保留較新的 lastDay
 function mergeCheckIn(cloud) {
     if (!cloud || typeof cloud !== 'object') return;
@@ -11801,6 +11809,10 @@ function mergeCheckIn(cloud) {
         count: Math.max(localCnt, cloudCnt),
         lastDay: (_dayVal(cloud.lastDay) > _dayVal(local.lastDay)) ? cloud.lastDay : (local.lastDay || cloud.lastDay || '')
     };
+    // 免打卡：任一端在本月設過就保留（跨月因 month 不符自動失效）
+    var localEx = (local.month === month) && !!local.exempt;
+    var cloudEx = (cloud.month === month) && !!cloud.exempt;
+    if (localEx || cloudEx) merged.exempt = true;
     var before = JSON.stringify(local);
     if (JSON.stringify(merged) === before) return; // 無變化
     try { localStorage.setItem('checkIn', JSON.stringify(merged)); } catch(e) { console.error('打卡合併寫入失敗', e); }
@@ -11808,12 +11820,19 @@ function mergeCheckIn(cloud) {
 }
 function renderCheckInCount() {
     var n = getCheckInCount();
+    var exempt = isNoCheckIn();
     ['checkInCount', 'checkInCountDesktop'].forEach(function(id) {
         var el = document.getElementById(id);
-        if (el) el.textContent = n;
+        if (el) el.textContent = exempt ? '免' : n;
+    });
+    // 免打卡時按鈕整顆轉灰，一眼看得出這個月不用打
+    document.querySelectorAll('.mc-checkin').forEach(function(btn) {
+        btn.classList.toggle('ci-exempt', exempt);
+        btn.title = exempt ? '本月已設為免打卡（長按可取消）' : '';
     });
 }
 function doCheckIn() {
+    if (isNoCheckIn()) return;   // 本月免打卡 → 不計數、不提醒
     var data;
     try { data = JSON.parse(localStorage.getItem('checkIn') || '{}'); } catch(e) { data = {}; }
     // 同一天已打過卡 → 擋下不計數，跳提醒（仍補推一次同步，確保本機數字有上雲）
@@ -11836,6 +11855,7 @@ function doCheckIn() {
 // ── 編輯本月打卡次數（長按 / 右鍵打卡鈕觸發，補正忘記打卡的天數）──
 function editCheckIn() {
     var cur = getCheckInCount();
+    var exemptNow = isNoCheckIn();
     var overlay = document.createElement('div');
     overlay.className = 'fill-overlay';
     var box = document.createElement('div');
@@ -11843,7 +11863,14 @@ function editCheckIn() {
     box.style.padding = '16px'; box.style.minWidth = '260px'; box.style.maxWidth = '320px';
     box.innerHTML = '<div style="font-weight:700;font-size:15px;margin-bottom:4px"><i class="ti ti-map-pin-check" style="color:#10B981"></i> 編輯本月打卡次數</div>' +
         '<div style="font-size:12px;color:#A8A29E;margin-bottom:12px">忘記打卡可在此補正本月累計次數</div>' +
-        '<input id="ci-edit-input" type="number" min="0" inputmode="numeric" value="' + cur + '" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;font-size:20px;font-weight:700;text-align:center;font-family:inherit;box-sizing:border-box;margin-bottom:14px">' +
+        '<input id="ci-edit-input" type="number" min="0" inputmode="numeric" value="' + cur + '" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;font-size:20px;font-weight:700;text-align:center;font-family:inherit;box-sizing:border-box;margin-bottom:12px">' +
+        '<label id="ci-exempt-row" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:14px;background:#FAFAF9">' +
+            '<input id="ci-exempt-chk" type="checkbox"' + (exemptNow ? ' checked' : '') + ' style="width:17px;height:17px;cursor:pointer;flex-shrink:0">' +
+            '<span style="flex:1;min-width:0">' +
+                '<span style="font-size:14px;font-weight:700;display:block">免打卡模式</span>' +
+                '<span style="font-size:11px;color:#A8A29E;display:block;margin-top:1px">本月不用打卡，下個月自動恢復</span>' +
+            '</span>' +
+        '</label>' +
         '<div style="display:flex;gap:8px">' +
             '<button onclick="closeOverlay(this.closest(\'.fill-overlay\'))" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:8px;background:white;font-size:14px;cursor:pointer;font-family:inherit">取消</button>' +
             '<button id="ci-edit-save" style="flex:1;padding:10px;border:none;border-radius:8px;background:#10B981;color:white;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">儲存</button>' +
@@ -11854,13 +11881,19 @@ function editCheckIn() {
     function _save() {
         var n = parseInt(input.value, 10);
         if (isNaN(n) || n < 0) { showToast('請輸入 0 或正整數', 'warn'); return; }
+        var exempt = !!(document.getElementById('ci-exempt-chk') || {}).checked;
         var data = getCheckInData();
         // 保留 lastDay：若有改動且本來就是本月，沿用；否則僅記月份（不擋當天再次打卡）
         var lastDay = (data.month === _checkInMonthKey()) ? (data.lastDay || '') : '';
-        try { localStorage.setItem('checkIn', JSON.stringify({ month: _checkInMonthKey(), count: n, lastDay: lastDay })); } catch(e) { console.error('打卡編輯儲存失敗', e); }
+        var rec = { month: _checkInMonthKey(), count: n, lastDay: lastDay };
+        if (exempt) rec.exempt = true;   // 只在開啟時寫入，取消即移除（跨月本來就自動失效）
+        try { localStorage.setItem('checkIn', JSON.stringify(rec)); } catch(e) { console.error('打卡編輯儲存失敗', e); }
         renderCheckInCount();
         overlay.remove();
-        if (typeof showToast === 'function') showToast('已更新本月打卡次數為 ' + n + ' 次');
+        if (typeof showToast === 'function') {
+            if (exempt !== exemptNow) showToast(exempt ? '本月已設為免打卡' : '已取消免打卡，本月第 ' + n + ' 次');
+            else showToast('已更新本月打卡次數為 ' + n + ' 次');
+        }
         if (typeof autoSync === 'function') { setTimeout(autoSync, 300); }
     }
     document.getElementById('ci-edit-save').onclick = _save;
