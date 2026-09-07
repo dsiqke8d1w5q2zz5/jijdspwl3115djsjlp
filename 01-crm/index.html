@@ -8563,10 +8563,10 @@ function buildDriveFolderName(type, prop, client, propIdx) {
     var namePart = '';
     if (type === '租案' && typeof client === 'object') {
         var llName = client.llName || (client.rLandlords && client.rLandlords[0] ? client.rLandlords[0].name : '') || client.rLandlord || '';
-        // 無起租日：【待租】建立時間-地址-[房東]名字
+        // 無起租日：【待租】今天日期-地址-[房東]名字
+        // （dateStr 在無起租日時已是今天的民國日期，等同「開始招租」的時間點）
         if (!prop.rStartDate) {
-            var _created = client.created ? isoToROC(client.created.slice(0,10)).replace(/\//g,'') : dateStr;
-            return '【待租】' + _created + '-' + addr + '-[房東]' + (llName || '未填姓名');
+            return '【待租】' + dateStr + '-' + addr + '-[房東]' + (llName || '未填姓名');
         }
         namePart = llName ? ('[房東]' + llName) : '未填姓名';
     } else if (type === '成交') {
