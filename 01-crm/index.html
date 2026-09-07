@@ -2382,6 +2382,7 @@ function persistAndSyncNow() {
     return true;
 }
 function persistPerf() {
+    _perfLoaded = true;
     try { localStorage.setItem('perfRecords', JSON.stringify(_perfRecords)); } catch(e) { console.error('localStorage寫入失敗', e); }
     if (_syncTimer) clearTimeout(_syncTimer);
     _syncTimer = setTimeout(autoSync, 3000);
@@ -2410,7 +2411,14 @@ function autoSync() {
     });
 }
 function _autoSyncPush(status) {
-    var syncData = DB.filter(function(c){ return !c.__perfRecords && !c.__templates && !c.__signingTemplates && !c.__otherTemplates && !c.__checkIn; }).concat([{__perfRecords: true, records: _perfRecords}]).concat([{__templates: true, items: _templates}]).concat([{__signingTemplates: true, items: _signingTemplates}]).concat([{__otherTemplates: true, items: _otherTemplates}]).concat([{__checkIn: true, data: getCheckInData()}]);
+    // 防資料遺失：本機從未載入過（localStorage 讀不到，如手機清資料/無痕）且內容為空時，
+    // 略過該欄位不上傳，讓雲端保留既有資料；正常載入或使用者確實清空過則照常上傳。
+    var syncData = DB.filter(function(c){ return !c.__perfRecords && !c.__templates && !c.__signingTemplates && !c.__otherTemplates && !c.__checkIn; });
+    if (_perfLoaded || (_perfRecords && _perfRecords.length)) syncData = syncData.concat([{__perfRecords: true, records: _perfRecords}]);
+    else console.warn('同步：本機無業績資料且未載入過，略過上傳以保護雲端資料');
+    syncData = syncData.concat([{__templates: true, items: _templates}]).concat([{__signingTemplates: true, items: _signingTemplates}]);
+    if (_otplLoaded || (_otherTemplates && _otherTemplates.length)) syncData = syncData.concat([{__otherTemplates: true, items: _otherTemplates}]);
+    syncData = syncData.concat([{__checkIn: true, data: getCheckInData()}]);
     var payload = JSON.stringify(syncData);
     // 記下本次預期上傳完成後的雲端筆數（只算真實客戶，與 verifySyncResult 的 cnt 同口徑：
     // 兩邊都排除 __perfRecords/__templates/__signingTemplates/__otherTemplates/__checkIn 標記）
@@ -2753,6 +2761,7 @@ function autoFetchCloud(force, onDone) {
                 // 同步業績紀錄
                 if (cloudPerf) {
                     _perfRecords = cloudPerf;
+                    _perfLoaded = true;
                     try { localStorage.setItem('perfRecords', JSON.stringify(_perfRecords)); } catch(e) { console.error('localStorage寫入失敗', e); }
                 }
                 // 同步範本
@@ -2768,6 +2777,7 @@ function autoFetchCloud(force, onDone) {
                 // 同步其他範本
                 if (cloudOTpl) {
                     _otherTemplates = cloudOTpl;
+                    _otplLoaded = true;
                     try { localStorage.setItem('crmOtherTemplates', JSON.stringify(_otherTemplates)); } catch(e) { console.error('localStorage寫入失敗', e); }
                 }
                 var status = document.getElementById('cloudStatus');
@@ -10569,7 +10579,15 @@ function permanentDel(id) {
 <script>
 // ── 業績儀表板 ──
 var _perfRecords;
-try { _perfRecords = JSON.parse(localStorage.getItem('perfRecords') || '[]'); } catch(e) { console.error('業績資料載入失敗:', e); _perfRecords = []; }
+// _perfLoaded：本機是否確實載入/取得過業績資料。
+// 手機清過資料或無痕開啟時 localStorage 讀不到 → 空陣列，此時若照常上傳
+// 會把雲端既有業績洗成空。故未載入且為空時，上傳略過此欄位（見 _autoSyncPush）。
+var _perfLoaded = false;
+try {
+    var _rawPerf = localStorage.getItem('perfRecords');
+    _perfRecords = JSON.parse(_rawPerf || '[]');
+    _perfLoaded = (_rawPerf !== null);
+} catch(e) { console.error('業績資料載入失敗:', e); _perfRecords = []; _perfLoaded = false; }
 function openPerformance() {
     renderPerformance();
     document.getElementById('perfModal').style.display = 'flex';
@@ -11630,6 +11648,7 @@ function doCloudRestore() {
             if (meta) {
                 var rp = Array.isArray(meta.records) ? meta.records : [];
                 _perfRecords = rp;
+                _perfLoaded = true;
                 _perfRestoredCount = rp.length;
                 try { localStorage.setItem('perfRecords', JSON.stringify(_perfRecords)); } catch(e) { console.error('localStorage寫入失敗', e); }
             }
@@ -11646,6 +11665,7 @@ function doCloudRestore() {
             var otplMeta = arr.filter(function(c){ return c.__otherTemplates; })[0];
             if (otplMeta && Array.isArray(otplMeta.items)) {
                 _otherTemplates = otplMeta.items;
+                _otplLoaded = true;
                 try { localStorage.setItem('crmOtherTemplates', JSON.stringify(_otherTemplates)); } catch(e) { console.error('localStorage寫入失敗', e); }
             }
             var ciMeta = arr.filter(function(c){ return c.__checkIn; })[0];
@@ -12904,10 +12924,12 @@ function deleteSigningTemplate(idx) {
 
 // ── 其他範本 ──
 var _otherTemplates;
+var _otplLoaded = false;   // 同 _perfLoaded：避免本機讀不到時把雲端洗成空
 try {
     var _savedOTpl = localStorage.getItem('crmOtherTemplates');
     _otherTemplates = _savedOTpl ? JSON.parse(_savedOTpl) : [];
-} catch(e) { _otherTemplates = []; }
+    _otplLoaded = (_savedOTpl !== null);
+} catch(e) { _otherTemplates = []; _otplLoaded = false; }
 
 function persistOtherTemplates() {
     try { localStorage.setItem('crmOtherTemplates', JSON.stringify(_otherTemplates)); } catch(e) { console.error('其他範本儲存失敗', e); }
