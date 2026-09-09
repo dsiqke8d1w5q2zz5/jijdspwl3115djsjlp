@@ -2789,8 +2789,10 @@ function autoFetchCloud(force, onDone) {
     script.src = CLOUD_URL + '?callback=' + cbName + '&t=' + Date.now();
     script.onerror = function() { delete window[cbName]; if (script.parentNode) script.parentNode.removeChild(script); _fireDone(); };
     document.body.appendChild(script);
-    // 逾時清理：避免 JSONP 掛起導致 callback 閉包永久洩漏
-    setTimeout(function() { if (window[cbName]) { delete window[cbName]; if (script.parentNode) script.parentNode.removeChild(script); _fireDone(); } }, 30000);
+    // 逾時清理：避免 JSONP 掛起導致 callback 閉包永久洩漏。
+    // 90 秒（原 30 秒）：Apps Script 久未使用會冷啟動，實測首次回應可達 30 秒，
+    // 太短會在「上傳前強制拉取合併」時提前放行，造成本機舊資料覆蓋雲端。
+    setTimeout(function() { if (window[cbName]) { delete window[cbName]; if (script.parentNode) script.parentNode.removeChild(script); _fireDone(); } }, 90000);
 }
 startAutoCheck();
 window.addEventListener('beforeunload', function() { if(_checkTimer) clearInterval(_checkTimer); if(_syncTimer) clearTimeout(_syncTimer); });
@@ -11735,8 +11737,22 @@ function doCloudRestore() {
     var cbName = 'cloudCb_' + Date.now();
     var script = document.createElement('script');
     var done = false;
+    var timedOut = false;
+    var _t0 = Date.now();
+    var _tickTimer = null;
+    function _stopTick() { if (_tickTimer) { clearInterval(_tickTimer); _tickTimer = null; } }
+    // 進度提示：資料約 2MB，且 Apps Script 久未使用會冷啟動（實測首次可達 30 秒），
+    // 沒有提示會讓人以為當掉。
+    _tickTimer = setInterval(function() {
+        if (done) { _stopTick(); return; }
+        var sec = Math.round((Date.now() - _t0) / 1000);
+        if (statusEl) statusEl.textContent = '還原中…' + sec + ' 秒' + (sec >= 15 ? '（資料較大，請稍候）' : '');
+    }, 1000);
+
     window[cbName] = function(data) {
+        if (done) return;
         done = true;
+        _stopTick();
         try { processRestore(data); }
         catch(err) {
             if (statusEl) statusEl.textContent = '還原失敗：' + err.message;
@@ -11750,6 +11766,7 @@ function doCloudRestore() {
     script.onerror = function() {
         if (done) return;
         done = true;
+        _stopTick();
         if (statusEl) statusEl.textContent = '連線失敗';
         if (btnEl) btnEl.disabled = false;
         showToast('連線失敗，請檢查網路後重試', 'error', 4000);
@@ -11757,16 +11774,24 @@ function doCloudRestore() {
         if (script.parentNode) script.parentNode.removeChild(script);
     };
     document.body.appendChild(script);
-    // 超時處理
+    // 逾時：90 秒。移除 <script> 並不會中止瀏覽器已在進行的下載，
+    // 因此這裡「不」刪除 callback —— 資料若在逾時後才回來仍能完成還原，
+    // 否則 callback 已被 delete 會直接 ReferenceError，等於把已下載的資料丟掉。
     setTimeout(function() {
         if (done) return;
-        done = true;
-        if (statusEl) statusEl.textContent = '還原逾時，請重試';
+        timedOut = true;
+        _stopTick();
+        if (statusEl) statusEl.textContent = '還原逾時，請重試（若稍後自動完成則已成功）';
         if (btnEl) btnEl.disabled = false;
         showToast('還原逾時，請確認網路後重試', 'error', 4000);
+    }, 90000);
+    // 最後保險：再等 90 秒仍未回應才真正清掉，避免 callback 永久殘留
+    setTimeout(function() {
+        if (done) return;
+        _stopTick();
         delete window[cbName];
         if (script.parentNode) script.parentNode.removeChild(script);
-    }, 30000);
+    }, 180000);
 }
 </script>
 <script>
