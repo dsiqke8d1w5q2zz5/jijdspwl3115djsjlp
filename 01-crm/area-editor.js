@@ -115,7 +115,9 @@
             summary.textContent='基地總面積 '+fmt(values.baseLand)+' 坪　｜　土地持分面積 '+fmt(values.landShare)+' 坪　｜　共有部分（不含車位） '+fmt(values.common)+' 坪';
             outputs.forEach(({el,item})=>{el.textContent=item.pendingLegacy?'原持分面積 '+fmt(item.legacyPing)+' 坪（暫用舊值，請依謄本補總面積與持分）':invalid(item)?'請填完整面積與持分':item.area===''?'—':fmt(measure(item)/RATE)+' m² ≈ '+fmt(measure(item))+' 坪';});
             const building=values.mainBldg+values.ancBldg+values.common;
-            totals.replaceChildren(...['建物坪數 '+fmt(building)+' 坪','車位坪數 '+fmt(parking)+' 坪','公設比 '+(building?(values.common/building*100).toFixed(1):'0')+'%'].map(text=>node('div',text)));
+            const equation=node('div','','area-total-equation');
+            equation.append(node('span','建物坪數 '+fmt(building)+' 坪'),node('b','＋'),node('span','車位坪數 '+fmt(parking)+' 坪'),node('b','＝'),node('strong','總坪數 '+fmt(building+parking)+' 坪'));
+            totals.replaceChildren(equation,node('div','公設比 '+(building?(values.common/building*100).toFixed(1):'0')+'%','area-total-ratio'));
             if(root.id==='sellerFixedProperty') calcSellerSz(); else calcSpSellerSz(field(root,'mainBldg'));
         }
         function areaControls(item, label) {
@@ -133,11 +135,11 @@
             editor.querySelectorAll('.area-content').forEach(el=>el.remove()); outputs.length=0;
             const body=node('div','','area-content'); const simple=node('div','','area-simple');
             [['主建物',state.main],['附屬建物',state.ancillary]].forEach(([title,item])=>{const box=node('div');box.append(labeled(title,areaControls(item,title)));output(item,box);simple.append(box);});
-            body.append(simple);
             const check=node('input');check.type='checkbox';check.checked=state.parkingIncluded;check.onchange=()=>{state.parkingIncluded=check.checked;refresh();};
-            const checkLabel=node('label','','area-check');checkLabel.append(check,document.createTextNode('舊公設面積已含車位，合計時扣除車位（公設已分開填寫時請取消）'));if(state.parkingIncluded)body.append(checkLabel);
+            const checkLabel=node('label','','area-check');checkLabel.append(check,document.createTextNode('舊公設面積已含車位，合計時扣除車位（公設已分開填寫時請取消）'));
             ['land','common'].forEach(kind=>{
                 const title=kind==='land'?'土地':'公設／車位'; const section=node('div','','area-section');section.append(node('strong',title));
+                if(kind==='common'&&state.parkingIncluded)section.append(checkLabel);
                 state[kind].forEach((item,index)=>{
                     const card=node('div','','area-row'); const head=node('div','','area-row-head');
                     if(kind==='common') {head.classList.add('area-common-head');head.append(select(item.kind||'common',{common:'公設',parking:'車位'},v=>{item.kind=v;render();},'面積歸類'));}
@@ -154,6 +156,7 @@
                 });
                 section.append(button('＋新增'+(kind==='land'?'土地':'公設／車位'),()=>{state[kind].push(Object.assign(row(),{mode:'fraction',kind:'common'}));render();}));
                 const sum=node('div','','area-hint');sum.textContent=kind==='common'?'建物坪數＝主建物＋附屬建物＋公設；車位獨立加總，公設比不含車位。':'多筆土地會分別計算持分面積後加總。';section.append(sum);body.append(section);
+                if(kind==='land'){const buildingSection=node('div','','area-section');buildingSection.append(node('strong','建物'),simple);body.append(buildingSection);}
             });
             editor.append(body,summary,error);refresh();
         }
