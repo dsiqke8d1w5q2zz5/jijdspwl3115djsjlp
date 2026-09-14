@@ -808,6 +808,7 @@
         .ac-item:hover, .ac-item.active { background:var(--bg); }
         .ac-item b { color:var(--deep); }
     </style>
+    <link rel="stylesheet" href="area-editor.css?v=20260914">
 </head>
 <body>
 
@@ -4887,12 +4888,12 @@ function typeDetail(origC, viewAs) {
             // 並列欄位
             var html='';
             var bl=sp.baseLand||'', ls=sp.landShare||'';
-            if(bl||ls) html+=_grid(3,[_cell('基地面積',bl?bl+'坪':''),_cell('土地持分',ls?ls+'坪':''),'<div></div>']);
+            if(bl||ls) html+=_grid(3,[_cell('基地面積',bl?formatAreaPing(bl)+'坪':''),_cell('土地持分面積',ls?formatAreaPing(ls)+'坪':''),'<div></div>']);
             var mb=sp.mainBldg||'', ab=sp.ancBldg||'', co=sp.common||'';
-            if(mb||ab||co) html+=_grid(3,[_cell('主建物',mb?mb+'坪':''),_cell('附屬建物',ab?ab+'坪':''),_cell('共有部分',co?co+'坪':'')]);
+            if(mb||ab||co) html+=_grid(3,[_cell('主建物',mb?formatAreaPing(mb)+'坪':''),_cell('附屬建物',ab?formatAreaPing(ab)+'坪':''),_cell('共有部分（不含車位）',co?formatAreaPing(co)+'坪':'')]);
             var sz=sp.parkingSz||'', tp=sp.parking||'', pr=sp.parkingPrice||'', no=sp.parkingNo||'';
             if(pr) pr=pr+(pr.includes('萬')?'':'萬');
-            if(sz||tp) html+=_grid(3,[_cell('車位坪數',sz?sz+'坪':''),_cell('車位型態',tp||''),'<div></div>']);
+            if(sz||tp) html+=_grid(3,[_cell('車位坪數',sz?formatAreaPing(sz)+'坪':''),_cell('車位型態',tp||''),'<div></div>']);
             if(pr||no) html+=_grid(3,[_cell('車位價格',pr||''),_cell('車位編號',no||''),'<div></div>']);
             var m=parseFloat(sp.mainBldg)||0,a=parseFloat(sp.ancBldg)||0,cov=parseFloat(sp.common)||0,pk=parseFloat(sp.parkingSz)||0;
             var bldg=m+a+cov; var reg=bldg+pk; var ratio=bldg>0?(cov/bldg*100).toFixed(1):0;
@@ -4947,12 +4948,12 @@ function typeDetail(origC, viewAs) {
             rows.push(dRow('服務費',(function(){ var p=c.sServiceFee||''; return p?p+'%':''; })()));
             var html='';
             var bl=c.sBaseLand||'', ls=c.sLandShare||'';
-            if(bl||ls) html+=_grid(3,[_cell('基地面積',bl?bl+'坪':''),_cell('土地持分',ls?ls+'坪':''),'<div></div>']);
+            if(bl||ls) html+=_grid(3,[_cell('基地面積',bl?formatAreaPing(bl)+'坪':''),_cell('土地持分面積',ls?formatAreaPing(ls)+'坪':''),'<div></div>']);
             var mb=c.sMainBldg||'', ab=c.sAncBldg||'', co=c.sCommon||'';
-            if(mb||ab||co) html+=_grid(3,[_cell('主建物',mb?mb+'坪':''),_cell('附屬建物',ab?ab+'坪':''),_cell('共有部分',co?co+'坪':'')]);
+            if(mb||ab||co) html+=_grid(3,[_cell('主建物',mb?formatAreaPing(mb)+'坪':''),_cell('附屬建物',ab?formatAreaPing(ab)+'坪':''),_cell('共有部分（不含車位）',co?formatAreaPing(co)+'坪':'')]);
             var sz=c.sParkingSz||'', tp=c.parking||'', pr=c.parkingPrice||'', no=c.parkingNo||'';
             if(pr) pr=pr+(pr.includes('萬')?'':'萬');
-            if(sz||tp) html+=_grid(3,[_cell('車位坪數',sz?sz+'坪':''),_cell('車位型態',tp||''),'<div></div>']);
+            if(sz||tp) html+=_grid(3,[_cell('車位坪數',sz?formatAreaPing(sz)+'坪':''),_cell('車位型態',tp||''),'<div></div>']);
             if(pr||no) html+=_grid(3,[_cell('車位價格',pr||''),_cell('車位編號',no||''),'<div></div>']);
             var m=parseFloat(c.sMainBldg)||0,a=parseFloat(c.sAncBldg)||0,cov=parseFloat(c.sCommon)||0,pk=parseFloat(c.sParkingSz)||0;
             var bldg=m+a+cov; var reg=bldg+pk; var ratio=bldg>0?(cov/bldg*100).toFixed(1):0;
@@ -5624,6 +5625,7 @@ function addSellerProperty(data) {
     // 計算管理費合計
     var block = document.getElementById(pid);
     if (block) {
+        mountAreaEditor(block, d.areaInput);
         calcSpMgmt(block.querySelector('[data-f="mgmtBuilding"]'));
         calcSpSellerSz(block.querySelector('[data-f="mainBldg"]'));
         // 初始化續約歷程
@@ -6001,7 +6003,7 @@ function getSellerProperties() {
     document.querySelectorAll('#sPropertyList .person-block').forEach(function(block) {
         var get = function(f) { var el = block.querySelector('[data-f="'+f+'"]'); return el ? el.value.trim() : ''; };
         if (get('community') || get('addr') || get('price')) {
-            var _spArch = get('spArchived'); var _reasonEl = block.querySelector('.sp-pause-reason'); var _reason = _reasonEl ? _reasonEl.textContent.replace('暫停原因：','') : ''; var _passEl = block.querySelector('[data-f="spPass"]'); r.push({ grade:get('grade'), contractType:get('contractType'), spPass: (_passEl && _passEl.checked) ? '1' : '', community:get('community'), addr:get('addr'), price:get('price'), floorPrice:get('floorPrice'), serviceFee:get('serviceFee'), baseLand:get('baseLand'), landShare:get('landShare'), mainBldg:get('mainBldg'), ancBldg:get('ancBldg'), common:get('common'), parkingSz:get('parkingSz'), parking:get('parking'), parkingPrice:get('parkingPrice'), parkingNo:get('parkingNo'), mgmtBuilding:get('mgmtBuilding'), mgmtCar:get('mgmtCar'), mgmtMoto:get('mgmtMoto'), mgmtOther:get('mgmtOther'), mgmtPeriod:get('mgmtPeriod'), contractStart:rocToISO(get('contractStart')), contractEnd:rocToISO(get('contractEnd')), spRenewals: block._spRenewals || [], spPriceHistory: block._spPriceHistory || [], spFloorPriceHistory: block._spFloorPriceHistory || [], spDriveUrl: block._spDriveUrl || '', spArchived: _spArch ? '1' : '', spArchiveReason: _reason, spPauseHistory: block._spPauseHistory || [] });
+            var _spArch = get('spArchived'); var _reasonEl = block.querySelector('.sp-pause-reason'); var _reason = _reasonEl ? _reasonEl.textContent.replace('暫停原因：','') : ''; var _passEl = block.querySelector('[data-f="spPass"]'); r.push({ grade:get('grade'), contractType:get('contractType'), spPass: (_passEl && _passEl.checked) ? '1' : '', community:get('community'), addr:get('addr'), price:get('price'), floorPrice:get('floorPrice'), serviceFee:get('serviceFee'), baseLand:get('baseLand'), landShare:get('landShare'), mainBldg:get('mainBldg'), ancBldg:get('ancBldg'), common:get('common'), parkingSz:get('parkingSz'), parking:get('parking'), parkingPrice:get('parkingPrice'), parkingNo:get('parkingNo'), areaInput:areaEditorData(block), mgmtBuilding:get('mgmtBuilding'), mgmtCar:get('mgmtCar'), mgmtMoto:get('mgmtMoto'), mgmtOther:get('mgmtOther'), mgmtPeriod:get('mgmtPeriod'), contractStart:rocToISO(get('contractStart')), contractEnd:rocToISO(get('contractEnd')), spRenewals: block._spRenewals || [], spPriceHistory: block._spPriceHistory || [], spFloorPriceHistory: block._spFloorPriceHistory || [], spDriveUrl: block._spDriveUrl || '', spArchived: _spArch ? '1' : '', spArchiveReason: _reason, spPauseHistory: block._spPauseHistory || [] });
         }
     });
     return r;
@@ -9899,6 +9901,7 @@ function openEdit(id, viewAs) {
     setVal('f-sAncBldg', c.sAncBldg || _detailSz.ancillary || '');
     setVal('f-sCommon', c.sCommon || _detailSz.common || '');
     setVal('f-sParkingSz', c.sParkingSz || _detailSz.parking || '');
+    mountAreaEditor(document.getElementById('sellerFixedProperty'), c.sAreaInput);
     calcSellerSz();
     setVal('f-sMgmtBuilding',c.sMgmtBuilding); setVal('f-sMgmtCar',c.sMgmtCar); setVal('f-sMgmtMoto',c.sMgmtMoto); setVal('f-sMgmtOther',c.sMgmtOther);
     if(c.sMgmtPeriod) document.getElementById('f-sMgmtPeriod').value=c.sMgmtPeriod;
@@ -10155,6 +10158,7 @@ function updateEditNav() {
 }
 
 function saveClient() {
+    if (!validateAreaEditors()) return;
     if(!selectedTypes.length){showToast('請選擇至少一個客戶類型','warn');return;}
     // 有租案時，確保 selectedTypes 中的主要標籤都歸屬到某個角色
     if (selectedTypes.includes('租案管理')) {
@@ -10265,6 +10269,7 @@ function saveClient() {
         sProperties:getSellerProperties(),
         contractType:get('f-contractType'),
         community:get('f-community'), sAddr:get('f-sAddr'), sPrice:get('f-sPrice'), sFloorPrice:get('f-sFloorPrice'), sServiceFee:get('f-sServiceFee'),
+        sAreaInput:areaEditorData(document.getElementById('sellerFixedProperty')),
         sBaseLand:get('f-sBaseLand'), sLandShare:get('f-sLandShare'), sMainBldg:get('f-sMainBldg'), sAncBldg:get('f-sAncBldg'), sCommon:get('f-sCommon'), sParkingSz:get('f-sParkingSz'),
         sLandSz:get('f-sLandSz'), sSz:get('f-sSz'), layout:get('f-layout'),
         sDetailSz: Object.assign({}, _detailSz),
@@ -12094,7 +12099,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260416c9';
+var APP_VERSION = '20260914-area1';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13193,5 +13198,6 @@ function deleteMktTemplate(idx) {
 }
 
 </script>
+<script src="area-editor.js?v=20260914"></script>
 </body>
 </html>
