@@ -1,9 +1,9 @@
-var CACHE_NAME = 'crm-v20260914-area2';
+var CACHE_NAME = 'crm-v20260914-area3';
 var URLS_TO_CACHE = [
   './',
   './index.html',
-  './area-editor.js?v=20260914b',
-  './area-editor.css?v=20260914b'
+  './area-editor.js?v=20260914c',
+  './area-editor.css?v=20260914c'
 ];
 
 self.addEventListener('install', function(e) {
