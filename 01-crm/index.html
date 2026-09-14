@@ -808,7 +808,7 @@
         .ac-item:hover, .ac-item.active { background:var(--bg); }
         .ac-item b { color:var(--deep); }
     </style>
-    <link rel="stylesheet" href="area-editor.css?v=20260914c">
+    <link rel="stylesheet" href="area-editor.css?v=20260914d">
 </head>
 <body>
 
@@ -9901,7 +9901,7 @@ function openEdit(id, viewAs) {
     setVal('f-sAncBldg', c.sAncBldg || _detailSz.ancillary || '');
     setVal('f-sCommon', c.sCommon || _detailSz.common || '');
     setVal('f-sParkingSz', c.sParkingSz || _detailSz.parking || '');
-    mountAreaEditor(document.getElementById('sellerFixedProperty'), c.sAreaInput);
+
     calcSellerSz();
     setVal('f-sMgmtBuilding',c.sMgmtBuilding); setVal('f-sMgmtCar',c.sMgmtCar); setVal('f-sMgmtMoto',c.sMgmtMoto); setVal('f-sMgmtOther',c.sMgmtOther);
     if(c.sMgmtPeriod) document.getElementById('f-sMgmtPeriod').value=c.sMgmtPeriod;
@@ -9912,6 +9912,7 @@ function openEdit(id, viewAs) {
         document.getElementById('btnRenewalHist').style.display = '';
     }
     if (c.parking) { document.getElementById('f-parking').value = c.parking; toggleParkingPrice(); setVal('f-parkingPrice',c.parkingPrice); setVal('f-parkingNo',c.parkingNo); }
+    mountAreaEditor(document.getElementById('sellerFixedProperty'), c.sAreaInput);
     if (c.contractType) {
         document.getElementById('f-contractType').value = c.contractType;
         document.querySelectorAll('#contractTypePicker .rm-btn').forEach(b => { if(b.textContent.trim()===c.contractType) b.classList.add('on'); });
@@ -12099,7 +12100,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260914-area3';
+var APP_VERSION = '20260914-area4';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13198,6 +13199,6 @@ function deleteMktTemplate(idx) {
 }
 
 </script>
-<script src="area-editor.js?v=20260914c"></script>
+<script src="area-editor.js?v=20260914d"></script>
 </body>
 </html>

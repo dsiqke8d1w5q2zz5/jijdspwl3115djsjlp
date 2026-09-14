@@ -8,6 +8,7 @@
     const number = value => value === '' ? 0 : Number(value);
     const ping = (value, unit) => number(value) * (unit === 'sqm' ? RATE : 1);
     function field(root, key) { return root.querySelector(root.id === 'sellerFixedProperty' ? '#f-s'+fields[key] : '[data-f="'+key+'"]'); }
+    function parkingField(root,key) { return root.querySelector(root.id==='sellerFixedProperty'?'#f-'+key:'[data-f="'+key+'"]'); }
     function row(area = '', unit = 'sqm') { return {id:'',area,unit,mode:'direct',numerator:'',denominator:''}; }
     function node(tag, text, className) { const el = document.createElement(tag); if(text) el.textContent=text; if(className) el.className=className; return el; }
     function button(text, action) { const el=node('button',text); el.type='button'; el.onclick=action; return el; }
@@ -54,10 +55,26 @@
             });
             state.version=2;
         }
+        if(state.version < 3) {
+            const details={};['parking','parkingPrice','parkingNo'].forEach(key=>{details[key]=parkingField(root,key).value;});
+            let parked=state.common.find(item=>item.kind==='parking');
+            if(!parked && Object.values(details).some(Boolean)) { parked=Object.assign(row(),{kind:'parking',mode:'fraction'});state.common.push(parked); }
+            if(parked) Object.assign(parked,details);
+            [...state.land,...state.common].forEach(item=>{
+                if(item.mode==='direct' && item.area!=='') {
+                    item.legacyPing=ping(item.area,item.unit);item.legacySource=clone(item);item.pendingLegacy=true;
+                    item.area=item.base?String(ping(item.base,item.baseUnit)/RATE):'';item.unit='sqm';item.numerator='';item.denominator='';
+                }
+                item.mode='fraction';
+            });
+            state.version=3;
+        }
         // Refresh defaults for previously saved empty fields; preserve entered values and units.
         const empty=value=>value===undefined || value===null || String(value).trim()==='';
+        [state.main,state.ancillary].forEach(item=>{if(!empty(item.area)&&item.unit==='ping')item.area=String(Number(item.area)/RATE);item.unit='sqm';});
         [state.main,state.ancillary,state.parking,...state.land,...state.common].forEach(item=>{
             if(empty(item.area)) item.unit='sqm';
+            else if(Number.isFinite(Number(item.area))) item.area=Number(item.area).toFixed(2);
         });
         [...state.land,...state.common].forEach(item=>{
             if(empty(item.base)) item.baseUnit='sqm';
@@ -70,7 +87,8 @@
         baseGroup.style.display='none';
         field(root,'mainBldg').closest('.fg').parentElement.style.display='none';
         field(root,'parkingSz').closest('.fg').style.display='none';
-        editor.append(node('strong','面積與持分'),node('p','依謄本輸入平方公尺，自動換算坪。已有分算結果可選「直接填持分後面積」。','area-hint'));
+        field(root,'parkingSz').closest('.fg').parentElement.style.display='none';
+        editor.append(node('strong','面積與持分'),node('p','依謄本填寫總面積與持分，自動換算坪數；車位請選擇「車位」分類。','area-hint'));
         const outputs=[];
         const summary=node('p','','area-result'); summary.setAttribute('aria-live','polite');
         const oldTotals=root.id==='sellerFixedProperty'?root.querySelector('#sRegSz'):root.querySelector('[data-f="regSz"]');
@@ -89,6 +107,11 @@
             error.textContent=bad?'請檢查面積與持分：面積不得為負數，分子／分母須為正整數且分子不大於分母；已含車位時，車位面積不得大於共有部分。':'';
             const values={mainBldg:total([state.main]),ancBldg:total([state.ancillary]),parkingSz:parking,common:Math.max(0,common-(state.parkingIncluded?parking:0)),landShare:total(state.land),baseLand:state.land.reduce((sum,r)=>sum+(r.mode==='fraction'&&!invalid(r)?ping(r.area,r.unit):ping(r.base||'',r.baseUnit||r.unit)),0)};
             Object.entries(values).forEach(([key,value])=>{field(root,key).value=value?String(value):'';});
+            const parked=state.common.filter(item=>item.kind==='parking');
+            parkingField(root,'parking').value=parked.length?(parked[0].parking||''):'';
+            parkingField(root,'parkingNo').value=parked.map(item=>item.parkingNo||'').filter(Boolean).join('、');
+            const prices=parked.filter(item=>item.parkingPrice!==undefined&&item.parkingPrice!=='');
+            parkingField(root,'parkingPrice').value=prices.length?String(prices.reduce((sum,item)=>sum+(Number(item.parkingPrice)||0),0)):'';
             summary.textContent='基地總面積 '+fmt(values.baseLand)+' 坪　｜　土地持分面積 '+fmt(values.landShare)+' 坪　｜　共有部分（不含車位） '+fmt(values.common)+' 坪';
             outputs.forEach(({el,item})=>{el.textContent=item.pendingLegacy?'原持分面積 '+fmt(item.legacyPing)+' 坪（暫用舊值，請依謄本補總面積與持分）':invalid(item)?'請填完整面積與持分':item.area===''?'—':fmt(measure(item)/RATE)+' m² ≈ '+fmt(measure(item))+' 坪';});
             const building=values.mainBldg+values.ancBldg+values.common;
@@ -97,8 +120,10 @@
         }
         function areaControls(item, label) {
             const wrap=node('div','','area-value');
-            wrap.append(input(item.area,label,v=>{item.area=v;item.pendingLegacy=false;refresh();}),select(item.unit,{sqm:'m²',ping:'坪'},v=>{
-                if(item.area!=='' && Number.isFinite(number(item.area))) item.area=String(v==='ping'?number(item.area)*RATE:number(item.area)/RATE);
+            const areaInput=input(item.area,label,v=>{item.area=v;item.pendingLegacy=false;refresh();});
+            areaInput.step='0.01';areaInput.onblur=()=>{if(item.area!==''&&Number.isFinite(Number(item.area))){item.area=Number(item.area).toFixed(2);areaInput.value=item.area;refresh();}};
+            wrap.append(areaInput,select(item.unit,{sqm:'m²',ping:'坪'},v=>{
+                if(item.area!=='' && Number.isFinite(number(item.area))) item.area=(v==='ping'?number(item.area)*RATE:number(item.area)/RATE).toFixed(2);
                 item.unit=v; render();
             },label+'單位'));
             return wrap;
@@ -115,17 +140,15 @@
                 const title=kind==='land'?'土地':'公設／車位'; const section=node('div','','area-section');section.append(node('strong',title));
                 state[kind].forEach((item,index)=>{
                     const card=node('div','','area-row'); const head=node('div','','area-row-head');
-                    head.append(input(item.id,(kind==='land'?'地號':'建號')+'（選填）',v=>{item.id=v;refresh();},false));head.firstChild.placeholder=(kind==='land'?'地號':'建號')+'（選填）';
-                    head.append(select(item.mode,{fraction:'總面積 × 持分',direct:'直接填持分後面積'},v=>{if(item.pendingLegacy&&v==='direct'){item.area=String(item.legacyPing/RATE);item.pendingLegacy=false;}item.mode=v;render();},title+'輸入方式'),button('移除',()=>{state[kind].splice(index,1);render();}));card.append(head);
-                    if(kind==='common')card.append(labeled('面積歸類',select(item.kind||'common',{common:'公設',parking:'車位'},v=>{item.kind=v;refresh();},'面積歸類')));
-                    card.append(labeled(item.mode==='fraction'?'整筆總面積':'持分後面積',areaControls(item,title+'面積')));
-                    if(item.mode==='fraction') {
-                        const fraction=node('div','','area-fraction');
-                        fraction.append(labeled('持分分子',input(item.numerator,'持分分子',v=>{item.numerator=v;item.pendingLegacy=false;refresh();})),node('span','／'),labeled('持分分母',input(item.denominator,'持分分母',v=>{item.denominator=v;item.pendingLegacy=false;refresh();})),button('全部持有',()=>{item.numerator='1';item.denominator='1';item.pendingLegacy=false;render();}));card.append(fraction);
-                    } else if(kind==='land') {
-                        const base={area:item.base||'',unit:item.baseUnit||'sqm'};
-                        const baseWrap=node('div','','area-value');baseWrap.append(input(base.area,'基地總面積（選填）',v=>{item.base=v;refresh();}),select(base.unit,{sqm:'m²',ping:'坪'},v=>{if(item.base) item.base=String(v==='ping'?number(item.base)*RATE:number(item.base)/RATE);item.baseUnit=v;render();},'基地總面積單位'));
-                        card.append(labeled('基地總面積（選填，未乘持分）',baseWrap));
+                    if(kind==='common') {head.classList.add('area-common-head');head.append(select(item.kind||'common',{common:'公設',parking:'車位'},v=>{item.kind=v;render();},'面積歸類'));}
+                    const idInput=input(item.id,(kind==='land'?'地號':'建號')+'（選填）',v=>{item.id=v;refresh();},false);idInput.placeholder=(kind==='land'?'地號':'建號')+'（選填）';
+                    head.append(idInput,node('span','總面積 × 持分','area-method'),button('移除',()=>{state[kind].splice(index,1);render();}));card.append(head);
+                    const fraction=node('div','','area-measure-line');
+                    fraction.append(labeled('總面積',areaControls(item,title+'面積')),labeled('分子',input(item.numerator,'持分分子',v=>{item.numerator=v;item.pendingLegacy=false;refresh();})),node('span','／','area-slash'),labeled('分母',input(item.denominator,'持分分母',v=>{item.denominator=v;item.pendingLegacy=false;refresh();})),button('全部持有',()=>{item.numerator='1';item.denominator='1';item.pendingLegacy=false;render();}));card.append(fraction);
+                    if(kind==='common'&&item.kind==='parking') {
+                        const info=node('div','','area-parking-info');
+                        const options={'':'選擇','坡道平面':'坡道平面','坡道機械':'坡道機械','升降平面':'升降平面','升降機械':'升降機械','塔式車位':'塔式車位','其他車位':'其他車位'};
+                        info.append(labeled('車位型態',select(item.parking||'',options,v=>{item.parking=v;refresh();},'車位型態')),labeled('車位價格（萬）',input(item.parkingPrice||'','車位價格',v=>{item.parkingPrice=v;refresh();})),labeled('車位編號',input(item.parkingNo||'','車位編號',v=>{item.parkingNo=v;refresh();},false)));card.append(info);
                     }
                     output(item,card);section.append(card);
                 });
