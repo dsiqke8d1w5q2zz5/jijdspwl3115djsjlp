@@ -4533,7 +4533,7 @@ function renderCard(c) {
             var pkPriceNum = parseFloat(String(_pkPrice||'').replace(/[萬,]/g,'')) || 0;
             if (displaySz) {
                 let szDisp = displaySz.toFixed(2) + '坪';
-                if (pkSz) szDisp += ` <span style="color:#475569">+車位${pkSz}坪</span>`;
+                if (pkSz) szDisp += ` <span style="color:#475569">+車位${pkSz.toFixed(2)}坪</span>`;
                 meta += `<div class="cmeta-row"><span class="cmeta-k">登記</span><span class="cmeta-v">${szDisp}</span></div>`;
             } else {
                 // 無建物坪數：顯示土地坪數及土地單價
@@ -12100,7 +12100,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260914-area9';
+var APP_VERSION = '20260914-area10';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
