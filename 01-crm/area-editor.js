@@ -7,6 +7,12 @@
     const fmt = n => Number(n).toLocaleString('zh-TW', {maximumFractionDigits:2});
     const number = value => value === '' ? 0 : Number(value);
     const ping = (value, unit) => number(value) * (unit === 'sqm' ? RATE : 1);
+    function areaSum(value) {
+        const text=String(value).replace(/＋/g,'+').trim();
+        if(!/^(?:\d+(?:\.\d*)?|\.\d+)(?:\s*\+\s*(?:\d+(?:\.\d*)?|\.\d+))*$/.test(text)) return NaN;
+        const sum=text.split('+').reduce((total,part)=>total+Number(part.trim()),0);
+        return Number.isFinite(sum)?Number(sum.toFixed(2)):NaN;
+    }
     function field(root, key) { return root.querySelector(root.id === 'sellerFixedProperty' ? '#f-s'+fields[key] : '[data-f="'+key+'"]'); }
     function parkingField(root,key) { return root.querySelector(root.id==='sellerFixedProperty'?'#f-'+key:'[data-f="'+key+'"]'); }
     function row(area = '', unit = 'sqm') { return {id:'',area,unit,mode:'direct',numerator:'',denominator:''}; }
@@ -113,17 +119,24 @@
             const prices=parked.filter(item=>item.parkingPrice!==undefined&&item.parkingPrice!=='');
             parkingField(root,'parkingPrice').value=prices.length?String(prices.reduce((sum,item)=>sum+(Number(item.parkingPrice)||0),0)):'';
             summary.textContent='基地總面積 '+fmt(values.baseLand)+' 坪　｜　土地持分面積 '+fmt(values.landShare)+' 坪　｜　共有部分（不含車位） '+fmt(values.common)+' 坪';
-            outputs.forEach(({el,item})=>{el.textContent=item.pendingLegacy?'原持分面積 '+fmt(item.legacyPing)+' 坪（暫用舊值，請依謄本補總面積與持分）':invalid(item)?'請填完整面積與持分':item.area===''?'—':fmt(measure(item)/RATE)+' m² ≈ '+fmt(measure(item))+' 坪';});
+            outputs.forEach(({el,item})=>{
+                const gross=item.mode==='fraction'&&item.area!==''&&Number.isFinite(number(item.area))&&number(item.area)>=0?'總面積 '+fmt(ping(item.area,item.unit)/RATE)+' m² ≈ '+fmt(ping(item.area,item.unit))+' 坪　｜　':'';
+                const result=item.pendingLegacy?'原持分面積 '+fmt(item.legacyPing)+' 坪（暫用舊值，請依謄本補總面積與持分）':invalid(item)?'請填完整面積與持分':item.area===''?'—':(item.mode==='fraction'?'持分面積 ':'')+fmt(measure(item)/RATE)+' m² ≈ '+fmt(measure(item))+' 坪';
+                el.textContent=gross+result;
+            });
             const building=values.mainBldg+values.ancBldg+values.common;
             const equation=node('div','','area-total-equation');
-            equation.append(node('span','建物坪數 '+fmt(building)+' 坪'),node('b','＋'),node('span','車位坪數 '+fmt(parking)+' 坪'),node('b','＝'),node('strong','總坪數 '+fmt(building+parking)+' 坪'));
+            equation.append(node('span','建坪 '+fmt(building)),node('b','＋'),node('span','車坪 '+fmt(parking)),node('b','＝'),node('strong','總坪 '+fmt(building+parking)));
             totals.replaceChildren(equation,node('div','公設比 '+(building?(values.common/building*100).toFixed(1):'0')+'%','area-total-ratio'));
             if(root.id==='sellerFixedProperty') calcSellerSz(); else calcSpSellerSz(field(root,'mainBldg'));
         }
         function areaControls(item, label) {
             const wrap=node('div','','area-value');
-            const areaInput=input(item.area,label,v=>{item.area=v;item.pendingLegacy=false;refresh();});
-            areaInput.step='0.01';areaInput.onblur=()=>{if(item.area!==''&&Number.isFinite(Number(item.area))){item.area=Number(item.area).toFixed(2);areaInput.value=item.area;refresh();}};
+            const areaInput=input(item.area,label,v=>{const sum=areaSum(v);item.area=Number.isFinite(sum)?String(sum):v;item.pendingLegacy=false;refresh();},false);
+            areaInput.inputMode='text';areaInput.title='可輸入加法，例如 123+11；按 Enter 或離開欄位自動加總';
+            const commitSum=()=>{const sum=areaSum(areaInput.value);if(Number.isFinite(sum)){item.area=String(sum);areaInput.value=item.area;refresh();}};
+            areaInput.onblur=commitSum;
+            areaInput.onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();commitSum();}};
             wrap.append(areaInput,select(item.unit,{sqm:'m²',ping:'坪'},v=>{
                 if(item.area!=='' && Number.isFinite(number(item.area))) item.area=(v==='ping'?number(item.area)*RATE:number(item.area)/RATE).toFixed(2);
                 item.unit=v; render();
