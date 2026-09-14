@@ -32,10 +32,16 @@
     function measure(item) { if(item.pendingLegacy) return item.legacyPing; return ping(item.area,item.unit) * (item.mode==='fraction' ? number(item.numerator)/number(item.denominator) : 1); }
     function invalid(item) {
         if(item.pendingLegacy) return false;
-        if(item.area==='' && !item.id && !item.numerator && !item.denominator) return false;
+        if(item.area==='' && !item.id && !item.numerator && !item.denominator && (item.kind!=='commonParking'||(!item.parkingNumerator&&!item.parkingDenominator))) return false;
         if(item.area==='' || !Number.isFinite(number(item.area)) || number(item.area)<0) return true;
-        return item.mode==='fraction' && (!item.numerator || !item.denominator || !Number.isInteger(number(item.numerator)) || !Number.isInteger(number(item.denominator)) || number(item.numerator)<=0 || number(item.denominator)<=0 || number(item.numerator)>number(item.denominator));
+        if(item.mode==='fraction' && (!item.numerator || !item.denominator || !Number.isInteger(number(item.numerator)) || !Number.isInteger(number(item.denominator)) || number(item.numerator)<=0 || number(item.denominator)<=0 || number(item.numerator)>number(item.denominator))) return true;
+        if(item.kind==='commonParking') {
+            const n=number(item.parkingNumerator),d=number(item.parkingDenominator);
+            return !Number.isSafeInteger(n)||!Number.isSafeInteger(d)||n<=0||d<=0||n/d>number(item.numerator)/number(item.denominator);
+        }
+        return false;
     }
+    function includedParking(item) { return invalid(item)||item.area===''?0:ping(item.area,item.unit)*number(item.parkingNumerator)/number(item.parkingDenominator); }
     function mount(root, saved) {
         if(!root || !field(root,'baseLand')) return;
         const previous=root.querySelector('.area-editor'); if(previous) previous.remove();
@@ -106,14 +112,16 @@
             const all=[state.main,state.ancillary,...state.land,...state.common];
             let bad=all.some(invalid) || state.land.some(r=>r.base!==undefined && (!Number.isFinite(number(r.base)) || number(r.base)<0));
             const total=rows=>rows.reduce((sum,r)=>sum+(invalid(r)?0:(r.area===''&&!r.pendingLegacy?0:measure(r))),0);
-            const parking=total(state.common.filter(r=>r.kind==='parking'));
-            const common=total(state.common.filter(r=>r.kind!=='parking'));
-            if(state.parkingIncluded && parking>common) bad=true;
+            const separateParking=total(state.common.filter(r=>r.kind==='parking'));
+            const embeddedParking=state.common.filter(r=>r.kind==='commonParking').reduce((sum,r)=>sum+includedParking(r),0);
+            const parking=separateParking+embeddedParking;
+            const common=total(state.common.filter(r=>r.kind!=='parking'))-embeddedParking;
+            if(state.parkingIncluded && separateParking>total(state.common.filter(r=>r.kind!=='parking'&&r.kind!=='commonParking'))) bad=true;
             editor.dataset.invalid=bad?'1':'0';
-            error.textContent=bad?'請檢查面積與持分：面積不得為負數，分子／分母須為正整數且分子不大於分母；已含車位時，車位面積不得大於共有部分。':'';
-            const values={mainBldg:total([state.main]),ancBldg:total([state.ancillary]),parkingSz:parking,common:Math.max(0,common-(state.parkingIncluded?parking:0)),landShare:total(state.land),baseLand:state.land.reduce((sum,r)=>sum+(r.mode==='fraction'&&!invalid(r)?ping(r.area,r.unit):ping(r.base||'',r.baseUnit||r.unit)),0)};
+            error.textContent=bad?'請檢查面積與持分：面積不得為負數，分子／分母須為正整數且分子不大於分母；內含車位持分不得大於該筆整體持分。':'';
+            const values={mainBldg:total([state.main]),ancBldg:total([state.ancillary]),parkingSz:parking,common:Math.max(0,common-(state.parkingIncluded?separateParking:0)),landShare:total(state.land),baseLand:state.land.reduce((sum,r)=>sum+(r.mode==='fraction'&&!invalid(r)?ping(r.area,r.unit):ping(r.base||'',r.baseUnit||r.unit)),0)};
             Object.entries(values).forEach(([key,value])=>{field(root,key).value=value?String(value):'';});
-            const parked=state.common.filter(item=>item.kind==='parking');
+            const parked=state.common.filter(item=>item.kind==='parking'||item.kind==='commonParking');
             parkingField(root,'parking').value=parked.length?(parked[0].parking||''):'';
             parkingField(root,'parkingNo').value=parked.map(item=>item.parkingNo||'').filter(Boolean).join('、');
             const prices=parked.filter(item=>item.parkingPrice!==undefined&&item.parkingPrice!=='');
@@ -123,6 +131,7 @@
                 const gross=item.mode==='fraction'&&item.area!==''&&Number.isFinite(number(item.area))&&number(item.area)>=0?'總面積 '+fmt(ping(item.area,item.unit)/RATE)+' m² ≈ '+fmt(ping(item.area,item.unit))+' 坪　｜　':'';
                 const result=item.pendingLegacy?'原持分面積 '+fmt(item.legacyPing)+' 坪（暫用舊值，請依謄本補總面積與持分）':invalid(item)?'請填完整面積與持分':item.area===''?'—':(item.mode==='fraction'?'持分面積 ':'')+fmt(measure(item)/RATE)+' m² ≈ '+fmt(measure(item))+' 坪';
                 el.textContent=item.pendingLegacy&&state.common.includes(item)?gross.replace(/　｜　$/,''):gross+result;
+                if(item.kind==='commonParking'&&!invalid(item)&&item.area!=='') el.textContent=gross+'整體持分 '+fmt(measure(item))+' 坪　｜　公設淨面積 '+fmt(measure(item)-includedParking(item))+' 坪 ＋ 內含車位 '+fmt(includedParking(item))+' 坪';
                 el.hidden=!el.textContent;
             });
             const building=values.mainBldg+values.ancBldg+values.common;
@@ -156,12 +165,18 @@
                 if(kind==='common'&&state.parkingIncluded)section.append(checkLabel);
                 state[kind].forEach((item,index)=>{
                     const card=node('div','','area-row'); const head=node('div','','area-row-head');
-                    if(kind==='common') {head.classList.add('area-common-head');head.append(select(item.kind||'common',{common:'公設',parking:'車位'},v=>{item.kind=v;render();},'面積歸類'));}
+                    if(kind==='common') {head.classList.add('area-common-head');if(item.kind==='commonParking')head.classList.add('area-included-head');head.append(select(item.kind||'common',{common:'公設',parking:'車位',commonParking:'公設含車位'},v=>{item.kind=v;if(v==='commonParking'){item.pendingLegacy=false;if(!item.parkingDenominator)item.parkingDenominator=item.denominator||'';}render();},'面積歸類'));}
                     const idInput=input(item.id,(kind==='land'?'地號':'建號')+'（選填）',v=>{item.id=v;refresh();},false);idInput.placeholder=(kind==='land'?'地號':'建號')+'（選填）';
                     head.append(idInput,node('span','總面積 × 持分','area-method'),button('移除',()=>{state[kind].splice(index,1);render();}));card.append(head);
                     const fraction=node('div','','area-measure-line');
                     fraction.append(labeled('總面積',areaControls(item,title+'面積')),labeled('分子',input(item.numerator,'持分分子',v=>{item.numerator=v;item.pendingLegacy=false;refresh();})),node('span','／','area-slash'),labeled('分母',input(item.denominator,'持分分母',v=>{item.denominator=v;item.pendingLegacy=false;refresh();})),button('全部持有',()=>{item.numerator='1';item.denominator='1';item.pendingLegacy=false;render();}));card.append(fraction);
-                    if(kind==='common'&&item.kind==='parking') {
+                    if(kind==='common'&&item.kind==='commonParking') {
+                        const embedded=node('div','','area-embedded-parking');
+                        embedded.append(node('div','上列持分包含車位，以下填車位持分，使用同一總面積拆算。','area-hint'));
+                        const shares=node('div','','area-measure-line area-embedded-line');
+                        shares.append(node('strong','內含車位持分'),labeled('分子',input(item.parkingNumerator||'','內含車位分子',v=>{item.parkingNumerator=v;refresh();})),node('span','／','area-slash'),labeled('分母',input(item.parkingDenominator||'','內含車位分母',v=>{item.parkingDenominator=v;refresh();})),button('同上分母',()=>{item.parkingDenominator=item.denominator||'';render();}));embedded.append(shares);card.append(embedded);
+                    }
+                    if(kind==='common'&&(item.kind==='parking'||item.kind==='commonParking')) {
                         const info=node('div','','area-parking-info');
                         const options={'':'選擇','坡道平面':'坡道平面','坡道機械':'坡道機械','升降平面':'升降平面','升降機械':'升降機械','塔式車位':'塔式車位','其他車位':'其他車位'};
                         info.append(labeled('車位型態',select(item.parking||'',options,v=>{item.parking=v;refresh();},'車位型態')),labeled('車位價格（萬）',input(item.parkingPrice||'','車位價格',v=>{item.parkingPrice=v;refresh();})),labeled('車位編號',input(item.parkingNo||'','車位編號',v=>{item.parkingNo=v;refresh();},false)));card.append(info);
