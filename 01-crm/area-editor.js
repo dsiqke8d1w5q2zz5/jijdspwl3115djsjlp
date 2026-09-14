@@ -136,7 +136,9 @@
             });
             const building=values.mainBldg+values.ancBldg+values.common;
             const equation=node('div','','area-total-equation');
-            equation.append(node('span','建坪 '+fmt(building)),node('b','＋'),node('span','車坪 '+fmt(parking)),node('b','＝'),node('strong','總坪 '+fmt(building+parking)));
+            equation.append(node('span','建坪 '+fmt(building)));
+            if(parking>0) equation.append(node('b','＋'),node('span','車坪 '+fmt(parking)));
+            equation.append(node('b','＝'),node('strong','總坪 '+fmt(building+parking)));
             totals.replaceChildren(summary,equation,node('div','公設比 '+(building?(values.common/building*100).toFixed(1):'0')+'%','area-total-ratio'));
             if(root.id==='sellerFixedProperty') calcSellerSz(); else calcSpSellerSz(field(root,'mainBldg'));
         }
