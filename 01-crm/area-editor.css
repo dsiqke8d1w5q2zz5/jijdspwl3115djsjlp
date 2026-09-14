@@ -4,7 +4,7 @@
 .area-editor input,.area-editor select{width:100%;min-width:0;box-sizing:border-box;padding:9px;border:1px solid #ded8ce;border-radius:8px;background:white;font:inherit}
 .area-editor button{padding:7px 10px;border:1px solid #ded8ce;border-radius:8px;background:white;color:#57534e;font:inherit;cursor:pointer;white-space:nowrap}
 .area-simple{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-.area-value{display:flex;gap:5px;margin-top:5px}.area-value input{flex:1}.area-editor .area-value select{width:100px}
+.area-value{display:flex;gap:5px;margin-top:5px}.area-value input{flex:1}.area-editor .area-value select{width:64px;flex:0 0 64px;padding-left:7px;padding-right:3px}
 .area-result{color:#1a5b73;font-size:12px;margin-top:7px;line-height:1.5}
 .area-editor .area-check{display:flex;gap:8px;align-items:center;margin:12px 0;font-weight:400}.area-editor .area-check input{width:17px;flex:none}
 .area-section{border-top:1px solid #ded8ce;padding-top:12px;margin-top:12px}.area-row{padding:10px;background:#fff;border:1px solid #e7e5e4;border-radius:9px;margin:9px 0}

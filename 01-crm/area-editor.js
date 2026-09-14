@@ -38,6 +38,15 @@
             land:[Object.assign(row(legacy('landShare'),legacy('landShare')?'ping':'sqm'),{base:legacy('baseLand'),baseUnit:legacy('baseLand')?'ping':'sqm',mode:legacy('landShare')||legacy('baseLand')?'direct':'fraction'})],
             common:[Object.assign(row(legacy('common'),legacy('common')?'ping':'sqm'),{mode:legacy('common')?'direct':'fraction'})]
         };
+        // Refresh defaults for previously saved empty fields; preserve entered values and units.
+        const empty=value=>value===undefined || value===null || String(value).trim()==='';
+        [state.main,state.ancillary,state.parking,...state.land,...state.common].forEach(item=>{
+            if(empty(item.area)) item.unit='sqm';
+        });
+        [...state.land,...state.common].forEach(item=>{
+            if(empty(item.base)) item.baseUnit='sqm';
+            if(empty(item.area) && empty(item.base) && empty(item.numerator) && empty(item.denominator)) item.mode='fraction';
+        });
         root._areaState=state;
         const editor=node('section','', 'area-editor');
         const baseGroup=field(root,'baseLand').closest('.fg').parentElement;
@@ -61,12 +70,12 @@
             const values={mainBldg:total([state.main]),ancBldg:total([state.ancillary]),parkingSz:parking,common:Math.max(0,common-(state.parkingIncluded?parking:0)),landShare:total(state.land),baseLand:state.land.reduce((sum,r)=>sum+(r.mode==='fraction'&&!invalid(r)?ping(r.area,r.unit):ping(r.base||'',r.baseUnit||r.unit)),0)};
             Object.entries(values).forEach(([key,value])=>{field(root,key).value=value?String(value):'';});
             summary.textContent='基地總面積 '+fmt(values.baseLand)+' 坪　｜　土地持分面積 '+fmt(values.landShare)+' 坪　｜　共有部分（不含車位） '+fmt(values.common)+' 坪';
-            outputs.forEach(({el,item})=>{el.textContent=invalid(item)?'請填完整面積與持分':item.area===''?'—':fmt(measure(item)/RATE)+' 平方公尺 ≈ '+fmt(measure(item))+' 坪';});
+            outputs.forEach(({el,item})=>{el.textContent=invalid(item)?'請填完整面積與持分':item.area===''?'—':fmt(measure(item)/RATE)+' m² ≈ '+fmt(measure(item))+' 坪';});
             if(root.id==='sellerFixedProperty') calcSellerSz(); else calcSpSellerSz(field(root,'mainBldg'));
         }
         function areaControls(item, label) {
             const wrap=node('div','','area-value');
-            wrap.append(input(item.area,label,v=>{item.area=v;refresh();}),select(item.unit,{sqm:'平方公尺',ping:'坪'},v=>{
+            wrap.append(input(item.area,label,v=>{item.area=v;refresh();}),select(item.unit,{sqm:'m²',ping:'坪'},v=>{
                 if(item.area!=='' && Number.isFinite(number(item.area))) item.area=String(v==='ping'?number(item.area)*RATE:number(item.area)/RATE);
                 item.unit=v; render();
             },label+'單位'));
@@ -92,7 +101,7 @@
                         fraction.append(labeled('持分分子',input(item.numerator,'持分分子',v=>{item.numerator=v;refresh();})),node('span','／'),labeled('持分分母',input(item.denominator,'持分分母',v=>{item.denominator=v;refresh();})),button('全部持有',()=>{item.numerator='1';item.denominator='1';render();}));card.append(fraction);
                     } else if(kind==='land') {
                         const base={area:item.base||'',unit:item.baseUnit||'sqm'};
-                        const baseWrap=node('div','','area-value');baseWrap.append(input(base.area,'基地總面積（選填）',v=>{item.base=v;refresh();}),select(base.unit,{sqm:'平方公尺',ping:'坪'},v=>{if(item.base) item.base=String(v==='ping'?number(item.base)*RATE:number(item.base)/RATE);item.baseUnit=v;render();},'基地總面積單位'));
+                        const baseWrap=node('div','','area-value');baseWrap.append(input(base.area,'基地總面積（選填）',v=>{item.base=v;refresh();}),select(base.unit,{sqm:'m²',ping:'坪'},v=>{if(item.base) item.base=String(v==='ping'?number(item.base)*RATE:number(item.base)/RATE);item.baseUnit=v;render();},'基地總面積單位'));
                         card.append(labeled('基地總面積（選填，未乘持分）',baseWrap));
                     }
                     output(item,card);section.append(card);
