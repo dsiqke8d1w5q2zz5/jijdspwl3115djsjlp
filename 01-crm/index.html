@@ -5443,6 +5443,26 @@ function switchBdTab(btn, idx) {
     });
 }
 
+// Esc closes only the foremost visible dialog, using its existing cancel/close path.
+document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Escape' || e.isComposing || e.repeat) return;
+    var layers = Array.from(document.querySelectorAll('.overlay, .fill-overlay, #calPopup')).filter(function(el) {
+        var style = getComputedStyle(el);
+        return el.getClientRects().length && style.display !== 'none' && style.visibility !== 'hidden';
+    });
+    layers.sort(function(a,b) { return (parseInt(getComputedStyle(a).zIndex)||0) - (parseInt(getComputedStyle(b).zIndex)||0); });
+    var top = layers[layers.length-1];
+    if (!top) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    if (top.id === 'calPopup') { closeCal(); return; }
+    if (top.id === 'msgModal') { cancelMsg(); return; }
+    var cancel = top.querySelector('#cf-no');
+    if (cancel) { cancel.click(); return; }
+    if (typeof top.onmousedown === 'function') { top.dispatchEvent(new MouseEvent('mousedown')); return; }
+    if (typeof top.onclick === 'function') { top.click(); return; }
+    if (top.classList.contains('fill-overlay')) closeOverlay(top);
+}, true);
+
 // 鍵盤左右鍵切換
 document.addEventListener('keydown', function(e) {
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
@@ -12100,7 +12120,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260914-area11';
+var APP_VERSION = '20260915-esc1';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
