@@ -75,7 +75,8 @@
         const included=state.common.filter(r=>r.kind==='commonParking').reduce((s,r)=>s+(+r.area||0)*(r.unit==='sqm'?0.3025:1)*+r.parkingNumerator/+r.parkingDenominator,0);
         const common=state.common.filter(r=>r.kind!=='parking').reduce((s,r)=>s+measure(r),0)-included-(state.parkingIncluded?separate:0);
         const main=measure(state.main),ancillary=measure(state.ancillary),building=main+ancillary+common,parking=separate+included;
-        return {main,ancillary,common,building,parking,total:building+parking,ratio:building>0?common/building*100:0};
+        const land=(state.land||[]).reduce((sum,row)=>sum+measure(row),0);
+        return {main,ancillary,common,building,parking,land,total:building+parking,ratio:building>0?common/building*100:0};
     }
     function attach(root,editor) {
         const previous=undo.get(root);
@@ -160,7 +161,7 @@
                 if(Object.keys(selectedDetails()).length)categories.push('勾選的建物資料');
                 changed.textContent=selectionSummary+(categories.length?'將取代：'+categories.join('、')+'。其他類別保留。':'請勾選要套用的資料。');
                 if(valid){
-                    const n=totals(mergedState(before,selected));preview.replaceChildren();
+                    const next=mergedState(before,selected),n=totals(next);preview.replaceChildren();
                     if(Object.values(n).every(Number.isFinite)){
                         preview.append(node('div','套用後試算','transcript-preview-title'));
                         const breakdown=node('div','','transcript-breakdown');
@@ -168,6 +169,7 @@
                             const item=node('div');item.append(node('span',label),node('strong',fmt(value)+' 坪'));breakdown.append(item);
                         }
                         preview.append(breakdown,node('div','建坪 '+fmt(n.building)+(n.parking>0?' ＋ 車坪 '+fmt(n.parking):'')+' ＝ 總坪 '+fmt(n.total)+'　公設比 '+fmt(n.ratio)+'%','transcript-preview-total'));
+                        if(next.land.length)preview.append(node('div','土地持分合計 '+fmt(n.land)+' 坪（'+next.land.length+' 個地號）','transcript-preview-total'));
                     }else preview.textContent='已選資料可套用；原表單其他面積／持分尚未填完整，補齊後即可試算總坪。';
                 }
                 else preview.textContent='請選取有效資料，修正紅色欄位；同一來源的地／建號若有不同版本，請只選一筆。';
