@@ -183,16 +183,16 @@
                     for(const source of row.sources){const link=node('a',(files[+source.file]?.name||source.file)+' · 第 '+source.page+' 頁');link.href=urls[+source.file]+'#page='+source.page;link.target='_blank';link.rel='noopener';card.append(link);}
                     card.prepend(heading);heading.append(node('span',row.blocked?'無法套用':row.errors.length?'待核對':'核對／修改','transcript-expand'));
                     if(row.category==='common')card.append(node('p','所屬主建號：'+row.group,'transcript-muted'));
+                    const controls=node('div','','transcript-fields');
                     if(row.category==='common'){
-                        const kind=node('select');kind.setAttribute('aria-label','辨識面積歸類');for(const [value,label] of Object.entries({common:'公設',parking:'車位',commonParking:'公設含車位'})){const opt=node('option',label);opt.value=value;kind.append(opt);}kind.value=row.kind;kind.onchange=()=>{row.kind=kind.value;row.expanded=true;confirmed.checked=false;draw();};card.append(labeled('面積歸類',kind));
+                        const kind=node('select');kind.setAttribute('aria-label','辨識面積歸類');for(const [value,label] of Object.entries({common:'公設',parking:'車位',commonParking:'公設含車位'})){const opt=node('option',label);opt.value=value;kind.append(opt);}kind.value=row.kind;kind.onchange=()=>{row.kind=kind.value;row.expanded=true;confirmed.checked=false;draw();};controls.append(labeled('分類',kind));
                     }
                     if(row.category==='main'||row.category==='ancillary'){
                         const destination=node('select');destination.setAttribute('aria-label','套入分類');
                         for(const [value,label] of [['',names[row.category]],['common','公設'],['parking','車位']]){const opt=node('option',label);opt.value=value;destination.append(opt);}
                         destination.value=row.destination||'';destination.onchange=()=>{row.destination=destination.value;row.expanded=true;confirmed.checked=false;draw();};
-                        card.append(labeled('套入分類（可改為公設或車位）',destination));
+                        controls.append(labeled('分類',destination));
                     }
-                    const controls=node('div','','transcript-fields');
                     function edit(key,label){const el=field(row[key],label,v=>{row[key]=v;confirmed.checked=false;refreshRow();update();});if(key!=='parkingNo')el.inputMode='decimal';controls.append(labeled(label,el));}
                     edit('area',row.mode==='direct'?'面積 m²':'總面積 m²');
                     if(row.mode==='fraction'){edit('numerator','分子');edit('denominator','分母');}
