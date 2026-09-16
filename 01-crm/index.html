@@ -809,6 +809,7 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="area-editor.css?v=20260914j">
+    <link rel="stylesheet" href="transcript-import.css?v=20260916pdf1">
 </head>
 <body>
 
@@ -5446,6 +5447,7 @@ function switchBdTab(btn, idx) {
 // Esc closes only the foremost visible dialog, using its existing cancel/close path.
 document.addEventListener('keydown', function(e) {
     if (e.key !== 'Escape' || e.isComposing || e.repeat) return;
+    if (document.querySelector('dialog.transcript-dialog[open]')) return;
     var layers = Array.from(document.querySelectorAll('.overlay, .fill-overlay, #calPopup')).filter(function(el) {
         var style = getComputedStyle(el);
         return el.getClientRects().length && style.display !== 'none' && style.visibility !== 'hidden';
@@ -12120,7 +12122,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260915-esc1';
+var APP_VERSION = '20260916-pdf1';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13219,6 +13221,8 @@ function deleteMktTemplate(idx) {
 }
 
 </script>
-<script src="area-editor.js?v=20260914j"></script>
+<script src="transcript-parser.js?v=20260916pdf1"></script>
+<script src="transcript-import.js?v=20260916pdf1"></script>
+<script src="area-editor.js?v=20260916pdf1"></script>
 </body>
 </html>
