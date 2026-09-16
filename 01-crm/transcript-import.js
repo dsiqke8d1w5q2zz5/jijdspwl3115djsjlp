@@ -74,8 +74,8 @@
         const separate=state.common.filter(r=>r.kind==='parking').reduce((s,r)=>s+measure(r),0);
         const included=state.common.filter(r=>r.kind==='commonParking').reduce((s,r)=>s+(+r.area||0)*(r.unit==='sqm'?0.3025:1)*+r.parkingNumerator/+r.parkingDenominator,0);
         const common=state.common.filter(r=>r.kind!=='parking').reduce((s,r)=>s+measure(r),0)-included-(state.parkingIncluded?separate:0);
-        const building=measure(state.main)+measure(state.ancillary)+common,parking=separate+included;
-        return {building,parking,total:building+parking,ratio:building>0?common/building*100:0};
+        const main=measure(state.main),ancillary=measure(state.ancillary),building=main+ancillary+common,parking=separate+included;
+        return {main,ancillary,common,building,parking,total:building+parking,ratio:building>0?common/building*100:0};
     }
     function attach(root,editor) {
         const previous=undo.get(root);
@@ -132,7 +132,7 @@
             if(result.buildings.length>1)issues.append(node('p','已列出全部建號及地號，取消勾選不需要的資料；點開各筆可修改持分與分類。'));
             if(result.issues.length||result.buildings.length>1)review.append(issues);
             const list=node('div','','transcript-list');review.append(list);
-            const preview=node('div','','transcript-preview');preview.setAttribute('aria-live','polite');
+            const preview=node('div','','transcript-preview');preview.setAttribute('aria-live','polite');review.prepend(preview);
             const changed=node('p','','transcript-muted'),confirmed=node('input');confirmed.type='checkbox';
             const consent=labeled('已核對，取代勾選類別的原資料',confirmed);consent.prepend(confirmed);consent.className='transcript-confirm';
             const detailState=new Map();
@@ -145,7 +145,7 @@
                 if(target.apply){target.apply(next,selected,selectedDetails(),result.buildings.find(b=>b.id===group));dialog.close();notify(target.success||'已套入資料');}
                 else {const record={before:clone(before),after:null};undo.set(root,record);window.mountAreaEditor(root,next);record.after=JSON.stringify(window.areaEditorData(root));dialog.close();notify('已套入面積資料，請按表單的儲存完成更新');}
             },'transcript-primary');
-            footer.append(preview,changed,consent,button('取消',()=>dialog.close()),apply);
+            footer.append(changed,consent,button('取消',()=>dialog.close()),apply);
             confirmed.onchange=update;
             function visible(r){return true;}
             function getSelected(){return rows.filter(r=>visible(r)&&r.selected).map(r=>r.destination?{...r,category:'common',kind:r.destination,id:r.id+(r.category==='ancillary'?'（附屬建物）':'')}:r);}
@@ -159,7 +159,17 @@
                 const selectionSummary='已選 '+selected.filter(r=>r.category==='main').length+' 個主建號、'+selected.filter(r=>r.category==='land').length+' 個地號。';
                 if(Object.keys(selectedDetails()).length)categories.push('勾選的建物資料');
                 changed.textContent=selectionSummary+(categories.length?'將取代：'+categories.join('、')+'。其他類別保留。':'請勾選要套用的資料。');
-                if(valid){const n=totals(mergedState(before,selected));preview.textContent=Object.values(n).every(Number.isFinite)?'套用後試算：建坪 '+fmt(n.building)+(n.parking>0?' ＋ 車坪 '+fmt(n.parking):'')+' ＝ 總坪 '+fmt(n.total)+'　公設比 '+fmt(n.ratio)+'%':'已選資料可套用；原表單其他面積／持分尚未填完整，補齊後即可試算總坪。';}
+                if(valid){
+                    const n=totals(mergedState(before,selected));preview.replaceChildren();
+                    if(Object.values(n).every(Number.isFinite)){
+                        preview.append(node('div','套用後試算','transcript-preview-title'));
+                        const breakdown=node('div','','transcript-breakdown');
+                        for(const [label,value] of [['主建物',n.main],['附屬建物',n.ancillary],['公設（不含車位）',n.common],['車位',n.parking]]){
+                            const item=node('div');item.append(node('span',label),node('strong',fmt(value)+' 坪'));breakdown.append(item);
+                        }
+                        preview.append(breakdown,node('div','建坪 '+fmt(n.building)+(n.parking>0?' ＋ 車坪 '+fmt(n.parking):'')+' ＝ 總坪 '+fmt(n.total)+'　公設比 '+fmt(n.ratio)+'%','transcript-preview-total'));
+                    }else preview.textContent='已選資料可套用；原表單其他面積／持分尚未填完整，補齊後即可試算總坪。';
+                }
                 else preview.textContent='請選取有效資料，修正紅色欄位；同一來源的地／建號若有不同版本，請只選一筆。';
                 apply.disabled=!confirmed.checked||!valid;
             }
