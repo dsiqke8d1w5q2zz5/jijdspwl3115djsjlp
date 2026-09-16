@@ -180,7 +180,8 @@
                     const check=node('input');check.type='checkbox';check.checked=row.selected;check.disabled=row.blocked;check.setAttribute('aria-label','匯入'+names[row.category]+' '+row.id);
                     check.onclick=e=>e.stopPropagation();check.onchange=()=>{row.selected=check.checked;confirmed.checked=false;update();};
                     const title=node('span',(row.destination?({common:'公設',parking:'車位'}[row.destination]):row.category==='common'?({common:'公設',parking:'車位',commonParking:'公設含車位'}[row.kind]):names[row.category])+'　'+row.id,'transcript-row-title');title.prepend(check);heading.append(title);
-                    for(const source of row.sources){const link=node('a',(files[+source.file]?.name||source.file)+' · 第 '+source.page+' 頁');link.href=urls[+source.file]+'#page='+source.page;link.target='_blank';link.rel='noopener';card.append(link);}
+                    const sources=node('div','','transcript-sources');
+                    for(const source of row.sources){const link=node('a',(files[+source.file]?.name||source.file)+' · 第 '+source.page+' 頁');link.href=urls[+source.file]+'#page='+source.page;link.target='_blank';link.rel='noopener';sources.append(link);}
                     card.prepend(heading);heading.append(node('span',row.blocked?'無法套用':row.errors.length?'待核對':'核對／修改','transcript-expand'));
                     if(row.category==='common')card.append(node('p','所屬主建號：'+row.group,'transcript-muted'));
                     const controls=node('div','','transcript-fields');
@@ -206,7 +207,7 @@
                     if(row.blocked)card.append(node('p','此筆不會自動套用，請依原謄本手動填寫。','transcript-problem'));
                     const output=node('span','','transcript-result');heading.append(output);
                     function refreshRow(){const result=P.calculate(row);output.textContent=result?fmt(result.area)+' 坪'+(row.kind==='commonParking'?'（公設 '+fmt(result.area-result.parking)+' ＋ 車位 '+fmt(result.parking)+'）':''):'請填有效面積（最多小數 2 位）及正整數持分。';card.classList.toggle('transcript-invalid',!result);}
-                    refreshRow();list.append(card);
+                    card.append(sources);refreshRow();list.append(card);
                 }
                 if(target.details)for(const building of result.buildings){
                     const active=building.id===group;
