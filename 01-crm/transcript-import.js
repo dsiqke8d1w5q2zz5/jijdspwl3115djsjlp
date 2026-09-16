@@ -95,11 +95,11 @@
         dialog.setAttribute('aria-labelledby','transcript-title');
         const title=node('h2','匯入謄本');title.id='transcript-title';
         const head=node('div','','transcript-head');head.append(title,button('關閉',()=>dialog.close()));
-        const intro=node('p',target.intro||'選取同一物件的土地、建物謄本，可一次多選。PDF 僅在此裝置分析；先核對，再套入表單。','transcript-muted');
+        const intro=node('p','選取謄本 PDF → 核對結果 → 套入表單。可一次選多份。','transcript-muted');
         const fileInput=node('input');fileInput.type='file';fileInput.accept='.pdf,application/pdf';fileInput.multiple=true;fileInput.setAttribute('aria-label','選取謄本 PDF');
         const status=node('p','','transcript-status');status.setAttribute('role','status');
         const review=node('div'),footer=node('div','','transcript-footer');
-        dialog.append(head,intro,fileInput,node('p','支援有文字的電子謄本；掃描或照片 PDF 目前會提示改用電子謄本。每次最多 20 檔、100 頁。','transcript-muted'),status,review,footer);
+        dialog.append(head,intro,fileInput,node('p','電子謄本 · 最多 20 檔／100 頁 · 僅在此裝置分析','transcript-muted'),status,review,footer);
         let cancelled=false,files=[],urls=[],run=0;
         dialog.addEventListener('keydown',e=>e.stopPropagation());
         dialog.addEventListener('close',()=>{cancelled=true;run++;urls.forEach(URL.revokeObjectURL);dialog.remove();previousFocus?.focus();});
@@ -125,16 +125,16 @@
             let group=result.buildings[0]?.id||'';
             const groupSelect=node('select');groupSelect.setAttribute('aria-label','單一欄位資料來源建號');
             for(const building of result.buildings){const opt=node('option',building.address+'（'+building.id+'）');opt.value=building.id;groupSelect.append(opt);}
-            if(result.buildings.length)review.append(labeled('地址／用途等單一欄位採用的建號（不影響下方勾選面積合計）',groupSelect));
+            if(result.buildings.length>1)review.append(labeled('地址及建物資料採用',groupSelect));
             groupSelect.value=group;groupSelect.onchange=()=>{group=groupSelect.value;confirmed.checked=false;draw();};
             const issues=node('div','','transcript-warnings');
             for(const issue of result.issues)issues.append(node('p',issue.replace(/^(\d+)(?= |：)/,(m,i)=>files[+i]?.name||i)));
-            if(result.buildings.length>1)issues.append(node('p','可同時勾選多個主建號及地號。主建物、附屬建物分別加總；相同公設建號會按各主建號的持分分筆計算。請取消不屬於本次合併物件的資料。用途、完工日等單一欄位請另行勾選確認。'));
+            if(result.buildings.length>1)issues.append(node('p','已列出全部建號及地號，取消勾選不需要的資料；點開各筆可修改持分與分類。'));
             if(result.issues.length||result.buildings.length>1)review.append(issues);
             const list=node('div','','transcript-list');review.append(list);
             const preview=node('div','','transcript-preview');preview.setAttribute('aria-live','polite');
             const changed=node('p','','transcript-muted'),confirmed=node('input');confirmed.type='checkbox';
-            const consent=labeled('我已核對原謄本、持分與車位分類，同意取代勾選類別的原有面積資料。',confirmed);consent.prepend(confirmed);consent.className='transcript-confirm';
+            const consent=labeled('已核對，取代勾選類別的原資料',confirmed);consent.prepend(confirmed);consent.className='transcript-confirm';
             const detailState=new Map();
             for(const b of result.buildings)detailState.set(b.id,Object.fromEntries(Object.entries(b.details||{}).filter(([key,value])=>value&&(!target.detailKeys||target.detailKeys.includes(key))).map(([key,value])=>[key,{value,selected:!!target.details&&result.buildings.length===1}])));
             const selectedDetails=()=>Object.fromEntries(Object.entries(detailState.get(group)||{}).filter(([,item])=>item.selected&&item.value.trim()).map(([key,item])=>[key,item.value.trim()]));
@@ -158,7 +158,7 @@
                 const categories=[...new Set(selected.map(r=>names[r.category]))];
                 const selectionSummary='已選 '+selected.filter(r=>r.category==='main').length+' 個主建號、'+selected.filter(r=>r.category==='land').length+' 個地號。';
                 if(Object.keys(selectedDetails()).length)categories.push('勾選的建物資料');
-                changed.textContent=selectionSummary+(categories.length?'將取代：'+categories.join('、')+'。未勾選的類別保留原值；同類別中未勾選的舊筆數不會保留。':'請勾選要套用的資料。');
+                changed.textContent=selectionSummary+(categories.length?'將取代：'+categories.join('、')+'。其他類別保留。':'請勾選要套用的資料。');
                 if(valid){const n=totals(mergedState(before,selected));preview.textContent=Object.values(n).every(Number.isFinite)?'套用後試算：建坪 '+fmt(n.building)+(n.parking>0?' ＋ 車坪 '+fmt(n.parking):'')+' ＝ 總坪 '+fmt(n.total)+'　公設比 '+fmt(n.ratio)+'%':'已選資料可套用；原表單其他面積／持分尚未填完整，補齊後即可試算總坪。';}
                 else preview.textContent='請選取有效資料，修正紅色欄位；同一來源的地／建號若有不同版本，請只選一筆。';
                 apply.disabled=!confirmed.checked||!valid;
@@ -166,20 +166,20 @@
             function draw(){
                 list.replaceChildren();
                 for(const row of rows.filter(visible)) {
-                    const card=node('section','','transcript-card'),heading=node('div','','transcript-row-head');
+                    const card=node('details','','transcript-card'),heading=node('summary','','transcript-row-head');card.open=!!row.expanded||row.blocked||row.errors.length>0;card.ontoggle=()=>{row.expanded=card.open;};
                     const check=node('input');check.type='checkbox';check.checked=row.selected;check.disabled=row.blocked;check.setAttribute('aria-label','匯入'+names[row.category]+' '+row.id);
-                    check.onchange=()=>{row.selected=check.checked;confirmed.checked=false;update();};
-                    const title=node('label',names[row.category]+'　'+row.id);title.prepend(check);heading.append(title);
-                    for(const source of row.sources){const link=node('a',(files[+source.file]?.name||source.file)+' · 第 '+source.page+' 頁');link.href=urls[+source.file]+'#page='+source.page;link.target='_blank';link.rel='noopener';heading.append(link);}
-                    card.append(heading);
+                    check.onclick=e=>e.stopPropagation();check.onchange=()=>{row.selected=check.checked;confirmed.checked=false;update();};
+                    const title=node('span',(row.destination?({common:'公設',parking:'車位'}[row.destination]):row.category==='common'?({common:'公設',parking:'車位',commonParking:'公設含車位'}[row.kind]):names[row.category])+'　'+row.id,'transcript-row-title');title.prepend(check);heading.append(title);
+                    for(const source of row.sources){const link=node('a',(files[+source.file]?.name||source.file)+' · 第 '+source.page+' 頁');link.href=urls[+source.file]+'#page='+source.page;link.target='_blank';link.rel='noopener';card.append(link);}
+                    card.prepend(heading);heading.append(node('span',row.blocked?'無法套用':row.errors.length?'待核對':'核對／修改','transcript-expand'));
                     if(row.category==='common')card.append(node('p','所屬主建號：'+row.group,'transcript-muted'));
                     if(row.category==='common'){
-                        const kind=node('select');kind.setAttribute('aria-label','辨識面積歸類');for(const [value,label] of Object.entries({common:'公設',parking:'車位',commonParking:'公設含車位'})){const opt=node('option',label);opt.value=value;kind.append(opt);}kind.value=row.kind;kind.onchange=()=>{row.kind=kind.value;confirmed.checked=false;draw();};card.append(labeled('面積歸類',kind));
+                        const kind=node('select');kind.setAttribute('aria-label','辨識面積歸類');for(const [value,label] of Object.entries({common:'公設',parking:'車位',commonParking:'公設含車位'})){const opt=node('option',label);opt.value=value;kind.append(opt);}kind.value=row.kind;kind.onchange=()=>{row.kind=kind.value;row.expanded=true;confirmed.checked=false;draw();};card.append(labeled('面積歸類',kind));
                     }
                     if(row.category==='main'||row.category==='ancillary'){
                         const destination=node('select');destination.setAttribute('aria-label','套入分類');
                         for(const [value,label] of [['',names[row.category]],['common','公設'],['parking','車位']]){const opt=node('option',label);opt.value=value;destination.append(opt);}
-                        destination.value=row.destination||'';destination.onchange=()=>{row.destination=destination.value;confirmed.checked=false;update();};
+                        destination.value=row.destination||'';destination.onchange=()=>{row.destination=destination.value;row.expanded=true;confirmed.checked=false;draw();};
                         card.append(labeled('套入分類（獨立公設建號請選公設）',destination));
                     }
                     const controls=node('div','','transcript-fields');
@@ -194,12 +194,12 @@
                     for(const error of row.errors)card.append(node('p',error,'transcript-problem'));
                     if(row.errors.length&&!row.blocked){const verified=node('input');verified.type='checkbox';verified.checked=row.verified;verified.onchange=()=>{row.verified=verified.checked;confirmed.checked=false;update();};card.append(labeled('已查看原文並修正此筆資料',verified));}
                     if(row.blocked)card.append(node('p','此筆不會自動套用，請依原謄本手動填寫。','transcript-problem'));
-                    const output=node('p','','transcript-result');card.append(output);
-                    function refreshRow(){const result=P.calculate(row);output.textContent=result?'試算 '+fmt(result.area)+' 坪'+(row.kind==='commonParking'?'（公設 '+fmt(result.area-result.parking)+' ＋ 車位 '+fmt(result.parking)+'）':''):'請填有效面積（最多小數 2 位）及正整數持分。';card.classList.toggle('transcript-invalid',!result);}
+                    const output=node('span','','transcript-result');heading.append(output);
+                    function refreshRow(){const result=P.calculate(row);output.textContent=result?fmt(result.area)+' 坪'+(row.kind==='commonParking'?'（公設 '+fmt(result.area-result.parking)+' ＋ 車位 '+fmt(result.parking)+'）':''):'請填有效面積（最多小數 2 位）及正整數持分。';card.classList.toggle('transcript-invalid',!result);}
                     refreshRow();list.append(card);
                 }
                 if(target.details&&group){
-                    const card=node('section','','transcript-card');card.append(node('strong','建物資料（可取消勾選或修正）'));
+                    const card=node('details','','transcript-card');card.append(node('summary','建物資料（用途、構造、完工日等）'));
                     const labels={usage:'主要用途',structure:'構造',builtDate:'建築完成日（民國年月日）',floor:'樓層',levels:'層數（謄本登記）'};
                     for(const [key,item] of Object.entries(detailState.get(group)||{})){
                         const check=node('input');check.type='checkbox';check.checked=item.selected;check.onchange=()=>{item.selected=check.checked;confirmed.checked=false;update();};
