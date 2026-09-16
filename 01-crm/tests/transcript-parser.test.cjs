@@ -96,3 +96,14 @@ test('nested common and embedded parking multiply parent ownership exactly once'
  assert.equal(state.common.length,3);
  assert(Math.abs(api.totals(state).total-selected.reduce((s,r)=>s+P.calculate(r).area,0))<1e-12);
 });
+
+test('verified floor areas are independent rows without duplicating the total',()=>{
+ const text=building().replace('層次面積：***60.00平方公尺\n二層 ***40.00平方公尺','層次：一層 層次面積：***60.00平方公尺\n地下一層 ***40.00平方公尺');
+ const rows=parse(text).rows.filter(r=>r.category==='main');
+ assert.equal(rows.length,2);assert.equal(rows[1].floor,'地下一層');assert.equal(P.sumBuildingRows(rows).area,'100.00');
+ const car={...rows[1],category:'common',kind:'parking'};
+ assert.equal(P.calculate(car).parking,12.1);assert.equal(P.sumBuildingRows([rows[0]]).area,'60.00');
+ const mismatch=parse(text.replace('***40.00平方公尺','***39.00平方公尺')).rows.filter(r=>r.category==='main');
+ assert.equal(mismatch.length,1);assert.equal(mismatch[0].area,'100');assert(mismatch[0].notes.length);
+ const dup=P.parse([{file:'a',page:1,text},{file:'b',page:1,text}]).rows.filter(r=>r.category==='main');assert.equal(dup.length,2);
+});

@@ -100,7 +100,12 @@
             // Ownership applies to both the building and its subordinate common entitlements.
             base.blocked=errors.length>0;
             const main=description.match(/總面積:\**([\d,.]+)平方公尺/);
-            push({...base,errors:[...errors,...(!main?['未辨識到主建物總面積。']:[])],group,category:'main',id:doc.id,area:main?String(amount(main[1])):'',mode:'fraction',...ownShare});
+            const floorText=doc.text.split(/層\s*次\s*:/)[1]?.split(/建築完成日期|附屬建物用途|共有部分|所有權部/)[0]||'';
+            const floors=Array.from(floorText.matchAll(/(?:^|\n)\s*((?:地下|地上)?[一二三四五六七八九十百零〇\d]+層|屋頂突出物(?:[一二三四五六七八九十\d]+層)?)[^\n]*?([\d,]+(?:\.\d+)?)平方公尺/g),m=>({floor:m[1],area:amount(m[2])}));
+            const completeFloors=main&&floors.length>1&&Math.abs(floors.reduce((sum,f)=>sum+Math.round(f.area*100),0)-Math.round(amount(main[1])*100))===0;
+            if(completeFloors){
+                for(const f of floors)push({...base,errors:[...errors],group,category:'main',id:doc.id+'（'+f.floor+'）',buildingId:doc.id,floor:f.floor,area:String(f.area),mode:'fraction',...ownShare,notes:['主建物總面積 '+amount(main[1])+' m²；按各層分列，合計不重複。此層若為車位，請將套入分類改為車位。']});
+            }else push({...base,errors:[...errors,...(!main?['未辨識到主建物總面積。']:[])],group,category:'main',id:doc.id,area:main?String(amount(main[1])):'',mode:'fraction',...ownShare,notes:floors.length>1?['分層面積與總面積未核對一致，暫以總面積列示，請依原謄本核對。']:[]});
             const anc=(description.match(/附屬建物用途:(.*?)(?:共有部分:|其他登記事項:|$)/)||[])[1];
             if(anc!==undefined) {
                 const amounts=Array.from(anc.matchAll(areaPattern),m=>amount(m[1]));

@@ -156,7 +156,7 @@
             function update(){
                 const selected=getSelected(),valid=selectionValid(selected);
                 const categories=[...new Set(selected.map(r=>names[r.category]))];
-                const selectionSummary='已選 '+selected.filter(r=>r.category==='main').length+' 個主建號、'+selected.filter(r=>r.category==='land').length+' 個地號。';
+                const selectionSummary='已選 '+new Set(selected.filter(r=>r.category==='main'||r.floor).map(r=>r.group)).size+' 個主建號、'+selected.filter(r=>r.category==='land').length+' 個地號。';
                 if(Object.keys(selectedDetails()).length)categories.push('勾選的建物資料');
                 changed.textContent=selectionSummary+(categories.length?'將取代：'+categories.join('、')+'。其他類別保留。':'請勾選要套用的資料。');
                 if(valid){
@@ -190,7 +190,7 @@
                         const destination=node('select');destination.setAttribute('aria-label','套入分類');
                         for(const [value,label] of [['',names[row.category]],['common','公設'],['parking','車位']]){const opt=node('option',label);opt.value=value;destination.append(opt);}
                         destination.value=row.destination||'';destination.onchange=()=>{row.destination=destination.value;row.expanded=true;confirmed.checked=false;draw();};
-                        card.append(labeled('套入分類（獨立公設建號請選公設）',destination));
+                        card.append(labeled('套入分類（可改為公設或車位）',destination));
                     }
                     const controls=node('div','','transcript-fields');
                     function edit(key,label){const el=field(row[key],label,v=>{row[key]=v;confirmed.checked=false;refreshRow();update();});if(key!=='parkingNo')el.inputMode='decimal';controls.append(labeled(label,el));}
