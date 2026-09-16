@@ -60,7 +60,7 @@
         function push(row) {
             row.sources=row.sources.slice();
             const key=row.group+'|'+row.category+'|'+row.id;
-            const signature=JSON.stringify([row.area,row.numerator,row.denominator,row.kind,row.parkingNumerator,row.parkingDenominator,row.parkingNo]);
+            const signature=JSON.stringify([row.area,row.numerator,row.denominator,row.kind,row.parkingNumerator,row.parkingDenominator,row.parkingNo,row.ownerNumerator,row.ownerDenominator]);
             if(seen.has(key)) {
                 const prior=seen.get(key);
                 if(prior.signature===signature) {prior.row.sources.push(...row.sources);return;}
@@ -97,15 +97,15 @@
                 levels:description.match(/層數:(\d+)層/)?.[1]||''
             };
             if(!buildings.some(b=>b.id===group))buildings.push({id:group,address:addr,details});
-            if(+ownShare.numerator!==+ownShare.denominator)errors.push('此建物非全部持有，請核對各面積與所有權持分後手動填寫；本次不自動套用。');
+            // Ownership applies to both the building and its subordinate common entitlements.
             base.blocked=errors.length>0;
             const main=description.match(/總面積:\**([\d,.]+)平方公尺/);
-            push({...base,errors:[...errors,...(!main?['未辨識到主建物總面積。']:[])],group,category:'main',id:doc.id,area:main?String(amount(main[1])):'',mode:'direct',numerator:'',denominator:''});
+            push({...base,errors:[...errors,...(!main?['未辨識到主建物總面積。']:[])],group,category:'main',id:doc.id,area:main?String(amount(main[1])):'',mode:'fraction',...ownShare});
             const anc=(description.match(/附屬建物用途:(.*?)(?:共有部分:|其他登記事項:|$)/)||[])[1];
             if(anc!==undefined) {
                 const amounts=Array.from(anc.matchAll(areaPattern),m=>amount(m[1]));
                 const total=amounts.reduce((a,b)=>a+b,0);
-                push({...base,errors:[...errors,...(!amounts.length&&!/空白|無/.test(anc)?['附屬建物未辨識完整，請核對。']:[])],group,category:'ancillary',id:doc.id,area:String(Number(total.toFixed(2))),mode:'direct',numerator:'',denominator:'',notes:amounts.length>1?['附屬建物各項 m²：'+amounts.join(' + ')]:[]});
+                push({...base,errors:[...errors,...(!amounts.length&&!/空白|無/.test(anc)?['附屬建物未辨識完整，請核對。']:[])],group,category:'ancillary',id:doc.id,area:String(Number(total.toFixed(2))),mode:'fraction',...ownShare,notes:amounts.length>1?['附屬建物各項 m²：'+amounts.join(' + ')]:[]});
             } else issues.push(doc.id+'：未找到附屬建物欄，原欄位將保留。');
             const commonMatches=Array.from(description.matchAll(/共有部分:([^:]*?)建號\**([\d,.]+)平方公尺/g));
             const incompleteCommon=(description.match(/共有部分:/g)||[]).length!==commonMatches.length;
@@ -130,13 +130,31 @@
                 }
                 if(!validShare(share.numerator,share.denominator))rowErrors.push('未辨識到有效的共有部分持分。');
                 const localId=m[1].match(/([\u3400-\u9fff]+(?:段|小段)\d+-\d+)$/)?.[1]||m[1];
-                push({...base,blocked:base.blocked||incompleteCommon,errors:rowErrors,notes,group,category:'common',id:localId,area:String(amount(m[2])),...share,kind,parkingNo:parking.map(p=>p.number).join('、'),parkingNumerator:parkingShare?.numerator||'',parkingDenominator:parkingShare?.denominator||'',parkingEntries:parking});
+                push({...base,blocked:base.blocked||incompleteCommon,errors:rowErrors,notes,group,category:'common',id:localId,area:String(amount(m[2])),...share,ownerNumerator:ownShare.numerator,ownerDenominator:ownShare.denominator,kind,parkingNo:parking.map(p=>p.number).join('、'),parkingNumerator:parkingShare?.numerator||'',parkingDenominator:parkingShare?.denominator||'',parkingEntries:parking});
             }
             if(!commonMatches.length) issues.push(doc.id+'：未找到共有部分，原公設／車位欄位將保留。');
         }
         return {rows,buildings,issues:[...new Set(issues)]};
     }
+    function effectiveRow(row) {
+        if(row.ownerNumerator===undefined)return row;
+        function multiply(n,d){
+            if(!validShare(n,d)||!validShare(row.ownerNumerator,row.ownerDenominator))return null;
+            let a=BigInt(n)*BigInt(row.ownerNumerator),b=BigInt(d)*BigInt(row.ownerDenominator);
+            const g=gcd(a,b);a/=g;b/=g;
+            return a<=BigInt(Number.MAX_SAFE_INTEGER)&&b<=BigInt(Number.MAX_SAFE_INTEGER)?{numerator:String(a),denominator:String(b)}:null;
+        }
+        const share=multiply(row.numerator,row.denominator);
+        if(!share)return null;
+        const result={...row,...share};delete result.ownerNumerator;delete result.ownerDenominator;
+        if(row.kind==='commonParking'){
+            const parking=multiply(row.parkingNumerator,row.parkingDenominator);if(!parking)return null;
+            result.parkingNumerator=parking.numerator;result.parkingDenominator=parking.denominator;
+        }
+        return result;
+    }
     function calculate(row) {
+        row=effectiveRow(row);if(!row)return null;
         const gross=+row.area*RATE;
         if(!/^(?:\d+(?:\.\d{0,2})?|\.\d{1,2})$/.test(String(row.area))||!Number.isFinite(gross)||gross<0) return null;
         if(row.mode==='direct')return {area:gross,parking:0};
@@ -151,10 +169,10 @@
         return {area,parking};
     }
     function sumBuildingRows(rows){
-        if(!rows.length||rows.some(r=>r.mode!=='direct'||!calculate(r)))throw Error('建物面積不完整');
-        return {id:rows.map(r=>r.id).join('、'),area:(rows.reduce((sum,r)=>sum+Math.round(Number(r.area)*100),0)/100).toFixed(2),unit:'sqm',mode:'direct',numerator:'',denominator:'',components:rows.map(r=>({id:r.id,area:Number(r.area).toFixed(2),unit:'sqm'}))};
+        if(!rows.length||rows.some(r=>!calculate(r)))throw Error('建物面積不完整');
+        return {id:rows.map(r=>r.id).join('、'),area:rows.reduce((sum,r)=>sum+calculate(r).area/RATE,0).toFixed(2),unit:'sqm',mode:'direct',numerator:'',denominator:'',components:rows.map(r=>({id:r.id,area:(calculate(r).area/RATE).toFixed(2),unit:'sqm'}))};
     }
-    const api={parse,textFromItems,calculate,addShares,sumBuildingRows};
+    const api={parse,textFromItems,calculate,effectiveRow,addShares,sumBuildingRows};
     if(typeof module==='object'&&module.exports)module.exports=api;
     else host.TranscriptParser=api;
 })(typeof window==='object'?window:globalThis);

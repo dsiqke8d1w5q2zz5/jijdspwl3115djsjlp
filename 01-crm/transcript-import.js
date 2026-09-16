@@ -51,6 +51,7 @@
         return {pages,failures};
     }
     function areaRow(row,oldRows=[]) {
+        row=P.effectiveRow(row);
         const previous=oldRows.find(old=>old.id===row.id&&old.parentBuildingId===row.group)||oldRows.find(old=>!old.parentBuildingId&&old.id===row.id)||oldRows.find(old=>row.parkingNo&&old.parkingNo===row.parkingNo);
         if(previous)oldRows.splice(oldRows.indexOf(previous),1);
         const result={id:row.id,area:String(Number(row.area).toFixed(2)),unit:'sqm',mode:row.mode,numerator:row.numerator,denominator:row.denominator};
@@ -147,7 +148,7 @@
             footer.append(preview,changed,consent,button('取消',()=>dialog.close()),apply);
             confirmed.onchange=update;
             function visible(r){return true;}
-            function getSelected(){return rows.filter(r=>visible(r)&&r.selected);}
+            function getSelected(){return rows.filter(r=>visible(r)&&r.selected).map(r=>r.destination?{...r,category:'common',kind:r.destination,id:r.id+(r.category==='ancillary'?'（附屬建物）':'')}:r);}
             function selectionValid(selected){
                 const seen=new Set();
                 return (selected.length>0||Object.keys(selectedDetails()).length>0)&&selected.every(r=>{const key=r.group+'|'+r.category+'|'+r.id;if(seen.has(key))return false;seen.add(key);return !r.blocked&&P.calculate(r)&&(!r.errors.length||r.verified);});
@@ -175,10 +176,17 @@
                     if(row.category==='common'){
                         const kind=node('select');kind.setAttribute('aria-label','辨識面積歸類');for(const [value,label] of Object.entries({common:'公設',parking:'車位',commonParking:'公設含車位'})){const opt=node('option',label);opt.value=value;kind.append(opt);}kind.value=row.kind;kind.onchange=()=>{row.kind=kind.value;confirmed.checked=false;draw();};card.append(labeled('面積歸類',kind));
                     }
+                    if(row.category==='main'||row.category==='ancillary'){
+                        const destination=node('select');destination.setAttribute('aria-label','套入分類');
+                        for(const [value,label] of [['',names[row.category]],['common','公設'],['parking','車位']]){const opt=node('option',label);opt.value=value;destination.append(opt);}
+                        destination.value=row.destination||'';destination.onchange=()=>{row.destination=destination.value;confirmed.checked=false;update();};
+                        card.append(labeled('套入分類（獨立公設建號請選公設）',destination));
+                    }
                     const controls=node('div','','transcript-fields');
                     function edit(key,label){const el=field(row[key],label,v=>{row[key]=v;confirmed.checked=false;refreshRow();update();});if(key!=='parkingNo')el.inputMode='decimal';controls.append(labeled(label,el));}
                     edit('area',row.mode==='direct'?'面積 m²':'總面積 m²');
                     if(row.mode==='fraction'){edit('numerator','分子');edit('denominator','分母');}
+                    if(row.ownerNumerator!==undefined){edit('ownerNumerator','所有權分子');edit('ownerDenominator','所有權分母');card.append(node('p','總面積 × 共有部分持分 × 所屬建號所有權持分','transcript-muted'));}
                     if(row.kind==='commonParking'){edit('parkingNumerator','車位分子');edit('parkingDenominator','車位分母');}
                     if(row.kind==='parking'||row.kind==='commonParking')edit('parkingNo','車位編號');
                     card.append(controls);

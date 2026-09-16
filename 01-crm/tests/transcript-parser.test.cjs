@@ -48,7 +48,7 @@ test('aggregates individual parking numbers and classifies full parking allocati
 });
 test('different parking denominators are added rationally',()=>{assert.deepEqual(P.addShares([{numerator:'1',denominator:'3'},{numerator:'1',denominator:'6'}]),{numerator:'1',denominator:'2'});});
 test('parking larger than whole allocation requires correction',()=>{assert(parse(building(common('100','200'))).rows.find(r=>r.category==='common').errors.length);});
-test('missing ownership and fractional building ownership are blocked',()=>{assert(parse(building('', '2分之1')).rows.every(r=>r.blocked));assert(parse(land().replace('所有權人：測＊＊','')).rows[0].blocked);});
+test('valid partial ownership is usable while missing ownership stays blocked',()=>{assert(parse(building('', '2分之1')).rows.every(r=>!r.blocked));assert.equal(P.sumBuildingRows(parse(building('', '2分之1')).rows.filter(r=>r.category==='main')).area,'50.00');assert(parse(land().replace('所有權人：測＊＊','')).rows[0].blocked);});
 test('scanned or unrelated PDF does not fabricate fields',()=>{const r=parse('');assert.equal(r.rows.length,0);assert(r.issues.length);});
 test('fullwidth numerals and wrapped denominator normalize',()=>{const r=parse(land().replace('10000分之5','１００\n００分之５'));assert.equal(r.rows[0].denominator,'10000');assert.equal(r.rows[0].numerator,'5');});
 test('reconstructs horizontal PDF text and drops diagonal watermark',()=>{
@@ -78,4 +78,21 @@ test('CRM merge retains both shared-building entitlements and multiple parcels',
  const subset=api.mergeState(api.emptyState(),rows.filter(r=>r.group!==rows.find(r=>r.category==='main').group));assert.equal(subset.main.area,'50.25');
  const before=api.emptyState();before.common=[{id:state.common[0].id,parkingPrice:'200',parkingNo:'001'}];const enriched=api.mergeState(before,rows);
  assert.equal(enriched.common.filter(r=>r.parkingPrice==='200').length,1,'one old parking price must not be copied to two new entitlements');assert.equal(before.common.length,1);
+});
+
+test('nested common and embedded parking multiply parent ownership exactly once',()=>{
+ const rows=parse(building(common(),'100000分之31')).rows;
+ const main=rows.find(r=>r.category==='main'),shared=rows.find(r=>r.category==='common');
+ assert.equal(main.numerator,'31');assert.equal(main.denominator,'100000');
+ assert(rows.every(r=>!r.blocked));
+ const full=parse(building(common())).rows.find(r=>r.category==='common');
+ assert(Math.abs(P.calculate(shared).area-P.calculate(full).area*31/100000)<1e-12);
+ assert(Math.abs(P.calculate(shared).parking-P.calculate(full).parking*31/100000)<1e-12);
+ assert.deepEqual(P.calculate(P.effectiveRow(shared)),P.calculate(shared));
+ const fs=require('node:fs'),vm=require('node:vm'),window={TranscriptParser:P};
+ vm.runInNewContext(fs.readFileSync(require.resolve('../transcript-import.js'),'utf8'),{window,document:{currentScript:{src:'https://example.test/a.js'}},URL});
+ const api=window.TranscriptImport,selected=rows.map(r=>r.category==='common'?r:{...r,category:'common',kind:'common',id:r.id+'-'+r.category});
+ const state=api.mergeState(api.emptyState(),selected);
+ assert.equal(state.common.length,3);
+ assert(Math.abs(api.totals(state).total-selected.reduce((s,r)=>s+P.calculate(r).area,0))<1e-12);
 });

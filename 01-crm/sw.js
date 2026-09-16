@@ -1,12 +1,12 @@
-var CACHE_NAME = 'crm-v20260917-multi1';
+var CACHE_NAME = 'crm-v20260917-share1';
 var URLS_TO_CACHE = [
   './',
   './index.html',
-  './area-editor.js?v=20260917multi1',
+  './area-editor.js?v=20260917share1',
   './area-editor.css?v=20260914j',
-  './transcript-parser.js?v=20260917multi1',
-  './transcript-import.js?v=20260917multi1',
-  './transcript-import.css?v=20260917multi1'
+  './transcript-parser.js?v=20260917share1',
+  './transcript-import.js?v=20260917share1',
+  './transcript-import.css?v=20260917share1'
 ];
 
 self.addEventListener('install', function(e) {
