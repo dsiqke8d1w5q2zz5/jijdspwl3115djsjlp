@@ -56,3 +56,7 @@ test('reconstructs horizontal PDF text and drops diagonal watermark',()=>{
 });
 test('rejects invalid edited amounts and parking shares',()=>{const r={area:'1.234',mode:'direct'};assert.equal(P.calculate(r),null);assert.equal(P.calculate({area:'100',mode:'fraction',numerator:'1',denominator:'0'}),null);});
 test('building ownership on following page is associated with its building',()=>{const text=building();const cut=text.indexOf('建物所有權部');const r=P.parse([{file:'a',page:1,text:text.slice(0,cut)},{file:'a',page:2,text:'建物登記第二類謄本\n測試區測試段00001-000建號\n'+text.slice(cut)}]);assert(r.rows.length);assert(r.rows.every(r=>!r.blocked));});
+test('extracts only explicit building metadata for review',()=>{
+ const text=building().replace('總面積：','主要用途：住家用\n主要建材：鋼筋混凝土造\n層數：005層\n總面積：').replace('層次面積：','層次：五層 層次面積：').replace('附屬建物用途：','建築完成日期：民國070年09月07日\n附屬建物用途：');
+ assert.deepEqual(parse(text).buildings[0].details,{usage:'住家用',structure:'鋼筋混凝土造',builtDate:'0700907',floor:'五層',levels:'005'});
+});

@@ -88,7 +88,15 @@
             }
             const group=doc.id;
             const addr=(description.match(/建物門牌:(.*?)建物坐落/)||[])[1]||'';
-            if(!buildings.some(b=>b.id===group))buildings.push({id:group,address:addr});
+            const date=description.match(/建築完成日期:民國(\d+)年(\d+)月(\d+)日/);
+            const details={
+                usage:description.match(/主要用途:(.*?)主要建材:/)?.[1]||'',
+                structure:description.match(/主要建材:(.*?)層數:/)?.[1]||'',
+                builtDate:date?date[1].padStart(3,'0')+date[2].padStart(2,'0')+date[3].padStart(2,'0'):'',
+                floor:description.match(/層次:(.*?)層次面積:/)?.[1]||'',
+                levels:description.match(/層數:(\d+)層/)?.[1]||''
+            };
+            if(!buildings.some(b=>b.id===group))buildings.push({id:group,address:addr,details});
             if(+ownShare.numerator!==+ownShare.denominator)errors.push('此建物非全部持有，請核對各面積與所有權持分後手動填寫；本次不自動套用。');
             base.blocked=errors.length>0;
             const main=description.match(/總面積:\**([\d,.]+)平方公尺/);

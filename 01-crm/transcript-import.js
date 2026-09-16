@@ -1,16 +1,26 @@
 (function () {
     'use strict';
     const P=window.TranscriptParser, undo=new WeakMap();
+    const assetBase=new URL('.',document.currentScript.src);
     const clone=value=>JSON.parse(JSON.stringify(value));
     const fmt=value=>Number(value).toLocaleString('zh-TW',{maximumFractionDigits:2});
     const names={land:'土地',main:'主建物',ancillary:'附屬建物',common:'公設／車位'};
     let library;
+    function loadScript(path){return new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=new URL(path,assetBase).href;s.onload=resolve;s.onerror=()=>{s.remove();reject(Error('讀取元件失敗，請確認檔案完整。'));};document.head.append(s);});}
     function node(tag,text,cls){const e=document.createElement(tag);if(text)e.textContent=text;if(cls)e.className=cls;return e;}
     function button(text,fn,cls){const e=node('button',text,cls);e.type='button';e.onclick=fn;return e;}
     function labeled(text,control){const el=node('label',text);el.append(control);return el;}
     function field(value,label,change){const el=node('input');el.type='text';el.value=value??'';el.setAttribute('aria-label',label);el.oninput=()=>change(el.value);return el;}
     async function pdfLibrary(){
-        if(!library)library=import('./vendor/pdfjs/pdf.mjs').then(pdf=>{pdf.GlobalWorkerOptions.workerSrc=new URL('./vendor/pdfjs/pdf.worker.mjs',document.baseURI).href;return pdf;}).catch(e=>{library=null;throw e;});
+        if(!library)library=(async()=>{
+            if(location.protocol==='file:'){
+                if(!window.pdfjsLib)await loadScript('vendor/pdfjs/file/pdf.js');
+                if(!window.pdfjsWorker)await loadScript('vendor/pdfjs/file/pdf.worker.js');
+                if(!window.pdfjsLocalResources)await loadScript('vendor/pdfjs/file/resources.js');
+                return window.pdfjsLib;
+            }
+            const pdf=await import(new URL('vendor/pdfjs/pdf.mjs',assetBase).href);pdf.GlobalWorkerOptions.workerSrc=new URL('vendor/pdfjs/pdf.worker.mjs',assetBase).href;return pdf;
+        })().catch(e=>{library=null;throw e;});
         return library;
     }
     async function extract(files,progress,isCancelled=()=>false) {
@@ -20,7 +30,8 @@
             const file=files[i];let task;const firstPage=pages.length;
             try {
                 if(file.size>30*1024*1024)throw Error('檔案超過 30 MB，請分成較小的 PDF。');
-                task=pdf.getDocument({data:new Uint8Array(await file.arrayBuffer()),cMapUrl:new URL('./vendor/pdfjs/cmaps/',document.baseURI).href,cMapPacked:true,standardFontDataUrl:new URL('./vendor/pdfjs/standard_fonts/',document.baseURI).href,wasmUrl:new URL('./vendor/pdfjs/wasm/',document.baseURI).href,isEvalSupported:false});
+                const localOptions=location.protocol==='file:'?{useWorkerFetch:false,BinaryDataFactory:class {async fetch({kind,filename}){const value=window.pdfjsLocalResources[kind+'/'+filename];if(typeof value!=='string')throw Error('缺少 PDF 字型資源');return Uint8Array.from(atob(value),c=>c.charCodeAt(0));}}}:{};
+                task=pdf.getDocument({data:new Uint8Array(await file.arrayBuffer()),cMapUrl:new URL('vendor/pdfjs/cmaps/',assetBase).href,cMapPacked:true,standardFontDataUrl:new URL('vendor/pdfjs/standard_fonts/',assetBase).href,wasmUrl:new URL('vendor/pdfjs/wasm/',assetBase).href,isEvalSupported:false,...localOptions});
                 // Fail explicitly instead of leaving the password callback pending.
                 task.onPassword=()=>{task.destroy();};
                 const doc=await task.promise;
@@ -72,14 +83,17 @@
         if(undo.has(root))bar.append(button('復原上次匯入',()=>{const data=undo.get(root).before;undo.delete(root);window.mountAreaEditor(root,data);showToast('已復原匯入前的面積資料');}));
         editor.querySelector('.area-hint').after(bar);
     }
-    function open(root) {
+    function emptyState(){const simple=()=>({id:'',area:'',unit:'sqm',mode:'direct',numerator:'',denominator:''});return {version:3,main:simple(),ancillary:simple(),parking:simple(),parkingIncluded:false,land:[],common:[]};}
+    function open(root,target={}) {
         if(document.querySelector('.transcript-dialog'))return;
-        const before=window.areaEditorData(root);if(!before)return;
+        const readState=target.readState||(()=>window.areaEditorData(root));
+        const before=readState();if(!before)return;
+        const notify=target.notify||(text=>showToast(text));
         const previousFocus=document.activeElement,dialog=node('dialog','','transcript-dialog');
         dialog.setAttribute('aria-labelledby','transcript-title');
         const title=node('h2','匯入謄本');title.id='transcript-title';
         const head=node('div','','transcript-head');head.append(title,button('關閉',()=>dialog.close()));
-        const intro=node('p','選取同一物件的土地、建物謄本，可一次多選。PDF 僅在此裝置分析；先核對，再套入表單。','transcript-muted');
+        const intro=node('p',target.intro||'選取同一物件的土地、建物謄本，可一次多選。PDF 僅在此裝置分析；先核對，再套入表單。','transcript-muted');
         const fileInput=node('input');fileInput.type='file';fileInput.accept='.pdf,application/pdf';fileInput.multiple=true;fileInput.setAttribute('aria-label','選取謄本 PDF');
         const status=node('p','','transcript-status');status.setAttribute('role','status');
         const review=node('div'),footer=node('div','','transcript-footer');
@@ -121,10 +135,15 @@
             const preview=node('div','','transcript-preview');preview.setAttribute('aria-live','polite');
             const changed=node('p','','transcript-muted'),confirmed=node('input');confirmed.type='checkbox';
             const consent=labeled('我已核對原謄本、持分與車位分類，同意取代勾選類別的原有面積資料。',confirmed);consent.prepend(confirmed);consent.className='transcript-confirm';
-            const apply=button('套入表單',()=>{
+            const detailState=new Map();
+            for(const b of result.buildings)detailState.set(b.id,Object.fromEntries(Object.entries(b.details||{}).filter(([key,value])=>value&&(!target.detailKeys||target.detailKeys.includes(key))).map(([key,value])=>[key,{value,selected:!!target.details}])));
+            const selectedDetails=()=>Object.fromEntries(Object.entries(detailState.get(group)||{}).filter(([,item])=>item.selected&&item.value.trim()).map(([key,item])=>[key,item.value.trim()]));
+            const apply=button(target.applyLabel||'套入表單',()=>{
                 const selected=getSelected();if(!confirmed.checked||!selectionValid(selected))return;
-                if(!root.isConnected||JSON.stringify(window.areaEditorData(root))!==JSON.stringify(before)){status.textContent='原表單已變動，請關閉後重新匯入，以免覆蓋新資料。';apply.disabled=true;return;}
-                const record={before:clone(before),after:null};undo.set(root,record);window.mountAreaEditor(root,mergedState(before,selected));record.after=JSON.stringify(window.areaEditorData(root));dialog.close();showToast('已套入面積資料，請按表單的儲存完成更新');
+                if((root&&!root.isConnected)||(target.isCurrent&&!target.isCurrent())||JSON.stringify(readState())!==JSON.stringify(before)){status.textContent='原表單已變動，請關閉後重新匯入，以免覆蓋新資料。';apply.disabled=true;return;}
+                const next=mergedState(before,selected);
+                if(target.apply){target.apply(next,selected,selectedDetails(),result.buildings.find(b=>b.id===group));dialog.close();notify(target.success||'已套入資料');}
+                else {const record={before:clone(before),after:null};undo.set(root,record);window.mountAreaEditor(root,next);record.after=JSON.stringify(window.areaEditorData(root));dialog.close();notify('已套入面積資料，請按表單的儲存完成更新');}
             },'transcript-primary');
             footer.append(preview,changed,consent,button('取消',()=>dialog.close()),apply);
             confirmed.onchange=update;
@@ -132,11 +151,12 @@
             function getSelected(){return rows.filter(r=>visible(r)&&r.selected);}
             function selectionValid(selected){
                 const seen=new Set();
-                return selected.length>0&&selected.every(r=>{const key=r.category+'|'+r.id;if(seen.has(key))return false;seen.add(key);return !r.blocked&&P.calculate(r)&&(!r.errors.length||r.verified);});
+                return (selected.length>0||Object.keys(selectedDetails()).length>0)&&selected.every(r=>{const key=r.category+'|'+r.id;if(seen.has(key))return false;seen.add(key);return !r.blocked&&P.calculate(r)&&(!r.errors.length||r.verified);});
             }
             function update(){
                 const selected=getSelected(),valid=selectionValid(selected);
                 const categories=[...new Set(selected.map(r=>names[r.category]))];
+                if(Object.keys(selectedDetails()).length)categories.push('勾選的建物資料');
                 changed.textContent=categories.length?'將取代：'+categories.join('、')+'。未勾選的類別保留原值；同類別中未勾選的舊筆數不會保留。':'請勾選要套用的資料。';
                 if(valid){const n=totals(mergedState(before,selected));preview.textContent=Object.values(n).every(Number.isFinite)?'套用後試算：建坪 '+fmt(n.building)+(n.parking>0?' ＋ 車坪 '+fmt(n.parking):'')+' ＝ 總坪 '+fmt(n.total)+'　公設比 '+fmt(n.ratio)+'%':'已選資料可套用；原表單其他面積／持分尚未填完整，補齊後即可試算總坪。';}
                 else preview.textContent='請選取有效資料，修正紅色欄位；同一地／建號只能選一筆。';
@@ -169,10 +189,27 @@
                     function refreshRow(){const result=P.calculate(row);output.textContent=result?'試算 '+fmt(result.area)+' 坪'+(row.kind==='commonParking'?'（公設 '+fmt(result.area-result.parking)+' ＋ 車位 '+fmt(result.parking)+'）':''):'請填有效面積（最多小數 2 位）及正整數持分。';card.classList.toggle('transcript-invalid',!result);}
                     refreshRow();list.append(card);
                 }
+                if(target.details&&group){
+                    const card=node('section','','transcript-card');card.append(node('strong','建物資料（可取消勾選或修正）'));
+                    const labels={usage:'主要用途',structure:'構造',builtDate:'建築完成日（民國年月日）',floor:'樓層',levels:'層數（謄本登記）'};
+                    for(const [key,item] of Object.entries(detailState.get(group)||{})){
+                        const check=node('input');check.type='checkbox';check.checked=item.selected;check.onchange=()=>{item.selected=check.checked;confirmed.checked=false;update();};
+                        const control=field(item.value,labels[key],v=>{item.value=v;confirmed.checked=false;update();});const label=labeled(labels[key],control);label.prepend(check);card.append(label);
+                    }
+                    card.append(node('p','只帶入勾選項目；謄本未提供的建商、管理費、格局等欄位保留原值。','transcript-muted'));list.append(card);
+                }
                 update();
             }
             draw();
         }
     }
-    window.TranscriptImport={attach,open,extract};
+    function openStandalone(){
+        const state=emptyState();
+        open(null,{readState:()=>state,applyLabel:'帶入新增庫存',intro:'上傳同一物件的謄本，先分析坪數與持分；核對後可帶入新增庫存，或直接關閉。',success:'已建立庫存草稿，請補上屋主資料並儲存。',apply:(next,rows,details,building)=>{
+            openAdd();selectedTypes=['庫存屋主'];activeView='庫存屋主';applyTypePicker();
+            const district=building?.id.match(/^(.+?區)/)?.[1]||'';
+            addSellerProperty({addr:building?.address?district+building.address:'',areaInput:next});
+        }});
+    }
+    window.TranscriptImport={attach,open,openStandalone,extract,emptyState,totals};
 })();
