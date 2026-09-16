@@ -207,7 +207,7 @@
                     if(row.blocked)card.append(node('p','此筆不會自動套用，請依原謄本手動填寫。','transcript-problem'));
                     const output=node('span','','transcript-result');heading.append(output);
                     function refreshRow(){const result=P.calculate(row);output.textContent=result?fmt(result.area)+' 坪'+(row.kind==='commonParking'?'（公設 '+fmt(result.area-result.parking)+' ＋ 車位 '+fmt(result.parking)+'）':''):'請填有效面積（最多小數 2 位）及正整數持分。';card.classList.toggle('transcript-invalid',!result);}
-                    card.append(sources);refreshRow();list.append(card);
+                    controls.append(sources);refreshRow();list.append(card);
                 }
                 if(target.details)for(const building of result.buildings){
                     const active=building.id===group;
