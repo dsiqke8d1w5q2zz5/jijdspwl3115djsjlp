@@ -208,14 +208,22 @@
                     function refreshRow(){const result=P.calculate(row);output.textContent=result?fmt(result.area)+' 坪'+(row.kind==='commonParking'?'（公設 '+fmt(result.area-result.parking)+' ＋ 車位 '+fmt(result.parking)+'）':''):'請填有效面積（最多小數 2 位）及正整數持分。';card.classList.toggle('transcript-invalid',!result);}
                     refreshRow();list.append(card);
                 }
-                if(target.details&&group){
-                    const card=node('details','','transcript-card');card.append(node('summary','建物資料（用途、構造、完工日等）'));
+                if(target.details)for(const building of result.buildings){
+                    const active=building.id===group;
+                    const card=node('details','','transcript-card');
+                    card.append(node('summary','建物資料：'+building.id+' · '+(detailState.get(building.id)?.usage?.value||'用途未辨識')+(active?'（目前採用）':'')));
+                    card.append(node('p',building.address,'transcript-muted'));
+                    if(result.buildings.length>1)card.append(button(active?'目前採用此建號':'採用此建號資料',()=>{
+                        group=building.id;groupSelect.value=group;
+                        for(const item of Object.values(detailState.get(group)||{}))item.selected=true;
+                        confirmed.checked=false;draw();
+                    }));
                     const labels={usage:'主要用途',structure:'構造',builtDate:'建築完成日（民國年月日）',floor:'樓層',levels:'層數（謄本登記）'};
-                    for(const [key,item] of Object.entries(detailState.get(group)||{})){
-                        const check=node('input');check.type='checkbox';check.checked=item.selected;check.onchange=()=>{item.selected=check.checked;confirmed.checked=false;update();};
-                        const control=field(item.value,labels[key],v=>{item.value=v;confirmed.checked=false;update();});const label=labeled(labels[key],control);label.prepend(check);card.append(label);
+                    for(const [key,item] of Object.entries(detailState.get(building.id)||{})){
+                        const check=node('input');check.type='checkbox';check.checked=active&&item.selected;check.disabled=!active;check.onchange=()=>{item.selected=check.checked;confirmed.checked=false;update();};
+                        const control=field(item.value,labels[key],v=>{item.value=v;confirmed.checked=false;update();});control.disabled=!active;const label=labeled(labels[key],control);label.prepend(check);card.append(label);
                     }
-                    card.append(node('p','只帶入勾選項目；謄本未提供的建商、管理費、格局等欄位保留原值。','transcript-muted'));list.append(card);
+                    card.append(node('p','用途等單一欄位只帶入採用建號的勾選項目；面積仍依上方勾選合計。','transcript-muted'));list.append(card);
                 }
                 update();
             }
