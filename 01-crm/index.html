@@ -833,8 +833,8 @@
     </div>
     <div style="flex:1"></div>
     <div class="header-tools" style="display:flex;gap:8px;align-items:center">
-        <button onclick="TranscriptImport.openStandalone()" class="header-btn" data-hover-color="#57534E">謄本分析</button>
         <button onclick="doCheckIn()" class="header-btn mc-checkin" data-hover-color="#57534E"><i class="ti ti-map-pin-check" style="font-size:18px;color:#10B981"></i> 打卡<span class="mc-checkin-cnt" id="checkInCountDesktop">0</span></button>
+        <button onclick="TranscriptImport.openStandalone()" class="header-btn" data-hover-color="#57534E"><i class="ti ti-file-search" style="font-size:18px;color:#B45309"></i> 謄本分析工具</button>
         <button onclick="openImgTool()" class="header-btn" data-hover-color="#57534E"><i class="ti ti-photo-edit" style="font-size:18px;color:#0891B2"></i> 圖片工具</button>
         <button onclick="openTemplates()" class="header-btn" data-hover-color="#57534E"><i class="ti ti-file-text" style="font-size:18px;color:#8B7355"></i> 常用範本</button>
         <button onclick="openPerformance()" class="header-btn" data-hover-color="#57534E"><i class="ti ti-chart-bar" style="font-size:18px;color:#2563EB"></i> 業績儀表板</button>
@@ -859,7 +859,7 @@
         <div id="importTime"></div>
     </div>
     <div class="mobile-setting-menu" id="mobileSettingMenu">
-        <button onclick="closeMobileSetting();TranscriptImport.openStandalone()">謄本分析</button>
+        <button onclick="closeMobileSetting();TranscriptImport.openStandalone()">謄本分析工具</button>
         <button onclick="openTrash();closeMobileSetting()"><i class="ti ti-trash" style="font-size:16px;color:#DC2626"></i> 資源回收桶</button>
         <button onclick="cloudRestore();closeMobileSetting()"><i class="ti ti-cloud-download" style="font-size:16px;color:#2563EB"></i> 雲端還原</button>
         <button onclick="exportCSV();closeMobileSetting()"><i class="ti ti-download" style="font-size:16px;color:#059669"></i> 匯出</button>
