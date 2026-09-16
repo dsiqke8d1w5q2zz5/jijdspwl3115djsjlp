@@ -133,6 +133,7 @@
                 const result=item.pendingLegacy?'原持分面積 '+fmt(item.legacyPing)+' 坪（暫用舊值，請依謄本補總面積與持分）':invalid(item)?'請填完整面積與持分':item.area===''?'—':(item.mode==='fraction'?'持分面積 ':'')+fmt(measure(item)/RATE)+' m² ≈ '+fmt(measure(item))+' 坪';
                 el.textContent=item.pendingLegacy&&state.common.includes(item)?gross.replace(/　｜　$/,''):gross+result;
                 if(item.kind==='commonParking'&&!invalid(item)&&item.area!=='') el.textContent=gross+'整體持分 '+fmt(measure(item))+' 坪　｜　公設淨面積 '+fmt(measure(item)-includedParking(item))+' 坪 ＋ 內含車位 '+fmt(includedParking(item))+' 坪';
+                if(item.components?.length>1)el.textContent+='（合計 '+item.components.length+' 個建號：'+item.components.map(r=>r.id).join('、')+'）';
                 el.hidden=!el.textContent;
             });
             const building=values.mainBldg+values.ancBldg+values.common;
@@ -145,7 +146,7 @@
         }
         function areaControls(item, label) {
             const wrap=node('div','','area-value');
-            const areaInput=input(item.area,label,v=>{const sum=areaSum(v);item.area=Number.isFinite(sum)?String(sum):v;item.pendingLegacy=false;refresh();},false);
+            const areaInput=input(item.area,label,v=>{const sum=areaSum(v);item.area=Number.isFinite(sum)?String(sum):v;delete item.components;item.pendingLegacy=false;refresh();},false);
             areaInput.inputMode='text';areaInput.title='可輸入加法，例如 123+11；按 Enter 或離開欄位自動加總';
             const commitSum=()=>{const sum=areaSum(areaInput.value);if(Number.isFinite(sum)){item.area=String(sum);areaInput.value=item.area;refresh();}};
             areaInput.onblur=commitSum;
@@ -171,6 +172,7 @@
                     if(kind==='common') {head.classList.add('area-common-head');if(item.kind==='commonParking')head.classList.add('area-included-head');head.append(select(item.kind||'common',{common:'公設',parking:'車位',commonParking:'公設含車位'},v=>{item.kind=v;if(v==='commonParking'){item.pendingLegacy=false;if(!item.parkingDenominator)item.parkingDenominator=item.denominator||'';}render();},'面積歸類'));}
                     const idInput=input(item.id,(kind==='land'?'地號':'建號')+'（選填）',v=>{item.id=v;refresh();},false);idInput.placeholder=(kind==='land'?'地號':'建號')+'（選填）';
                     head.append(idInput,node('span','總面積 × 持分','area-method'),button('移除',()=>{state[kind].splice(index,1);render();}));card.append(head);
+                    if(kind==='common'&&item.parentBuildingId)card.append(node('p','所屬主建號：'+item.parentBuildingId,'area-hint'));
                     const fraction=node('div','','area-measure-line');
                     fraction.append(labeled('總面積',areaControls(item,title+'面積')),labeled('分子',input(item.numerator,'持分分子',v=>{item.numerator=v;item.pendingLegacy=false;refresh();})),node('span','／','area-slash'),labeled('分母',input(item.denominator,'持分分母',v=>{item.denominator=v;item.pendingLegacy=false;refresh();})),button('全部持有',()=>{item.numerator='1';item.denominator='1';item.pendingLegacy=false;render();}));card.append(fraction);
                     if(kind==='common'&&item.kind==='commonParking') {

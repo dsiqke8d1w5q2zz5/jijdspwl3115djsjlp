@@ -60,3 +60,22 @@ test('extracts only explicit building metadata for review',()=>{
  const text=building().replace('總面積：','主要用途：住家用\n主要建材：鋼筋混凝土造\n層數：005層\n總面積：').replace('層次面積：','層次：五層 層次面積：').replace('附屬建物用途：','建築完成日期：民國070年09月07日\n附屬建物用途：');
  assert.deepEqual(parse(text).buildings[0].details,{usage:'住家用',structure:'鋼筋混凝土造',builtDate:'0700907',floor:'五層',levels:'005'});
 });
+test('multiple main numbers sum independently while repeated PDFs deduplicate',()=>{
+ const a=building(common('100','50'));
+ const b=a.replace('00001-000建號','00003-000建號').replace('100.00平方公尺','50.25平方公尺');
+ const r=P.parse([{file:'a',page:1,text:a},{file:'b',page:1,text:b},{file:'duplicate',page:1,text:a}]);
+ const main=r.rows.filter(r=>r.category==='main'),anc=r.rows.filter(r=>r.category==='ancillary'),shared=r.rows.filter(r=>r.category==='common');
+ assert.equal(main.length,2);assert.equal(P.sumBuildingRows(main).area,'150.25');assert.equal(P.sumBuildingRows(anc).area,'24.00');assert.equal(shared.length,2);assert.notEqual(shared[0].group,shared[1].group);assert.equal(P.sumBuildingRows(main).components.length,2);
+});
+test('CRM merge retains both shared-building entitlements and multiple parcels',()=>{
+ const fs=require('node:fs'),vm=require('node:vm');const window={TranscriptParser:P};const context={window,document:{currentScript:{src:'https://example.test/01-crm/transcript-import.js'}},URL};
+ vm.runInNewContext(fs.readFileSync(require.resolve('../transcript-import.js'),'utf8'),context);
+ const a=building(common('100','50')),b=a.replace('00001-000建號','00003-000建號').replace('100.00平方公尺','50.25平方公尺');
+ const rows=P.parse([{file:'a',page:1,text:a},{file:'b',page:1,text:b},{file:'l1',page:1,text:land()},{file:'l2',page:1,text:land('7','0002')}]).rows;
+ const api=window.TranscriptImport,state=api.mergeState(api.emptyState(),rows);
+ assert.equal(state.main.area,'150.25');assert.equal(state.ancillary.area,'24.00');assert.equal(state.land.length,2);assert.equal(state.common.length,2);assert.notEqual(state.common[0].parentBuildingId,state.common[1].parentBuildingId);
+ const expected=rows.filter(r=>r.category!=='land').reduce((s,r)=>s+P.calculate(r).area,0);assert(Math.abs(api.totals(state).total-expected)<1e-10);
+ const subset=api.mergeState(api.emptyState(),rows.filter(r=>r.group!==rows.find(r=>r.category==='main').group));assert.equal(subset.main.area,'50.25');
+ const before=api.emptyState();before.common=[{id:state.common[0].id,parkingPrice:'200',parkingNo:'001'}];const enriched=api.mergeState(before,rows);
+ assert.equal(enriched.common.filter(r=>r.parkingPrice==='200').length,1,'one old parking price must not be copied to two new entitlements');assert.equal(before.common.length,1);
+});

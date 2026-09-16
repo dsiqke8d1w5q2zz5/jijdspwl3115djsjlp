@@ -150,7 +150,11 @@
         }
         return {area,parking};
     }
-    const api={parse,textFromItems,calculate,addShares};
+    function sumBuildingRows(rows){
+        if(!rows.length||rows.some(r=>r.mode!=='direct'||!calculate(r)))throw Error('建物面積不完整');
+        return {id:rows.map(r=>r.id).join('、'),area:(rows.reduce((sum,r)=>sum+Math.round(Number(r.area)*100),0)/100).toFixed(2),unit:'sqm',mode:'direct',numerator:'',denominator:'',components:rows.map(r=>({id:r.id,area:Number(r.area).toFixed(2),unit:'sqm'}))};
+    }
+    const api={parse,textFromItems,calculate,addShares,sumBuildingRows};
     if(typeof module==='object'&&module.exports)module.exports=api;
     else host.TranscriptParser=api;
 })(typeof window==='object'?window:globalThis);
