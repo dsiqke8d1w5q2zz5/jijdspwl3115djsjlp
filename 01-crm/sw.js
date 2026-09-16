@@ -1,11 +1,11 @@
-var CACHE_NAME = 'crm-v20260917-land1';
+var CACHE_NAME = 'crm-v20260917-land2';
 var URLS_TO_CACHE = [
   './',
   './index.html',
   './area-editor.js?v=20260917totalfont1',
   './area-editor.css?v=20260914j',
   './transcript-parser.js?v=20260917totalfont1',
-  './transcript-import.js?v=20260917land1',
+  './transcript-import.js?v=20260917land2',
   './transcript-import.css?v=20260917totalfont1'
 ];
 
