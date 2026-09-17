@@ -133,7 +133,7 @@
                 const result=item.pendingLegacy?'原持分面積 '+fmt(item.legacyPing)+' 坪（暫用舊值，請依謄本補總面積與持分）':invalid(item)?'請填完整面積與持分':item.area===''?'—':(item.mode==='fraction'?'持分面積 ':'')+fmt(measure(item)/RATE)+' m² ≈ '+fmt(measure(item))+' 坪';
                 el.textContent=item.pendingLegacy&&state.common.includes(item)?gross.replace(/　｜　$/,''):gross+result;
                 if(item.kind==='commonParking'&&!invalid(item)&&item.area!=='') el.textContent=gross+'整體持分 '+fmt(measure(item))+' 坪　｜　公設淨面積 '+fmt(measure(item)-includedParking(item))+' 坪 ＋ 內含車位 '+fmt(includedParking(item))+' 坪';
-                if(item.components?.length>1)el.textContent+='（合計 '+item.components.length+' 個建號：'+item.components.map(r=>r.id).join('、')+'）';
+                if(item.components?.length>1)el.textContent+='（合計 '+item.components.length+' 筆面積：'+item.components.map(r=>r.id).join('、')+'）';
                 el.hidden=!el.textContent;
             });
             const building=values.mainBldg+values.ancBldg+values.common;

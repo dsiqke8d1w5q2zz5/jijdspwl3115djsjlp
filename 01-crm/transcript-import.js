@@ -137,7 +137,7 @@
             const preview=node('div','','transcript-preview');preview.setAttribute('aria-live','polite');review.prepend(preview);
             const changed=node('p','','transcript-muted'),confirmed=node('input');confirmed.type='checkbox';
             const consent=labeled('已核對，取代勾選類別的原資料',confirmed);consent.prepend(confirmed);consent.className='transcript-confirm';
-            const detailState=new Map();
+            const detailState=new Map(),detailExpanded=new Set();
             for(const b of result.buildings)detailState.set(b.id,Object.fromEntries(Object.entries(b.details||{}).filter(([key,value])=>value&&(!target.detailKeys||target.detailKeys.includes(key))).map(([key,value])=>[key,{value,selected:!!target.details&&result.buildings.length===1}])));
             const selectedDetails=()=>Object.fromEntries(Object.entries(detailState.get(group)||{}).filter(([,item])=>item.selected&&item.value.trim()).map(([key,item])=>[key,item.value.trim()]));
             const apply=button(target.applyLabel||'套入表單',()=>{
@@ -160,7 +160,7 @@
                 const categories=[...new Set(selected.map(r=>names[r.category]))];
                 const selectionSummary='已選 '+new Set(selected.filter(r=>r.category==='main'||r.floor).map(r=>r.group)).size+' 個主建號、'+selected.filter(r=>r.category==='land').length+' 個地號。';
                 if(Object.keys(selectedDetails()).length)categories.push('勾選的建物資料');
-                changed.textContent=selectionSummary+(categories.length?'將取代：'+categories.join('、')+'。其他類別保留。':'請勾選要套用的資料。');
+                changed.textContent=selectionSummary+(categories.length?'將取代：'+categories.join('、')+'。其他類別保留；重新分類時請核對是否仍含原有面積。':'請勾選要套用的資料。');
                 if(valid){
                     const next=mergedState(before,selected),n=totals(next);preview.replaceChildren();
                     if(Object.entries(n).every(([key,value])=>key==='landTotal'&&value===null||Number.isFinite(value))){
@@ -221,11 +221,11 @@
                 }
                 if(target.details)for(const building of result.buildings){
                     const active=building.id===group;
-                    const card=node('details','','transcript-card');
+                    const card=node('details','','transcript-card');card.open=detailExpanded.has(building.id);card.ontoggle=()=>{if(card.open)detailExpanded.add(building.id);else detailExpanded.delete(building.id);};
                     card.append(node('summary','建物資料：'+building.id+' · '+(detailState.get(building.id)?.usage?.value||'用途未辨識')+(active?'（目前採用）':'')));
                     card.append(node('p',building.address,'transcript-muted'));
                     if(result.buildings.length>1)card.append(button(active?'目前採用此建號':'採用此建號資料',()=>{
-                        group=building.id;groupSelect.value=group;
+                        group=building.id;groupSelect.value=group;detailExpanded.add(group);
                         for(const item of Object.values(detailState.get(group)||{}))item.selected=true;
                         confirmed.checked=false;draw();
                     }));
