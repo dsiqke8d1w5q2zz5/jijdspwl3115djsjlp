@@ -2356,7 +2356,7 @@ function _safeSetItem(key, value) {
         if (e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014)) {
             if (!_quotaWarned) {
                 _quotaWarned = true;
-                if (typeof showToast === 'function') showToast('本機儲存空間已滿，請匯出備份後清除快取', 'error', 6000);
+                if (typeof showToast === 'function') showToast('本機儲存空間已滿，請先匯出備份，釋放儲存空間後重試', 'error', 6000);
             }
         }
         return false;
@@ -10240,6 +10240,7 @@ function saveClient() {
     var _needDupConfirm = !!_dupClient;
     var _needIdConfirm = _basicIdNo && !validateTWID(_basicIdNo);
     function _continueSave() {
+    var saveSnapshot = JSON.parse(JSON.stringify(DB));
     // 價格欄位驗證（僅在有值時檢查）
     var _priceFields = [['f-sPrice','開價'],['f-sFloorPrice','底價']];
     for (var _pi=0; _pi<_priceFields.length; _pi++) {
@@ -10533,7 +10534,12 @@ function saveClient() {
             });
         }
     }
-    persist(); closeForm(true); render();
+    if (!persist()) {
+        DB = saveSnapshot;
+        showToast('儲存失敗，資料尚未寫入。表單已保留，請排除儲存問題後重試。', 'error', 6000);
+        return;
+    }
+    closeForm(true); render();
     showToast('已儲存「' + name + '」');
     } // end _continueSave
     if (_needDupConfirm) {
@@ -11236,8 +11242,10 @@ function emptyTrash() {
     var trashCount = DB.filter(function(c){ return c._deleted; }).length;
     if (!trashCount) { showToast('回收桶是空的'); return; }
     confirmAction('確定要清空回收桶？共 '+trashCount+' 筆資料將永久刪除！', function() {
+        var trashSnapshot = DB;
         DB = DB.filter(function(c){ return !c._deleted; });
-        persist(); renderTrash();
+        if (!persist()) { DB = trashSnapshot; showToast('清空失敗，回收桶資料已保留', 'error'); return; }
+        renderTrash();
     });
 }
 function renderTrash() {
@@ -12124,7 +12132,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260917-totalfont1';
+var APP_VERSION = '20260917-crmcheck1';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
