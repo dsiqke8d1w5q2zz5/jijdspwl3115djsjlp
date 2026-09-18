@@ -2395,6 +2395,7 @@ function _crmMarkPending() { try { localStorage.setItem('crm_pendingSync', '1');
 function _crmClearPending() { try { localStorage.removeItem('crm_pendingSync'); } catch(e) {} }
 function _crmHasPending() { try { return localStorage.getItem('crm_pendingSync') === '1'; } catch(e) { return false; } }
 var _syncInFlight = false;
+var _cloudRequestSeq = 0;
 function autoSync() {
     var status = document.getElementById('cloudStatus');
     // 離線時直接標記待同步
@@ -2409,8 +2410,8 @@ function autoSync() {
     _crmMarkPending(); // 上傳前先標記，verifySyncResult 成功才清
     // 關鍵：上傳前先強制拉雲端合併，避免本機的舊活版覆蓋另一台已經上傳的軟刪/新版
     // （autoFetchCloud 的 _localDirtyUntil 保護會讓一般定時 fetch 跳過，但上傳前這次要 force）
-    autoFetchCloud(true, function() {
-        _syncInFlight = false;
+    autoFetchCloud(true, function(ok) {
+        if (!ok) { _onSyncFail(status); return; }
         _autoSyncPush(status);
     });
 }
@@ -2424,6 +2425,8 @@ function _autoSyncPush(status) {
     if (_otplLoaded || (_otherTemplates && _otherTemplates.length)) syncData = syncData.concat([{__otherTemplates: true, items: _otherTemplates}]);
     syncData = syncData.concat([{__checkIn: true, data: getCheckInData()}]);
     var payload = JSON.stringify(syncData);
+    _expectedCloudData = JSON.parse(payload);
+    _uploadedLocalJSON = JSON.stringify(DB);
     // 記下本次預期上傳完成後的雲端筆數（只算真實客戶，與 verifySyncResult 的 cnt 同口徑：
     // 兩邊都排除 __perfRecords/__templates/__signingTemplates/__otherTemplates/__checkIn 標記）
     _expectedCloudCount = syncData.filter(function(c){ return !c.__perfRecords && !c.__templates && !c.__signingTemplates && !c.__otherTemplates && !c.__checkIn; }).length;
@@ -2456,7 +2459,7 @@ function _autoSyncPush(status) {
 }
 
 function verifySyncResult(status) {
-    var vCb = 'verifyCb_' + Date.now();
+    var vCb = 'verifyCb_' + Date.now() + '_' + (++_cloudRequestSeq);
     var vScript = document.createElement('script');
     window[vCb] = function(data) {
         delete window[vCb];
@@ -2464,17 +2467,23 @@ function verifySyncResult(status) {
         if (Array.isArray(data) && data.length > 0) {
             var cnt = data.filter(function(c){ return !c.__perfRecords && !c.__templates && !c.__signingTemplates && !c.__otherTemplates && !c.__checkIn; }).length;
             var localCnt = DB.filter(function(c){ return !c.__perfRecords && !c.__templates && !c.__signingTemplates && !c.__otherTemplates && !c.__checkIn; }).length;
-            // 若記得本次預期筆數，嚴格比對（允許 ±1 容錯，因 Apps Script 有微小延遲）
-            // 否則退回舊的 localCnt-3 寬容比（舊路徑）
-            var expected = _expectedCloudCount;
-            var ok = (expected !== null)
-                ? Math.abs(cnt - expected) <= 1
-                : (cnt >= localCnt - 3);
+            // Confirm the actual uploaded contents, not just the record count.
+            var ok = Array.isArray(_expectedCloudData) && _expectedCloudData.every(function(expected) {
+                var actual = data.find(function(row) { return _crmSyncKey(row) === _crmSyncKey(expected); });
+                return actual && _crmCanonical(actual) === _crmCanonical(expected);
+            });
             if (ok) {
                 // 雲端筆數 >= 本地，確認上傳成功
                 var _dispCnt = data.filter(function(c){ return !c.__perfRecords && !c.__templates && !c.__signingTemplates && !c.__otherTemplates && !c._system; }).length;
                 if (status) status.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22C55E;margin-right:4px;vertical-align:middle"></span>已同步 ' + new Date().toLocaleTimeString('zh-TW') + '（' + _dispCnt + '筆）';
                 showToast('已同步至雲端', 'ok', 2000);
+                _syncInFlight = false;
+                if (JSON.stringify(DB) !== _uploadedLocalJSON) {
+                    _crmMarkPending();
+                    if (_syncTimer) clearTimeout(_syncTimer);
+                    _syncTimer = setTimeout(autoSync, 500);
+                    return;
+                }
                 _localDirtyUntil = 0; try { localStorage.removeItem('_localDirtyUntil'); } catch(e){}
                 _lastSyncJSON = JSON.stringify(DB);
                 _syncRetryCount = 0;
@@ -2491,21 +2500,33 @@ function verifySyncResult(status) {
     vScript.src = CLOUD_URL + '?callback=' + vCb + '&t=' + Date.now();
     vScript.onerror = function() { delete window[vCb]; if (vScript.parentNode) vScript.parentNode.removeChild(vScript); _onSyncFail(status); };
     document.body.appendChild(vScript);
+    setTimeout(function(){if(window[vCb]){delete window[vCb];vScript.remove();_onSyncFail(status);}},90000);
 }
+function _crmSyncKey(row) {
+    return ['__perfRecords','__templates','__signingTemplates','__otherTemplates','__checkIn'].find(function(k){return row[k];}) || row.id;
+}
+function _crmCanonical(value) {
+    if(Array.isArray(value))return '['+value.map(_crmCanonical).join(',')+']';
+    if(value&&typeof value==='object')return '{'+Object.keys(value).sort().map(function(k){return JSON.stringify(k)+':'+_crmCanonical(value[k]);}).join(',')+'}';
+    return JSON.stringify(value);
+}
+var _expectedCloudData = null, _uploadedLocalJSON = null;
 var _syncRetryCount = 0;
 var _expectedCloudCount = null; // 上一次上傳後雲端「應該」有的 DB 長度，用於 verify 比對
 var _syncRetryTimer = null;
 function _onSyncFail(status) {
+    _syncInFlight = false;
     // 自動重試 3 次，指數退避（2s, 5s, 10s）
     if (_syncRetryCount < 3) {
         var delay = [2000, 5000, 10000][_syncRetryCount];
         _syncRetryCount++;
         if (status) status.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#F59E0B;margin-right:4px;vertical-align:middle"></span>同步失敗，' + Math.round(delay/1000) + ' 秒後重試（' + _syncRetryCount + '/3）';
         if (_syncRetryTimer) clearTimeout(_syncRetryTimer);
-        _syncRetryTimer = setTimeout(function() { autoSync(); }, delay);
+        _syncRetryTimer = setTimeout(function() { _syncRetryTimer = null; autoSync(); }, delay);
         return;
     }
     // 重試都失敗，提供手動重試
+    _syncRetryTimer = null;
     _syncRetryCount = 0;
     if (status) status.innerHTML = '同步失敗 <button onclick="_syncRetryCount=0;autoSync()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:2px 8px;cursor:pointer;font-size:11px;margin-left:4px">重試</button>';
     showToast('雲端同步失敗', 'warn', 3000);
@@ -2544,7 +2565,7 @@ function syncViaIframe(payload, status) {
 }
 
 // 網路恢復 → 自動補傳待同步資料（回到頁面的邏輯併入下方 visibilitychange）
-window.addEventListener('online', function() { if (_crmHasPending()) { _syncRetryCount = 0; autoSync(); } });
+// Online handling is consolidated below to avoid duplicate requests.
 
 // ── 自動雲端同步（頁面載入+每5分鐘）──
 var _checkTimer = null;
@@ -2552,7 +2573,7 @@ var _lastSyncJSON = JSON.stringify(DB);
 var _localDirtyUntil = (function(){ try { return parseInt(localStorage.getItem('_localDirtyUntil') || '0', 10) || 0; } catch(e){ return 0; } })(); // 本機有未上傳的變更時，暫停拉雲端
 function startAutoCheck() {
     if (_checkTimer) clearInterval(_checkTimer);
-    if (Date.now() < _localDirtyUntil) {
+    if (_crmHasPending() || Date.now() < _localDirtyUntil) {
         // 本地有未上傳的變更：autoSync 內部已會先強制拉雲端合併再 push
         setTimeout(autoSync, 2000);
     } else {
@@ -2586,10 +2607,14 @@ document.addEventListener('visibilitychange', function() {
 });
 function autoFetchCloud(force, onDone) {
     var _doneCalled = false;
-    function _fireDone() { if (_doneCalled) return; _doneCalled = true; if (typeof onDone === 'function') { try { onDone(); } catch(e){} } }
+    function _fetchFailed() {
+        if (typeof onDone !== 'function') { var status=document.getElementById('cloudStatus');if(status)status.textContent='無法取得雲端資料，稍後自動重試'; }
+        _fireDone(false);
+    }
+    function _fireDone(ok) { if (_doneCalled) return; _doneCalled = true; if (typeof onDone === 'function') { try { onDone(ok === true); } catch(e){} } }
     // 本機有未上傳的變更時，跳過拉雲端，避免舊資料覆蓋新存的（force=true 強制拉）
     if (!force && Date.now() < _localDirtyUntil) { _fireDone(); return; }
-    var cbName = 'checkCb_' + Date.now();
+    var cbName = 'checkCb_' + Date.now() + '_' + (++_cloudRequestSeq);
     var script = document.createElement('script');
     window[cbName] = function(data) {
         delete window[cbName];
@@ -2616,7 +2641,7 @@ function autoFetchCloud(force, onDone) {
                     }
                 }
             }
-            if (!Array.isArray(cloudData) || cloudData.length === 0) return;
+            if (!Array.isArray(cloudData)) { _fireDone(false); return; }
             // 提取業績紀錄標記（新陣列格式）
             if (!cloudPerf) {
                 var perfMeta = cloudData.filter(function(c){ return c.__perfRecords; })[0];
@@ -2647,12 +2672,8 @@ function autoFetchCloud(force, onDone) {
             var localJSON = JSON.stringify(DB);
             // 資料不同才更新
             if (cloudJSON !== localJSON) {
-                // 安全檢查：雲端筆數比本地少太多時不覆蓋（可能是上傳未完成）
-                var localActiveCnt = DB.filter(function(c){ return !c._deleted; }).length;
-                var cloudActiveCnt = cloudData.filter(function(c){ return !c._deleted; }).length;
-                if (cloudActiveCnt < localActiveCnt - 2) {
-                    return;
-                }
+                // Merge by ID even when remote active count is lower (e.g. deletions).
+                // Local-only records remain below; a smaller snapshot never deletes them.
                 // 逐筆合併：比較 updatedAt，保留較新的
                 var localMap = {};
                 DB.forEach(function(c){ if(c.id) localMap[c.id] = c; });
@@ -2762,6 +2783,8 @@ function autoFetchCloud(force, onDone) {
                 _lastSyncJSON = JSON.stringify(DB);
                 try { localStorage.setItem('reCRM', _lastSyncJSON); } catch(e) { console.error('localStorage寫入失敗', e); }
                 render();
+            }
+                // Metadata can change even when customer records do not.
                 // 同步業績紀錄
                 if (cloudPerf) {
                     _perfRecords = cloudPerf;
@@ -2786,19 +2809,19 @@ function autoFetchCloud(force, onDone) {
                 }
                 var status = document.getElementById('cloudStatus');
                 if (status) status.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22C55E;margin-right:4px;vertical-align:middle"></span>已同步 ' + new Date().toLocaleTimeString('zh-TW') + '（' + DB.filter(function(c){return !c._system;}).length + '筆）';
-            }
-        } catch(e) { console.error('雲端同步解析失敗:', e); }
-        _fireDone();
+            _fireDone(true);
+        } catch(e) { console.error('雲端同步解析失敗:', e); _fireDone(false); }
     };
     script.src = CLOUD_URL + '?callback=' + cbName + '&t=' + Date.now();
-    script.onerror = function() { delete window[cbName]; if (script.parentNode) script.parentNode.removeChild(script); _fireDone(); };
+    script.onerror = function() { delete window[cbName]; if (script.parentNode) script.parentNode.removeChild(script); _fetchFailed(); };
     document.body.appendChild(script);
     // 逾時清理：避免 JSONP 掛起導致 callback 閉包永久洩漏。
     // 90 秒（原 30 秒）：Apps Script 久未使用會冷啟動，實測首次回應可達 30 秒，
     // 太短會在「上傳前強制拉取合併」時提前放行，造成本機舊資料覆蓋雲端。
-    setTimeout(function() { if (window[cbName]) { delete window[cbName]; if (script.parentNode) script.parentNode.removeChild(script); _fireDone(); } }, 90000);
+    setTimeout(function() { if (window[cbName]) { delete window[cbName]; if (script.parentNode) script.parentNode.removeChild(script); _fetchFailed(); } }, 90000);
 }
 startAutoCheck();
+window.addEventListener('pageshow', function(e) { if(e.persisted) { startAutoCheck(); } });
 window.addEventListener('beforeunload', function() { if(_checkTimer) clearInterval(_checkTimer); if(_syncTimer) clearTimeout(_syncTimer); });
 
 // ── 離線/上線偵測：恢復網路時自動同步 ──
@@ -2806,7 +2829,10 @@ window.addEventListener('online', function() {
     var status = document.getElementById('cloudStatus');
     if (status) status.textContent = '網路恢復，同步中…';
     showToast('網路已恢復，正在同步…');
-    setTimeout(autoSync, 1000);
+    setTimeout(function(){
+        if(_crmHasPending()){if(!_syncRetryTimer){_syncRetryCount=0;autoSync();}}
+        else autoFetchCloud(true);
+    }, 1000);
 });
 window.addEventListener('offline', function() {
     var status = document.getElementById('cloudStatus');
@@ -12132,7 +12158,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260917-crmcheck1';
+var APP_VERSION = '20260918-sync1';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
