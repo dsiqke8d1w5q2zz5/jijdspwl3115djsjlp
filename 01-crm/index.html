@@ -4107,7 +4107,7 @@ function renderDashboard() {
     var _schedDedup = {};
     var _todayISO = _fmtDateISO(new Date());
     DB.forEach(function(c) {
-        if (c._deleted || c._system || c.archived || !c.schedules) return;
+        if (c._deleted || c._system || !c.schedules) return;
         _liveItems(c.schedules).forEach(function(s) {
             if (!s.date) return;
             if (s.hideBeforeDate && _todayISO < s.hideBeforeDate) return;
@@ -8451,7 +8451,7 @@ function _getAllFutureSchedules() {
     var todayISO = localDateISO();
     var all = [];
     DB.forEach(function(c) {
-        if (c._deleted || c._system || c.archived || !c.schedules) return;
+        if (c._deleted || c._system || !c.schedules) return;
         _liveItems(c.schedules).forEach(function(s) {
             if (!s.date || s.date < todayISO) return;
             if (s.hideBeforeDate && todayISO < s.hideBeforeDate) return;
@@ -12158,7 +12158,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260919-brand2';
+var APP_VERSION = '20260920-archsched1';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
