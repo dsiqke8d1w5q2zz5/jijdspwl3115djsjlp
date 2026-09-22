@@ -321,6 +321,7 @@
         /* Detail */
         .det-head { padding: 14px 22px; display: flex; gap: 14px; align-items: center; border-bottom: 1px solid var(--border); position:sticky; top:0; background:white; z-index:1; border-radius:18px 18px 0 0; min-height:70px; }
         .det-avatar { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; color: white; flex-shrink: 0; }
+        .det-copy-contact { font:inherit;font-size:14px;min-height:36px;padding:6px 12px;border:1px solid var(--border);border-radius:7px;background:var(--bg,#fff);color:var(--text,#292524);cursor:pointer; }
         .det-name { font-size: 26px; font-weight: 700; text-align: center; }
         .det-phone { color: var(--muted); font-size: 19px; margin-top: 3px; text-align: center; }
         .det-close { margin-left: auto; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--muted); padding: 4px 8px; }
@@ -5247,6 +5248,25 @@ function typeDetail(origC, viewAs) {
     return '';
 }
 
+async function copyDetailContact(button) {
+    var text = [button.dataset.name, button.dataset.phone].filter(Boolean).join('\n');
+    if (!text) { showToast('沒有可複製的姓名或電話', 'warn'); return; }
+    try {
+        if (!navigator.clipboard || !navigator.clipboard.writeText) throw Error('clipboard unavailable');
+        await navigator.clipboard.writeText(text);
+        showToast('已複製姓名與電話');
+    } catch (e) {
+        var input = document.createElement('textarea');
+        input.value = text; input.readOnly = true;
+        input.style.cssText = 'position:fixed;left:0;top:0;opacity:0;pointer-events:none';
+        document.body.appendChild(input);
+        var ok = false;
+        try { input.focus({preventScroll:true}); input.select(); input.setSelectionRange(0,text.length); ok = document.execCommand('copy'); }
+        catch (_) {} finally { input.remove(); button.focus({preventScroll:true}); }
+        showToast(ok ? '已複製姓名與電話' : '複製失敗，請長按姓名與電話手動複製', ok ? 'ok' : 'warn');
+    }
+}
+
 function showDet(id, viewAs) {
     const c = DB.find(x=>x.id===id); if(!c) return;
     const cTypes = getTypes(c);
@@ -5296,6 +5316,7 @@ function showDet(id, viewAs) {
             <div style="width:100%;flex:1;display:flex;flex-direction:column;justify-content:center">
                 <div class="det-name">${esc(detName)}${detViewAs==='landlord'?'<span style="font-size:14px;color:#0891B2;margin-left:4px">房東</span>':''}${detViewAs==='tenant'?'<span style="font-size:14px;color:#DB2777;margin-left:4px">租客</span>':''}</div>
                 <div class="det-phone">${esc(detPhone)}</div>
+                <div style="text-align:center;margin:6px 0 10px"><button type="button" class="det-copy-contact" data-name="${esc(detName||'')}" data-phone="${esc(detPhone)}" onclick="copyDetailContact(this)">複製姓名＋電話</button></div>
             </div>
         </div>
         <div class="det-body">
@@ -12158,7 +12179,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260920-archsched1';
+var APP_VERSION = '20260922-copycontact1';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
