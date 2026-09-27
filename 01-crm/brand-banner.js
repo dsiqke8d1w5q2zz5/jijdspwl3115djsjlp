@@ -1,7 +1,7 @@
 /* Reusable local brand banners. Text is drawn as canvas text, never HTML. */
 (function(){
 'use strict';
-const themes={navy:{name:'曜金名片',primary:'#173756',accent:'#d4af62'},ribbon:{name:'活力斜切',primary:'#ffbf00',accent:'#b82029'},clean:{name:'清透留白',primary:'#ffffff',accent:'#078b91'},editorial:{name:'暖調編輯',primary:'#f4eee3',accent:'#896441'}};
+const themes={navy:{name:'曜金名片',primary:'#173756',accent:'#d4af62'},ribbon:{name:'活力斜切',primary:'#ffbf00',accent:'#b82029'},clean:{name:'清透留白',primary:'#ffffff',accent:'#078b91'},editorial:{name:'暖調編輯',primary:'#f4eee3',accent:'#896441'},floating:{name:'懸浮圓角',primary:'#ffffff',accent:'#366653'},stacked:{name:'都會雙層',primary:'#23364d',accent:'#c7e5e8'},sticker:{name:'個性貼紙',primary:'#fff0b8',accent:'#cf4936'},outline:{name:'極簡框線',primary:'#f9f7f2',accent:'#393633'}};
 const defaults={theme:'navy',primary:'#173756',accent:'#d4af62',company:'',name:'',phone:'',tagline:'',height:15,font:'sans',brandSize:100,nameSize:100,phoneSize:100,tagSize:100,width:100,position:'right'};
 let current={...defaults},host,onchange;
 const $=id=>document.getElementById(id);
@@ -10,26 +10,46 @@ function height(h,o){return h*Math.max(10,Math.min(24,Number(o.height)||15))/100
 function draw(ctx,w,h,o){
  const fullWidth=w;w=fullWidth*Math.max(45,Math.min(100,Number(o.width)||100))/100;const offset=o.position==='left'?0:o.position==='center'?(fullWidth-w)/2:fullWidth-w;
  const bh=height(h,o),y=h-bh,p=w*.035,primary=o.primary,accent=o.accent,fg=contrast(primary),afg=contrast(accent);
- ctx.save();ctx.translate(offset,0);ctx.beginPath();ctx.rect(0,y,w,bh);ctx.clip();ctx.fillStyle=primary;ctx.fillRect(0,y,w,bh);
+ ctx.save();ctx.translate(offset,0);ctx.beginPath();ctx.rect(0,y,w,bh);ctx.clip();if(!['floating','sticker','outline'].includes(o.theme)){ctx.fillStyle=primary;ctx.fillRect(0,y,w,bh);}
  const families={sans:'"Microsoft JhengHei","PingFang TC",sans-serif',serif:'"PMingLiU","Songti TC",serif',kai:'"DFKai-SB","BiauKai","KaiTi",serif'};
  function text(value,x,cy,maxWidth,size,color,weight=700){if(!value)return;ctx.fillStyle=color;ctx.textBaseline='middle';ctx.textAlign='left';let sz=size;const font=()=> (o.font==='italic'?'italic ':'')+(['light','book'].includes(o.font)?Math.min(weight,500):weight)+' '+sz+'px '+(families[o.font==='book'?'serif':o.font]||families.sans);ctx.font=font();const measured=ctx.measureText(value).width;if(measured>maxWidth){sz*=maxWidth/measured;ctx.font=font();}ctx.fillText(value,x,cy);}
  function rect(x,yy,ww,hh,color,r=0){ctx.fillStyle=color;ctx.beginPath();if(r&&ctx.roundRect)ctx.roundRect(x,yy,ww,hh,r);else ctx.rect(x,yy,ww,hh);ctx.fill();}
  function line(x1,y1,x2,y2,color,width=1){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}
  // Fit the brand and name together on one line; empty fields do not reserve space.
  const size=(key)=>Math.max(60,Math.min(160,Number(o[key])||100))/100;
- function identity(x,available,brandColor=fg){
-  const brand=o.company||'',name=o.name||'',tag=o.tagline||'';
+ function identity(x,available,brandColor=fg,layout={}){
+  const brand=o.company||'',name=o.name||'',tag=layout.noTag?'':o.tagline||'';
   const bs=bh*.235*size('brandSize'),ns=bh*.36*size('nameSize'),gap=brand&&name?w*.016:0;
   const family=families[o.font==='book'?'serif':o.font]||families.sans;
   ctx.font='700 '+bs+'px '+family;const bw=ctx.measureText(brand).width;
   ctx.font='800 '+ns+'px '+family;const nw=ctx.measureText(name).width;
-  const fit=Math.min(1,available/Math.max(1,bw+nw+gap)),cy=y+bh*(tag ? .43-Math.max(0,size('nameSize')-1)*.08 : .52);
+  const fit=Math.min(1,available/Math.max(1,bw+nw+gap)),cy=y+bh*(layout.cy??(tag ? .43-Math.max(0,size('nameSize')-1)*.08 : .52));
   text(brand,x,cy,bw*fit,bs*fit,brandColor,700);
   text(name,x+(bw+gap)*fit,cy,nw*fit,ns*fit,fg,800);
-  text(tag,x,y+bh*((brand||name) ? .82 : .52),available,bh*.15*size('tagSize'),fg,500);
+  text(tag,x,y+bh*(layout.tagCy??((brand||name) ? .82 : .52)),available,bh*.15*size('tagSize'),fg,500);
  }
  const phoneSize=bh*.32*size('phoneSize');
- if(o.theme==='ribbon'){
+ if(o.theme==='floating'){
+  ctx.save();ctx.shadowColor='#00000025';ctx.shadowBlur=bh*.055;ctx.shadowOffsetY=bh*.025;rect(w*.018,y+bh*.07,w*.964,bh*.86,primary,bh*.17);ctx.restore();
+  rect(w*.037,y+bh*.29,w*.006,bh*.39,accent,bh*.025);identity(w*.061,w*.50,accent,{tagCy:.75});
+  if(o.phone){rect(w*.626,y+bh*.24,w*.326,bh*.51,accent,bh*.25);text(o.phone,w*.649,y+bh*.505,w*.282,phoneSize,afg,700);}
+ }else if(o.theme==='stacked'){
+  rect(0,y,w*.009,bh,accent);identity(p,w*.92,fg,{noTag:true,cy:(o.phone||o.tagline)?.30:.52});
+  if(o.phone||o.tagline)rect(w*.022,y+bh*.60,w*.956,bh*.35,accent,bh*.035);
+  text(o.tagline,p,y+bh*.785,w*.46,bh*.15*size('tagSize'),afg,500);
+  text(o.phone,w*.575,y+bh*.785,w*.37,Math.min(bh*.30,bh*.27*size('phoneSize')),afg,700);
+ }else if(o.theme==='sticker'){
+  ctx.fillStyle=accent;ctx.beginPath();ctx.moveTo(w*.025,y+bh*.17);ctx.lineTo(w*.574,y+bh*.08);ctx.lineTo(w*.558,h-bh*.04);ctx.lineTo(w*.01,h-bh*.10);ctx.closePath();ctx.fill();
+  ctx.fillStyle=primary;ctx.beginPath();ctx.moveTo(w*.015,y+bh*.08);ctx.lineTo(w*.559,y+bh*.02);ctx.lineTo(w*.545,h-bh*.11);ctx.lineTo(0,h-bh*.15);ctx.closePath();ctx.fill();
+  identity(w*.033,w*.486,fg,{tagCy:.73});
+  if(o.phone)rect(w*.605,y+bh*.18,w*.37,bh*.64,accent,bh*.10);
+  text(o.phone,w*.626,y+bh*.51,w*.33,phoneSize,afg,800);
+ }else if(o.theme==='outline'){
+  rect(w*.018,y+bh*.075,w*.964,bh*.85,primary);
+  ctx.strokeStyle=accent;ctx.lineWidth=Math.max(1,w*.0014);ctx.strokeRect(w*.03,y+bh*.14,w*.94,bh*.71);
+  rect(w*.052,y+bh*.07,w*.49,bh*.84,primary);identity(w*.058,w*.49,fg,{tagCy:.74});
+  if(o.phone){text(o.phone,w*.621,y+bh*.51,w*.322,phoneSize,fg,700);}
+ }else if(o.theme==='ribbon'){
   ctx.fillStyle=accent;ctx.beginPath();ctx.moveTo(w*.63,y);ctx.lineTo(w,y);ctx.lineTo(w,h);ctx.lineTo(w*.56,h);ctx.closePath();ctx.fill();
   ctx.globalAlpha=.14;ctx.beginPath();ctx.moveTo(w*.60,y);ctx.lineTo(w*.62,y);ctx.lineTo(w*.55,h);ctx.lineTo(w*.53,h);ctx.closePath();ctx.fill();ctx.globalAlpha=1;
   identity(p,w*.49);
