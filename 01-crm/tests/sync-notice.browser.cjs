@@ -1,0 +1,7 @@
+const assert=require('node:assert/strict'),path=require('node:path'),{pathToFileURL}=require('node:url');
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
+(async()=>{const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});try{for(const width of [1440,390]){
+const page=await browser.newPage({viewport:{width,height:900}});await page.route('https://**/*',r=>r.abort());await page.goto(pathToFileURL(path.join(__dirname,'../index.html')).href);
+await page.evaluate(()=>{const b=document.createElement('button');b.id='testFocus';b.textContent='test';document.body.prepend(b);b.focus();showSyncSuccess();showSyncSuccess();});
+const notice=page.locator('#crmSyncNotice'),box=await notice.boundingBox();assert(Math.abs(box.x+box.width/2-width/2)<1);assert(Math.abs(box.y+box.height/2-450)<1);assert.equal(await notice.count(),1);assert(await notice.evaluate(e=>e.matches(':modal')));assert.equal(await page.evaluate(()=>document.activeElement.textContent),'確定');await page.keyboard.press('Enter');assert(!(await notice.isVisible()));assert.equal(await page.evaluate(()=>document.activeElement.id),'testFocus');await page.evaluate(()=>showSyncSuccess());await page.keyboard.press('Escape');assert(!(await notice.isVisible()));await page.close();console.log('PASS centered sync notice '+width+'px, focus, confirmation, Escape, repeated notification');
+}}finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
