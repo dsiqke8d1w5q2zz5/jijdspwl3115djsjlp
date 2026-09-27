@@ -1,12 +1,14 @@
-var CACHE_NAME = 'crm-v20260927presets2';
+var CACHE_NAME = 'crm-v20260927studio1';
 var URLS_TO_CACHE = [
   './',
   './index.html',
-  './image-layouts.js?v=20260927presets2',
-  './brand-banner.js?v=20260927presets2',
-  './portrait-matting.js?v=20260927presets2',
-  './image-composer.js?v=20260927presets2',
-  './image-composer.css?v=20260927presets2',
+  './image-storage.js?v=20260927studio1',
+  './image-studio.js?v=20260927studio1',
+  './image-layouts.js?v=20260927studio1',
+  './brand-banner.js?v=20260927studio1',
+  './portrait-matting.js?v=20260927studio1',
+  './image-composer.js?v=20260927studio1',
+  './image-composer.css?v=20260927studio1',
   './area-editor.js?v=20260917audit1',
   './area-editor.css?v=20260914j',
   './transcript-parser.js?v=20260917audit1',
