@@ -1,18 +1,24 @@
 /* Person compositing: images stay in this browser; only model assets are fetched. */
 (function () {
     'use strict';
-    const state = { bg:null, original:null, person:null, x:.22, y:.72, size:.5, flip:false, busy:false, sequence:0, bgSequence:0 };
+    const state = { bg:null, original:null, person:null, x:.22, y:.72, size:.5, flip:false, busy:false, sequence:0, bgSequence:0, active:null, placements:new Map(), exporting:false };
     let dialog, previousFocus, segmenterPromise, drag;
     const $ = id => document.getElementById(id);
     function status(message, error) { $('icStatus').textContent=message; $('icStatus').dataset.error=!!error; }
+    function enabled(){return $('icUsePerson').checked;}
     function controls() {
-        $('icDownload').disabled=!state.bg || !state.person || state.busy;
-        $('icRetry').disabled=!state.original || state.busy;
-        $('icPerson').disabled=state.busy;
-        $('icAuto').disabled=state.busy;
-        $('icCutout').disabled=!state.person || state.busy;
-        ['icSize','icFlip','icReset'].forEach(id=>$(id).disabled=!state.person);
+        const working=state.busy||state.exporting;
+        $('icDownload').disabled=!state.bg||working||(enabled()&&!state.person);
+        $('icAll').disabled=$('icDownload').disabled||_itFiles.length<2;
+        $('icRetry').disabled=!state.original||working;
+        $('icPerson').disabled=working;$('icAuto').disabled=working;
+        $('icBackground').disabled=state.exporting;$('icClear').disabled=state.exporting;
+        $('icRemove').disabled=!state.bg||state.exporting;
+        $('icCutout').disabled=!state.person||working;
+        ['icSize','icFlip','icReset'].forEach(id=>$(id).disabled=!state.person||state.exporting);
         $('icSizeValue').textContent=Math.round(state.size*100)+'%';
+        $('icPersonBody').hidden=!enabled();
+        $('itWmBox').hidden=!$('itUseWm').checked;$('itCapBox').hidden=!$('itUseCap').checked;
     }
     function canvas(w,h) { const c=document.createElement('canvas'); c.width=w;c.height=h;return c; }
     async function decode(file, max) {
@@ -78,48 +84,75 @@
         } catch(e){ if(seq===state.sequence)status(e.message.includes('人物')?e.message:'去背未完成，請確認網路後按「重新處理」。也可取消自動去背，使用透明背景 PNG。',true); }
         finally { if(seq===state.sequence){state.busy=false;controls();} }
     }
-    function geometry(w,h) {
-        const ph=h*state.size,pw=state.person?ph*state.person.width/state.person.height:0;
-        return {x:w*state.x-pw/2,y:h*state.y-ph/2,w:pw,h:ph};
+    function remember(){if(state.active)state.placements.set(state.active,{x:state.x,y:state.y,size:state.size,flip:state.flip});}
+    function geometry(w,h,pos=state,person=state.person){const ph=h*pos.size,pw=person?ph*person.width/person.height:0;return{x:w*pos.x-pw/2,y:h*pos.y-ph/2,w:pw,h:ph};}
+    function draw(target,photo=state.bg,pos=state,options=itOpts(),person=enabled()?state.person:null){
+        if(!photo)return;
+        const base=canvas(target.width,target.height),ctx=base.getContext('2d');
+        ctx.drawImage(photo,0,0,base.width,base.height);
+        if(person){const r=geometry(base.width,base.height,pos,person);ctx.save();ctx.translate(r.x+(pos.flip?r.w:0),r.y);ctx.scale(pos.flip?-1:1,1);ctx.drawImage(person,0,0,r.w,r.h);ctx.restore();}
+        itDraw(target,base,options,target.width,target.height);
     }
-    function draw(target) {
-        const ctx=target.getContext('2d');ctx.clearRect(0,0,target.width,target.height);
-        if(!state.bg)return;
-        ctx.drawImage(state.bg,0,0,target.width,target.height);
-        if(state.person){const r=geometry(target.width,target.height);ctx.save();ctx.translate(r.x+(state.flip?r.w:0),r.y);ctx.scale(state.flip?-1:1,1);ctx.drawImage(state.person,0,0,r.w,r.h);ctx.restore();}
-    }
-    function render() {
+    function render(){
+        if(!dialog)return;
         const c=$('icCanvas');c.hidden=!state.bg;$('icEmpty').hidden=!!state.bg;
-        if(state.bg){const scale=Math.min(1,1000/Math.max(state.bg.width,state.bg.height));c.width=Math.round(state.bg.width*scale);c.height=Math.round(state.bg.height*scale);draw(c);}
-        controls();
+        if(state.bg){const scale=Math.min(1,1000/Math.max(state.bg.width,state.bg.height));c.width=Math.max(1,Math.round(state.bg.width*scale));c.height=Math.max(1,Math.round(state.bg.height*scale));c.style.setProperty('--ic-aspect',c.width/c.height);draw(c);}
+        remember();controls();
     }
-    function reset() {state.x=.22;state.y=.72;state.size=.5;state.flip=false;$('icSize').value=50;render();}
-    function point(e) {const r=$('icCanvas').getBoundingClientRect();return{x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height};}
-    function download(source,name,type) {
-        source.toBlob(blob=>{
-            if(!blob){status('無法產生圖片，請再試一次。',true);return;}
-            const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
-            status('已產生下載圖片，原圖沒有被修改。');
-        },type,.94);
+    function refresh(){
+        if(!dialog)return;
+        let active=_itFiles.find(f=>f.id===state.active);
+        if(!active)active=_itFiles[0];
+        if(active?.id!==state.active){remember();state.active=active?.id||null;const pos=state.placements.get(state.active)||{x:.22,y:.72,size:.5,flip:false};Object.assign(state,pos);$('icSize').value=state.size*100;}
+        state.bg=active?.img||null;
+        $('icPhotoName').textContent=active?active.name+' · '+(_itFiles.indexOf(active)+1)+' / '+_itFiles.length:'尚未選擇照片';
+        const strip=$('icPhotos');const key=_itFiles.map(f=>f.id).join('|');
+        if(strip.dataset.key!==key){strip.dataset.key=key;strip.replaceChildren();for(const f of _itFiles){const b=document.createElement('button');b.type='button';b.dataset.id=f.id;b.title=f.name;b.setAttribute('aria-label','編輯照片：'+f.name);const image=new Image();image.src=f.url;image.alt=f.name;b.append(image);b.onclick=()=>{remember();state.active=f.id;Object.assign(state,state.placements.get(f.id)||{x:.22,y:.72,size:.5,flip:false});$('icSize').value=state.size*100;refresh();};strip.append(b);}}
+        strip.hidden=_itFiles.length<2;strip.querySelectorAll('button').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.id===state.active));});
+        render();
     }
-    function build() {
+    function reset(){Object.assign(state,{x:.22,y:.72,size:.5,flip:false});$('icSize').value=50;render();}
+    function point(e){const r=$('icCanvas').getBoundingClientRect();return{x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height};}
+    function download(source,name,type,q=.94){return new Promise((resolve,reject)=>source.toBlob(blob=>{
+        if(!blob){reject(Error('無法產生圖片，請再試一次。'));return;}
+        const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);resolve();
+    },type,q));}
+    async function exportPhotos(all){
+        if($('icDownload').disabled)return;
+        const options=itOpts();
+        if(options.useWm&&!options.wmText){status('請輸入浮水印文字，或關閉浮水印。',true);$('itWmText').focus();return;}
+        if(options.useCap&&!options.capText.trim()){status('請輸入加註文字，或關閉加註文字。',true);$('itCapText').focus();return;}
+        remember();itSaveCfg();
+        const photos=(all?_itFiles:_itFiles.filter(f=>f.id===state.active)).map(f=>({file:f,pos:{...(state.placements.get(f.id)||{x:.22,y:.72,size:.5,flip:false})}}));
+        const person=enabled()?state.person:null;state.exporting=true;controls();
+        try{let count=0;for(const {file,pos} of photos){const [w,h]=itOutSize(file,options),out=canvas(w,h);draw(out,file.img,pos,options,person);await download(out,file.name.replace(/\.[^.]+$/,'')+'_編輯.jpg','image/jpeg',options.q);status('已產生 '+(++count)+' / '+photos.length+' 張下載圖片。');await new Promise(resolve=>setTimeout(resolve,250));}status('完成，共 '+photos.length+' 張。原圖沒有被修改。');}
+        catch(e){status(e.message||'下載未完成，請重試。',true);}finally{state.exporting=false;controls();}
+    }
+    function build(){
         dialog=document.createElement('dialog');dialog.className='ic-dialog';dialog.id='imageComposer';dialog.setAttribute('aria-labelledby','icTitle');
-        dialog.innerHTML=`<div class="ic-shell"><header class="ic-head"><h2 id="icTitle">人物合成</h2><button type="button" id="icClose" aria-label="關閉人物合成">關閉</button></header>
+        dialog.innerHTML=`<div class="ic-shell"><header class="ic-head"><div><h2 id="icTitle">圖片工具</h2><p>人物・文字・浮水印，一次完成</p></div><button type="button" id="icClose" aria-label="關閉圖片工具">關閉</button></header>
+        <div class="ic-toolbar"><label class="ic-file">＋ 選擇照片<input id="icBackground" type="file" accept="image/*" multiple></label><button type="button" id="icClear">清空照片</button><div class="ic-downloads"><button type="button" id="icDownload" class="ic-primary" disabled>下載這張</button><button type="button" id="icAll" disabled>全部下載</button></div></div>
         <div class="ic-body"><aside class="ic-controls">
-        <section class="ic-step"><h3>1 選擇背景</h3><label class="ic-file">選擇背景照片<input id="icBackground" type="file" accept="image/*"></label><p class="ic-name" id="icBgName">房屋照片或已排版的圖片</p></section>
-        <section class="ic-step"><h3>2 加入人物</h3><label class="ic-file">選擇人物照片<input id="icPerson" type="file" accept="image/*"></label><p class="ic-name" id="icPersonName">建議使用人物清楚的獨照</p><label class="ic-check"><input id="icAuto" type="checkbox" checked>自動去除背景</label><canvas id="icThumb" class="ic-thumb" hidden aria-label="人物去背預覽"></canvas><button type="button" id="icRetry" disabled>重新處理</button></section>
-        <section class="ic-step ic-position"><h3>3 調整位置與大小</h3><label for="icSize">人物大小 <strong id="icSizeValue">50%</strong></label><input id="icSize" type="range" min="10" max="120" value="50" disabled><div class="ic-actions"><button type="button" id="icFlip" disabled>左右翻轉</button><button type="button" id="icReset" disabled>重設位置</button></div><p class="ic-note">拖曳照片中的人物即可移動。也可點選預覽後，用方向鍵微調位置。</p></section>
-        <p class="ic-note">照片只在本機處理，不會上傳。首次去背需連網下載模型；透明背景 PNG 可取消勾選自動去背。輸出最長邊為 2560 像素。</p></aside>
-        <main class="ic-preview"><div id="icStatus" class="ic-status" role="status" aria-live="polite">先選擇背景照片，再加入人物。</div><div class="ic-stage"><p class="ic-empty" id="icEmpty">把人物放進房屋照片<br>選好背景後，合成結果會顯示在這裡。</p><canvas id="icCanvas" hidden tabindex="0" aria-label="合成預覽，可拖曳人物或使用方向鍵移動"></canvas></div></main></div>
-        <footer class="ic-foot"><span>確認人物位置後，再下載合成圖。</span><button type="button" id="icCutout" disabled>下載去背人物</button><button type="button" id="icDownload" class="ic-primary" disabled>下載合成圖片</button></footer></div>`;
+        <section class="ic-section"><label class="ic-section-title"><input id="icUsePerson" type="checkbox">人物合成</label><div id="icPersonBody" hidden>
+        <label class="ic-file">選擇人物照片<input id="icPerson" type="file" accept="image/*"></label><p class="ic-name" id="icPersonName">建議使用人物清楚的獨照</p><label class="ic-check"><input id="icAuto" type="checkbox" checked>自動去除背景</label><canvas id="icThumb" class="ic-thumb" hidden aria-label="人物去背預覽"></canvas><div class="ic-actions"><button type="button" id="icRetry" disabled>重新處理</button><button type="button" id="icCutout" disabled>下載去背人物</button></div>
+        <label class="ic-size-label" for="icSize">人物大小 <strong id="icSizeValue">50%</strong></label><input id="icSize" type="range" min="10" max="120" value="50" disabled><div class="ic-actions"><button type="button" id="icFlip" disabled>左右翻轉</button><button type="button" id="icReset" disabled>重設位置</button></div><p class="ic-note">拖曳預覽中的人物即可移動。每張照片可分別調整位置；人物、文字及浮水印會一起輸出。</p></div></section>
+        <section id="icCaptionSection" class="ic-section"></section><section id="icWatermarkSection" class="ic-section"></section><details class="ic-output"><summary>輸出設定</summary><div id="icOutput"></div></details><p class="ic-note">照片在本機處理，不會上傳。首次去背需連網下載模型。已去背的 PNG 可關閉「自動去除背景」。</p></aside>
+        <main class="ic-preview"><div class="ic-preview-head"><span id="icPhotoName">尚未選擇照片</span><button type="button" id="icRemove" disabled>移除這張</button></div><div class="ic-stage" id="icStage"><p class="ic-empty" id="icEmpty"><strong>先選擇要編輯的照片</strong><br>也可以直接把照片拖到這裡<br><small>人物合成、加註文字、浮水印可自由搭配</small></p><canvas id="icCanvas" hidden tabindex="0" aria-label="圖片預覽，可拖曳人物或使用方向鍵移動"></canvas></div><div id="icPhotos" class="ic-photos" hidden aria-label="選擇要編輯的照片"></div><div id="icStatus" class="ic-status" role="status" aria-live="polite">選擇照片後，開啟需要的功能即可。</div></main></div></div>`;
         document.body.appendChild(dialog);
+        // Reuse the existing settings and drawing engine, including saved preferences.
+        for(const [section,toggle,box] of [['icCaptionSection','itUseCap','itCapBox'],['icWatermarkSection','itUseWm','itWmBox']]){
+            const title=$(toggle).closest('label');title.className='ic-section-title';$(section).append(title,$(box));$(box).querySelector('.it-sec-t').hidden=true;
+        }
+        const output=$('itQ').closest('.it-sec');$('icOutput').append(output);output.querySelector('.it-sec-t').hidden=true;
+        output.lastElementChild.textContent='下載檔名會加上「_編輯」，不會覆蓋原圖。';
         $('icClose').onclick=()=>dialog.close();
-        dialog.addEventListener('close',()=>{drag=null;if(previousFocus&&previousFocus.isConnected)previousFocus.focus();});
+        dialog.addEventListener('close',()=>{drag=null;itSaveCfg();if(previousFocus&&previousFocus.isConnected)previousFocus.focus();});
         dialog.addEventListener('keydown',e=>{if(e.key!=='Escape')e.stopPropagation();});
-        $('icBackground').onchange=async e=>{
-            const f=e.target.files[0];e.target.value='';if(!f)return;const seq=++state.bgSequence;
-            try{const image=await decode(f,2560);if(seq!==state.bgSequence)return;state.bg=image;state.name=f.name.replace(/\.[^.]+$/,'');$('icBgName').textContent=f.name;render();status(state.person?'可拖曳人物，調整位置後下載。':'背景已加入，請選擇人物照片。');}catch(err){if(seq===state.bgSequence)status(err.message,true);}
-        };
+        $('icUsePerson').onchange=render;
+        $('icBackground').onchange=e=>{if(e.target.files.length)itAddFiles(e.target.files);e.target.value='';};
+        $('icClear').onclick=()=>{state.placements.clear();state.active=null;itClear();status('照片已清空，可重新選擇照片。');};
+        $('icRemove').onclick=()=>{if(!state.active)return;state.placements.delete(state.active);itRemove(state.active);};
+        const stage=$('icStage');stage.ondragover=e=>e.preventDefault();stage.ondrop=e=>{e.preventDefault();if(!state.exporting)itAddFiles(e.dataTransfer.files);};
         $('icPerson').onchange=async e=>{
             const f=e.target.files[0];e.target.value='';if(!f||state.busy)return;
             state.busy=true;controls();status('正在讀取人物照片…');
@@ -129,12 +162,13 @@
         $('icSize').oninput=e=>{state.size=Number(e.target.value)/100;render();};
         $('icFlip').onclick=()=>{state.flip=!state.flip;render();};$('icReset').onclick=reset;
         const c=$('icCanvas');
-        c.onpointerdown=e=>{if(!state.person||e.button!==0)return;const p=point(e),r=geometry(1,state.bg.height/state.bg.width);const py=p.y*state.bg.height/state.bg.width;if(p.x<r.x||p.x>r.x+r.w||py<r.y||py>r.y+r.h)return;drag={id:e.pointerId,x:p.x-state.x,y:p.y-state.y};c.setPointerCapture(e.pointerId);c.focus();e.preventDefault();};
-        c.onpointermove=e=>{if(!drag||drag.id!==e.pointerId)return;const p=point(e);state.x=Math.max(0,Math.min(1,p.x-drag.x));state.y=Math.max(0,Math.min(1,p.y-drag.y));draw(c);};
+        c.onpointerdown=e=>{if(!enabled()||!state.person||e.button!==0)return;const p=point(e),r=geometry(1,state.bg.height/state.bg.width),py=p.y*state.bg.height/state.bg.width;if(p.x<r.x||p.x>r.x+r.w||py<r.y||py>r.y+r.h)return;drag={id:e.pointerId,x:p.x-state.x,y:p.y-state.y};c.setPointerCapture(e.pointerId);c.focus();e.preventDefault();};
+        c.onpointermove=e=>{if(!drag||drag.id!==e.pointerId)return;const p=point(e);state.x=Math.max(0,Math.min(1,p.x-drag.x));state.y=Math.max(0,Math.min(1,p.y-drag.y));remember();draw(c);};
         c.onpointerup=c.onpointercancel=c.onlostpointercapture=()=>{drag=null;};
-        c.onkeydown=e=>{if(!state.person||!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();const step=e.shiftKey?.03:.005;state.x=Math.max(0,Math.min(1,state.x+(e.key==='ArrowRight'?step:e.key==='ArrowLeft'?-step:0)));state.y=Math.max(0,Math.min(1,state.y+(e.key==='ArrowDown'?step:e.key==='ArrowUp'?-step:0)));draw(c);};
-        $('icDownload').onclick=()=>{if(!state.bg||!state.person||state.busy)return;const out=canvas(state.bg.width,state.bg.height);draw(out);download(out,(state.name||'照片')+'_人物合成.jpg','image/jpeg');};
-        $('icCutout').onclick=()=>{if(state.person&&!state.busy)download(state.person,'人物_去背.png','image/png');};
+        c.onkeydown=e=>{if(!enabled()||!state.person||!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();const step=e.shiftKey?.03:.005;state.x=Math.max(0,Math.min(1,state.x+(e.key==='ArrowRight'?step:e.key==='ArrowLeft'?-step:0)));state.y=Math.max(0,Math.min(1,state.y+(e.key==='ArrowDown'?step:e.key==='ArrowUp'?-step:0)));remember();draw(c);};
+        $('icDownload').onclick=()=>exportPhotos(false);$('icAll').onclick=()=>exportPhotos(true);
+        $('icCutout').onclick=async()=>{if(state.person&&!state.busy)try{await download(state.person,'人物_去背.png','image/png');status('已產生去背人物下載。');}catch(e){status(e.message,true);}};
     }
-    window.openImageComposer=function(){if(!dialog)build();previousFocus=document.activeElement;if(!dialog.open)dialog.showModal();render();};
+    window.ImageComposer={refresh};
+    window.openImageComposer=function(){if(!dialog)build();previousFocus=document.activeElement;if(!dialog.open)dialog.showModal();refresh();};
 })();
