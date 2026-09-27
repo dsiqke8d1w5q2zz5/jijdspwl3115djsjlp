@@ -1,0 +1,27 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),{pathToFileURL}=require('node:url');
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
+(async()=>{
+ const browser=await chromium.launch({headless:true,...(process.env.CHROME_PATH?{executablePath:process.env.CHROME_PATH}:{})});
+ try{for(const width of [1440,390]){
+  const context=await browser.newContext({viewport:{width,height:1000},hasTouch:width===390,acceptDownloads:true});await context.route('https://**/*',r=>r.abort());
+  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(pathToFileURL(path.join(__dirname,'../index.html')).href);await page.evaluate(()=>openImgTool());
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><defs><pattern id="p" width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="white"/><rect width="10" height="20" fill="red"/></pattern></defs><rect width="800" height="600" fill="url(#p)"/></svg>';
+  await page.locator('#icBackground').setInputFiles(['first.svg','second.svg'].map(name=>({name,mimeType:'image/svg+xml',buffer:Buffer.from(svg)})));await page.waitForFunction(()=>document.querySelectorAll('#icPhotos button').length===2);
+  const signature=async()=>crypto.createHash('sha256').update(await page.locator('#icCanvas').evaluate(c=>c.toDataURL())).digest('hex');
+  const pixel=(x,y)=>page.locator('#icCanvas').evaluate((c,p)=>Array.from(c.getContext('2d').getImageData(Math.floor(c.width*p.x),Math.floor(c.height*p.y),1,1).data),{x,y});
+  const original=await signature(),outside=await pixel(.9,.9);await page.locator('#icTab_redact').click();
+  async function drag(x1,y1,x2,y2,cancel=false){await page.locator('#icCanvas').scrollIntoViewIfNeeded();const b=await page.locator('#icCanvas').boundingBox();if(width===390){const session=await context.newCDPSession(page);const touch=(type,x,y)=>session.send('Input.dispatchTouchEvent',{type,touchPoints:['touchEnd','touchCancel'].includes(type)?[]:[{x:b.x+b.width*x,y:b.y+b.height*y}]});await touch('touchStart',x1,y1);await touch('touchMove',x2,y2);await touch(cancel?'touchCancel':'touchEnd');await session.detach();}else{await page.mouse.move(b.x+b.width*x1,b.y+b.height*y1);await page.mouse.down();await page.mouse.move(b.x+b.width*x2,b.y+b.height*y2);if(cancel)await page.locator('#icCanvas').dispatchEvent('pointercancel',{pointerId:1});await page.mouse.up();}}
+  await drag(.2,.2,.55,.55);assert.equal(await page.locator('#icRedactRegions option').count(),2);const mosaic=await signature();assert.notEqual(mosaic,original,'mosaic changes image');assert.deepEqual(await pixel(.9,.9),outside,'pixels outside rectangle are unchanged');
+  await page.locator('#icRedactMode').selectOption('blur');const blurred=await signature();assert.notEqual(blurred,mosaic);assert.notEqual(blurred,original);
+  await page.locator('#icRedactMode').selectOption('solid');await page.locator('#icRedactColor').fill('#123456');assert.deepEqual(await pixel(.35,.35),[18,52,86,255],'solid is fully opaque');
+  await page.locator('#icUndo').click();assert.equal(await page.locator('#icRedactColor').inputValue(),'#000000');await page.locator('#icRedo').click();assert.equal(await page.locator('#icRedactColor').inputValue(),'#123456');
+  await drag(.35,.35,.55,.45);assert(Number(await page.locator('#icRedact_x').inputValue())>30,'existing rectangle moves');
+  await page.locator('#icRedact_x').fill('10');await page.locator('#icRedact_x').press('Tab');assert.deepEqual(await pixel(.2,.4),[18,52,86,255]);const redacted=await signature();
+  await page.locator('#icPhotos button').nth(1).click();assert.equal(await signature(),original,'redactions never copy to other photo even in all-photo scope');await page.locator('#icPhotos button').first().click();assert.equal(await signature(),redacted);
+  await page.locator('#icRedactNew').click();await drag(.65,.2,.8,.4,true);assert.equal(await page.locator('#icRedactRegions option').count(),2,'cancelled touch does not create a rectangle');
+  await page.locator('#icTab_output').click();await page.locator('#icFormat').selectOption('png');const event=page.waitForEvent('download');await page.locator('#icDownload').click();const download=await event;
+  const data=fs.readFileSync(await download.path()).toString('base64');const exported=await page.evaluate(async data=>{const image=new Image();image.src='data:image/png;base64,'+data;await image.decode();const c=document.createElement('canvas');c.width=image.width;c.height=image.height;const ctx=c.getContext('2d');ctx.drawImage(image,0,0);return Array.from(ctx.getImageData(Math.floor(c.width*.2),Math.floor(c.height*.4),1,1).data);},data);assert.deepEqual(exported,[18,52,86,255],'download flattens the redaction');
+  await page.locator('#icTab_redact').click();await page.locator('#icRedactRegions').selectOption({index:1});await page.locator('#icRedactDelete').click();assert.equal(await signature(),original);await page.locator('#icUndo').click();assert.equal(await signature(),redacted,'undo restores deleted region');
+  await page.screenshot({path:path.join(require('node:os').tmpdir(),'crm-redact-'+width+'.png')});assert.deepEqual(errors,[]);await context.close();console.log('PASS redaction '+width+'px: mouse/touch, mosaic/blur/solid, move, undo, cancellation, per-photo isolation, PNG export');
+ }}finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

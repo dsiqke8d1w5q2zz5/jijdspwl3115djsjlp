@@ -2,7 +2,7 @@
 (function(){
  'use strict';
  const $=id=>document.getElementById(id),copy=o=>JSON.parse(JSON.stringify(o));
- const defaults={frame:{ratio:'original',mode:'single',split:50,gap:0,zoom:100,x:50,y:50,secondZoom:100,secondX:50,secondY:50},texts:[],capPoint:{x:.5,y:.2},front:false,format:'jpeg',logo:{x:.85,y:.15,size:.15}};
+ const defaults={guides:true,locks:{person:false,main:false,logo:false},frame:{ratio:'original',mode:'single',split:50,gap:0,zoom:100,x:50,y:50,secondZoom:100,secondX:50,secondY:50},texts:[],capPoint:{x:.5,y:.2},front:false,format:'jpeg',logo:{x:.85,y:.15,size:.15}};
  const families={sans:'"Microsoft JhengHei","PingFang TC",sans-serif',serif:'"PMingLiU","Songti TC",serif',kai:'"DFKai-SB","BiauKai",serif'};
  function canvas(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;return c;}
  function clone(c){if(!c)return null;const out=canvas(c.width,c.height);out.getContext('2d').drawImage(c,0,0);return out;}
@@ -13,10 +13,10 @@
   for(const k of ['x','y','secondX','secondY'])s.frame[k]=number(f[k],0,100,50);
   for(const k of ['zoom','secondZoom'])s.frame[k]=number(f[k],100,300,100);
   s.frame.split=number(f.split,25,75,50);s.frame.gap=number(f.gap,0,40,0);
-  s.front=raw.front===true;s.format=raw.format==='png'?'png':'jpeg';
+  s.guides=raw.guides!==false;s.locks={person:raw.locks?.person===true,main:raw.locks?.main===true,logo:raw.locks?.logo===true};s.front=raw.front===true;s.format=raw.format==='png'?'png':'jpeg';
   s.capPoint={x:number(raw.capPoint?.x,0,1,.5),y:number(raw.capPoint?.y,0,1,.2)};
   s.logo={x:number(raw.logo?.x,0,1,.85),y:number(raw.logo?.y,0,1,.15),size:number(raw.logo?.size,.03,.5,.15)};
-  s.texts=(Array.isArray(raw.texts)?raw.texts:[]).slice(0,6).map((t,i)=>({id:String(t.id||i).slice(0,80),text:String(t.text||'').slice(0,500),x:number(t.x,0,1,.5),y:number(t.y,0,1,.3),size:number(t.size,12,120,36),color:/^#[0-9a-f]{6}$/i.test(t.color)?t.color:'#ffffff',bg:number(t.bg,0,.9,.4),font:['sans','serif','kai','light','book','italic'].includes(t.font)?t.font:'sans'}));
+  s.texts=(Array.isArray(raw.texts)?raw.texts:[]).slice(0,6).map((t,i)=>({id:String(t.id||i).slice(0,80),locked:t.locked===true,text:String(t.text||'').slice(0,500),x:number(t.x,0,1,.5),y:number(t.y,0,1,.3),size:number(t.size,12,120,36),color:/^#[0-9a-f]{6}$/i.test(t.color)?t.color:'#ffffff',bg:number(t.bg,0,.9,.4),font:['sans','serif','kai','light','book','italic'].includes(t.font)?t.font:'sans'}));
   return s;
  }
  function mount(api){
@@ -34,9 +34,10 @@
   }
   for(const [id,key] of [['icRatio','ratio'],['icFrameMode','mode'],['icSplit','split'],['icFrameGap','gap']])$(id).oninput=()=>{settings.frame[key]=['ratio','mode'].includes(key)?$(id).value:Number($(id).value);sync();change();};
   $('icSecondFile').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f||api.busy())return;try{api.lock(true);second=await api.decode(f,4000);secondName=f.name;$('icSecondName').textContent=f.name;change();}catch(e){api.status(e.message,true);}finally{api.lock(false);}};
-  const personBody=$('icPersonBody'),tools=document.createElement('div');tools.innerHTML=`<label class="ic-check"><input id="icPersonFront" type="checkbox">人物放在品牌底條前面</label><div class="ic-actions"><button id="icRepair" type="button">放大／修補去背</button></div>
+  const personBody=$('icPersonBody'),tools=document.createElement('div');tools.innerHTML=`<label class="ic-check"><input id="icLockPerson" type="checkbox">鎖定人物位置與大小</label><label class="ic-check"><input id="icPersonFront" type="checkbox">人物放在品牌底條前面</label><div class="ic-actions"><button id="icRepair" type="button">放大／修補去背</button></div>
    <details class="ic-asset-library"><summary>常用人物與標誌</summary><label class="it-lb" for="icAssetName">素材名稱</label><input id="icAssetName" class="it-in" maxlength="40" placeholder="例如：我的去背人物"><div class="ic-actions"><button id="icAssetSave" type="button">保存目前人物</button><label class="ic-file">匯入 PNG／圖片<input id="icAssetImport" type="file" accept="image/*"></label></div><p class="ic-note">素材存在這個瀏覽器。可選作人物或另加為標誌；更換裝置請另存 PNG。</p><div id="icAssets" class="ic-assets"></div><p id="icAssetStatus" class="ic-note" role="status"></p></details>
-   <div id="icLogoControls" hidden><label class="it-lb" for="icLogoSize">標誌大小</label><input id="icLogoSize" type="range" min="3" max="50" value="15"><button id="icLogoRemove" type="button">移除標誌</button><p class="ic-note">在預覽上拖曳標誌即可移動。</p></div>`;personBody.append(tools);
+   <div id="icLogoControls" hidden><label class="ic-check"><input id="icLockLogo" type="checkbox">鎖定標誌位置與大小</label><label class="it-lb" for="icLogoSize">標誌大小</label><input id="icLogoSize" type="range" min="3" max="50" value="15"><button id="icLogoRemove" type="button">移除標誌</button><p class="ic-note">在預覽上拖曳標誌即可移動。</p></div>`;personBody.append(tools);
+  for(const [id,key] of [['icLockPerson','person'],['icLockLogo','logo']])$(id).onchange=()=>{settings.locks[key]=$(id).checked;change();};
   $('icPersonFront').onchange=()=>{settings.front=$('icPersonFront').checked;change();};$('icLogoSize').oninput=()=>{settings.logo.size=Number($('icLogoSize').value)/100;change();};$('icLogoRemove').onclick=()=>{logo=null;sync();change();};
   $('icRepair').onclick=()=>repair(api);
   async function assets(){
@@ -49,7 +50,7 @@
   $('icAssetSave').onclick=async()=>{if(api.busy())return;if(!api.getPerson()){api.status('請先選擇人物照片。',true);return;}try{api.lock(true);await saveAsset(api.getPerson(),'去背人物');}catch(e){$('icAssetStatus').textContent=e.message||'素材儲存失敗。';}finally{api.lock(false);}};
   $('icAssetImport').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f||api.busy())return;try{api.lock(true);await saveAsset(await api.decode(f,2560),f.name.replace(/\.[^.]+$/,''));}catch(e){$('icAssetStatus').textContent=e.message;}finally{api.lock(false);}};assets();
   $('itCapPos').add(new Option('自由拖曳','free'));
-  const texts=document.createElement('div');texts.innerHTML=`<p class="ic-note">選「自由拖曳」可移動主文字。新增文字可各自調整顏色、大小及位置。</p><button id="icTextAdd" type="button">＋ 新增文字</button><div id="icTextList"></div>`;$('itCapBox').append(texts);
+  const texts=document.createElement('div');texts.innerHTML=`<label class="ic-check"><input id="icLockMain" type="checkbox">鎖定主文字位置與大小</label><p class="ic-note">選「自由拖曳」可移動主文字。新增文字可各自調整顏色、大小及位置。</p><button id="icTextAdd" type="button">＋ 新增文字</button><div id="icTextList"></div>`;$('itCapBox').append(texts);$('icLockMain').onchange=()=>{settings.locks.main=$('icLockMain').checked;change();};
   function textList(){
    const focus=document.activeElement,focusId=focus?.id,selection=focus?.selectionStart;$('icTextList').replaceChildren();
    for(const t of settings.texts){const box=document.createElement('div');box.className='ic-text-card';
@@ -60,20 +61,20 @@
     const remove=document.createElement('button');remove.type='button';remove.textContent='刪除文字';remove.onclick=()=>{settings.texts=settings.texts.filter(x=>x.id!==t.id);textList();change();};row.append(remove);box.append(row);
     const palette=document.createElement('div');palette.className='ic-palette';for(const [label,value] of [['黑','#000000'],['白','#ffffff'],['灰','#808080'],['紅','#e53935'],['橘','#f57c00'],['黃','#ffca28'],['綠','#2e7d32'],['青','#008b8b'],['藍','#1565c0'],['深藍','#173756'],['紫','#7b1fa2'],['粉','#ec407a'],['棕','#795548'],['金','#d4af62'],['米白','#f4eee3'],['淺藍','#81d4fa']]){const b=document.createElement('button');b.type='button';b.style.background=value;b.title=label;b.setAttribute('aria-label',label);b.onclick=()=>{color.value=value;t.color=value;change();};palette.append(b);}box.append(palette);
     for(const [key,label,min,max,step] of [['size','字級',12,120,1],['bg','底色濃度',0,.9,.05]]){const l=document.createElement('label');l.className='it-lb';l.textContent=label;const r=document.createElement('input');r.type='range';r.min=min;r.max=max;r.step=step;r.value=t[key];r.oninput=()=>{t[key]=Number(r.value);change();};l.append(r);box.append(l);}
-    $('icTextList').append(box);
+    const lock=document.createElement('label');lock.className='ic-check';const toggle=document.createElement('input');toggle.type='checkbox';toggle.checked=t.locked===true;toggle.setAttribute('aria-label','鎖定這組文字');toggle.onchange=()=>{t.locked=toggle.checked;textList();change();};lock.append(toggle,document.createTextNode('鎖定位置與大小'));box.append(lock);box.querySelector('input[type=range]').disabled=t.locked===true;$('icTextList').append(box);
    }
    if(focusId&&$(focusId)){$(focusId).focus({preventScroll:true});if(typeof selection==='number'&&typeof $(focusId).setSelectionRange==='function')$(focusId).setSelectionRange(selection,selection);}
   }
   $('icTextAdd').onclick=()=>{if(settings.texts.length>=6){api.status('最多可新增 6 組文字。',true);return;}settings.texts.push({id:crypto.randomUUID(),text:'輸入文字',x:.5,y:.25+settings.texts.length*.08,size:36,color:'#ffffff',bg:.4,font:'sans'});$('itUseCap').checked=true;textList();change();};
   const output=document.createElement('div');output.innerHTML=`<label class="it-lb" for="icFormat">下載格式</label><select id="icFormat" class="it-in"><option value="jpeg">JPG（照片檔案較小）</option><option value="png">PNG（文字與線條無損）</option></select><p id="icDimensions" class="ic-note"></p><p class="ic-note">PNG 為無損格式，不使用 JPG 品質設定。</p>`;$('icOutput').prepend(output);$('icFormat').onchange=()=>{settings.format=$('icFormat').value;change();};
-  const zoom=document.createElement('div');zoom.className='ic-view-tools';zoom.innerHTML=`<label>檢視 <select id="icZoom"><option value="fit">符合視窗</option><option value="1">100%</option><option value="2">200%</option></select></label><label>背景 <select id="icViewBackground"><option value="neutral">灰</option><option value="light">白</option><option value="dark">黑</option></select></label><span class="ic-note">拖曳文字或人物可移動；放大後可捲動檢查。</span>`;$('icStage').before(zoom);
-  $('icZoom').onchange=()=>view();$('icViewBackground').onchange=()=>{$('icStage').dataset.background=$('icViewBackground').value;};
+  const zoom=document.createElement('div');zoom.className='ic-view-tools';zoom.innerHTML=`<label class="ic-check"><input id="icGuides" type="checkbox" checked>對齊吸附</label><label>檢視 <select id="icZoom"><option value="fit">符合視窗</option><option value="1">100%</option><option value="2">200%</option></select></label><label>背景 <select id="icViewBackground"><option value="neutral">灰</option><option value="light">白</option><option value="dark">黑</option></select></label><span class="ic-note">拖曳文字或人物可移動；放大後可捲動檢查。</span>`;$('icStage').before(zoom);
+  $('icGuides').onchange=()=>{settings.guides=$('icGuides').checked;change();};$('icZoom').onchange=()=>view();$('icViewBackground').onchange=()=>{$('icStage').dataset.background=$('icViewBackground').value;};
   function view(){const c=$('icCanvas'),z=$('icZoom').value;$('icStage').classList.toggle('ic-zoomed',z!=='fit');c.style.width=z==='fit'?'':Math.round(c.width*Number(z))+'px';c.style.maxWidth=z==='fit'?'':'none';}
   const mini=document.createElement('div');mini.className='ic-mini';mini.innerHTML='<button id="icMiniToggle" type="button">收合小預覽</button><canvas id="icMiniCanvas" aria-label="即時小預覽"></canvas>';$('imageComposer').querySelector('.ic-body').prepend(mini);$('icMiniToggle').onclick=()=>{miniVisible=!miniVisible;$('icMiniCanvas').hidden=!miniVisible;$('icMiniToggle').textContent=miniVisible?'收合小預覽':'展開小預覽';};
   function sync(){
    $('icRatio').value=settings.frame.ratio;$('icFrameMode').value=settings.frame.mode;$('icSplit').value=settings.frame.split;$('icFrameGap').value=settings.frame.gap;$('icSecondControls').hidden=settings.frame.mode==='single';
    for(const k of ['zoom','x','y','secondZoom','secondX','secondY']){$('icFrame_'+k).value=settings.frame[k];$('icFrame_'+k).parentElement.hidden=k.startsWith('second')&&settings.frame.mode==='single';}
-   $('icPersonFront').checked=settings.front;$('icFormat').value=settings.format;$('itQ').disabled=settings.format==='png';$('icLogoControls').hidden=!logo;$('icLogoSize').value=settings.logo.size*100;
+   for(const [id,key] of [['icLockPerson','person'],['icLockLogo','logo'],['icLockMain','main']])$(id).checked=settings.locks[key];$('icGuides').checked=settings.guides;$('itCapPos').disabled=settings.locks.main;$('itCapSz').disabled=settings.locks.main;$('icLogoSize').disabled=settings.locks.logo;$('icPersonFront').checked=settings.front;$('icFormat').value=settings.format;$('itQ').disabled=settings.format==='png';$('icLogoControls').hidden=!logo;$('icLogoSize').value=settings.logo.size*100;
   }
   function aspect(photo,o=settings){return o.frame.ratio==='original'?photo.width/photo.height:Number(o.frame.ratio);}
   function cover(ctx,img,x,y,w,h,z=100,fx=50,fy=50){const scale=Math.max(w/img.width,h/img.height)*z/100,sw=w/scale,sh=h/scale;ctx.drawImage(img,(img.width-sw)*fx/100,(img.height-sh)*fy/100,sw,sh,x,y,w,h);}
@@ -92,10 +93,18 @@
    if(preview)boxes=result.filter(Boolean);
   }
   function hit(p){const caption=$('icTab_caption')?.getAttribute('aria-selected')==='true';return boxes.slice().reverse().find(b=>(caption||b.id==='logo')&&p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h);}
-  function dragTo(id,p){if(id==='logo')Object.assign(settings.logo,{x:p.x,y:p.y});else if(id==='main')Object.assign(settings.capPoint,p);else{const t=settings.texts.find(t=>t.id===id);if(t)Object.assign(t,p);}}
+  function locked(id){return ['person','main','logo'].includes(id)?settings.locks[id]:settings.texts.find(t=>t.id===id)?.locked===true;}
+  function dragTo(id,p){if(locked(id))return;if(id==='logo')Object.assign(settings.logo,{x:p.x,y:p.y});else if(id==='main')Object.assign(settings.capPoint,p);else{const t=settings.texts.find(t=>t.id===id);if(t)Object.assign(t,p);}}
+  function snap(p,size,c){
+   const result={x:Math.max(0,Math.min(1,p.x)),y:Math.max(0,Math.min(1,p.y)),lines:[]};if(!settings.guides)return result;const b=c.getBoundingClientRect();
+   for(const [axis,extent,pixels] of [['x',size.w,b.width],['y',size.h,b.height]]){const targets=[{center:.5,line:.5},{center:extent/2,line:0},{center:1-extent/2,line:1}].filter(t=>t.center>=0&&t.center<=1);const nearest=targets.sort((a,b)=>Math.abs(a.center-result[axis])-Math.abs(b.center-result[axis]))[0];if(nearest&&Math.abs(nearest.center-result[axis])<=7/Math.max(1,pixels)){result[axis]=nearest.center;result.lines.push({axis,at:nearest.line});}}
+   return result;
+  }
+  function guides(c,lines){const ctx=c.getContext('2d');ctx.save();ctx.strokeStyle='#00c9ef';ctx.lineWidth=c.width/600;ctx.setLineDash([c.width/150,c.width/200]);for(const line of lines){const at=clampLine(line.at);ctx.beginPath();if(line.axis==='x'){ctx.moveTo(at*c.width,0);ctx.lineTo(at*c.width,c.height);}else{ctx.moveTo(0,at*c.height);ctx.lineTo(c.width,at*c.height);}ctx.stroke();}ctx.restore();}
+  function clampLine(v){return Math.max(.001,Math.min(.999,v));}
   function afterRender(){sync();view();$('icRepair').disabled=!api.getFullPerson()||api.busy();$('icAssetSave').disabled=!api.getPerson()||api.busy();const c=$('icCanvas'),m=$('icMiniCanvas');if(c.width&&c.height){m.width=280;m.height=Math.round(280*c.height/c.width);m.getContext('2d').drawImage(c,0,0,m.width,m.height);}mini.hidden=!api.hasPhoto();}
   sync();
-  return {options:()=>copy(settings),set:value=>{settings=clean(value);sync();textList();},aspect,background,paint,hit,dragTo,afterRender,hasSecond:()=>!!second,aux:()=>({second,secondName,logo}),restoreAux:a=>{second=a.second;secondName=a.secondName||'';logo=a.logo;$('icSecondName').textContent=second?(secondName||'已載入拼版照片'):'尚未選擇第二張照片';sync();},clean,clone};
+  return {options:()=>copy(settings),set:value=>{settings=clean(value);sync();textList();},aspect,background,paint,hit,dragTo,locked,snap,guides,afterRender,hasSecond:()=>!!second,aux:()=>({second,secondName,logo}),restoreAux:a=>{second=a.second;secondName=a.secondName||'';logo=a.logo;$('icSecondName').textContent=second?(secondName||'已載入拼版照片'):'尚未選擇第二張照片';sync();},clean,clone};
  }
  function repair(api){
   const source=api.getOriginal(),initial=api.getFullPerson();if(!source||!initial)return;

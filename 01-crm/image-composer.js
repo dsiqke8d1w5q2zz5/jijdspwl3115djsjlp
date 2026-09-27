@@ -2,7 +2,7 @@
 (function () {
     'use strict';
     const state = { bg:null, original:null, matte:null, person:null, x:.22, y:.72, size:.5, flip:false, busy:false, sequence:0, bgSequence:0, active:null, placements:new Map(), exporting:false };
-    let dialog, previousFocus, segmenterPromise, drag, studio, externalBusy=false, restoring=false;
+    let dialog, previousFocus, segmenterPromise, drag, studio, redaction, externalBusy=false, restoring=false;
     const photoSettings=new Map(),photoAux=new Map();let defaultAux={second:null,logo:null};let defaultSettings=null,history=[],historyIndex=-1,historyTimer,historyDirty=true;
     const busy=()=>state.busy||state.exporting||externalBusy;
     let defaultPlacement={x:.22,y:.72,size:.5,flip:false};
@@ -25,7 +25,7 @@
         $('icBackground').disabled=working;$('icClear').disabled=working;
         $('icRemove').disabled=!state.bg||working;
         $('icCutout').disabled=!state.person||working;
-        ['icSize','icFlip','icReset'].forEach(id=>$(id).disabled=!state.person||state.exporting);
+        ['icSize','icFlip','icReset'].forEach(id=>$(id).disabled=!state.person||state.exporting||studio?.locked('person'));
         $('icSizeValue').textContent=Math.round(state.size*100)+'%';
         $('icPersonBody').hidden=false;
         if($('icBrandBody'))$('icBrandBody').hidden=false;
@@ -107,14 +107,14 @@
             const radius=options.outlineWidth*w/1000;for(let i=0;i<24;i++){const angle=i*Math.PI/12;ctx.drawImage(white,Math.cos(angle)*radius,Math.sin(angle)*radius,r.w,r.h);}
         }ctx.drawImage(person,0,0,r.w,r.h);ctx.restore();
     }
-    function draw(target,photo=state.bg,pos=state,options=photoOptions(),person=enabled()?state.person:null,aux=studio?.aux()){
+    function draw(target,photo=state.bg,pos=state,options=photoOptions(),person=enabled()?state.person:null,aux=studio?.aux(),photoId=state.active){
         if(!photo)return;const base=canvas(target.width,target.height),ctx=base.getContext('2d'),w=base.width,h=base.height;
         if(studio)studio.background(ctx,photo,w,h,options.studio,aux.second);else ctx.drawImage(photo,0,0,w,h);
         if(!options.studio?.front)drawPerson(ctx,w,h,pos,options,person);
         itDraw(target,base,{...options,useCap:options.useCap&&options.capPos!=='free',brandInset:options.brand?.enabled?BrandBanner.height(h,options.brand):0},w,h);
         const final=target.getContext('2d');if(options.brand?.enabled)BrandBanner.draw(final,w,h,options.brand);
         if(options.studio?.front)drawPerson(final,w,h,pos,options,person);
-        studio?.paint(final,w,h,options,target===$('icCanvas'),aux.logo);
+        studio?.paint(final,w,h,options,target===$('icCanvas'),aux.logo);redaction?.paint(target,photoId);
     }
     function outputSize(photo,options){
         const ratio=studio.aspect(photo,options.studio),max=options.max>0?Math.min(8000,options.max):Math.max(photo.width,photo.height);
@@ -126,7 +126,7 @@
         const c=$('icCanvas');c.hidden=!state.bg;$('icEmpty').hidden=!!state.bg;
         if(state.bg){const ratio=studio?studio.aspect(state.bg):state.bg.width/state.bg.height;c.width=ratio>=1?2400:Math.round(2400*ratio);c.height=ratio>=1?Math.round(2400/ratio):2400;c.style.setProperty('--ic-aspect',c.width/c.height);draw(c);if(studio){const [w,h]=outputSize(state.bg,photoOptions());$('icDimensions').textContent='這張成品：'+w+' × '+h+' 像素';}}
         if(studio&&!restoring){const snapshot=layoutSnapshot(),aux=studio.aux();if($('icEditScope').value==='all'){defaultSettings=snapshot;defaultAux=aux;for(const file of _itFiles){photoSettings.set(file.id,JSON.parse(JSON.stringify(snapshot)));photoAux.set(file.id,aux);}}else if(state.active){photoSettings.set(state.active,snapshot);photoAux.set(state.active,aux);}}
-        studio?.afterRender();scheduleHistory();
+        studio?.afterRender();redaction?.sync();scheduleHistory();
         remember();controls();
     }
     function refresh(){
@@ -157,7 +157,7 @@
         const selected=all?_itFiles:_itFiles.filter(f=>f.id===state.active),photos=[];
         for(const file of selected){const saved=photoSettings.get(file.id)||layoutSnapshot(),o=optionsFrom(saved);if(o.studio.frame.mode!=='single'&&!(photoAux.get(file.id)||studio.aux()).second){status('拼版尚未選擇第二張照片。',true);$('icTab_crop').click();return;}if(o.usePerson&&!state.person){status('請先選擇人物照片，或關閉人物合成。',true);return;}if(o.brand.enabled&&!['company','name','phone','tagline'].some(k=>String(o.brand[k]||'').trim())||o.useWm&&!o.wmText||o.useCap&&!o.capText.trim()&&!o.studio.texts.some(t=>t.text.trim())){status('有照片的文字尚未填寫，請逐張檢查。',true);return;}photos.push({file,pos:{...(state.placements.get(file.id)||defaultPlacement)},options:o,aux:photoAux.get(file.id)||studio.aux()});}
         const portrait=state.person;state.exporting=true;controls();
-        try{const entries=[];let count=0;for(const {file,pos,options:o,aux:photoArtwork} of photos){const [w,h]=outputSize(file.img,o),out=canvas(w,h);draw(out,file.img,pos,o,o.usePerson?portrait:null,photoArtwork);const ext=o.studio.format==='png'?'png':'jpg',blob=await ImageStorage.blob(out,ext==='png'?'image/png':'image/jpeg',o.q),name=(asZip?String(count+1).padStart(2,'0')+'_':'')+file.name.replace(/\.[^.]+$/,'')+'_編輯.'+ext;if(asZip)entries.push({name,blob});else ImageStorage.download(blob,name);status('已產生 '+(++count)+' / '+photos.length+' 張圖片。');await new Promise(resolve=>setTimeout(resolve,0));}if(asZip)ImageStorage.download(await ImageStorage.zip(entries),'房屋圖片.zip');status('完成，共 '+photos.length+' 張。原圖沒有被修改。');}
+        try{const entries=[];let count=0;for(const {file,pos,options:o,aux:photoArtwork} of photos){const [w,h]=outputSize(file.img,o),out=canvas(w,h);draw(out,file.img,pos,o,o.usePerson?portrait:null,photoArtwork,file.id);const ext=o.studio.format==='png'?'png':'jpg',blob=await ImageStorage.blob(out,ext==='png'?'image/png':'image/jpeg',o.q),name=(asZip?String(count+1).padStart(2,'0')+'_':'')+file.name.replace(/\.[^.]+$/,'')+'_編輯.'+ext;if(asZip)entries.push({name,blob});else ImageStorage.download(blob,name);status('已產生 '+(++count)+' / '+photos.length+' 張圖片。');await new Promise(resolve=>setTimeout(resolve,0));}if(asZip)ImageStorage.download(await ImageStorage.zip(entries),'房屋圖片.zip');status('完成，共 '+photos.length+' 張。原圖沒有被修改。');}
         catch(e){status(e.message||'下載未完成，請重試。',true);}finally{state.exporting=false;controls();}
     }
     const layoutControls=['icUsePerson','icStyle','icOutline','itUseCap','itUseWm','itCapText','itCapFont','itCapColor','itCapPos','itCapSz','itCapBg','itWmText','itWmOp','itWmSz','itWmGap','itWmAg','itQ','itMax'];
@@ -188,12 +188,12 @@
         $('icEditScope').value=scope;$('icSize').value=state.size*100;itSaveCfg();itToggleSec();render();restoring=false;historyDirty=true;recordHistory();
         status(enabled()&&!state.person?'已套用版面，請到「人物合成」選擇人物照片。':'版面已套用，可繼續微調後下載。');
     }
-    function captureHistory(){return {settings:layoutSnapshot(),defaultSettings:defaultSettings&&JSON.parse(JSON.stringify(defaultSettings)),perPhoto:JSON.parse(JSON.stringify([...photoSettings])),placements:JSON.parse(JSON.stringify([...state.placements])),defaultPlacement:{...defaultPlacement},person:state.person,original:state.original,fullPerson:state.fullPerson,aux:studio.aux(),photoAux:[...photoAux],defaultAux,active:state.active};}
-    function recordHistory(){if(!studio||restoring||busy()||!historyDirty&&history.length)return;historyDirty=false;const entry=captureHistory(),last=history[historyIndex];const json=x=>JSON.stringify([x.settings,x.defaultSettings,x.perPhoto,x.placements]);if(last&&json(last)===json(entry)&&last.person===entry.person&&last.aux.logo===entry.aux.logo&&last.aux.second===entry.aux.second)return;history=history.slice(0,historyIndex+1);history.push(entry);while(history.length>20||history.length>2&&historyBytes()>128*1024*1024)history.shift();historyIndex=history.length-1;controls();}
+    function captureHistory(){return {settings:layoutSnapshot(),defaultSettings:defaultSettings&&JSON.parse(JSON.stringify(defaultSettings)),perPhoto:JSON.parse(JSON.stringify([...photoSettings])),placements:JSON.parse(JSON.stringify([...state.placements])),defaultPlacement:{...defaultPlacement},person:state.person,original:state.original,fullPerson:state.fullPerson,aux:studio.aux(),photoAux:[...photoAux],defaultAux,redactions:redaction?.snapshot()||[],active:state.active};}
+    function recordHistory(){if(!studio||restoring||busy()||!historyDirty&&history.length)return;historyDirty=false;const entry=captureHistory(),last=history[historyIndex];const json=x=>JSON.stringify([x.settings,x.defaultSettings,x.perPhoto,x.placements,x.redactions]);if(last&&json(last)===json(entry)&&last.person===entry.person&&last.aux.logo===entry.aux.logo&&last.aux.second===entry.aux.second)return;history=history.slice(0,historyIndex+1);history.push(entry);while(history.length>20||history.length>2&&historyBytes()>128*1024*1024)history.shift();historyIndex=history.length-1;controls();}
     function historyBytes(){const images=new Set();for(const entry of history){for(const c of [entry.person,entry.original,entry.fullPerson,entry.aux.logo,entry.aux.second])if(c)images.add(c);for(const [,aux] of entry.photoAux)for(const c of [aux.logo,aux.second])if(c)images.add(c);}return [...images].reduce((sum,c)=>sum+c.width*c.height*4,0);}
     function scheduleHistory(){if(!studio||restoring)return;historyDirty=true;clearTimeout(historyTimer);historyTimer=setTimeout(recordHistory,200);}
     function flushHistory(){clearTimeout(historyTimer);recordHistory();}
-    function undoRedo(step){if(busy())return;flushHistory();const index=historyIndex+step;if(index<0||index>=history.length)return;historyIndex=index;const e=history[index];restoring=true;restoreControls(e.perPhoto.find(([id])=>id===state.active)?.[1]||e.defaultSettings||e.settings);defaultSettings=e.defaultSettings&&JSON.parse(JSON.stringify(e.defaultSettings));defaultPlacement={...e.defaultPlacement};photoSettings.clear();for(const [id,value] of e.perPhoto)photoSettings.set(id,JSON.parse(JSON.stringify(value)));state.placements=new Map(e.placements.map(([id,v])=>[id,{...v}]));Object.assign(state,{person:e.person,original:e.original,fullPerson:e.fullPerson},state.placements.get(state.active)||e.settings.person);defaultAux=e.defaultAux;photoAux.clear();for(const [id,aux] of e.photoAux)photoAux.set(id,aux);studio.restoreAux(e.aux);$('icSize').value=state.size*100;render();restoring=false;controls();status(step<0?'已復原上一步。':'已重做。');}
+    function undoRedo(step){if(busy())return;flushHistory();const index=historyIndex+step;if(index<0||index>=history.length)return;historyIndex=index;const e=history[index];restoring=true;restoreControls(e.perPhoto.find(([id])=>id===state.active)?.[1]||e.defaultSettings||e.settings);defaultSettings=e.defaultSettings&&JSON.parse(JSON.stringify(e.defaultSettings));defaultPlacement={...e.defaultPlacement};photoSettings.clear();for(const [id,value] of e.perPhoto)photoSettings.set(id,JSON.parse(JSON.stringify(value)));state.placements=new Map(e.placements.map(([id,v])=>[id,{...v}]));Object.assign(state,{person:e.person,original:e.original,fullPerson:e.fullPerson},state.placements.get(state.active)||e.settings.person);defaultAux=e.defaultAux;photoAux.clear();for(const [id,aux] of e.photoAux)photoAux.set(id,aux);studio.restoreAux(e.aux);redaction?.restore(e.redactions);$('icSize').value=state.size*100;render();restoring=false;controls();status(step<0?'已復原上一步。':'已重做。');}
     function resetHistory(){clearTimeout(historyTimer);history=[];historyIndex=-1;historyDirty=true;recordHistory();}
     function buildTabs(){
         const header=dialog.querySelector('.ic-head'),toolbar=dialog.querySelector('.ic-toolbar'),side=dialog.querySelector('.ic-controls');
@@ -201,8 +201,8 @@
         const nav=document.createElement('div');nav.className='ic-tabs';nav.setAttribute('role','tablist');nav.setAttribute('aria-label','圖片編輯功能');toolbar.prepend(nav);
         const person=$('icUsePerson').closest('section'),output=dialog.querySelector('.ic-output');person.id='icPersonSection';output.id='icOutputSection';
         const note=side.querySelector(':scope > .ic-note');if(note)output.append(note);output.open=true;output.querySelector('summary').hidden=true;
-        const panels=[['person','人物合成',person],['caption','文字',$('icCaptionSection')],['watermark','浮水印',$('icWatermarkSection')],['brand','品牌底條',$('icBrandSection')],['crop','裁切拼版',$('icCropSection')],['output','輸出設定',output],['layouts','我的版面',$('icLayoutsSection')]];
-        function select(key){for(const [id,,panel] of panels){const active=id===key;panel.hidden=!active;const button=$('icTab_'+id);button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;}side.scrollTop=0;}
+        const panels=[['person','人物合成',person],['caption','文字',$('icCaptionSection')],['watermark','浮水印',$('icWatermarkSection')],['brand','品牌底條',$('icBrandSection')],['crop','裁切拼版',$('icCropSection')],['redact','局部遮蔽',$('icRedactSection')],['output','輸出設定',output],['layouts','我的版面',$('icLayoutsSection')]];
+        function select(key){redaction?.cancel();for(const [id,,panel] of panels){const active=id===key;panel.hidden=!active;const button=$('icTab_'+id);button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;}side.scrollTop=0;redaction?.sync();}
         for(const [id,label,panel] of panels){const b=document.createElement('button');b.type='button';b.id='icTab_'+id;b.textContent=label;b.setAttribute('role','tab');b.setAttribute('aria-controls',panel.id);panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby',b.id);b.onclick=()=>select(id);b.onkeydown=e=>{const index=panels.findIndex(p=>p[0]===id);let next;if(e.key==='ArrowRight')next=(index+1)%panels.length;if(e.key==='ArrowLeft')next=(index+panels.length-1)%panels.length;if(e.key==='Home')next=0;if(e.key==='End')next=panels.length-1;if(next!==undefined){e.preventDefault();select(panels[next][0]);$('icTab_'+panels[next][0]).focus();}};nav.append(b);}
         select('person');
     }
@@ -225,17 +225,18 @@
         const output=$('itQ').closest('.it-sec');$('icOutput').append(output);output.querySelector('.it-sec-t').hidden=true;
         output.lastElementChild.textContent='下載檔名會加上「_編輯」，不會覆蓋原圖。';
         studio=ImageStudio.mount({render,status,decode,busy,lock:value=>{externalBusy=value;controls();if(!value){studio?.afterRender();scheduleHistory();}},getPerson:()=>state.person,getOriginal:()=>state.original,getFullPerson:()=>state.fullPerson,hasPhoto:()=>!!state.bg,setPerson:(full,original)=>{const person=trim(full);state.person=person;state.original=original;state.fullPerson=full;$('icPersonName').textContent='已載入人物素材';const thumb=$('icThumb');thumb.width=person.width;thumb.height=person.height;thumb.getContext('2d').drawImage(person,0,0);thumb.hidden=false;}});
+        redaction=ImageRedaction.mount({id:()=>state.active,busy,flush:flushHistory,changed:()=>{render();flushHistory();},preview:()=>draw($('icCanvas')),status});
         buildTabs();
         $('icUndo').onclick=()=>undoRedo(-1);$('icRedo').onclick=()=>undoRedo(1);
         dialog.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&['z','y'].includes(e.key.toLowerCase())&&!['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)){e.preventDefault();undoRedo(e.key.toLowerCase()==='y'||e.shiftKey?1:-1);}});
         ImageLayouts.mount($('icLayoutsSection'),{snapshot:layoutSnapshot,apply:applyLayout,isBusy:busy,thumbnail:()=>{const c=canvas(320,200);if(state.bg)c.getContext('2d').drawImage($('icCanvas'),0,0,320,200);else{c.getContext('2d').fillStyle='#eeeae4';c.getContext('2d').fillRect(0,0,320,200);BrandBanner.draw(c.getContext('2d'),320,200,{...BrandBanner.options(),height:24});}return c.toDataURL('image/jpeg',.65);}});
         $('icClose').onclick=()=>dialog.close();
-        dialog.addEventListener('close',()=>{drag=null;cancelCutout();itSaveCfg();if(previousFocus&&previousFocus.isConnected)previousFocus.focus();});
+        dialog.addEventListener('close',()=>{drag=null;redaction.cancel();cancelCutout();itSaveCfg();if(previousFocus&&previousFocus.isConnected)previousFocus.focus();});
         dialog.addEventListener('keydown',e=>{if(e.key!=='Escape')e.stopPropagation();});
         $('icUsePerson').onchange=()=>{if(!enabled())cancelCutout();render();};
         $('icBackground').onchange=e=>{if(e.target.files.length){resetHistory();itAddFiles(e.target.files);}e.target.value='';};
-        $('icClear').onclick=()=>{photoSettings.clear();photoAux.clear();resetHistory();state.placements.clear();state.active=null;itClear();status('照片已清空，可重新選擇照片。');};
-        $('icRemove').onclick=()=>{if(!state.active)return;photoSettings.delete(state.active);photoAux.delete(state.active);state.placements.delete(state.active);itRemove(state.active);resetHistory();};
+        $('icClear').onclick=()=>{redaction.clear();photoSettings.clear();photoAux.clear();resetHistory();state.placements.clear();state.active=null;itClear();status('照片已清空，可重新選擇照片。');};
+        $('icRemove').onclick=()=>{if(!state.active)return;redaction.forget(state.active);photoSettings.delete(state.active);photoAux.delete(state.active);state.placements.delete(state.active);itRemove(state.active);resetHistory();};
         const stage=$('icStage');stage.ondragover=e=>e.preventDefault();stage.ondrop=e=>{e.preventDefault();if(!busy())itAddFiles(e.dataTransfer.files);};
         $('icPerson').onchange=async e=>{
             const f=e.target.files[0];e.target.value='';if(!f||state.busy)return;
@@ -247,10 +248,10 @@
         $('icSize').oninput=e=>{state.size=Number(e.target.value)/100;render();};
         $('icFlip').onclick=()=>{state.flip=!state.flip;render();};$('icReset').onclick=reset;
         const c=$('icCanvas');
-        c.onpointerdown=e=>{if(busy()||e.button!==0)return;const text=studio.hit(point(e));if(text){flushHistory();const pointer=point(e);drag={id:e.pointerId,text:text.id,x:pointer.x-text.x-text.w/2,y:pointer.y-text.y-text.h/2};c.setPointerCapture(e.pointerId);e.preventDefault();return;}if(!enabled()||!state.person)return;flushHistory();const p=point(e),r=geometry(1,c.height/c.width),py=p.y*c.height/c.width;if(p.x<r.x||p.x>r.x+r.w||py<r.y||py>r.y+r.h)return;drag={id:e.pointerId,x:p.x-state.x,y:p.y-state.y};c.setPointerCapture(e.pointerId);c.focus();e.preventDefault();};
-        c.onpointermove=e=>{if(!drag||drag.id!==e.pointerId)return;const p=point(e);if(drag.text){studio.dragTo(drag.text,{x:Math.max(0,Math.min(1,p.x-drag.x)),y:Math.max(0,Math.min(1,p.y-drag.y))});draw(c);return;}state.x=Math.max(0,Math.min(1,p.x-drag.x));state.y=Math.max(0,Math.min(1,p.y-drag.y));remember();draw(c);};
-        c.onpointerup=c.onpointercancel=c.onlostpointercapture=()=>{if(drag){drag=null;render();flushHistory();}};
-        c.onkeydown=e=>{if(busy())return;if(!enabled()||!state.person||!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();const step=e.shiftKey?.03:.005;state.x=Math.max(0,Math.min(1,state.x+(e.key==='ArrowRight'?step:e.key==='ArrowLeft'?-step:0)));state.y=Math.max(0,Math.min(1,state.y+(e.key==='ArrowDown'?step:e.key==='ArrowUp'?-step:0)));remember();render();};
+        c.onpointerdown=e=>{if(busy()||e.button!==0)return;if(redaction.begin(point(e))){drag={id:e.pointerId,redact:true};c.setPointerCapture(e.pointerId);e.preventDefault();return;}const text=studio.hit(point(e));if(text){if(studio.locked(text.id)){status('這個元素已鎖定，請先取消鎖定。');return;}flushHistory();const pointer=point(e);drag={id:e.pointerId,text:text.id,w:text.w,h:text.h,x:pointer.x-text.x-text.w/2,y:pointer.y-text.y-text.h/2};c.setPointerCapture(e.pointerId);e.preventDefault();return;}if(!enabled()||!state.person||studio.locked('person'))return;flushHistory();const p=point(e),r=geometry(1,c.height/c.width),py=p.y*c.height/c.width;if(p.x<r.x||p.x>r.x+r.w||py<r.y||py>r.y+r.h)return;drag={id:e.pointerId,x:p.x-state.x,y:p.y-state.y};c.setPointerCapture(e.pointerId);c.focus();e.preventDefault();};
+        c.onpointermove=e=>{if(!drag||drag.id!==e.pointerId)return;const p=point(e);if(drag.redact){redaction.move({x:Math.max(0,Math.min(1,p.x)),y:Math.max(0,Math.min(1,p.y))});return;}if(drag.text){const snapped=studio.snap({x:p.x-drag.x,y:p.y-drag.y},{w:drag.w,h:drag.h},c);studio.dragTo(drag.text,{x:snapped.x,y:snapped.y});draw(c);studio.guides(c,snapped.lines);return;}const snapped=studio.snap({x:p.x-drag.x,y:p.y-drag.y},{w:state.size*c.height/c.width*state.person.width/state.person.height,h:state.size},c);state.x=snapped.x;state.y=snapped.y;remember();draw(c);studio.guides(c,snapped.lines);};
+        c.onpointerup=c.onpointercancel=c.onlostpointercapture=e=>{if(drag){if(drag.redact)redaction.end(e.type!=='pointerup');drag=null;render();flushHistory();}};
+        c.onkeydown=e=>{if(busy())return;if(!enabled()||!state.person||studio.locked('person')||!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();const step=e.shiftKey?.03:.005;state.x=Math.max(0,Math.min(1,state.x+(e.key==='ArrowRight'?step:e.key==='ArrowLeft'?-step:0)));state.y=Math.max(0,Math.min(1,state.y+(e.key==='ArrowDown'?step:e.key==='ArrowUp'?-step:0)));remember();render();};
         $('icDownload').onclick=()=>exportPhotos(false);$('icAll').onclick=()=>exportPhotos(true);$('icZip').onclick=()=>exportPhotos(true,true);
         $('icCutout').onclick=async()=>{if(state.person&&!state.busy)try{await download(state.person,'人物_去背.png','image/png');status('已產生去背人物下載。');}catch(e){status(e.message,true);}};
     }
