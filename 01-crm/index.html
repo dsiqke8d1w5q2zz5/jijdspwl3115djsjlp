@@ -2479,7 +2479,6 @@ function verifySyncResult(status) {
                 // 雲端筆數 >= 本地，確認上傳成功
                 var _dispCnt = data.filter(function(c){ return !c.__perfRecords && !c.__templates && !c.__signingTemplates && !c.__otherTemplates && !c._system; }).length;
                 if (status) status.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22C55E;margin-right:4px;vertical-align:middle"></span>已同步 ' + new Date().toLocaleTimeString('zh-TW') + '（' + _dispCnt + '筆）';
-                showToast('已同步至雲端', 'ok', 2000);
                 _syncInFlight = false;
                 if (JSON.stringify(DB) !== _uploadedLocalJSON) {
                     _crmMarkPending();
@@ -2491,6 +2490,7 @@ function verifySyncResult(status) {
                 _lastSyncJSON = JSON.stringify(DB);
                 _syncRetryCount = 0;
                 _crmClearPending();
+                window.alert('已同步至雲端\n手機與電腦可讀取最新資料。');
             } else {
                 // 筆數不符，不解除保護，走失敗重試流程
                 _onSyncFail(status);
@@ -12198,7 +12198,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260927-schedulesync1';
+var APP_VERSION = '20260927-syncdialog1';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
