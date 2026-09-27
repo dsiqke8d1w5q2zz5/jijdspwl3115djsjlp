@@ -17,3 +17,8 @@
 .ic-repair-dialog{margin:auto;inset:0}.ic-repair-dialog[open]{display:block}
 
 .ic-redact-size{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.ic-redact-size label{font-size:13px}.ic-redact-size input{width:100%;font:inherit;padding:7px;border:1px solid #ccc;border-radius:6px}.ic-dialog #icRedactSection h3{font-size:18px;margin:0}.ic-dialog #icRedactSection select{width:100%}.ic-stage canvas.ic-redact-active{cursor:crosshair}#icRedactColor{display:block;width:70px;height:40px;margin-top:8px}
+
+#icRedactWarning{padding:10px;background:#fff1d6;color:#92400e;border-radius:8px;font-size:14px;line-height:1.6}#icRedactReviewed{margin-bottom:12px}#icRedactNew[aria-pressed=true]{outline:2px solid #0891b2;outline-offset:2px}
+@media(max-width:650px){.ic-mini{position:static;height:auto;min-height:0;flex:none;align-items:center;background:#f3f6f8;padding:6px 12px;gap:5px;order:0}.ic-mini canvas{width:180px;max-height:120px}.ic-mini button{align-self:flex-end;min-height:32px;font-size:12px}}
+
+@media(max-width:650px){.ic-preview-head #icPhotoName{flex-basis:100%;font-size:13px}.ic-preview-head label{flex:1}.ic-preview-head select{max-width:180px}}

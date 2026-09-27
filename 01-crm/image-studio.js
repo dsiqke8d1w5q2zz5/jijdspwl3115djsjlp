@@ -20,7 +20,7 @@
   return s;
  }
  function mount(api){
-  let settings=copy(defaults),second=null,secondName='',logo=null,boxes=[],assetUrls=[],miniVisible=true;
+  let settings=copy(defaults),second=null,secondName='',logo=null,boxes=[],targets=[],assetUrls=[],miniVisible=true;
   const change=()=>{api.render();};
   const crop=document.createElement('section');crop.id='icCropSection';crop.className='ic-section';
   crop.innerHTML=`<h3>裁切與拼版</h3><label class="it-lb" for="icRatio">成品比例</label><select id="icRatio" class="it-in"><option value="original">原照片比例</option><option value="1">正方形 1:1</option><option value="1.3333333333">橫式 4:3</option><option value="1.7777777778">橫式 16:9</option><option value="0.8">直式 4:5</option><option value="0.5625">直式 9:16</option></select>
@@ -95,16 +95,17 @@
   function hit(p){const caption=$('icTab_caption')?.getAttribute('aria-selected')==='true';return boxes.slice().reverse().find(b=>(caption||b.id==='logo')&&p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h);}
   function locked(id){return ['person','main','logo'].includes(id)?settings.locks[id]:settings.texts.find(t=>t.id===id)?.locked===true;}
   function dragTo(id,p){if(locked(id))return;if(id==='logo')Object.assign(settings.logo,{x:p.x,y:p.y});else if(id==='main')Object.assign(settings.capPoint,p);else{const t=settings.texts.find(t=>t.id===id);if(t)Object.assign(t,p);}}
-  function snap(p,size,c){
+  function setTargets(person,brand){targets=boxes.slice();if(person)targets.push(person);if(brand?.enabled){const w=brand.width/100,h=brand.height/100;targets.push({id:'brand',x:brand.position==='left'?0:brand.position==='center'?(1-w)/2:1-w,y:1-h,w,h});}}
+  function snap(p,size,c,id){
    const result={x:Math.max(0,Math.min(1,p.x)),y:Math.max(0,Math.min(1,p.y)),lines:[]};if(!settings.guides)return result;const b=c.getBoundingClientRect();
-   for(const [axis,extent,pixels] of [['x',size.w,b.width],['y',size.h,b.height]]){const targets=[{center:.5,line:.5},{center:extent/2,line:0},{center:1-extent/2,line:1}].filter(t=>t.center>=0&&t.center<=1);const nearest=targets.sort((a,b)=>Math.abs(a.center-result[axis])-Math.abs(b.center-result[axis]))[0];if(nearest&&Math.abs(nearest.center-result[axis])<=7/Math.max(1,pixels)){result[axis]=nearest.center;result.lines.push({axis,at:nearest.line});}}
+   for(const [axis,extent,pixels] of [['x',size.w,b.width],['y',size.h,b.height]]){const candidates=[{center:.5,line:.5},{center:extent/2,line:0},{center:1-extent/2,line:1},{center:.04+extent/2,line:.04},{center:.96-extent/2,line:.96}];for(const box of targets.filter(t=>t.id!==id)){const start=box[axis],length=box[axis==='x'?'w':'h'];for(const line of [start,start+length/2,start+length])for(const offset of [-extent/2,0,extent/2])candidates.push({center:line+offset,line});}const valid=candidates.filter(t=>t.center>=0&&t.center<=1);const nearest=valid.sort((a,b)=>Math.abs(a.center-result[axis])-Math.abs(b.center-result[axis]))[0];if(nearest&&Math.abs(nearest.center-result[axis])<=7/Math.max(1,pixels)){result[axis]=nearest.center;result.lines.push({axis,at:nearest.line});}}
    return result;
   }
   function guides(c,lines){const ctx=c.getContext('2d');ctx.save();ctx.strokeStyle='#00c9ef';ctx.lineWidth=c.width/600;ctx.setLineDash([c.width/150,c.width/200]);for(const line of lines){const at=clampLine(line.at);ctx.beginPath();if(line.axis==='x'){ctx.moveTo(at*c.width,0);ctx.lineTo(at*c.width,c.height);}else{ctx.moveTo(0,at*c.height);ctx.lineTo(c.width,at*c.height);}ctx.stroke();}ctx.restore();}
   function clampLine(v){return Math.max(.001,Math.min(.999,v));}
   function afterRender(){sync();view();$('icRepair').disabled=!api.getFullPerson()||api.busy();$('icAssetSave').disabled=!api.getPerson()||api.busy();const c=$('icCanvas'),m=$('icMiniCanvas');if(c.width&&c.height){m.width=280;m.height=Math.round(280*c.height/c.width);m.getContext('2d').drawImage(c,0,0,m.width,m.height);}mini.hidden=!api.hasPhoto();}
   sync();
-  return {options:()=>copy(settings),set:value=>{settings=clean(value);sync();textList();},aspect,background,paint,hit,dragTo,locked,snap,guides,afterRender,hasSecond:()=>!!second,aux:()=>({second,secondName,logo}),restoreAux:a=>{second=a.second;secondName=a.secondName||'';logo=a.logo;$('icSecondName').textContent=second?(secondName||'已載入拼版照片'):'尚未選擇第二張照片';sync();},clean,clone};
+  return {options:()=>copy(settings),set:value=>{settings=clean(value);sync();textList();},aspect,background,paint,hit,dragTo,locked,setTargets,snap,guides,afterRender,hasSecond:()=>!!second,aux:()=>({second,secondName,logo}),restoreAux:a=>{second=a.second;secondName=a.secondName||'';logo=a.logo;$('icSecondName').textContent=second?(secondName||'已載入拼版照片'):'尚未選擇第二張照片';sync();},clean,clone};
  }
  function repair(api){
   const source=api.getOriginal(),initial=api.getFullPerson();if(!source||!initial)return;
