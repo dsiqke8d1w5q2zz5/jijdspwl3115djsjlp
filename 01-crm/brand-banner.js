@@ -28,8 +28,9 @@ function draw(ctx,w,h,o){
  const naturalWidth=stacked?Math.max(identityWidth,phone.w+2*pad+(tag.value?tag.w+bh*.22:0)):identityWidth+contactGap+phone.w+2*pad;
  let rowH=Math.max(brand.a+brand.d,name.a+name.d,stacked?0:phone.a+phone.d),tagH=tag.a+tag.d,gap=tag.value?bh*.11:0;
  const naturalHeight=stacked?rowH+Math.max(phone.a+phone.d,tagH)+bh*.10:rowH+tagH+gap;
- const fit=Math.min(1,w*.86/Math.max(1,naturalWidth),bh*(stacked?.82:.70)/Math.max(1,naturalHeight));
- [brand,name,phone,tag]=[brand,name,phone,tag].map(t=>metric(t.value,t.sz*fit,t.weight));nameGap*=fit;contactGap*=fit;pad*=fit;identityWidth*=fit;gap*=fit;
+ const innerHeight=['floating','sticker','outline','twin'].includes(o.theme)?.66:.78;
+ const fit=Math.min(1.65,w*.90/Math.max(1,naturalWidth),bh*(stacked?.82:innerHeight)/Math.max(1,naturalHeight));
+ [brand,name,phone,tag]=[brand,name,phone,tag].map(t=>metric(t.value,t.sz*fit,t.weight));nameGap*=fit;contactGap*=Math.min(1,fit);pad*=Math.min(1,fit);identityWidth*=fit;gap*=fit;
  if(tag.w>Math.max(identityWidth,w*.15))tag=metric(tag.value,tag.sz*Math.max(identityWidth,w*.15)/tag.w,500);
  rowH=Math.max(brand.a+brand.d,name.a+name.d,stacked?0:phone.a+phone.d);tagH=tag.a+tag.d;
  const totalHeight=stacked?rowH+Math.max(phone.a+phone.d,tagH)+bh*.10*fit:rowH+tagH+gap;
@@ -53,7 +54,7 @@ function draw(ctx,w,h,o){
  case 'clean':rect(0,y,w,bh*.025,accent);line(cardLeft,y+bh*.29,cardLeft,y+bh*.71,accent,Math.max(2,bh*.025));if(phone.value){ctx.globalAlpha=.08;rect(boxX,pc-boxH/2,boxW,boxH,accent,bh*.07);ctx.globalAlpha=1;}break;
  case 'editorial':rect(0,y,w*.009,bh,accent);line(w*.035,h-bh*.12,w*.965,h-bh*.12,accent,Math.max(1,w*.001));if(phone.value&&identityWidth)line(split,cy-rowH*.48,split,cy+rowH*.48,accent,Math.max(1,w*.001));break;
  case 'arc':if(phone.value){ctx.fillStyle=accent;ctx.beginPath();ctx.moveTo(split+bh*.15,y);ctx.bezierCurveTo(split-bh*.25,y+bh*.25,split-bh*.25,y+bh*.75,split+bh*.15,h);ctx.lineTo(w,h);ctx.lineTo(w,y);ctx.closePath();ctx.fill();phoneColor=afg;}break;
- case 'twin':rect(cardLeft,y+bh*.07,Math.max(identityWidth+bh*.30,split-cardLeft-bh*.05),bh*.86,primary,bh*.05);line(cardLeft,y+bh*.10,cardLeft,y+bh*.90,accent,Math.max(2,bh*.025));if(phone.value){rect(boxX,pc-boxH*.7,boxW,boxH*1.4,accent,bh*.06);phoneColor=afg;}break;
+ case 'twin':rect(cardLeft,y+bh*.07,Math.max(identityWidth+bh*.30,split-cardLeft-bh*.05),bh*.86,primary,bh*.05);line(cardLeft,y+bh*.10,cardLeft,y+bh*.90,accent,Math.max(2,bh*.025));if(phone.value){rect(boxX,Math.max(y+bh*.07,pc-boxH*.7),boxW,Math.min(boxH*1.4,bh*.86),accent,bh*.06);phoneColor=afg;}break;
  case 'sticker':polygon([[cardLeft+bh*.05,y+bh*.15],[split,y+bh*.10],[split-bh*.06,h-bh*.06],[cardLeft,h-bh*.10]],accent);polygon([[cardLeft,y+bh*.07],[split-bh*.05,y+bh*.04],[split-bh*.10,h-bh*.12],[cardLeft-bh*.04,h-bh*.15]],primary);if(phone.value){rect(boxX,pc-boxH/2,boxW,boxH,accent,bh*.07);phoneColor=afg;}break;
  case 'outline':rect(w*.018,y+bh*.07,w*.964,bh*.86,primary);ctx.strokeStyle=accent;ctx.lineWidth=Math.max(1,w*.001);roundedRect(w*.03,y+bh*.14,w*.94,bh*.72,bh*.08);ctx.stroke();break;
  case 'stacked':if(phone.value){rect(w*.025,pc-boxH/2,w*.95,boxH,accent,bh*.04);phoneColor=afg;}break;
