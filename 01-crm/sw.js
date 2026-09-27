@@ -1,4 +1,4 @@
-var CACHE_NAME = 'crm-v20260922-copycontact1';
+var CACHE_NAME = 'crm-v20260927-schedulesync1';
 var URLS_TO_CACHE = [
   './',
   './index.html',

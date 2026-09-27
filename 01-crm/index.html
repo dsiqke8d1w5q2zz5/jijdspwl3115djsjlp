@@ -2369,6 +2369,7 @@ function persist() {
     var ok = _safeSetItem('reCRM', newJSON);
     if (ok) {
         _lastSyncJSON = newJSON;
+        _crmMarkPending();
         _setDirty();
         if (_syncTimer) clearTimeout(_syncTimer);
         _syncTimer = setTimeout(autoSync, 3000);
@@ -2381,6 +2382,7 @@ function persistAndSyncNow() {
     var ok = _safeSetItem('reCRM', newJSON);
     if (!ok) return false;
     _lastSyncJSON = newJSON;
+    _crmMarkPending();
     _setDirty();
     if (_syncTimer) clearTimeout(_syncTimer);
     autoSync();
@@ -2779,11 +2781,27 @@ function autoFetchCloud(force, onDone) {
                 DB.forEach(function(local) {
                     if (!cloudIds[local.id]) merged.push(local);
                 });
+                var scheduleKeys = ['schedules','todos','doneSchedules','doneTodos','dismissed'];
+                var needsScheduleUpload = merged.some(function(local) {
+                    var remote = cloudData.find(function(row){return row.id === local.id;});
+                    return scheduleKeys.some(function(key){
+                        var value=local[key];
+                        if (!value || !Object.keys(value).length) return false;
+                        return _crmCanonical(value) !== _crmCanonical(remote && remote[key] || (Array.isArray(value)?[]:{}));
+                    });
+                });
                 DB = merged;
                 migrateDB();
                 _lastSyncJSON = JSON.stringify(DB);
                 try { localStorage.setItem('reCRM', _lastSyncJSON); } catch(e) { console.error('localStorage寫入失敗', e); }
                 render();
+                if (needsScheduleUpload) {
+                    _crmMarkPending();
+                    if (typeof onDone !== 'function' && !_syncInFlight) {
+                        if (_syncTimer) clearTimeout(_syncTimer);
+                        _syncTimer = setTimeout(autoSync, 500);
+                    }
+                }
             }
                 // Metadata can change even when customer records do not.
                 // 同步業績紀錄
@@ -2809,7 +2827,8 @@ function autoFetchCloud(force, onDone) {
                     try { localStorage.setItem('crmOtherTemplates', JSON.stringify(_otherTemplates)); } catch(e) { console.error('localStorage寫入失敗', e); }
                 }
                 var status = document.getElementById('cloudStatus');
-                if (status) status.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22C55E;margin-right:4px;vertical-align:middle"></span>已同步 ' + new Date().toLocaleTimeString('zh-TW') + '（' + DB.filter(function(c){return !c._system;}).length + '筆）';
+                if (status && _crmHasPending()) status.textContent = '資料已讀取，本機變更待上傳確認…';
+                else if (status) status.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22C55E;margin-right:4px;vertical-align:middle"></span>已同步 ' + new Date().toLocaleTimeString('zh-TW') + '（' + DB.filter(function(c){return !c._system;}).length + '筆）';
             _fireDone(true);
         } catch(e) { console.error('雲端同步解析失敗:', e); _fireDone(false); }
     };
@@ -12179,7 +12198,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260922-copycontact1';
+var APP_VERSION = '20260927-schedulesync1';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
