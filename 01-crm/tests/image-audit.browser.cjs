@@ -1,0 +1,20 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),crypto=require('node:crypto'),{pathToFileURL}=require('node:url');
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
+(async()=>{
+ const browser=await chromium.launch({headless:true,...(process.env.CHROME_PATH?{executablePath:process.env.CHROME_PATH}:{})});
+ try{for(const width of [1440,390]){
+  const context=await browser.newContext({viewport:{width,height:1000},acceptDownloads:true});await context.route('https://**/*',r=>r.abort());
+  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(pathToFileURL(path.join(__dirname,'../index.html')).href);await page.evaluate(()=>openImgTool());
+  const fixture=(name,color,w=800,h=600)=>({name,mimeType:'image/svg+xml',buffer:Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="${w}" height="${h}" fill="${color}"/></svg>`)});
+  const pixel=(id,x,y)=>page.locator('#'+id).evaluate((c,p)=>Array.from(c.getContext('2d').getImageData(Math.floor(c.width*p.x),Math.floor(c.height*p.y),1,1).data),{x,y});
+  const signature=async()=>crypto.createHash('sha256').update(await page.locator('#icCanvas').evaluate(c=>c.toDataURL())).digest('hex');
+  await page.locator('#icBackground').setInputFiles([fixture('first.svg','blue'),fixture('second.svg','yellow')]);await page.waitForFunction(()=>document.querySelectorAll('#icPhotos button').length===2);
+
+  await page.locator('#icTab_crop').click();await page.locator('#icFrameMode').selectOption('lr');await page.locator('#icSecondFile').setInputFiles(fixture('green.svg','lime'));await page.waitForFunction(()=>document.getElementById('icSecondName').textContent==='green.svg');await page.waitForTimeout(250);
+  await page.locator('#icPhotos button').nth(1).click();await page.locator('#icFrameMode').selectOption('lr');await page.locator('#icSecondFile').setInputFiles(fixture('red.svg','red'));await page.waitForFunction(()=>document.getElementById('icSecondName').textContent==='red.svg');await page.waitForTimeout(250);
+  await page.locator('#icPhotos button').first().click();await page.locator('#icUndo').click();assert.deepEqual(await pixel('icCanvas',.75,.5),[0,255,0,255],'undo after photo switch must retain this photo artwork');await page.locator('#icRedo').click();assert.deepEqual(await pixel('icCanvas',.75,.5),[0,255,0,255],'redo must retain this photo artwork');
+  await page.locator('#icApplyAll').click();await page.locator('#icPhotos button').nth(1).click();assert.deepEqual(await pixel('icCanvas',.75,.5),[0,255,0,255]);await page.locator('#icUndo').click();assert.deepEqual(await pixel('icCanvas',.75,.5),[255,0,0,255],'one undo must fully restore artwork before apply all');await page.locator('#icRedo').click();assert.deepEqual(await pixel('icCanvas',.75,.5),[0,255,0,255]);
+  await page.locator('#icClear').click();assert(await page.locator('#icUndo').isDisabled(),'clearing photos resets undo to the empty state');
+  assert.deepEqual(errors,[]);await context.close();console.log('PASS audit '+width+'px: cross-photo undo/redo and atomic apply-all');
+ }}finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});
