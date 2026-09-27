@@ -15,9 +15,11 @@ function draw(ctx,w,h,o){
  const font=(sz,weight)=>(o.font==='italic'?'italic ':'')+(['light','book'].includes(o.font)?Math.min(weight,500):weight)+' '+sz+'px '+family;
  function metric(value,sz,weight){ctx.font=font(sz,weight);const m=ctx.measureText(value);return {value,sz,weight,w:m.width,a:m.actualBoundingBoxAscent||0,d:m.actualBoundingBoxDescent||0};}
  function paint(t,x,cy,color){if(!t.value)return;ctx.font=font(t.sz,t.weight);ctx.fillStyle=color;ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fillText(t.value,x,cy+(t.a-t.d)/2);}
- function rect(x,yy,ww,hh,color,r=0){if(ww<=0)return;ctx.fillStyle=color;ctx.beginPath();if(r&&ctx.roundRect)ctx.roundRect(x,yy,ww,hh,r);else ctx.rect(x,yy,ww,hh);ctx.fill();}
+ function roundedRect(x,yy,ww,hh,r){r=Math.max(0,Math.min(r,ww/2,hh/2));ctx.beginPath();ctx.moveTo(x+r,yy);ctx.arcTo(x+ww,yy,x+ww,yy+hh,r);ctx.arcTo(x+ww,yy+hh,x,yy+hh,r);ctx.arcTo(x,yy+hh,x,yy,r);ctx.arcTo(x,yy,x+ww,yy,r);ctx.closePath();}
+ function rect(x,yy,ww,hh,color,r=bh*.10){if(ww<=0)return;ctx.fillStyle=color;roundedRect(x,yy,ww,hh,r);ctx.fill();}
+ function polygon(points,color){ctx.fillStyle=color;ctx.beginPath();const first=points[0],last=points[points.length-1];ctx.moveTo((first[0]+last[0])/2,(first[1]+last[1])/2);points.forEach((v,i)=>{const prev=points[(i+points.length-1)%points.length],next=points[(i+1)%points.length],r=Math.min(bh*.09,Math.hypot(v[0]-prev[0],v[1]-prev[1])/4,Math.hypot(v[0]-next[0],v[1]-next[1])/4);ctx.arcTo(v[0],v[1],next[0],next[1],r);});ctx.closePath();ctx.fill();}
  function line(x1,y1,x2,y2,color,width=1){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}
- ctx.save();ctx.translate(offset,0);ctx.beginPath();ctx.rect(0,y,w,bh);ctx.clip();
+ ctx.save();ctx.translate(offset,0);roundedRect(0,y,w,bh,bh*.12);ctx.clip();ctx.lineCap='round';ctx.lineJoin='round';
  let brand=metric(o.company||'',bh*.235*size('brandSize'),700),name=metric(o.name||'',bh*.36*size('nameSize'),800),phone=metric(o.phone||'',bh*.35*size('phoneSize'),800),tag=metric(o.tagline||'',bh*.15*size('tagSize'),500);
  const stacked=o.theme==='stacked';
  let nameGap=brand.value&&name.value?bh*.13:0,contactGap=(brand.value||name.value)&&phone.value?bh*.42:0,pad=phone.value?bh*.16:0;
@@ -52,8 +54,8 @@ function draw(ctx,w,h,o){
  case 'editorial':rect(0,y,w*.009,bh,accent);line(w*.035,h-bh*.12,w*.965,h-bh*.12,accent,Math.max(1,w*.001));if(phone.value&&identityWidth)line(split,cy-rowH*.48,split,cy+rowH*.48,accent,Math.max(1,w*.001));break;
  case 'arc':if(phone.value){ctx.fillStyle=accent;ctx.beginPath();ctx.moveTo(split+bh*.15,y);ctx.bezierCurveTo(split-bh*.25,y+bh*.25,split-bh*.25,y+bh*.75,split+bh*.15,h);ctx.lineTo(w,h);ctx.lineTo(w,y);ctx.closePath();ctx.fill();phoneColor=afg;}break;
  case 'twin':rect(cardLeft,y+bh*.07,Math.max(identityWidth+bh*.30,split-cardLeft-bh*.05),bh*.86,primary,bh*.05);line(cardLeft,y+bh*.10,cardLeft,y+bh*.90,accent,Math.max(2,bh*.025));if(phone.value){rect(boxX,pc-boxH*.7,boxW,boxH*1.4,accent,bh*.06);phoneColor=afg;}break;
- case 'sticker':ctx.fillStyle=accent;ctx.beginPath();ctx.moveTo(cardLeft+bh*.05,y+bh*.15);ctx.lineTo(split,y+bh*.10);ctx.lineTo(split-bh*.06,h-bh*.06);ctx.lineTo(cardLeft,h-bh*.10);ctx.closePath();ctx.fill();ctx.fillStyle=primary;ctx.beginPath();ctx.moveTo(cardLeft,y+bh*.07);ctx.lineTo(split-bh*.05,y+bh*.04);ctx.lineTo(split-bh*.10,h-bh*.12);ctx.lineTo(cardLeft-bh*.04,h-bh*.15);ctx.closePath();ctx.fill();if(phone.value){rect(boxX,pc-boxH/2,boxW,boxH,accent,bh*.07);phoneColor=afg;}break;
- case 'outline':rect(w*.018,y+bh*.07,w*.964,bh*.86,primary);ctx.strokeStyle=accent;ctx.lineWidth=Math.max(1,w*.001);ctx.strokeRect(w*.03,y+bh*.14,w*.94,bh*.72);break;
+ case 'sticker':polygon([[cardLeft+bh*.05,y+bh*.15],[split,y+bh*.10],[split-bh*.06,h-bh*.06],[cardLeft,h-bh*.10]],accent);polygon([[cardLeft,y+bh*.07],[split-bh*.05,y+bh*.04],[split-bh*.10,h-bh*.12],[cardLeft-bh*.04,h-bh*.15]],primary);if(phone.value){rect(boxX,pc-boxH/2,boxW,boxH,accent,bh*.07);phoneColor=afg;}break;
+ case 'outline':rect(w*.018,y+bh*.07,w*.964,bh*.86,primary);ctx.strokeStyle=accent;ctx.lineWidth=Math.max(1,w*.001);roundedRect(w*.03,y+bh*.14,w*.94,bh*.72,bh*.08);ctx.stroke();break;
  case 'stacked':if(phone.value){rect(w*.025,pc-boxH/2,w*.95,boxH,accent,bh*.04);phoneColor=afg;}break;
  default:rect(0,y,w,bh*.025,accent);brandColor=accent;if(phone.value&&identityWidth)line(split,cy-rowH*.48,split,cy+rowH*.48,accent,Math.max(1,w*.001));break;
  }
