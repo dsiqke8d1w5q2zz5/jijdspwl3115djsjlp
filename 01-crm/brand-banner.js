@@ -1,7 +1,7 @@
 /* Reusable local brand banners. Text is drawn as canvas text, never HTML. */
 (function(){
 'use strict';
-const themes={navy:{name:'曜金名片',primary:'#173756',accent:'#d4af62'},ribbon:{name:'活力斜切',primary:'#ffbf00',accent:'#b82029'},clean:{name:'清透留白',primary:'#ffffff',accent:'#078b91'},editorial:{name:'暖調編輯',primary:'#f4eee3',accent:'#896441'},floating:{name:'懸浮圓角',primary:'#ffffff',accent:'#366653'},stacked:{name:'都會雙層',primary:'#23364d',accent:'#c7e5e8'},sticker:{name:'個性貼紙',primary:'#fff0b8',accent:'#cf4936'},outline:{name:'極簡框線',primary:'#f9f7f2',accent:'#393633'}};
+const themes={navy:{name:'曜金名片',primary:'#173756',accent:'#d4af62'},ribbon:{name:'活力斜切',primary:'#ffbf00',accent:'#b82029'},clean:{name:'清透留白',primary:'#ffffff',accent:'#078b91'},editorial:{name:'暖調編輯',primary:'#f4eee3',accent:'#896441'},floating:{name:'懸浮圓角',primary:'#ffffff',accent:'#366653'},stacked:{name:'都會雙層',primary:'#23364d',accent:'#c7e5e8'},sticker:{name:'個性貼紙',primary:'#fff0b8',accent:'#cf4936'},outline:{name:'極簡框線',primary:'#f9f7f2',accent:'#393633'},arc:{name:'弧光名片',primary:'#342b48',accent:'#ead4bd'},twin:{name:'分離雙卡',primary:'#f2f5f8',accent:'#285776'}};
 const defaults={theme:'navy',primary:'#173756',accent:'#d4af62',company:'',name:'',phone:'',tagline:'',height:15,font:'sans',brandSize:100,nameSize:100,phoneSize:100,tagSize:100,width:100,position:'right'};
 let current={...defaults},host,onchange;
 const $=id=>document.getElementById(id);
@@ -10,7 +10,7 @@ function height(h,o){return h*Math.max(10,Math.min(24,Number(o.height)||15))/100
 function draw(ctx,w,h,o){
  const fullWidth=w;w=fullWidth*Math.max(45,Math.min(100,Number(o.width)||100))/100;const offset=o.position==='left'?0:o.position==='center'?(fullWidth-w)/2:fullWidth-w;
  const bh=height(h,o),y=h-bh,p=w*.035,primary=o.primary,accent=o.accent,fg=contrast(primary),afg=contrast(accent);
- ctx.save();ctx.translate(offset,0);ctx.beginPath();ctx.rect(0,y,w,bh);ctx.clip();if(!['floating','sticker','outline'].includes(o.theme)){ctx.fillStyle=primary;ctx.fillRect(0,y,w,bh);}
+ ctx.save();ctx.translate(offset,0);ctx.beginPath();ctx.rect(0,y,w,bh);ctx.clip();if(!['floating','sticker','outline','twin'].includes(o.theme)){ctx.fillStyle=primary;ctx.fillRect(0,y,w,bh);}
  const families={sans:'"Microsoft JhengHei","PingFang TC",sans-serif',serif:'"PMingLiU","Songti TC",serif',kai:'"DFKai-SB","BiauKai","KaiTi",serif'};
  function text(value,x,cy,maxWidth,size,color,weight=700){if(!value)return;ctx.fillStyle=color;ctx.textBaseline='middle';ctx.textAlign='left';let sz=size;const font=()=> (o.font==='italic'?'italic ':'')+(['light','book'].includes(o.font)?Math.min(weight,500):weight)+' '+sz+'px '+(families[o.font==='book'?'serif':o.font]||families.sans);ctx.font=font();const measured=ctx.measureText(value).width;if(measured>maxWidth){sz*=maxWidth/measured;ctx.font=font();}ctx.fillText(value,x,cy);}
  function rect(x,yy,ww,hh,color,r=0){ctx.fillStyle=color;ctx.beginPath();if(r&&ctx.roundRect)ctx.roundRect(x,yy,ww,hh,r);else ctx.rect(x,yy,ww,hh);ctx.fill();}
@@ -19,7 +19,7 @@ function draw(ctx,w,h,o){
  const size=(key)=>Math.max(60,Math.min(160,Number(o[key])||100))/100;
  function identity(x,available,brandColor=fg,layout={}){
   const brand=o.company||'',name=o.name||'',tag=layout.noTag?'':o.tagline||'';
-  const bs=bh*.235*size('brandSize'),ns=bh*.36*size('nameSize'),gap=brand&&name?w*.016:0;
+  const bs=bh*.235*size('brandSize'),ns=Math.min(bh*(layout.nameLimit||1),bh*.36*size('nameSize')),gap=brand&&name?w*.016:0;
   const family=families[o.font==='book'?'serif':o.font]||families.sans;
   ctx.font='700 '+bs+'px '+family;const bw=ctx.measureText(brand).width;
   ctx.font='800 '+ns+'px '+family;const nw=ctx.measureText(name).width;
@@ -29,15 +29,22 @@ function draw(ctx,w,h,o){
   text(tag,x,y+bh*(layout.tagCy??((brand||name) ? .82 : .52)),available,bh*.15*size('tagSize'),fg,500);
  }
  const phoneSize=bh*.32*size('phoneSize');
- if(o.theme==='floating'){
+ if(o.theme==='arc'){
+  ctx.fillStyle=accent;ctx.beginPath();ctx.moveTo(w*.66,y);ctx.bezierCurveTo(w*.52,y+bh*.22,w*.55,y+bh*.82,w*.62,h);ctx.lineTo(w,h);ctx.lineTo(w,y);ctx.closePath();ctx.fill();
+  identity(p,w*.48,fg);text(o.phone,w*.65,y+bh*.51,w*.315,phoneSize,afg,700);
+ }else if(o.theme==='twin'){
+  rect(w*.014,y+bh*.07,w*.555,bh*.86,primary,bh*.06);rect(w*.014,y+bh*.07,w*.008,bh*.86,accent);
+  identity(w*.039,w*.497,fg,{tagCy:.75});
+  if(o.phone){rect(w*.593,y+bh*.07,w*.393,bh*.86,accent,bh*.06);ctx.globalAlpha=.22;line(w*.618,y+bh*.25,w*.663,y+bh*.25,afg,Math.max(1,bh*.015));line(w*.916,y+bh*.76,w*.961,y+bh*.76,afg,Math.max(1,bh*.015));ctx.globalAlpha=1;text(o.phone,w*.62,y+bh*.51,w*.34,phoneSize,afg,700);}
+ }else if(o.theme==='floating'){
   ctx.save();ctx.shadowColor='#00000025';ctx.shadowBlur=bh*.055;ctx.shadowOffsetY=bh*.025;rect(w*.018,y+bh*.07,w*.964,bh*.86,primary,bh*.17);ctx.restore();
   rect(w*.037,y+bh*.29,w*.006,bh*.39,accent,bh*.025);identity(w*.061,w*.50,accent,{tagCy:.75});
   if(o.phone){rect(w*.626,y+bh*.24,w*.326,bh*.51,accent,bh*.25);text(o.phone,w*.649,y+bh*.505,w*.282,phoneSize,afg,700);}
  }else if(o.theme==='stacked'){
-  rect(0,y,w*.009,bh,accent);identity(p,w*.92,fg,{noTag:true,cy:(o.phone||o.tagline)?.30:.52});
-  if(o.phone||o.tagline)rect(w*.022,y+bh*.60,w*.956,bh*.35,accent,bh*.035);
-  text(o.tagline,p,y+bh*.785,w*.46,bh*.15*size('tagSize'),afg,500);
-  text(o.phone,w*.575,y+bh*.785,w*.37,Math.min(bh*.30,bh*.27*size('phoneSize')),afg,700);
+  rect(0,y,w*.009,bh,accent);identity(p,w*.92,fg,{noTag:true,nameLimit:.40,cy:(o.phone||o.tagline)?.25:.52});
+  if(o.phone||o.tagline)rect(w*.022,y+bh*.48,w*.956,bh*.48,accent,bh*.035);
+  text(o.tagline,p,y+bh*.725,w*.32,bh*.15*size('tagSize'),afg,500);
+  text(o.phone,o.tagline?w*.40:p,y+bh*.725,o.tagline?w*.55:w*.91,Math.min(bh*.43,bh*.35*size('phoneSize')),afg,800);
  }else if(o.theme==='sticker'){
   ctx.fillStyle=accent;ctx.beginPath();ctx.moveTo(w*.025,y+bh*.17);ctx.lineTo(w*.574,y+bh*.08);ctx.lineTo(w*.558,h-bh*.04);ctx.lineTo(w*.01,h-bh*.10);ctx.closePath();ctx.fill();
   ctx.fillStyle=primary;ctx.beginPath();ctx.moveTo(w*.015,y+bh*.08);ctx.lineTo(w*.559,y+bh*.02);ctx.lineTo(w*.545,h-bh*.11);ctx.lineTo(0,h-bh*.15);ctx.closePath();ctx.fill();
