@@ -240,6 +240,8 @@
                 update();
             }
             draw();
+            // Freeze the centered review frame so details expand inside it.
+            dialog.style.height=dialog.getBoundingClientRect().height+'px';
         }
     }
     function openStandalone(){
