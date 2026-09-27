@@ -809,6 +809,7 @@
         .ac-item:hover, .ac-item.active { background:var(--bg); }
         .ac-item b { color:var(--deep); }
     </style>
+    <link rel="stylesheet" href="image-composer.css?v=20260927composer1">
     <link rel="stylesheet" href="area-editor.css?v=20260914j">
     <link rel="stylesheet" href="transcript-import.css?v=20260917audit1">
 </head>
@@ -1561,8 +1562,9 @@
 <div id="imgToolModal" class="overlay" style="display:none" onmousedown="if(event.target===this)closeImgTool()">
     <div class="modal" style="max-width:1080px;width:96vw;height:92vh;display:flex;flex-direction:column" onclick="event.stopPropagation()">
         <div class="modal-head">
-            <div class="modal-title"><i class="ti ti-photo-edit" style="color:#0891B2"></i> 圖片工具<span style="font-size:12px;font-weight:500;color:var(--muted);margin-left:8px">浮水印／加註文字・全在本機處理，不會上傳</span></div>
+            <div class="modal-title"><i class="ti ti-photo-edit" style="color:#0891B2"></i> 圖片工具<span style="font-size:12px;font-weight:500;color:var(--muted);margin-left:8px">浮水印／文字／人物合成・照片在本機處理</span></div>
             <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+                <button type="button" class="it-chk" onclick="openImageComposer()">人物合成</button>
                 <button class="btn-x" onclick="closeImgTool()">✕</button>
             </div>
         </div>
@@ -5515,7 +5517,7 @@ function switchBdTab(btn, idx) {
 // Esc closes only the foremost visible dialog, using its existing cancel/close path.
 document.addEventListener('keydown', function(e) {
     if (e.key !== 'Escape' || e.isComposing || e.repeat) return;
-    if (document.querySelector('dialog.transcript-dialog[open]')) return;
+    if (document.querySelector('dialog.transcript-dialog[open], #imageComposer[open]')) return;
     var layers = Array.from(document.querySelectorAll('.overlay, .fill-overlay, #calPopup')).filter(function(el) {
         var style = getComputedStyle(el);
         return el.getClientRects().length && style.display !== 'none' && style.visibility !== 'hidden';
@@ -12198,7 +12200,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260927-syncdialog1';
+var APP_VERSION = '20260927composer1';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13299,6 +13301,7 @@ function deleteMktTemplate(idx) {
 </script>
 <script src="transcript-parser.js?v=20260917audit1"></script>
 <script src="transcript-import.js?v=20260917audit1"></script>
+<script src="image-composer.js?v=20260927composer1"></script>
 <script src="area-editor.js?v=20260917audit1"></script>
 </body>
 </html>
