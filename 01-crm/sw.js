@@ -1,9 +1,10 @@
-var CACHE_NAME = 'crm-v20260927optin1';
+var CACHE_NAME = 'crm-v20260927matting1';
 var URLS_TO_CACHE = [
   './',
   './index.html',
-  './image-composer.js?v=20260927optin1',
-  './image-composer.css?v=20260927optin1',
+  './portrait-matting.js?v=20260927matting1',
+  './image-composer.js?v=20260927matting1',
+  './image-composer.css?v=20260927matting1',
   './area-editor.js?v=20260917audit1',
   './area-editor.css?v=20260914j',
   './transcript-parser.js?v=20260917audit1',
@@ -24,7 +25,7 @@ self.addEventListener('activate', function(e) {
   e.waitUntil(
     caches.keys().then(function(names) {
       return Promise.all(
-        names.filter(function(n) { return n !== CACHE_NAME; })
+        names.filter(function(n) { return n !== CACHE_NAME && n !== 'crm-model-matting-v1'; })
              .map(function(n) { return caches.delete(n); })
       );
     })
