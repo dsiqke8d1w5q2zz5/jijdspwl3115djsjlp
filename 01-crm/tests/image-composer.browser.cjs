@@ -9,7 +9,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
    await context.route('https://**/*',r=>r.abort()); // Never send test data to the CRM backend.
    const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
    await page.goto(pathToFileURL(path.join(__dirname,'../index.html')).href);
-   await page.evaluate(()=>openImgTool());await page.locator('#icUsePerson').check();
+   await page.evaluate(()=>openImgTool());await page.locator('#icTab_person').click();await page.locator('#icUsePerson').check();
    assert(await page.locator('#icDownload').isDisabled());
    await page.locator('#icAuto').uncheck();
    const fixture=(name,svg)=>({name,mimeType:'image/svg+xml',buffer:Buffer.from(svg)});
@@ -65,9 +65,9 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
    await page.locator('#icRetry').click();await page.waitForFunction(()=>document.getElementById('icStatus').dataset.error==='true');assert(await page.locator('#icRetry').isEnabled());
    await page.locator('#icAuto').uncheck();await page.waitForFunction(()=>!document.getElementById('icDownload').disabled);
    await page.keyboard.press('Escape');assert(!await page.locator('#imageComposer').isVisible());assert(!await page.locator('#imgToolModal').isVisible());
-   await page.reload();await page.evaluate(()=>openImgTool());await page.locator('#icTab_brand').click();assert(!await page.locator('#icUseBrand').isChecked(),'opening does not automatically apply banner');await page.locator('#icUseBrand').check();assert.equal(await page.locator('#icBrand_phone').inputValue(),'0912-345-678','brand content survives reload');
+   await page.reload();await page.evaluate(()=>openImgTool());await page.locator('#icTab_person').click();await page.locator('#icTab_brand').click();assert(!await page.locator('#icUseBrand').isChecked(),'opening does not automatically apply banner');await page.locator('#icUseBrand').check();assert.equal(await page.locator('#icBrand_phone').inputValue(),'0912-345-678','brand content survives reload');
    assert.equal(await page.locator('#icBrandTemplates button[aria-pressed=true]').getAttribute('data-theme'),'editorial');
-   await page.locator('#icTab_brand').focus();await page.keyboard.press('ArrowLeft');assert.equal(await page.locator('#icTab_watermark').getAttribute('aria-selected'),'true');
+   await page.locator('#icTab_brand').focus();await page.keyboard.press('ArrowLeft');assert.equal(await page.locator('#icTab_person').getAttribute('aria-selected'),'true');
    assert.deepEqual(errors,[]);await context.close();console.log('PASS composer '+width+'px: upload, drag/touch, size, flip, downloads, offline fallback, ESC');
   }
  }finally{await browser.close();}

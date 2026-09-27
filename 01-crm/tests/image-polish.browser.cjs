@@ -4,7 +4,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
  const browser=await chromium.launch({headless:true,...(process.env.CHROME_PATH?{executablePath:process.env.CHROME_PATH}:{})});
  try{for(const width of [1440,768,390,320]){
   const context=await browser.newContext({viewport:{width,height:width<=390?740:1000},hasTouch:width<=390,acceptDownloads:true});await context.route('https://**/*',r=>r.abort());
-  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(pathToFileURL(path.join(__dirname,'../index.html')).href);await page.evaluate(()=>openImgTool());
+  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(pathToFileURL(path.join(__dirname,'../index.html')).href);await page.evaluate(()=>openImgTool());await page.locator('#icTab_person').click();
   const svg='<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><defs><pattern id="p" width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="white"/><rect width="10" height="20" fill="red"/></pattern></defs><rect width="800" height="600" fill="url(#p)"/></svg>';
   await page.locator('#icBackground').setInputFiles(['first.svg','second.svg'].map(name=>({name,mimeType:'image/svg+xml',buffer:Buffer.from(svg)})));await page.waitForFunction(()=>document.querySelectorAll('#icPhotos button').length===2);
   const signature=async()=>{await page.locator('#icRedactRegions').evaluate(el=>{el.value='';el.dispatchEvent(new Event('change'));});return crypto.createHash('sha256').update(await page.locator('#icCanvas').evaluate(c=>c.toDataURL())).digest('hex');};

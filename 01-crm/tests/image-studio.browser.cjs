@@ -4,7 +4,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
  const browser=await chromium.launch({headless:true,...(process.env.CHROME_PATH?{executablePath:process.env.CHROME_PATH}:{})});
  try{for(const width of [1440,390]){
   const context=await browser.newContext({viewport:{width,height:1000},acceptDownloads:true});await context.route('https://**/*',r=>r.abort());
-  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(pathToFileURL(path.join(__dirname,'../index.html')).href);await page.evaluate(()=>openImgTool());
+  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(pathToFileURL(path.join(__dirname,'../index.html')).href);await page.evaluate(()=>openImgTool());await page.locator('#icTab_person').click();
   const fixture=(name,color,w=800,h=600)=>({name,mimeType:'image/svg+xml',buffer:Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="${w}" height="${h}" fill="${color}"/></svg>`)});
   const pixel=(id,x,y)=>page.locator('#'+id).evaluate((c,p)=>Array.from(c.getContext('2d').getImageData(Math.floor(c.width*p.x),Math.floor(c.height*p.y),1,1).data),{x,y});
   const signature=async()=>crypto.createHash('sha256').update(await page.locator('#icCanvas').evaluate(c=>c.toDataURL())).digest('hex');
@@ -34,7 +34,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
   await page.locator('#icZoom').selectOption('1');assert(await page.locator('#icStage').evaluate(e=>e.scrollWidth>e.clientWidth));await page.locator('#icZoom').selectOption('fit');
   await page.screenshot({path:path.join(os.tmpdir(),'crm-studio-'+width+'.png')});assert(await page.locator('#imageComposer').evaluate(e=>e.scrollWidth<=e.clientWidth+1));
   if(width===390){assert(await page.locator('#icMiniToggle').isVisible());await page.locator('#icMiniToggle').click();assert(!await page.locator('#icMiniCanvas').isVisible());}
-  await page.reload();await page.evaluate(()=>openImgTool());await page.locator('.ic-asset-library summary').click();await page.waitForFunction(()=>document.querySelectorAll('#icAssets .ic-asset').length===1);await page.locator('#icAssets button').filter({hasText:'用作人物'}).click();await page.waitForFunction(()=>!document.getElementById('icThumb').hidden);assert(await page.locator('#icUsePerson').isChecked(),'reusable cutout loads after refresh');
+  await page.reload();await page.evaluate(()=>openImgTool());await page.locator('#icTab_person').click();await page.locator('.ic-asset-library summary').click();await page.waitForFunction(()=>document.querySelectorAll('#icAssets .ic-asset').length===1);await page.locator('#icAssets button').filter({hasText:'用作人物'}).click();await page.waitForFunction(()=>!document.getElementById('icThumb').hidden);assert(await page.locator('#icUsePerson').isChecked(),'reusable cutout loads after refresh');
   assert.deepEqual(errors,[]);await context.close();console.log('PASS studio '+width+'px: history, photo scope, backups, text drag, collage, PNG/ZIP, asset persistence, repair and layer order');
  }}finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

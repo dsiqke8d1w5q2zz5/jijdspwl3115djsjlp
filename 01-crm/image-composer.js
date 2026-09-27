@@ -203,10 +203,12 @@
         const nav=document.createElement('div');nav.className='ic-tabs';nav.setAttribute('role','tablist');nav.setAttribute('aria-label','圖片編輯功能');toolbar.prepend(nav);
         const person=$('icUsePerson').closest('section'),output=dialog.querySelector('.ic-output');person.id='icPersonSection';output.id='icOutputSection';
         const note=side.querySelector(':scope > .ic-note');if(note)output.append(note);output.open=true;output.querySelector('summary').hidden=true;
-        const panels=[['person','人物合成',person],['caption','文字',$('icCaptionSection')],['watermark','浮水印',$('icWatermarkSection')],['brand','品牌底條',$('icBrandSection')],['crop','裁切拼版',$('icCropSection')],['redact','局部遮蔽',$('icRedactSection')],['output','輸出設定',output],['layouts','我的版面',$('icLayoutsSection')]];
-        function select(key){redaction?.cancel();for(const [id,,panel] of panels){const active=id===key;panel.hidden=!active;const button=$('icTab_'+id);button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;}side.scrollTop=0;redaction?.sync();draw($('icCanvas'));}
-        for(const [id,label,panel] of panels){const b=document.createElement('button');b.type='button';b.id='icTab_'+id;b.textContent=label;b.setAttribute('role','tab');b.setAttribute('aria-controls',panel.id);panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby',b.id);b.onclick=()=>select(id);b.onkeydown=e=>{const index=panels.findIndex(p=>p[0]===id);let next;if(e.key==='ArrowRight')next=(index+1)%panels.length;if(e.key==='ArrowLeft')next=(index+panels.length-1)%panels.length;if(e.key==='Home')next=0;if(e.key==='End')next=panels.length-1;if(next!==undefined){e.preventDefault();select(panels[next][0]);$('icTab_'+panels[next][0]).focus();}};nav.append(b);}
-        select('person');
+        const panels=[['crop','裁切拼版',$('icCropSection')],['person','人物合成',person],['brand','品牌底條',$('icBrandSection')],['caption','文字',$('icCaptionSection')],['watermark','浮水印',$('icWatermarkSection')],['redact','局部遮蔽',$('icRedactSection')],['output','輸出設定',output],['layouts','我的版面',$('icLayoutsSection')]];
+        function select(key){redaction?.cancel();for(const [id,,panel] of panels){const active=id===key;panel.hidden=!active;const button=$('icTab_'+id);button.setAttribute(id==='layouts'?'aria-pressed':'aria-selected',String(active));button.tabIndex=id==='layouts'||active||key==='layouts'&&id==='crop'?0:-1;}side.scrollTop=0;redaction?.sync();draw($('icCanvas'));}
+        for(const [id,label,panel] of panels){const b=document.createElement('button');b.type='button';b.id='icTab_'+id;b.textContent=label;b.setAttribute('aria-controls',panel.id);panel.setAttribute('aria-labelledby',b.id);b.onclick=()=>select(id);
+            if(id==='layouts'){panel.setAttribute('role','region');b.className='ic-layout-entry';uploads.append(b);continue;}
+            b.setAttribute('role','tab');panel.setAttribute('role','tabpanel');b.onkeydown=e=>{const items=panels.filter(p=>p[0]!=='layouts'),index=items.findIndex(p=>p[0]===id);let next;if(e.key==='ArrowRight')next=(index+1)%items.length;if(e.key==='ArrowLeft')next=(index+items.length-1)%items.length;if(e.key==='Home')next=0;if(e.key==='End')next=items.length-1;if(next!==undefined){e.preventDefault();select(items[next][0]);$('icTab_'+items[next][0]).focus();}};nav.append(b);}
+        select('crop');
     }
     function build(){
         dialog=document.createElement('dialog');dialog.className='ic-dialog';dialog.id='imageComposer';dialog.setAttribute('aria-labelledby','icTitle');
@@ -233,7 +235,7 @@
         dialog.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&['z','y'].includes(e.key.toLowerCase())&&!['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)){e.preventDefault();undoRedo(e.key.toLowerCase()==='y'||e.shiftKey?1:-1);}});
         ImageLayouts.mount($('icLayoutsSection'),{snapshot:layoutSnapshot,apply:applyLayout,isBusy:busy,thumbnail:()=>{const c=canvas(320,200);if(state.bg)c.getContext('2d').drawImage($('icCanvas'),0,0,320,200);else{c.getContext('2d').fillStyle='#eeeae4';c.getContext('2d').fillRect(0,0,320,200);BrandBanner.draw(c.getContext('2d'),320,200,{...BrandBanner.options(),height:24});}return c.toDataURL('image/jpeg',.65);}});
         $('icClose').onclick=()=>dialog.close();
-        dialog.addEventListener('close',()=>{drag=null;redaction.cancel();cancelCutout();itSaveCfg();if(previousFocus&&previousFocus.isConnected)previousFocus.focus();});
+        dialog.addEventListener('close',()=>{drag=null;redaction.cancel();cancelCutout();flushHistory();itSaveCfg();if(previousFocus&&previousFocus.isConnected)previousFocus.focus();});
         dialog.addEventListener('keydown',e=>{if(e.key!=='Escape')e.stopPropagation();});
         $('icUsePerson').onchange=()=>{if(!enabled())cancelCutout();render();};
         $('icBackground').onchange=e=>{if(e.target.files.length){resetHistory();itAddFiles(e.target.files);}e.target.value='';};
@@ -259,5 +261,5 @@
         $('icCutout').onclick=async()=>{if(state.person&&!state.busy)try{await download(state.person,'人物_去背.png','image/png');status('已產生去背人物下載。');}catch(e){status(e.message,true);}};
     }
     window.ImageComposer={refresh};
-    window.openImageComposer=function(){if(!dialog)build();previousFocus=document.activeElement;if(!dialog.open){['icUsePerson','itUseCap','itUseWm','icUseBrand'].forEach(id=>$(id).checked=false);dialog.showModal();}restoring=true;refresh();restoring=false;defaultSettings=layoutSnapshot();resetHistory();};
+    window.openImageComposer=function(){const first=!dialog;if(first)build();if(dialog.open)return;previousFocus=document.activeElement;if(first)['icUsePerson','itUseCap','itUseWm','icUseBrand'].forEach(id=>$(id).checked=false);dialog.showModal();restoring=true;refresh();restoring=false;if(first){defaultSettings=layoutSnapshot();resetHistory();}};
 })();

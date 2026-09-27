@@ -22,3 +22,5 @@
 @media(max-width:650px){.ic-mini{position:static;height:auto;min-height:0;flex:none;align-items:center;background:#f3f6f8;padding:6px 12px;gap:5px;order:0}.ic-mini canvas{width:180px;max-height:120px}.ic-mini button{align-self:flex-end;min-height:32px;font-size:12px}}
 
 @media(max-width:650px){.ic-preview-head #icPhotoName{flex-basis:100%;font-size:13px}.ic-preview-head label{flex:1}.ic-preview-head select{max-width:180px}}
+
+.ic-toolbar .ic-tabs{flex:1 1 100%}.ic-toolbar .ic-history{margin-left:auto;padding-right:12px;border-right:1px solid #ddd}.ic-toolbar .ic-downloads{margin-left:0}.ic-layout-entry[aria-pressed=true]{background:#eaf5fa;border-color:#b8dcea;color:#036986;font-weight:bold}@media(max-width:650px){.ic-header-uploads{flex-wrap:wrap;gap:6px}.ic-header-uploads .ic-layout-entry{font-size:13px;padding:8px}.ic-toolbar .ic-history{padding-right:6px}.ic-toolbar .ic-downloads{margin-left:0}}
