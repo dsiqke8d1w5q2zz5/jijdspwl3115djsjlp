@@ -809,7 +809,7 @@
         .ac-item:hover, .ac-item.active { background:var(--bg); }
         .ac-item b { color:var(--deep); }
     </style>
-    <link rel="stylesheet" href="image-composer.css?v=20260927matting1">
+    <link rel="stylesheet" href="image-composer.css?v=20260927caption1">
     <link rel="stylesheet" href="area-editor.css?v=20260914j">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
 </head>
@@ -1616,6 +1616,10 @@
                     <div class="it-sec-t"><i class="ti ti-text-caption" style="color:#7C3AED"></i> 加註文字（每張相同）</div>
                     <label class="it-lb">內容（可多行）</label>
                     <textarea id="itCapText" class="it-in" rows="2" placeholder="例：民生社區 3房2廳 1288萬" oninput="itRenderPreview()"></textarea>
+                    <div style="display:flex;gap:8px;align-items:end">
+                        <div style="flex:1;min-width:0"><label class="it-lb" for="itCapFont">字體</label><select id="itCapFont" class="it-in" onchange="itRenderPreview()"><option value="sans">黑體</option><option value="serif">明體</option><option value="kai">楷體</option></select></div>
+                        <div><label class="it-lb" for="itCapColor">文字顏色</label><input id="itCapColor" type="color" value="#ffffff" style="width:64px;height:40px" oninput="itRenderPreview()"></div>
+                    </div>
                     <label class="it-lb">位置</label>
                     <select id="itCapPos" class="it-in" onchange="itRenderPreview()">
                         <option value="bottom">底部橫幅</option>
@@ -12200,7 +12204,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260927matting1';
+var APP_VERSION = '20260927caption1';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -12400,7 +12404,7 @@ function openImgTool() {
         var cfg = JSON.parse(localStorage.getItem('_imgToolCfg') || '{}');
         if (cfg.wmText !== undefined) document.getElementById('itWmText').value = cfg.wmText;
         if (cfg.capText !== undefined) document.getElementById('itCapText').value = cfg.capText;
-        ['itWmOp','itWmSz','itWmGap','itWmAg','itCapSz','itCapBg','itQ','itMax','itCapPos'].forEach(function(k){
+        ['itWmOp','itWmSz','itWmGap','itWmAg','itCapSz','itCapBg','itQ','itMax','itCapPos','itCapColor','itCapFont'].forEach(function(k){
             if (cfg[k] !== undefined) { var el=document.getElementById(k); if(el) el.value = cfg[k]; }
         });
         if (cfg.wmCol) {
@@ -12426,7 +12430,7 @@ function itSaveCfg() {
             useCap: document.getElementById('itUseCap').checked,
             wmCol: (document.querySelector('input[name="itWmCol"]:checked')||{}).value || '#FFFFFF'
         };
-        ['itWmOp','itWmSz','itWmGap','itWmAg','itCapSz','itCapBg','itQ','itMax','itCapPos'].forEach(function(k){
+        ['itWmOp','itWmSz','itWmGap','itWmAg','itCapSz','itCapBg','itQ','itMax','itCapPos','itCapColor','itCapFont'].forEach(function(k){
             var el=document.getElementById(k); if(el) cfg[k]=el.value;
         });
         localStorage.setItem('_imgToolCfg', JSON.stringify(cfg));
@@ -12492,6 +12496,8 @@ function itOpts() {
         wmCol:  col,
         capText:document.getElementById('itCapText').value,
         capPos: document.getElementById('itCapPos').value,
+        capColor: document.getElementById('itCapColor').value,
+        capFont: document.getElementById('itCapFont').value,
         capSz:  parseInt(document.getElementById('itCapSz').value,10),
         capBg:  parseInt(document.getElementById('itCapBg').value,10)/100,
         q:      parseInt(document.getElementById('itQ').value,10)/100,
@@ -12580,50 +12586,42 @@ function itDraw(canvas, img, o, outW, outH) {
     var cap = (o.capText || '').replace(/\r/g,'').trim();
     if (o.useCap && cap) {
         var lines = cap.split('\n');
-        var cs = Math.max(10, o.capSz * k);
-        var lh = cs * 1.32;
-        var pad = cs * 0.55;
-        var blockH = lines.length * lh + pad*2 - (lh - cs)*0.5;
-
+        var cs = Math.max(10, o.capSz * k), padX = cs * .4, padY = cs * .22;
+        var fonts = {sans:'"Microsoft JhengHei","PingFang TC",sans-serif',serif:'"PMingLiU","Songti TC",serif',kai:'"DFKai-SB","BiauKai","KaiTi",serif'};
         ctx.save();
-        ctx.font = '700 ' + cs + 'px "Microsoft JhengHei","PingFang TC",sans-serif';
-        ctx.textBaseline = 'top';
-
+        ctx.font = '700 ' + cs + 'px ' + (fonts[o.capFont] || fonts.sans);
+        ctx.textBaseline = 'alphabetic';
+        // Size the background from visible glyph bounds, not the font's extra line box.
+        var ascent = 0, descent = 0, maxw = 0;
+        lines.forEach(function(t){var m=ctx.measureText(t||'國');ascent=Math.max(ascent,m.actualBoundingBoxAscent||cs*.8);descent=Math.max(descent,m.actualBoundingBoxDescent||cs*.12);maxw=Math.max(maxw,ctx.measureText(t).width);});
+        var glyphH=ascent+descent, lh=Math.max(cs*1.18,glyphH+cs*.12);
+        var blockH=glyphH+(lines.length-1)*lh+padY*2;
+        var color=/^#[0-9a-f]{6}$/i.test(o.capColor||'')?o.capColor:'#FFFFFF';
+        var by,tx;
         if (o.capPos === 'bottom' || o.capPos === 'top') {
-            var by = (o.capPos === 'bottom') ? outH - blockH : 0;
+            by = (o.capPos === 'bottom') ? outH - blockH : 0;
             if (o.capBg > 0) {
                 var g = ctx.createLinearGradient(0, by, 0, by + blockH);
                 var a = o.capBg;
                 if (o.capPos === 'bottom') { g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(0.35,'rgba(0,0,0,'+(a*0.85)+')'); g.addColorStop(1,'rgba(0,0,0,'+a+')'); }
                 else { g.addColorStop(0,'rgba(0,0,0,'+a+')'); g.addColorStop(0.65,'rgba(0,0,0,'+(a*0.85)+')'); g.addColorStop(1,'rgba(0,0,0,0)'); }
-                ctx.fillStyle = g;
-                ctx.fillRect(0, by, outW, blockH);
+                ctx.fillStyle = g;ctx.fillRect(0, by, outW, blockH);
             }
-            ctx.fillStyle = '#FFFFFF';
-            ctx.textAlign = 'center';
-            ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = cs*0.25;
-            lines.forEach(function(t,i) { ctx.fillText(t, outW/2, by + pad + i*lh); });
+            ctx.textAlign='center';tx=outW/2;
         } else {
-            var right = (o.capPos === 'br');
-            ctx.textAlign = right ? 'right' : 'left';
-            var mx = pad*1.6;
-            var tx = right ? outW - mx : mx;
-            var ty = outH - blockH - pad*0.6;
-            if (o.capBg > 0) {
-                var maxw = 0;
-                lines.forEach(function(t){ maxw = Math.max(maxw, ctx.measureText(t).width); });
-                var bx = right ? (tx - maxw - pad) : (tx - pad);
-                ctx.fillStyle = 'rgba(0,0,0,'+o.capBg+')';
-                var rr = cs*0.28, bw = maxw + pad*2, bh = blockH;
-                ctx.beginPath();
-                if (ctx.roundRect) { ctx.roundRect(bx, ty - pad*0.4, bw, bh, rr); }
-                else { ctx.rect(bx, ty - pad*0.4, bw, bh); }
+            var right=o.capPos==='br', margin=cs*.35;
+            ctx.textAlign=right?'right':'left';tx=right?outW-margin-padX:margin+padX;
+            by=outH-blockH-margin;
+            if(o.capBg>0){
+                var bx=right?outW-margin-maxw-padX*2:margin;
+                ctx.fillStyle='rgba(0,0,0,'+o.capBg+')';ctx.beginPath();
+                if(ctx.roundRect)ctx.roundRect(bx,by,maxw+padX*2,blockH,cs*.22);
+                else ctx.rect(bx,by,maxw+padX*2,blockH);
                 ctx.fill();
             }
-            ctx.fillStyle = '#FFFFFF';
-            ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = cs*0.25;
-            lines.forEach(function(t,i) { ctx.fillText(t, tx, ty + pad*0.3 + i*lh); });
         }
+        ctx.fillStyle=color;ctx.shadowColor='rgba(0,0,0,.45)';ctx.shadowBlur=cs*.12;
+        lines.forEach(function(t,i){ctx.fillText(t,tx,by+padY+ascent+i*lh);});
         ctx.restore();
     }
 }
@@ -13300,8 +13298,8 @@ function deleteMktTemplate(idx) {
 </script>
 <script src="transcript-parser.js?v=20260917audit1"></script>
 <script src="transcript-import.js?v=20260927center1"></script>
-<script src="portrait-matting.js?v=20260927matting1"></script>
-<script src="image-composer.js?v=20260927matting1"></script>
+<script src="portrait-matting.js?v=20260927caption1"></script>
+<script src="image-composer.js?v=20260927caption1"></script>
 <script src="area-editor.js?v=20260917audit1"></script>
 </body>
 </html>

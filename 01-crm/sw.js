@@ -1,10 +1,10 @@
-var CACHE_NAME = 'crm-v20260927matting1';
+var CACHE_NAME = 'crm-v20260927caption1';
 var URLS_TO_CACHE = [
   './',
   './index.html',
-  './portrait-matting.js?v=20260927matting1',
-  './image-composer.js?v=20260927matting1',
-  './image-composer.css?v=20260927matting1',
+  './portrait-matting.js?v=20260927caption1',
+  './image-composer.js?v=20260927caption1',
+  './image-composer.css?v=20260927caption1',
   './area-editor.js?v=20260917audit1',
   './area-editor.css?v=20260914j',
   './transcript-parser.js?v=20260917audit1',
