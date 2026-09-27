@@ -124,13 +124,29 @@
         const long=options.brand?.enabled?Math.max(Math.min(2400,max),Math.min(max,Math.max(photo.width,photo.height))):Math.min(max,Math.max(photo.width,photo.height));
         return ratio>=1?[Math.round(long),Math.max(1,Math.round(long/ratio))]:[Math.max(1,Math.round(long*ratio)),Math.round(long)];
     }
+    let thumbnailTimer;
+    function scheduleThumbnails(){
+        clearTimeout(thumbnailTimer);
+        thumbnailTimer=setTimeout(()=>{
+            if(!studio||!dialog)return;
+            const buttons=new Map(Array.from($('icPhotos').querySelectorAll('button'),b=>[b.dataset.id,b]));
+            for(const file of _itFiles){
+                const image=buttons.get(String(file.id))?.querySelector('img');if(!image)continue;
+                const o=file.id===state.active?photoOptions():optionsFrom(photoSettings.get(file.id)||defaultSettings||layoutSnapshot());
+                const aux=file.id===state.active?studio.aux():(photoAux.get(file.id)||defaultAux);
+                const ratio=studio.aspect(file.img,o.studio),thumb=canvas(ratio>=1?320:Math.max(1,Math.round(320*ratio)),ratio>=1?Math.max(1,Math.round(320/ratio)):320);
+                draw(thumb,file.img,file.id===state.active?state:(state.placements.get(file.id)||defaultPlacement),o,o.usePerson?state.person:null,aux,file.id);
+                image.src=thumb.toDataURL('image/png');
+            }
+        },120);
+    }
     function render(){
         if(!dialog)return;
         const c=$('icCanvas');c.hidden=!state.bg;$('icEmpty').hidden=!!state.bg;
         if(state.bg){const ratio=studio?studio.aspect(state.bg):state.bg.width/state.bg.height;c.width=ratio>=1?2400:Math.round(2400*ratio);c.height=ratio>=1?Math.round(2400/ratio):2400;c.style.setProperty('--ic-aspect',c.width/c.height);draw(c);if(studio){const [w,h]=outputSize(state.bg,photoOptions());$('icDimensions').textContent='這張成品：'+w+' × '+h+' 像素';}}
         if(studio&&!restoring){const snapshot=layoutSnapshot(),aux=studio.aux();if($('icEditScope').value==='all'){defaultSettings=snapshot;defaultAux=aux;for(const file of _itFiles){photoSettings.set(file.id,JSON.parse(JSON.stringify(snapshot)));photoAux.set(file.id,aux);}}else if(state.active){photoSettings.set(state.active,snapshot);photoAux.set(state.active,aux);}else{defaultSettings=snapshot;defaultAux=aux;}}
         studio?.afterRender();redaction?.sync();scheduleHistory();
-        remember();controls();
+        remember();controls();scheduleThumbnails();
     }
     function refresh(){
         if(!dialog)return;
