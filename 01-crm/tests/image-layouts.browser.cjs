@@ -1,0 +1,40 @@
+const assert=require('node:assert/strict'),path=require('node:path'),{pathToFileURL}=require('node:url');
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
+(async()=>{
+ const browser=await chromium.launch({headless:true,...(process.env.CHROME_PATH?{executablePath:process.env.CHROME_PATH}:{})});
+ try{for(const width of [1440,390]){
+  const context=await browser.newContext({viewport:{width,height:900}});
+  await context.route('https://**/*',r=>r.abort());
+  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto(pathToFileURL(path.join(__dirname,'../index.html')).href);await page.evaluate(()=>openImgTool());
+  const fixture=(name,color,w,h)=>({name,mimeType:'image/svg+xml',buffer:Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="${w}" height="${h}" fill="${color}"/></svg>`)});
+  const photo=fixture('room.svg','blue',800,600),person=fixture('person.svg','red',100,200);
+  await page.locator('#icBackground').setInputFiles(photo);
+  await page.locator('#icUsePerson').check();await page.locator('#icAuto').uncheck();await page.locator('#icPerson').setInputFiles(person);
+  await page.waitForFunction(()=>!document.getElementById('icDownload').disabled);
+  await page.locator('#icSize').fill('35');await page.locator('#icFlip').click();await page.locator('#icCanvas').focus();await page.keyboard.press('ArrowRight');
+  await page.locator('#icTab_caption').click();await page.locator('#itUseCap').check();await page.locator('#itCapText').fill('版面保存測試');await page.locator('#itCapColor').fill('#ff0000');
+  await page.locator('#icTab_brand').click();await page.locator('#icUseBrand').check();await page.locator('[data-theme="arc"]').click();await page.locator('#icBrand_name').fill('測試姓名');await page.locator('#icBrand_phone').fill('0900-000-000');await page.locator('#icBrand_width').fill('70');await page.locator('#icBrand_position').selectOption('left');
+  const signature=()=>page.locator('#icCanvas').evaluate(c=>c.toDataURL());const expected=await signature();
+  await page.locator('#icTab_layouts').click();assert(await page.locator('#icLayoutApply').isDisabled());
+  await page.locator('#icLayoutName').fill('測試 <b>版面</b>');await page.locator('#icLayoutSave').click();assert.match(await page.locator('#icLayoutStatus').innerText(),/已儲存/);
+  const rows=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('_crmImageLayouts_v1')));
+  const saved=(await rows())[0];assert.equal(saved.settings.person.size,.35);assert.equal(saved.settings.person.flip,true);assert(saved.settings.person.x>.22);assert(!JSON.stringify(saved).includes('data:image'));
+  await page.locator('#icLayoutSave').click();assert.equal((await rows()).length,1,'duplicate names do not overwrite');
+  await page.locator('#icTab_brand').click();await page.locator('#icBrand_name').fill('變更');await page.locator('#icBrand_width').fill('100');
+  await page.locator('#icTab_person').click();await page.locator('#icSize').fill('70');
+  await page.locator('#icTab_layouts').click();await page.locator('#icLayoutApply').click();assert.equal(await signature(),expected,'all saved settings restore identical pixels');
+  await page.locator('#icLayoutName').fill('新版面');await page.locator('#icLayoutUpdate').click();assert.equal((await rows())[0].name,'新版面');
+  await page.reload();await page.evaluate(()=>openImgTool());await page.locator('#icTab_layouts').click();await page.locator('#icLayoutSelect').selectOption(saved.id);await page.locator('#icLayoutApply').click();assert.match(await page.locator('#icStatus').innerText(),/選擇人物/);
+  await page.locator('#icBackground').setInputFiles(photo);await page.locator('#icTab_person').click();await page.locator('#icAuto').uncheck();await page.locator('#icPerson').setInputFiles(person);await page.waitForFunction(()=>!document.getElementById('icDownload').disabled);
+  assert.equal(await signature(),expected,'saved layout survives reload and replacement photos');
+  await page.locator('#icTab_layouts').click();
+  await page.screenshot({path:path.join(require('node:os').tmpdir(),'crm-layouts-'+width+'.png')});
+  assert(await page.locator('#imageComposer').evaluate(e=>e.scrollWidth<=e.clientWidth+1));assert.equal(await page.locator('#icLayoutsSection b').count(),0,'saved names are text, not markup');
+  await page.evaluate(()=>{window.savedStorageSet=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k==='_crmImageLayouts_v1')throw new DOMException('Quota','QuotaExceededError');return window.savedStorageSet.call(this,k,v);};});
+  await page.locator('#icLayoutName').fill('不可保存');await page.locator('#icLayoutSave').click();assert.match(await page.locator('#icLayoutStatus').innerText(),/無法讀取或儲存/);assert.equal((await rows()).length,1,'storage failure keeps previous layouts');
+  await page.evaluate(()=>Storage.prototype.setItem=window.savedStorageSet);await page.locator('#icLayoutDelete').click();assert.deepEqual(await rows(),[]);assert.equal(await signature(),expected,'deleting preset keeps the current image');
+  await page.evaluate(()=>localStorage.setItem('_crmImageLayouts_v1','invalid-json'));await page.reload();await page.evaluate(()=>openImgTool());await page.locator('#icTab_layouts').click();assert.match(await page.locator('#icLayoutStatus').innerText(),/無法讀取/);assert.equal(await page.evaluate(()=>localStorage.getItem('_crmImageLayouts_v1')),'invalid-json','corrupt data is not silently overwritten');
+  assert.deepEqual(errors,[]);await context.close();console.log('PASS layouts '+width+'px: save/apply/update/delete, pixel restoration, reload, storage failure');
+ }}finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

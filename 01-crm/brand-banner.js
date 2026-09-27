@@ -80,5 +80,19 @@ const colors=[['黑','#000000'],['白','#ffffff'],['灰','#808080'],['紅','#e53
 function palette(input){const wrap=document.createElement('div');wrap.className='ic-palette';wrap.setAttribute('role','group');wrap.setAttribute('aria-label','常用顏色');for(const [name,value] of colors){const b=document.createElement('button');b.type='button';b.title=name;b.setAttribute('aria-label',name);b.style.background=value;b.onclick=()=>{input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));};wrap.append(b);}const parent=input.closest('.ic-brand-colors');if(parent){const row=document.createElement('div');row.className='ic-brand-color-row';input.parentElement.append(row);row.append(wrap);}else input.parentElement.append(wrap);}
 function fontOptions(select){for(const [value,label] of [['light','細黑體'],['book','細明體'],['italic','斜體黑體']]){const option=document.createElement('option');option.value=value;option.textContent=label;select.append(option);}}
 function enhanceCaption(){palette($('itCapColor'));fontOptions($('itCapFont'));}
-window.BrandBanner={mount,enhanceCaption,options:()=>({...current,enabled:!!$('icUseBrand')?.checked}),height,draw};
+function apply(saved){
+ if(!saved||typeof saved!=='object')return;
+ for(const key of Object.keys(defaults)){
+  const value=saved[key];if(value===undefined)continue;
+  if(key==='theme'){if(themes[value])current.theme=value;continue;}
+  const input=$('icBrand_'+key);if(!input)continue;
+  if(input.tagName==='SELECT'&&!Array.from(input.options).some(o=>o.value===value))continue;
+  if(input.type==='color'&&!/^#[0-9a-f]{6}$/i.test(value))continue;
+  if(input.type==='range'&&!Number.isFinite(Number(value)))continue;
+  input.value=String(value).slice(0,80);
+  current[key]=input.type==='range'?Number(input.value):input.value;
+ }
+ $('icUseBrand').checked=saved.enabled===true;sync();save();
+}
+window.BrandBanner={mount,enhanceCaption,apply,options:()=>({...current,enabled:!!$('icUseBrand')?.checked}),height,draw};
 })();
