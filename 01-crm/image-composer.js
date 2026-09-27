@@ -129,7 +129,7 @@
         clearTimeout(thumbnailTimer);
         thumbnailTimer=setTimeout(()=>{
             if(!studio||!dialog)return;
-            const buttons=new Map(Array.from($('icPhotos').querySelectorAll('button'),b=>[b.dataset.id,b]));
+            const buttons=new Map(Array.from($('icPhotos').querySelectorAll('button[data-id]'),b=>[b.dataset.id,b]));
             for(const file of _itFiles){
                 const image=buttons.get(String(file.id))?.querySelector('img');if(!image)continue;
                 const o=file.id===state.active?photoOptions():optionsFrom(photoSettings.get(file.id)||defaultSettings||layoutSnapshot());
@@ -156,9 +156,19 @@
         state.bg=active?.img||null;
         $('icPhotoName').textContent=active?active.name+' · '+(_itFiles.indexOf(active)+1)+' / '+_itFiles.length:'尚未選擇照片';
         const strip=$('icPhotos');const key=_itFiles.map(f=>f.id).join('|');
-        if(strip.dataset.key!==key){strip.dataset.key=key;strip.replaceChildren();for(const f of _itFiles){const b=document.createElement('button');b.type='button';b.dataset.id=f.id;b.title=f.name;b.setAttribute('aria-label','編輯照片：'+f.name);const image=new Image();image.src=f.url;image.alt=f.name;b.append(image);const label=document.createElement('span');label.className='ic-photo-label';label.textContent=(_itFiles.indexOf(f)+1)+' · '+f.name;b.append(label);b.onclick=()=>{flushHistory();remember();state.active=f.id;Object.assign(state,state.placements.get(f.id)||defaultPlacement);const saved=photoSettings.get(f.id)||defaultSettings;if(saved){restoreControls(saved);studio.restoreAux(photoAux.get(f.id)||defaultAux);}$('icSize').value=state.size*100;restoring=true;refresh();restoring=false;};strip.append(b);}}
-        strip.hidden=_itFiles.length<2;strip.querySelectorAll('button').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.id===state.active));});
+        if(strip.dataset.key!==key){strip.dataset.key=key;strip.replaceChildren();for(const f of _itFiles){const b=document.createElement('button');b.type='button';b.dataset.id=f.id;b.title=f.name;b.setAttribute('aria-label','編輯照片：'+f.name);const image=new Image();image.src=f.url;image.alt=f.name;b.append(image);const label=document.createElement('span');label.className='ic-photo-label';label.textContent=(_itFiles.indexOf(f)+1)+' · '+f.name;b.append(label);b.onclick=()=>{flushHistory();remember();state.active=f.id;Object.assign(state,state.placements.get(f.id)||defaultPlacement);const saved=photoSettings.get(f.id)||defaultSettings;if(saved){restoreControls(saved);studio.restoreAux(photoAux.get(f.id)||defaultAux);}$('icSize').value=state.size*100;restoring=true;refresh();restoring=false;};const item=document.createElement('div');item.className='ic-photo-item';const remove=document.createElement('button');remove.type='button';remove.className='ic-photo-remove';remove.textContent='×';remove.title='移除這張照片';remove.setAttribute('aria-label','移除照片：'+f.name);remove.onclick=()=>removePhoto(f.id);item.append(b,remove);strip.append(item);}}
+        strip.hidden=_itFiles.length===0;strip.querySelectorAll('button[data-id]').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.id===state.active));});
         render();
+    }
+    function removePhoto(id){
+        const file=_itFiles.find(f=>f.id===id);if(!file||busy())return;
+        if(!confirm('移除「'+file.name+'」？這張照片的編輯會一併移除，原始檔案不受影響。'))return;
+        const strip=$('icPhotos'),scroll=strip.scrollTop,left=strip.scrollLeft;
+        flushHistory();remember();redaction.forget(id);photoSettings.delete(id);photoAux.delete(id);state.placements.delete(id);
+        if(id===state.active){const index=_itFiles.indexOf(file),next=_itFiles[index+1]||_itFiles[index-1];state.active=null;if(next){state.active=next.id;Object.assign(state,state.placements.get(next.id)||defaultPlacement);restoreControls(photoSettings.get(next.id)||defaultSettings||layoutSnapshot());studio.restoreAux(photoAux.get(next.id)||defaultAux);$('icSize').value=state.size*100;}}
+        itRemove(id);resetHistory();strip.scrollTop=scroll;strip.scrollLeft=left;
+        const focus=Array.from(strip.querySelectorAll('button[data-id]')).find(b=>b.dataset.id===String(state.active));(focus||$('icBackground')).focus({preventScroll:true});
+        status('已移除照片，原始檔案不受影響。');
     }
     function reset(){Object.assign(state,{x:.22,y:.72,size:.5,flip:false});$('icSize').value=50;render();}
     function point(e){const r=$('icCanvas').getBoundingClientRect();return{x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height};}
@@ -258,7 +268,7 @@
         $('icUsePerson').onchange=()=>{if(!enabled())cancelCutout();render();};
         $('icBackground').onchange=e=>{if(e.target.files.length){resetHistory();itAddFiles(e.target.files);}e.target.value='';};
         $('icClear').onclick=()=>{redaction.clear();photoSettings.clear();photoAux.clear();state.placements.clear();state.active=null;itClear();resetHistory();status('照片已清空，可重新選擇照片。');};
-        $('icRemove').onclick=()=>{if(!state.active)return;redaction.forget(state.active);photoSettings.delete(state.active);photoAux.delete(state.active);state.placements.delete(state.active);itRemove(state.active);resetHistory();};
+        $('icRemove').onclick=()=>removePhoto(state.active);
         const stage=$('icStage');stage.ondragover=e=>e.preventDefault();stage.ondrop=e=>{e.preventDefault();if(!busy())itAddFiles(e.dataTransfer.files);};
         $('icPerson').onchange=async e=>{
             const f=e.target.files[0];e.target.value='';if(!f||state.busy)return;
