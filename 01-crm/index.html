@@ -809,7 +809,7 @@
         .ac-item:hover, .ac-item.active { background:var(--bg); }
         .ac-item b { color:var(--deep); }
     </style>
-    <link rel="stylesheet" href="image-composer.css?v=20260927caption1">
+    <link rel="stylesheet" href="image-composer.css?v=20260927brand1">
     <link rel="stylesheet" href="area-editor.css?v=20260914j">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
 </head>
@@ -12204,7 +12204,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260927caption1';
+var APP_VERSION = '20260927brand1';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -12589,17 +12589,18 @@ function itDraw(canvas, img, o, outW, outH) {
         var cs = Math.max(10, o.capSz * k), padX = cs * .4, padY = cs * .22;
         var fonts = {sans:'"Microsoft JhengHei","PingFang TC",sans-serif',serif:'"PMingLiU","Songti TC",serif',kai:'"DFKai-SB","BiauKai","KaiTi",serif'};
         ctx.save();
-        ctx.font = '700 ' + cs + 'px ' + (fonts[o.capFont] || fonts.sans);
+        ctx.font = (o.capFont==='italic'?'italic ':'') + (['light','book'].includes(o.capFont)?'400 ':'700 ') + cs + 'px ' + (fonts[o.capFont==='book'?'serif':o.capFont] || fonts.sans);
         ctx.textBaseline = 'alphabetic';
         // Size the background from visible glyph bounds, not the font's extra line box.
         var ascent = 0, descent = 0, maxw = 0;
         lines.forEach(function(t){var m=ctx.measureText(t||'國');ascent=Math.max(ascent,m.actualBoundingBoxAscent||cs*.8);descent=Math.max(descent,m.actualBoundingBoxDescent||cs*.12);maxw=Math.max(maxw,ctx.measureText(t).width);});
         var glyphH=ascent+descent, lh=Math.max(cs*1.18,glyphH+cs*.12);
         var blockH=glyphH+(lines.length-1)*lh+padY*2;
+        var capEdge=outH-(o.brandInset||0);
         var color=/^#[0-9a-f]{6}$/i.test(o.capColor||'')?o.capColor:'#FFFFFF';
         var by,tx;
         if (o.capPos === 'bottom' || o.capPos === 'top') {
-            by = (o.capPos === 'bottom') ? outH - blockH : 0;
+            by = (o.capPos === 'bottom') ? capEdge - blockH : 0;
             if (o.capBg > 0) {
                 var g = ctx.createLinearGradient(0, by, 0, by + blockH);
                 var a = o.capBg;
@@ -12611,7 +12612,7 @@ function itDraw(canvas, img, o, outW, outH) {
         } else {
             var right=o.capPos==='br', margin=cs*.35;
             ctx.textAlign=right?'right':'left';tx=right?outW-margin-padX:margin+padX;
-            by=outH-blockH-margin;
+            by=capEdge-blockH-margin;
             if(o.capBg>0){
                 var bx=right?outW-margin-maxw-padX*2:margin;
                 ctx.fillStyle='rgba(0,0,0,'+o.capBg+')';ctx.beginPath();
@@ -13298,8 +13299,9 @@ function deleteMktTemplate(idx) {
 </script>
 <script src="transcript-parser.js?v=20260917audit1"></script>
 <script src="transcript-import.js?v=20260927center1"></script>
-<script src="portrait-matting.js?v=20260927caption1"></script>
-<script src="image-composer.js?v=20260927caption1"></script>
+<script src="portrait-matting.js?v=20260927brand1"></script>
+<script src="brand-banner.js?v=20260927brand1"></script>
+<script src="image-composer.js?v=20260927brand1"></script>
 <script src="area-editor.js?v=20260917audit1"></script>
 </body>
 </html>

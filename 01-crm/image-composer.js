@@ -21,6 +21,7 @@
         ['icSize','icFlip','icReset'].forEach(id=>$(id).disabled=!state.person||state.exporting);
         $('icSizeValue').textContent=Math.round(state.size*100)+'%';
         $('icPersonBody').hidden=!enabled();
+        if($('icBrandBody'))$('icBrandBody').hidden=!$('icUseBrand').checked;
         $('itWmBox').hidden=!$('itUseWm').checked;$('itCapBox').hidden=!$('itUseCap').checked;
     }
     function canvas(w,h) { const c=document.createElement('canvas'); c.width=w;c.height=h;return c; }
@@ -91,7 +92,7 @@
     function remember(){if(state.active)state.placements.set(state.active,{x:state.x,y:state.y,size:state.size,flip:state.flip});}
     function geometry(w,h,pos=state,person=state.person){const ph=h*pos.size,pw=person?ph*person.width/person.height:0;return{x:w*pos.x-pw/2,y:h*pos.y-ph/2,w:pw,h:ph};}
     const whiteSilhouettes=new WeakMap();
-    function photoOptions(){return {...itOpts(),personStyle:$('icStyle').value,outlineWidth:Number($('icOutline').value)};}
+    function photoOptions(){return {...itOpts(),brand:BrandBanner.options(),personStyle:$('icStyle').value,outlineWidth:Number($('icOutline').value)};}
     function draw(target,photo=state.bg,pos=state,options=photoOptions(),person=enabled()?state.person:null){
         if(!photo)return;
         const base=canvas(target.width,target.height),ctx=base.getContext('2d');
@@ -104,7 +105,9 @@
                 for(let i=0;i<24;i++){const angle=i*Math.PI/12;ctx.drawImage(white,Math.cos(angle)*radius,Math.sin(angle)*radius,r.w,r.h);}
             }
             ctx.drawImage(person,0,0,r.w,r.h);ctx.restore();}
-        itDraw(target,base,options,target.width,target.height);
+        const opts={...options,brandInset:options.brand?.enabled?BrandBanner.height(target.height,options.brand):0};
+        itDraw(target,base,opts,target.width,target.height);
+        if(options.brand?.enabled)BrandBanner.draw(target.getContext('2d'),target.width,target.height,options.brand);
     }
     function render(){
         if(!dialog)return;
@@ -133,13 +136,25 @@
     async function exportPhotos(all){
         if($('icDownload').disabled)return;
         const options=photoOptions();
-        if(options.useWm&&!options.wmText){status('請輸入浮水印文字，或關閉浮水印。',true);$('itWmText').focus();return;}
-        if(options.useCap&&!options.capText.trim()){status('請輸入加註文字，或關閉加註文字。',true);$('itCapText').focus();return;}
+        if(options.brand.enabled&&!['company','name','phone','tagline'].some(k=>options.brand[k].trim())){status('請先輸入品牌底條的文字內容。',true);$('icTab_brand').click();$('icBrand_company').focus();return;}
+        if(options.useWm&&!options.wmText){status('請輸入浮水印文字，或關閉浮水印。',true);$('icTab_watermark').click();$('itWmText').focus();return;}
+        if(options.useCap&&!options.capText.trim()){status('請輸入加註文字，或關閉加註文字。',true);$('icTab_caption').click();$('itCapText').focus();return;}
         remember();itSaveCfg();
         const photos=(all?_itFiles:_itFiles.filter(f=>f.id===state.active)).map(f=>({file:f,pos:{...(state.placements.get(f.id)||{x:.22,y:.72,size:.5,flip:false})}}));
         const person=enabled()?state.person:null;state.exporting=true;controls();
         try{let count=0;for(const {file,pos} of photos){const [w,h]=itOutSize(file,options),out=canvas(w,h);draw(out,file.img,pos,options,person);await download(out,file.name.replace(/\.[^.]+$/,'')+'_編輯.jpg','image/jpeg',options.q);status('已產生 '+(++count)+' / '+photos.length+' 張下載圖片。');await new Promise(resolve=>setTimeout(resolve,250));}status('完成，共 '+photos.length+' 張。原圖沒有被修改。');}
         catch(e){status(e.message||'下載未完成，請重試。',true);}finally{state.exporting=false;controls();}
+    }
+    function buildTabs(){
+        const header=dialog.querySelector('.ic-head'),toolbar=dialog.querySelector('.ic-toolbar'),side=dialog.querySelector('.ic-controls');
+        const uploads=document.createElement('div');uploads.className='ic-header-uploads';uploads.append($('icBackground').closest('label'),$('icClear'));header.insertBefore(uploads,$('icClose'));
+        const nav=document.createElement('div');nav.className='ic-tabs';nav.setAttribute('role','tablist');nav.setAttribute('aria-label','圖片編輯功能');toolbar.prepend(nav);
+        const person=$('icUsePerson').closest('section'),output=dialog.querySelector('.ic-output');person.id='icPersonSection';output.id='icOutputSection';
+        const note=side.querySelector(':scope > .ic-note');if(note)output.append(note);output.open=true;output.querySelector('summary').hidden=true;
+        const panels=[['person','人物合成',person],['caption','文字',$('icCaptionSection')],['watermark','浮水印',$('icWatermarkSection')],['brand','品牌底條',$('icBrandSection')],['output','輸出設定',output]];
+        function select(key){for(const [id,,panel] of panels){const active=id===key;panel.hidden=!active;const button=$('icTab_'+id);button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;}side.scrollTop=0;}
+        for(const [id,label,panel] of panels){const b=document.createElement('button');b.type='button';b.id='icTab_'+id;b.textContent=label;b.setAttribute('role','tab');b.setAttribute('aria-controls',panel.id);panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby',b.id);b.onclick=()=>select(id);b.onkeydown=e=>{const index=panels.findIndex(p=>p[0]===id);let next;if(e.key==='ArrowRight')next=(index+1)%panels.length;if(e.key==='ArrowLeft')next=(index+panels.length-1)%panels.length;if(e.key==='Home')next=0;if(e.key==='End')next=panels.length-1;if(next!==undefined){e.preventDefault();select(panels[next][0]);$('icTab_'+panels[next][0]).focus();}};nav.append(b);}
+        select('person');
     }
     function build(){
         dialog=document.createElement('dialog');dialog.className='ic-dialog';dialog.id='imageComposer';dialog.setAttribute('aria-labelledby','icTitle');
@@ -149,15 +164,17 @@
         <section class="ic-section"><label class="ic-section-title"><input id="icUsePerson" type="checkbox">人物合成</label><div id="icPersonBody" hidden>
         <label class="ic-file">選擇人物照片<input id="icPerson" type="file" accept="image/*"></label><p class="ic-name" id="icPersonName">建議使用人物清楚的獨照</p><label class="ic-check"><input id="icAuto" type="checkbox" checked>自動去除背景</label><div id="icMattingOptions"><label class="ic-size-label" for="icQuality">去背品質</label><select id="icQuality" class="it-in"><option value="best">高精細去背（品質優先）</option><option value="fine">人像柔邊（保留髮絲）</option><option value="fast">快速去背</option></select></div><label class="ic-size-label" for="icStyle">人物效果</label><select id="icStyle" class="it-in"><option value="natural">自然去背</option><option value="sticker">白邊貼紙</option></select><div id="icOutlineControls" hidden><label class="ic-size-label" for="icOutline">白邊粗細 <strong id="icOutlineValue">2</strong></label><input id="icOutline" type="range" min="1" max="8" value="2"></div><canvas id="icThumb" class="ic-thumb" hidden aria-label="人物去背預覽"></canvas><div class="ic-actions"><button type="button" id="icRetry" disabled>重新處理</button><button type="button" id="icCancel" hidden>取消處理</button><button type="button" id="icCutout" disabled>下載去背人物</button></div>
         <label class="ic-size-label" for="icSize">人物大小 <strong id="icSizeValue">50%</strong></label><input id="icSize" type="range" min="10" max="120" value="50" disabled><div class="ic-actions"><button type="button" id="icFlip" disabled>左右翻轉</button><button type="button" id="icReset" disabled>重設位置</button></div><p class="ic-note">拖曳預覽中的人物即可移動。每張照片可分別調整位置；人物、文字及浮水印會一起輸出。</p></div></section>
-        <section id="icCaptionSection" class="ic-section"></section><section id="icWatermarkSection" class="ic-section"></section><details class="ic-output"><summary>輸出設定</summary><div id="icOutput"></div></details><p class="ic-note">照片在本機處理，不會上傳。首次自動去背需要連網載入工具，不必另外安裝。已去背的 PNG 可關閉「自動去除背景」。</p></aside>
+        <section id="icBrandSection" class="ic-section"></section><section id="icCaptionSection" class="ic-section"></section><section id="icWatermarkSection" class="ic-section"></section><details class="ic-output"><summary>輸出設定</summary><div id="icOutput"></div></details><p class="ic-note">照片在本機處理，不會上傳。首次自動去背需要連網載入工具，不必另外安裝。已去背的 PNG 可關閉「自動去除背景」。</p></aside>
         <main class="ic-preview"><div class="ic-preview-head"><span id="icPhotoName">尚未選擇照片</span><button type="button" id="icRemove" disabled>移除這張</button></div><div class="ic-stage" id="icStage"><p class="ic-empty" id="icEmpty"><strong>先選擇要編輯的照片</strong><br>也可以直接把照片拖到這裡<br><small>人物合成、加註文字、浮水印可自由搭配</small></p><canvas id="icCanvas" hidden tabindex="0" aria-label="圖片預覽，可拖曳人物或使用方向鍵移動"></canvas></div><div id="icPhotos" class="ic-photos" hidden aria-label="選擇要編輯的照片"></div><div id="icStatus" class="ic-status" role="status" aria-live="polite">選擇照片後，開啟需要的功能即可。</div></main></div></div>`;
         document.body.appendChild(dialog);
         // Reuse the existing settings and drawing engine, including saved preferences.
         for(const [section,toggle,box] of [['icCaptionSection','itUseCap','itCapBox'],['icWatermarkSection','itUseWm','itWmBox']]){
             const title=$(toggle).closest('label');title.className='ic-section-title';$(section).append(title,$(box));$(box).querySelector('.it-sec-t').hidden=true;
         }
+        BrandBanner.mount($('icBrandSection'),render);BrandBanner.enhanceCaption(render);
         const output=$('itQ').closest('.it-sec');$('icOutput').append(output);output.querySelector('.it-sec-t').hidden=true;
         output.lastElementChild.textContent='下載檔名會加上「_編輯」，不會覆蓋原圖。';
+        buildTabs();
         $('icClose').onclick=()=>dialog.close();
         dialog.addEventListener('close',()=>{drag=null;cancelCutout();itSaveCfg();if(previousFocus&&previousFocus.isConnected)previousFocus.focus();});
         dialog.addEventListener('keydown',e=>{if(e.key!=='Escape')e.stopPropagation();});
@@ -184,5 +201,5 @@
         $('icCutout').onclick=async()=>{if(state.person&&!state.busy)try{await download(state.person,'人物_去背.png','image/png');status('已產生去背人物下載。');}catch(e){status(e.message,true);}};
     }
     window.ImageComposer={refresh};
-    window.openImageComposer=function(){if(!dialog)build();previousFocus=document.activeElement;if(!dialog.open){['icUsePerson','itUseCap','itUseWm'].forEach(id=>$(id).checked=false);dialog.showModal();}refresh();};
+    window.openImageComposer=function(){if(!dialog)build();previousFocus=document.activeElement;if(!dialog.open){['icUsePerson','itUseCap','itUseWm','icUseBrand'].forEach(id=>$(id).checked=false);dialog.showModal();}refresh();};
 })();
