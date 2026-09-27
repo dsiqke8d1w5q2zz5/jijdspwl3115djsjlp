@@ -54,7 +54,7 @@
     async function cutout() {
         if(!state.original || state.busy)return;
         const seq=++state.sequence;state.busy=true;controls();
-        status($('icAuto').checked?'正在準備人物去背，首次使用需下載模型，請稍候…':'正在讀取人物…');
+        status($('icAuto').checked?'正在載入自動去背工具，首次使用可能較久，請稍候…':'正在讀取人物…');
         try {
             const original=state.original, out=canvas(original.width,original.height);
             out.getContext('2d').drawImage(original,0,0);
@@ -136,7 +136,7 @@
         <section class="ic-section"><label class="ic-section-title"><input id="icUsePerson" type="checkbox">人物合成</label><div id="icPersonBody" hidden>
         <label class="ic-file">選擇人物照片<input id="icPerson" type="file" accept="image/*"></label><p class="ic-name" id="icPersonName">建議使用人物清楚的獨照</p><label class="ic-check"><input id="icAuto" type="checkbox" checked>自動去除背景</label><canvas id="icThumb" class="ic-thumb" hidden aria-label="人物去背預覽"></canvas><div class="ic-actions"><button type="button" id="icRetry" disabled>重新處理</button><button type="button" id="icCutout" disabled>下載去背人物</button></div>
         <label class="ic-size-label" for="icSize">人物大小 <strong id="icSizeValue">50%</strong></label><input id="icSize" type="range" min="10" max="120" value="50" disabled><div class="ic-actions"><button type="button" id="icFlip" disabled>左右翻轉</button><button type="button" id="icReset" disabled>重設位置</button></div><p class="ic-note">拖曳預覽中的人物即可移動。每張照片可分別調整位置；人物、文字及浮水印會一起輸出。</p></div></section>
-        <section id="icCaptionSection" class="ic-section"></section><section id="icWatermarkSection" class="ic-section"></section><details class="ic-output"><summary>輸出設定</summary><div id="icOutput"></div></details><p class="ic-note">照片在本機處理，不會上傳。首次去背需連網下載模型。已去背的 PNG 可關閉「自動去除背景」。</p></aside>
+        <section id="icCaptionSection" class="ic-section"></section><section id="icWatermarkSection" class="ic-section"></section><details class="ic-output"><summary>輸出設定</summary><div id="icOutput"></div></details><p class="ic-note">照片在本機處理，不會上傳。首次自動去背需要連網載入工具，不必另外安裝。已去背的 PNG 可關閉「自動去除背景」。</p></aside>
         <main class="ic-preview"><div class="ic-preview-head"><span id="icPhotoName">尚未選擇照片</span><button type="button" id="icRemove" disabled>移除這張</button></div><div class="ic-stage" id="icStage"><p class="ic-empty" id="icEmpty"><strong>先選擇要編輯的照片</strong><br>也可以直接把照片拖到這裡<br><small>人物合成、加註文字、浮水印可自由搭配</small></p><canvas id="icCanvas" hidden tabindex="0" aria-label="圖片預覽，可拖曳人物或使用方向鍵移動"></canvas></div><div id="icPhotos" class="ic-photos" hidden aria-label="選擇要編輯的照片"></div><div id="icStatus" class="ic-status" role="status" aria-live="polite">選擇照片後，開啟需要的功能即可。</div></main></div></div>`;
         document.body.appendChild(dialog);
         // Reuse the existing settings and drawing engine, including saved preferences.
@@ -170,5 +170,5 @@
         $('icCutout').onclick=async()=>{if(state.person&&!state.busy)try{await download(state.person,'人物_去背.png','image/png');status('已產生去背人物下載。');}catch(e){status(e.message,true);}};
     }
     window.ImageComposer={refresh};
-    window.openImageComposer=function(){if(!dialog)build();previousFocus=document.activeElement;if(!dialog.open)dialog.showModal();refresh();};
+    window.openImageComposer=function(){if(!dialog)build();previousFocus=document.activeElement;if(!dialog.open){['icUsePerson','itUseCap','itUseWm'].forEach(id=>$(id).checked=false);dialog.showModal();}refresh();};
 })();
