@@ -1,4 +1,4 @@
-var CACHE_NAME = 'crm-v20260927composer1';
+var CACHE_NAME = 'crm-v20260927center1';
 var URLS_TO_CACHE = [
   './',
   './index.html',
@@ -7,8 +7,8 @@ var URLS_TO_CACHE = [
   './area-editor.js?v=20260917audit1',
   './area-editor.css?v=20260914j',
   './transcript-parser.js?v=20260917audit1',
-  './transcript-import.js?v=20260917audit1',
-  './transcript-import.css?v=20260917audit1'
+  './transcript-import.js?v=20260927center1',
+  './transcript-import.css?v=20260927center1'
 ];
 
 self.addEventListener('install', function(e) {

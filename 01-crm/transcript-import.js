@@ -107,6 +107,7 @@
         dialog.addEventListener('close',()=>{cancelled=true;run++;urls.forEach(URL.revokeObjectURL);dialog.remove();previousFocus?.focus();});
         document.body.append(dialog);dialog.showModal();fileInput.focus();
         fileInput.onchange=async()=>{
+            dialog.style.height='';
             const token=++run;urls.forEach(URL.revokeObjectURL);urls=[];review.replaceChildren();footer.replaceChildren();files=Array.from(fileInput.files);
             if(!files.length)return;
             if(files.length>20){status.textContent='每次最多 20 份 PDF，請減少檔案數。';return;}
