@@ -112,7 +112,7 @@
     function render(){
         if(!dialog)return;
         const c=$('icCanvas');c.hidden=!state.bg;$('icEmpty').hidden=!!state.bg;
-        if(state.bg){const scale=Math.min(1,1000/Math.max(state.bg.width,state.bg.height));c.width=Math.max(1,Math.round(state.bg.width*scale));c.height=Math.max(1,Math.round(state.bg.height*scale));c.style.setProperty('--ic-aspect',c.width/c.height);draw(c);}
+        if(state.bg){const scale=2400/Math.max(state.bg.width,state.bg.height);c.width=Math.max(1,Math.round(state.bg.width*scale));c.height=Math.max(1,Math.round(state.bg.height*scale));c.style.setProperty('--ic-aspect',c.width/c.height);draw(c);}
         remember();controls();
     }
     function refresh(){
@@ -142,7 +142,7 @@
         remember();itSaveCfg();
         const photos=(all?_itFiles:_itFiles.filter(f=>f.id===state.active)).map(f=>({file:f,pos:{...(state.placements.get(f.id)||{x:.22,y:.72,size:.5,flip:false})}}));
         const person=enabled()?state.person:null;state.exporting=true;controls();
-        try{let count=0;for(const {file,pos} of photos){const [w,h]=itOutSize(file,options),out=canvas(w,h);draw(out,file.img,pos,options,person);await download(out,file.name.replace(/\.[^.]+$/,'')+'_編輯.jpg','image/jpeg',options.q);status('已產生 '+(++count)+' / '+photos.length+' 張下載圖片。');await new Promise(resolve=>setTimeout(resolve,250));}status('完成，共 '+photos.length+' 張。原圖沒有被修改。');}
+        try{let count=0;for(const {file,pos} of photos){let [w,h]=itOutSize(file,options);if(options.brand?.enabled){const target=Math.min(2400,options.max>0?options.max:2400),up=Math.max(1,target/Math.max(w,h));w=Math.round(w*up);h=Math.round(h*up);}const out=canvas(w,h);draw(out,file.img,pos,options,person);await download(out,file.name.replace(/\.[^.]+$/,'')+'_編輯.jpg','image/jpeg',options.q);status('已產生 '+(++count)+' / '+photos.length+' 張下載圖片。');await new Promise(resolve=>setTimeout(resolve,250));}status('完成，共 '+photos.length+' 張。原圖沒有被修改。');}
         catch(e){status(e.message||'下載未完成，請重試。',true);}finally{state.exporting=false;controls();}
     }
     function buildTabs(){
