@@ -16,7 +16,7 @@
   s.guides=raw.guides!==false;s.locks={person:raw.locks?.person===true,main:raw.locks?.main===true,logo:raw.locks?.logo===true};s.front=raw.front===true;s.format=raw.format==='png'?'png':'jpeg';
   s.capPoint={x:number(raw.capPoint?.x,0,1,.5),y:number(raw.capPoint?.y,0,1,.2)};
   s.logo={x:number(raw.logo?.x,0,1,.85),y:number(raw.logo?.y,0,1,.15),size:number(raw.logo?.size,.03,.5,.15)};
-  s.texts=(Array.isArray(raw.texts)?raw.texts:[]).slice(0,6).map((t,i)=>({id:String(t.id||i).slice(0,80),locked:t.locked===true,text:String(t.text||'').slice(0,500),x:number(t.x,0,1,.5),y:number(t.y,0,1,.3),size:number(t.size,12,120,36),color:/^#[0-9a-f]{6}$/i.test(t.color)?t.color:'#ffffff',bg:number(t.bg,0,.9,.4),font:['sans','serif','kai','light','book','italic'].includes(t.font)?t.font:'sans'}));
+  s.texts=(Array.isArray(raw.texts)?raw.texts:[]).filter(t=>t&&typeof t==='object'&&!Array.isArray(t)).slice(0,6).map((t,i)=>({id:String(t.id||i).slice(0,80),locked:t.locked===true,text:String(t.text||'').slice(0,500),x:number(t.x,0,1,.5),y:number(t.y,0,1,.3),size:number(t.size,12,120,36),color:/^#[0-9a-f]{6}$/i.test(t.color)?t.color:'#ffffff',bg:number(t.bg,0,.9,.4),font:['sans','serif','kai','light','book','italic'].includes(t.font)?t.font:'sans'}));
   return s;
  }
  function mount(api){
@@ -110,7 +110,7 @@
  }
  function repair(api){
   const source=api.getOriginal(),initial=api.getFullPerson();if(!source||!initial)return;
-  let work=clone(initial),undo=[],redo=[],stroke=null;
+  let work=clone(initial),undo=[],redo=[],stroke=null,strokeId=null,priorRedo=null,droppedUndo=null;
   const dialog=document.createElement('dialog');dialog.className='ic-repair-dialog';dialog.id='icRepairDialog';dialog.innerHTML=`<h3>去背細節修補</h3><div class="ic-actions"><label>筆刷 <select id="icBrushMode"><option value="erase">擦除</option><option value="restore">恢復原圖</option></select></label><label>大小 <input id="icBrushSize" type="range" min="4" max="120" value="30"></label><label>柔邊 <input id="icBrushSoft" type="range" min="0" max="80" value="25"></label><label>檢視 <select id="icRepairZoom"><option value="fit">符合視窗</option><option value="1">100%</option><option value="2">200%</option></select></label><label>背景 <select id="icRepairBg"><option value="checker">透明格</option><option value="white">白</option><option value="black">黑</option></select></label><button id="icRepairUndo">復原</button><button id="icRepairRedo">重做</button></div><p class="ic-note">擦除殘留背景，或恢復誤刪的頭髮與衣服。恢復會帶回原照片，請使用小筆刷。放大後可用捲軸查看。</p><div class="ic-repair-stage"><canvas id="icRepairCanvas"></canvas></div><div class="ic-actions"><button id="icRepairCancel">取消</button><button id="icRepairApply" class="ic-primary">套用修補</button></div>`;document.body.append(dialog);dialog.showModal();
   const c=$('icRepairCanvas');c.width=work.width;c.height=work.height;
   function show(){c.getContext('2d').clearRect(0,0,c.width,c.height);c.getContext('2d').drawImage(work,0,0);$('icRepairUndo').disabled=!undo.length;$('icRepairRedo').disabled=!redo.length;}
@@ -122,8 +122,9 @@
    ctx.save();ctx.globalCompositeOperation=$('icBrushMode').value==='restore'?'source-over':'destination-out';ctx.drawImage(stamp,p.x-mid,p.y-mid);ctx.restore();
   }
   function point(e){const b=c.getBoundingClientRect();return{x:(e.clientX-b.x)*c.width/b.width,y:(e.clientY-b.y)*c.height/b.height};}
-  c.onpointerdown=e=>{if(e.button!==0)return;undo.push(clone(work));if(undo.length>8)undo.shift();redo=[];stroke=point(e);c.setPointerCapture(e.pointerId);brush(stroke);show();e.preventDefault();};
-  c.onpointermove=e=>{if(!stroke)return;const p=point(e),n=Math.max(1,Math.ceil(Math.hypot(p.x-stroke.x,p.y-stroke.y)/Math.max(1,Number($('icBrushSize').value)*work.width/3000)));for(let i=1;i<=n;i++)brush({x:stroke.x+(p.x-stroke.x)*i/n,y:stroke.y+(p.y-stroke.y)*i/n});stroke=p;show();};c.onpointerup=c.onpointercancel=()=>stroke=null;
+  c.onpointerdown=e=>{if(e.button!==0||stroke)return;undo.push(clone(work));droppedUndo=undo.length>8?undo.shift():null;priorRedo=redo;redo=[];strokeId=e.pointerId;stroke=point(e);c.setPointerCapture(e.pointerId);brush(stroke);show();e.preventDefault();};
+  c.onpointermove=e=>{if(!stroke||e.pointerId!==strokeId)return;const p=point(e),n=Math.max(1,Math.ceil(Math.hypot(p.x-stroke.x,p.y-stroke.y)/Math.max(1,Number($('icBrushSize').value)*work.width/3000)));for(let i=1;i<=n;i++)brush({x:stroke.x+(p.x-stroke.x)*i/n,y:stroke.y+(p.y-stroke.y)*i/n});stroke=p;show();};function endStroke(e,cancel){if(!stroke||e.pointerId!==strokeId)return;if(cancel){work=undo.pop();if(droppedUndo)undo.unshift(droppedUndo);redo=priorRedo;}stroke=null;strokeId=null;priorRedo=null;droppedUndo=null;show();}
+  c.onpointerup=e=>endStroke(e,false);c.onpointercancel=c.onlostpointercapture=e=>endStroke(e,true);
   $('icRepairUndo').onclick=()=>{if(undo.length){redo.push(work);work=undo.pop();show();}};$('icRepairRedo').onclick=()=>{if(redo.length){undo.push(work);work=redo.pop();show();}};
   $('icRepairZoom').onchange=()=>{const z=$('icRepairZoom').value;c.style.width=z==='fit'?'':c.width*Number(z)+'px';c.style.maxWidth=z==='fit'?'':'none';};$('icRepairBg').onchange=()=>{c.parentElement.dataset.background=$('icRepairBg').value;};
   $('icRepairCancel').onclick=()=>dialog.close();$('icRepairApply').onclick=()=>{try{api.setPerson(work,source);api.render();dialog.close();api.status('修補已套用，可按復原回到修補前。');}catch(e){api.status(e.message,true);}};

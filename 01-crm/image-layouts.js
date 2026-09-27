@@ -1,7 +1,20 @@
-/* Named image-tool layouts. Photos are deliberately not stored. */
+/* Named image-tool layouts. Original photos are excluded; preview thumbnails are included. */
 (function(){
  'use strict';
  const key='_crmImageLayouts_v1';
+ const record=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
+ function validSettings(s){
+  if(!record(s)||s.version!==1||!record(s.values))return false;
+  const scalar=v=>['string','boolean','number'].includes(typeof v);
+  if(!Object.values(s.values).every(scalar))return false;
+  for(const k of ['brand','person'])if(s[k]!==undefined&&(!record(s[k])||!Object.values(s[k]).every(scalar)))return false;
+  if(s.studio!==undefined){const t=s.studio;if(!record(t))return false;
+   for(const k of ['frame','locks','capPoint','logo'])if(t[k]!==undefined&&(!record(t[k])||!Object.values(t[k]).every(scalar)))return false;
+   if(t.texts!==undefined&&(!Array.isArray(t.texts)||t.texts.length>6||!t.texts.every(x=>record(x)&&Object.values(x).every(scalar))))return false;
+  }
+  return true;
+ }
+
  function mount(host,editor){
   host.innerHTML=`<h3>我的版面</h3><p class="ic-note">保存品牌底條、文字、浮水印、人物位置與輸出設定，下次可直接套用。</p>
    <label class="it-lb" for="icLayoutSelect">已儲存的版面</label><select id="icLayoutSelect" class="it-in"></select>
@@ -11,12 +24,12 @@
    <label class="it-lb" for="icLayoutName">版面名稱</label><input id="icLayoutName" class="it-in" type="text" maxlength="40" placeholder="例如：深藍名片・人物靠左">
    <div class="ic-actions ic-layout-actions"><button type="button" id="icLayoutSave">另存新版面</button></div>
    <div class="ic-actions ic-layout-actions"><button id="icLayoutExport" type="button">匯出版面備份</button><label class="ic-file">匯入備份<input id="icLayoutImport" type="file" accept=".json,application/json"></label></div><p class="ic-note">備份可帶到手機或另一台電腦匯入；同名版面會另存，不覆蓋原版面。</p><p id="icLayoutStatus" class="ic-status" role="status" aria-live="polite"></p>
-   <p class="ic-note">版面保存在目前瀏覽器，不會同步到其他裝置。照片不包含在版面中，人物照片需另選。可指定套用範圍，並保留人物位置。</p>`;
+   <p class="ic-note">版面保存在目前瀏覽器，不會同步到其他裝置。會保存設定與預覽縮圖，備份亦包含縮圖；原始照片與人物素材需另選。可指定套用範圍，並保留人物位置。</p>`;
   const $=id=>host.querySelector('#'+id);
   const message=(text,error=false)=>{$('icLayoutStatus').textContent=text;$('icLayoutStatus').dataset.error=error;};
   function read(){
    const rows=JSON.parse(localStorage.getItem(key)||'[]');
-   if(!Array.isArray(rows)||rows.some(r=>!r||typeof r.id!=='string'||typeof r.name!=='string'||!r.settings||r.settings.version!==1))throw Error('invalid');
+   if(!Array.isArray(rows)||rows.some(r=>!r||typeof r.id!=='string'||typeof r.name!=='string'||!validSettings(r.settings)))throw Error('invalid');
    return rows;
   }
   function list(rows,selected=''){
@@ -48,7 +61,7 @@
    const file=e.target.files[0];e.target.value='';if(!file||!ready())return;
    try{if(file.size>5*1024*1024)throw Error('備份超過 5 MB。');const data=JSON.parse(await file.text());if(data.type!=='crm-image-layouts'||data.version!==1||!Array.isArray(data.layouts)||data.layouts.length>30)throw Error('不是有效的圖片版面備份。');
     const rows=read(),incoming=[];if(rows.length+data.layouts.length>30)throw Error('匯入後超過 30 個版面，請先刪除不需要的版面。');
-    for(const row of data.layouts){if(!row||typeof row.name!=='string'||!row.settings||row.settings.version!==1||!row.settings.values||typeof row.settings.values!=='object')throw Error('備份版面資料不完整。');let title=row.name.trim().slice(0,40)||'匯入版面',i=2;const base=title;while([...rows,...incoming].some(r=>r.name===title))title=base+' ('+(i++)+')';incoming.push({id:crypto.randomUUID(),name:title,settings:row.settings,thumbnail:typeof row.thumbnail==='string'&&row.thumbnail.length<200000&&/^data:image\/jpeg;base64,/.test(row.thumbnail)?row.thumbnail:undefined});}
+    for(const row of data.layouts){if(!row||typeof row.name!=='string'||!validSettings(row.settings))throw Error('備份版面資料不完整。');let title=row.name.trim().slice(0,40)||'匯入版面',i=2;const base=title;while([...rows,...incoming].some(r=>r.name===title))title=base+' ('+(i++)+')';incoming.push({id:crypto.randomUUID(),name:title,settings:row.settings,thumbnail:typeof row.thumbnail==='string'&&row.thumbnail.length<200000&&/^data:image\/jpeg;base64,/.test(row.thumbnail)?row.thumbnail:undefined});}
     write([...rows,...incoming],incoming[0]?.id||'','已匯入 '+incoming.length+' 個版面。');$('icLayoutName').value=incoming[0]?.name||'';
    }catch(e){message('匯入失敗：'+(e.message||'請確認備份檔案。'),true);}
   };

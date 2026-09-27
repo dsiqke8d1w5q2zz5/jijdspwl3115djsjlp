@@ -25,6 +25,8 @@
         $('icBackground').disabled=working;$('icClear').disabled=working;
         $('icRemove').disabled=!state.bg||working;if($('icApplyAll'))$('icApplyAll').disabled=!state.bg||working||_itFiles.length<2;
         $('icCutout').disabled=!state.person||working;
+        if($('icRepair'))$('icRepair').disabled=!state.fullPerson||working;
+        if($('icAssetSave'))$('icAssetSave').disabled=!state.person||working;
         ['icSize','icFlip','icReset'].forEach(id=>$(id).disabled=!state.person||state.exporting||studio?.locked('person'));
         $('icSizeValue').textContent=Math.round(state.size*100)+'%';
         $('icPersonBody').hidden=false;
@@ -248,6 +250,7 @@
             try{const image=await decode(f,2560);if(loadSeq!==state.sequence)return;state.original=image;state.person=null;$('icThumb').hidden=true;$('icPersonName').textContent=f.name;render();state.busy=false;await cutout();}catch(err){if(loadSeq===state.sequence)status(err.message,true);}finally{if(loadSeq===state.sequence){state.busy=false;controls();}}
         };
         $('icCancel').onclick=cancelCutout;$('icRetry').onclick=cutout;$('icAuto').onchange=cutout;$('icQuality').onchange=cutout;
+        ['itMax','itQ'].forEach(id=>$(id).addEventListener('input',render));
         $('icStyle').onchange=render;$('icOutline').oninput=render;
         $('icSize').oninput=e=>{state.size=Number(e.target.value)/100;render();};
         $('icFlip').onclick=()=>{state.flip=!state.flip;render();};$('icReset').onclick=reset;
