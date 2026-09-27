@@ -20,9 +20,9 @@
         $('icCutout').disabled=!state.person||working;
         ['icSize','icFlip','icReset'].forEach(id=>$(id).disabled=!state.person||state.exporting);
         $('icSizeValue').textContent=Math.round(state.size*100)+'%';
-        $('icPersonBody').hidden=!enabled();
-        if($('icBrandBody'))$('icBrandBody').hidden=!$('icUseBrand').checked;
-        $('itWmBox').hidden=!$('itUseWm').checked;$('itCapBox').hidden=!$('itUseCap').checked;
+        $('icPersonBody').hidden=false;
+        if($('icBrandBody'))$('icBrandBody').hidden=false;
+        $('itWmBox').hidden=false;$('itCapBox').hidden=false;
     }
     function canvas(w,h) { const c=document.createElement('canvas'); c.width=w;c.height=h;return c; }
     async function decode(file, max) {
