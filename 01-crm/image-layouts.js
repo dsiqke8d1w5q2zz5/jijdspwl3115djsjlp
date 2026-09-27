@@ -40,7 +40,7 @@
    if(rows.some(r=>r.id!==row.id&&r.name===title)){message('已有同名版面，請使用其他名稱。',true);return;}
    write(rows.map(r=>r.id===row.id?{...r,name:title,settings:editor.snapshot()}:r),row.id,'已更新「'+title+'」。');
   });
-  $('icLayoutDelete').onclick=guarded(rows=>{const row=rows.find(r=>r.id===$('icLayoutSelect').value);if(!row)return;write(rows.filter(r=>r.id!==row.id),'','已刪除「'+row.name+'」，目前圖片設定仍保留。');$('icLayoutName').value='';});
+  $('icLayoutDelete').onclick=guarded(rows=>{const row=rows.find(r=>r.id===$('icLayoutSelect').value);if(!row)return;if(!window.confirm('確定要刪除版面「'+row.name+'」嗎？\n刪除後無法復原，目前圖片設定不受影響。'))return;write(rows.filter(r=>r.id!==row.id),'','已刪除「'+row.name+'」，目前圖片設定仍保留。');$('icLayoutName').value='';});
   try{list(read());}catch(e){list([]);message('已儲存的版面暫時無法讀取，原有資料仍保留。',true);}
  }
  window.ImageLayouts={mount};
