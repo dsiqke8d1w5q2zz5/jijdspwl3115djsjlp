@@ -33,6 +33,9 @@
     const folderStyle=document.createElement('style');
     folderStyle.textContent='.det-property-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;height:44px;box-sizing:border-box;margin:4px 0 8px}.det-property-toolbar>.det-property-title,.det-property-toolbar>.det-property-tabs{flex:1;min-width:0;margin:0}.det-property-toolbar>.det-property-tabs{padding:0;align-items:center}.det-property-toolbar>.det-property-title{line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.det-property-toolbar .det-property-tabs button{height:36px;box-sizing:border-box;padding:6px 12px}.det-property-toolbar>.det-folder-link{grid-column:2;grid-row:1;justify-self:end;white-space:nowrap;font-size:14px;line-height:20px;padding:5px 9px;margin:0}.det-property-toolbar>.det-folder-link[hidden]{display:none}';
     document.head.append(folderStyle);
+    const historyStyle=document.createElement('style');
+    historyStyle.textContent='.det-property-page .det-history-row>.det-val{display:flex;flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:4px 14px}.det-history-time{font-weight:400;color:#78716c;line-height:1.5}.det-history-value:empty{display:none}';
+    document.head.append(historyStyle);
     const originalShow=window.showDet;
     window.showDet=function(id,viewAs){
         originalShow(id,viewAs);
@@ -87,7 +90,11 @@
     }
     function row(label,value){return value===undefined||value===null||value===''?'':dRow(esc(label),String(value));}
     function link(label,value){if(!value)return '';try{const u=new URL(value);if(!['https:','http:'].includes(u.protocol))return row(label,value);return '<div class="det-row"><span class="det-key">'+esc(label)+'</span><span class="det-val"><a target="_blank" rel="noopener noreferrer" href="'+esc(u.href)+'">開啟物件資料夾</a></span></div>';}catch{return row(label,value);}}
-    function history(label,list){return (list||[]).map((h,i)=>row(label+' '+(i+1),[h.value,h.action,h.reason,h.date,h.time&&toROCDateTime(h.time)].filter(v=>v!==undefined&&v!=='').join(' · '))).join('');}
+    function history(label,list){return (list||[]).map((h,i)=>{
+        const content=[h.value,h.action,h.reason].filter(v=>v!==undefined&&v!==null&&v!=='').join(' · ');
+        const date=h.date?(/^\d{4}-\d{2}-\d{2}/.test(h.date)?isoToROC(String(h.date).slice(0,10)):String(h.date).split(' ')[0]):(h.time?toROCDateTime(h.time).replace(/^民國/,'').split(' ')[0]:'');
+        return '<div class="det-row det-history-row"><span class="det-key">'+esc(label+' '+(i+1))+'</span><span class="det-val">'+(date?'<span class="det-history-time">'+esc(date)+'</span>':'')+'<span class="det-history-value">'+esc(content)+'</span></span></div>';
+    }).join('');}
     function extras(kind,p){
         let html='';
         if(kind==='r'){
