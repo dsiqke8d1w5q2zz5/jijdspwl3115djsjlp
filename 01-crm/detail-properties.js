@@ -61,14 +61,24 @@
     function tenants(c,index){return DB.filter(t=>!t._deleted&&t.linkedLandlordId===c.id&&(t.linkedPropertyIdx||0)===index).map(t=>row('租客',[t.ttName||t.name,t.ttPhone||t.phone,t.ttIdNo,t.ttOccupation].filter(Boolean).join('　'))+row('租客條件',[t.rSubsidy2?'租補':'',t.rSocialHouse2?'社宅':'',t.rRegister2?'設籍':'',t.rTax2?'報稅':'',t.rPet2?'寵物':'',t.rAltar2?'神桌':'',t.rGoodCitizen2?'良民':'',t.rNotarize2?'公證':''].filter(Boolean).join('、'))).join('');}
     function compact(html,extra){
         const holder=document.createElement('div');holder.innerHTML=html;
-        const core=new Set(['社區大樓','物件地址','地址','成交地址','開價','租金','成交價格','坪數','坪數/車位','起租日','到期日','成交日期','租客','房東條件','租客條件','需求區域','房型需求','預算']);
-        const main=document.createElement('div'),more=document.createElement('details');more.className='det-property-more';const summary=document.createElement('summary');summary.textContent='更多資料（唯讀）';more.append(summary);
-        for(const child of [...holder.children]){const label=child.querySelector('.det-key')?.textContent; if(core.has(label))main.append(child);else more.append(child);}
+        const core=new Set(['社區大樓','物件地址','地址','成交地址','開價','租金','成交價格','坪數','坪數/車位','登記面積','車位','車位型態','車位編號','立約日','起租日','到期日','成交日期','租客','房東條件','租客條件','需求區域','房型需求','預算','身份','類別','房屋型態','物件等級','約種']);
+        const main=document.createElement('div'),groups=['面積與持分明細','合約與價格歷程','其他資料'].map(label=>{const box=document.createElement('details');box.className='det-property-more';const summary=document.createElement('summary');summary.textContent=label;box.append(summary);return box;});
+        const seen=new Set();
+        function distribute(child){
+            if(child.classList.contains('sp-grid')){for(const cell of [...child.children]){if(!cell.textContent.trim())continue;cell.removeAttribute('style');cell.className='det-row';distribute(cell);}return;}
+            // Some older property renderers wrap multiple grids in a plain container.
+            if(!child.classList.contains('det-row')&&child.querySelector(':scope > .sp-grid')){for(const cell of [...child.children])distribute(cell);return;}
+            const label=child.querySelector('.det-key')?.textContent.trim()||'',text=child.textContent.trim();if(!text)return;
+            if(child.classList.contains('det-row')){if(seen.has(text))return;seen.add(text);}
+            if(core.has(label)){main.append(child);return;}
+            const heading=label||text;
+            const bucket=/歷程|續約|^第\d+次|暫停原因|物件狀態/.test(heading)?1:/面積|持分|坪數|主建物|附屬建物|共有部分|公設|土地|基地/.test(heading)?0:2;
+            groups[bucket].append(child);
+        }
+        for(const child of [...holder.children])distribute(child);
         const added=document.createElement('div');added.innerHTML=extra;
-        // Existing detail rows already cover some rental fields; don't repeat exact label/value pairs.
-        const seen=new Set([...main.querySelectorAll('.det-row'),...more.querySelectorAll('.det-row')].map(el=>el.textContent));
-        for(const child of [...added.children])if(!seen.has(child.textContent))more.append(child);
-        if(more.children.length>1)main.append(more);
+        for(const child of [...added.children])distribute(child);
+        for(const group of groups)if(group.children.length>1)main.append(group);
         return main.innerHTML;
     }
     window.typeDetail=function(c,viewAs){
