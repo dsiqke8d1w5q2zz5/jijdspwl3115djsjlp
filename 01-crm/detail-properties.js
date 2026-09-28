@@ -30,6 +30,9 @@
     const stickyStyle=document.createElement('style');
     stickyStyle.textContent='.det-property-header{display:contents}@media(min-width:1050px){.det-property-header{display:block;position:sticky;top:-14px;z-index:3;background:white;margin-top:-14px;padding:14px 0 1px}.det-property-header .det-category-tabs{margin-bottom:6px}}';
     document.head.append(stickyStyle);
+    const folderStyle=document.createElement('style');
+    folderStyle.textContent='.det-property-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0 8px}.det-property-toolbar>.det-property-title,.det-property-toolbar>.det-property-tabs{flex:1;min-width:0;margin:0}.det-property-toolbar>.det-property-tabs{padding-bottom:4px}.det-property-toolbar>.det-folder-link{flex:0 0 auto;font-size:inherit;padding:5px 9px}.det-property-toolbar>.det-folder-link[hidden]{display:none}';
+    document.head.append(folderStyle);
     const originalShow=window.showDet;
     window.showDet=function(id,viewAs){
         originalShow(id,viewAs);
@@ -48,6 +51,12 @@
         }
         for(const pane of panes)if(pane.children.length===1){const empty=document.createElement('p');empty.className='det-pane-empty';empty.textContent='尚無資料';pane.append(empty);}
         body.replaceWith(columns);
+        for(const group of root.querySelectorAll('.det-property-group')){
+            const toolbar=document.createElement('div');toolbar.className='det-property-toolbar';const heading=group.firstElementChild;group.prepend(toolbar);toolbar.append(heading);
+            for(const page of group.querySelectorAll('.det-property-page')){
+                const link=page.querySelector('.det-folder-row a');if(!link)continue;const row=link.closest('.det-row'),details=row.closest('details');link.dataset.folderPage=page.id;link.hidden=page.hidden;toolbar.append(link);row.remove();if(details&&details.children.length===1)details.remove();
+            }
+        }
         for(const page of root.querySelectorAll('.det-property-page')){
             const details=[...page.querySelectorAll('.det-property-more')];
             details.forEach(detail=>detail.addEventListener('toggle',()=>{if(detail.open)details.forEach(other=>{if(other!==detail)other.open=false;});}));
@@ -63,7 +72,7 @@
             const tabs=document.createElement('div');tabs.className='det-category-tabs';tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','資料類別');sections[0].previousElementSibling.before(tabs);
             const initiallyOpen=sections.find(panel=>panel.style.display!=='none')||sections[0];
             const buttons=sections.map((panel,index)=>{const heading=panel.previousElementSibling,button=document.createElement('button');button.type='button';button.textContent=heading.textContent.replace('（點擊展開）','').replace(/[⌄›▾▸▼▶❯⌃]/g,'').trim();button.id='det-category-'+serial+'-'+index;button.setAttribute('role','tab');button.setAttribute('aria-controls',panel.id);panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby',button.id);heading.remove();tabs.append(button);return button;});
-            function select(index,focus){sections.forEach((panel,i)=>{const selected=i===index;panel.style.display=selected?'':'none';buttons[i].setAttribute('aria-selected',String(selected));buttons[i].tabIndex=selected?0:-1;});if(focus)buttons[index].focus();}
+            function select(index,focus){if(buttons[index].getAttribute('aria-selected')!=='true')resetDetails(panes[1]);sections.forEach((panel,i)=>{const selected=i===index;panel.style.display=selected?'':'none';buttons[i].setAttribute('aria-selected',String(selected));buttons[i].tabIndex=selected?0:-1;});if(focus)buttons[index].focus({preventScroll:true});}
             buttons.forEach((button,index)=>{button.onclick=()=>select(index,false);button.onkeydown=event=>{let next=index;if(event.key==='ArrowRight')next=(index+1)%buttons.length;else if(event.key==='ArrowLeft')next=(index+buttons.length-1)%buttons.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=buttons.length-1;else return;event.preventDefault();event.stopPropagation();select(next,true);};});select(sections.indexOf(initiallyOpen),false);
         }
         const propertyHeader=document.createElement('div');propertyHeader.className='det-property-header';const propertyTitle=panes[1].querySelector(':scope>.det-pane-title'),categoryTabs=panes[1].querySelector(':scope>.det-category-tabs');panes[1].prepend(propertyHeader);if(propertyTitle)propertyHeader.append(propertyTitle);if(categoryTabs)propertyHeader.append(categoryTabs);
@@ -166,9 +175,11 @@
             return '<section class="det-property-page" id="'+group+'-page-'+i+'" '+(entries.length>1?'role="tabpanel" aria-labelledby="'+group+'-tab-'+i+'"':'aria-label="'+esc(labels[i])+'"')+(i?' hidden':'')+'>'+compact(body,extras(kind,p),kind,p)+'</section>';
         }).join('')+unlinked+'</div>';
     };
+    function resetDetails(scope){scope.querySelectorAll('.det-property-more[open]').forEach(detail=>detail.open=false);const pane=scope.closest('.det-pane');if(pane&&matchMedia('(min-width:1050px)').matches)pane.scrollTop=0;}
     function activate(button){
-        const group=button.closest('.det-property-group');if(!group)return;
+        const group=button.closest('.det-property-group');if(!group)return;if(button.getAttribute('aria-selected')!=='true')resetDetails(group);
         group.querySelectorAll('[role=tab]').forEach(tab=>{const selected=tab===button;tab.setAttribute('aria-selected',selected);tab.tabIndex=selected?0:-1;document.getElementById(tab.getAttribute('aria-controls')).hidden=!selected;});
+        group.querySelectorAll('[data-folder-page]').forEach(link=>link.hidden=link.dataset.folderPage!==button.getAttribute('aria-controls'));
     }
     document.addEventListener('click',event=>{const tab=event.target.closest('.det-property-tabs [role=tab]');if(tab)activate(tab);},true);
     document.addEventListener('keydown',event=>{const tab=event.target.closest('.det-property-tabs [role=tab]');if(!tab||!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();const tabs=[...tab.parentElement.children],index=tabs.indexOf(tab),next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(index+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;activate(tabs[next]);tabs[next].focus({preventScroll:true});},true);
