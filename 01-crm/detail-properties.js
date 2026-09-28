@@ -36,6 +36,9 @@
     const historyStyle=document.createElement('style');
     historyStyle.textContent='.det-property-page .det-history-row>.det-val{display:flex;flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:4px 14px}.det-history-time{font-weight:400;color:#78716c;line-height:1.5}.det-history-value:empty{display:none}';
     document.head.append(historyStyle);
+    const dragStyle=document.createElement('style');
+    dragStyle.textContent='.det-property-tabs{cursor:grab;user-select:none}.det-property-tabs.is-dragging,.det-property-tabs.is-dragging button{cursor:grabbing}';
+    document.head.append(dragStyle);
     const originalShow=window.showDet;
     window.showDet=function(id,viewAs){
         originalShow(id,viewAs);
@@ -189,7 +192,22 @@
         group.querySelectorAll('[role=tab]').forEach(tab=>{const selected=tab===button;tab.setAttribute('aria-selected',selected);tab.tabIndex=selected?0:-1;document.getElementById(tab.getAttribute('aria-controls')).hidden=!selected;});
         group.querySelectorAll('[data-folder-page]').forEach(link=>link.hidden=link.dataset.folderPage!==button.getAttribute('aria-controls'));
     }
-    document.addEventListener('click',event=>{const tab=event.target.closest('.det-property-tabs [role=tab]');if(tab)activate(tab);},true);
+    let railDrag=null,suppressRailClick=null;
+    document.addEventListener('pointerdown',event=>{
+        if(event.pointerType!=='mouse'||event.button!==0)return;
+        const rail=event.target.closest('.det-property-tabs');if(!rail||rail.scrollWidth<=rail.clientWidth)return;
+        const rect=rail.getBoundingClientRect();if(event.clientY>=rect.top+rail.clientTop+rail.clientHeight)return;
+        railDrag={rail,id:event.pointerId,x:event.clientX,left:rail.scrollLeft,moved:false};suppressRailClick=null;
+    },true);
+    document.addEventListener('pointermove',event=>{
+        const drag=railDrag;if(!drag||event.pointerId!==drag.id)return;
+        const delta=event.clientX-drag.x;if(!drag.moved&&Math.abs(delta)<6)return;
+        if(!drag.moved){drag.moved=true;drag.rail.classList.add('is-dragging');drag.rail.setPointerCapture(event.pointerId);}
+        event.preventDefault();drag.rail.scrollLeft=drag.left-delta;
+    },true);
+    function endRailDrag(event){const drag=railDrag;if(!drag||(event&&event.pointerId!==drag.id))return;railDrag=null;drag.rail.classList.remove('is-dragging');if(drag.rail.hasPointerCapture(drag.id))drag.rail.releasePointerCapture(drag.id);if(drag.moved){suppressRailClick=drag.rail;setTimeout(()=>{if(suppressRailClick===drag.rail)suppressRailClick=null;},0);}}
+    document.addEventListener('pointerup',endRailDrag,true);document.addEventListener('pointercancel',endRailDrag,true);window.addEventListener('blur',()=>endRailDrag());
+    document.addEventListener('click',event=>{if(suppressRailClick&&suppressRailClick.contains(event.target)){event.preventDefault();event.stopImmediatePropagation();suppressRailClick=null;return;}const tab=event.target.closest('.det-property-tabs [role=tab]');if(tab)activate(tab);},true);
     document.addEventListener('keydown',event=>{const tab=event.target.closest('.det-property-tabs [role=tab]');if(!tab||!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();const tabs=[...tab.parentElement.children],index=tabs.indexOf(tab),next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(index+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;activate(tabs[next]);tabs[next].focus({preventScroll:true});},true);
     // A horizontal swipe on property tabs must not trigger the detail modal's swipe-to-close shortcut.
     document.addEventListener('touchend',event=>{if(event.target.closest('.det-property-tabs,.det-category-tabs'))event.stopPropagation();},true);
