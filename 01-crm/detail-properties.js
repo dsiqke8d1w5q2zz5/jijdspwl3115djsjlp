@@ -91,7 +91,8 @@
     function row(label,value){return value===undefined||value===null||value===''?'':dRow(esc(label),String(value));}
     function link(label,value){if(!value)return '';try{const u=new URL(value);if(!['https:','http:'].includes(u.protocol))return row(label,value);return '<div class="det-row"><span class="det-key">'+esc(label)+'</span><span class="det-val"><a target="_blank" rel="noopener noreferrer" href="'+esc(u.href)+'">開啟物件資料夾</a></span></div>';}catch{return row(label,value);}}
     function history(label,list){return (list||[]).map((h,i)=>{
-        const content=[h.value,h.action,h.reason].filter(v=>v!==undefined&&v!==null&&v!=='').join(' · ');
+        const amount=h.value==null?'':String(h.value).trim(),value=['開價歷程','底價歷程'].includes(label)&&/^\d[\d,]*(?:\.\d+)?$/.test(amount)?amount+'萬':h.value;
+        const content=[value,h.action,h.reason].filter(v=>v!==undefined&&v!==null&&v!=='').join(' · ');
         const date=h.date?(/^\d{4}-\d{2}-\d{2}/.test(h.date)?isoToROC(String(h.date).slice(0,10)):String(h.date).split(' ')[0]):(h.time?toROCDateTime(h.time).replace(/^民國/,'').split(' ')[0]:'');
         return '<div class="det-row det-history-row"><span class="det-key">'+esc(label+' '+(i+1))+'</span><span class="det-val">'+(date?'<span class="det-history-time">'+esc(date)+'</span>':'')+'<span class="det-history-value">'+esc(content)+'</span></span></div>';
     }).join('');}
