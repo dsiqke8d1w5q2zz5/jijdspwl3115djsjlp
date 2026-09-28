@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict'),path=require('node:path'),{pathToFileURL}=require('node:url');
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
+(async()=>{const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});try{
+for(const width of [1440,1100,390]){const page=await browser.newPage({viewport:{width,height:900}});await page.route('https://**/*',r=>r.abort());await page.goto(pathToFileURL(path.join(__dirname,'../index.html')).href);let baseline;
+for(const [type,key,urlKey] of [['庫存屋主','sProperties','spDriveUrl'],['房東','rProperties','rpDriveUrl'],['租案管理','rProperties','rpDriveUrl'],['成交客戶','deals','dealDriveUrl'],['商機募集','dAddrs','dAddrDriveUrl']])for(const count of [1,2]){
+await page.evaluate(({type,key,urlKey,count})=>{DB=[{id:'folders',name:'測試',type,types:[type],[key]:Array.from({length:count},(_,i)=>({community:'很長的測試社區名稱'+i,rCommunity:'很長的測試社區名稱'+i,addr:'測試地址',rAddr:'測試地址',[urlKey]:'https://example.invalid/'+i}))}];curFilter=type;showDet('folders');},{type,key,urlKey,count});
+const toolbar=page.locator('.det-property-toolbar'),link=toolbar.locator('.det-folder-link:visible');assert.equal(await link.count(),1);const box=await link.boundingBox(),bar=await toolbar.boundingBox();assert(Math.abs(box.x+box.width-bar.x-bar.width)<1,'right aligned');assert(Math.abs(box.y+box.height/2-bar.y-bar.height/2)<1,'vertically centered');if(baseline){assert(Math.abs(box.width-baseline.width)<1);assert(Math.abs(box.height-baseline.height)<1);assert(Math.abs(box.y-baseline.y)<1,'single and multiple property headers keep button at same height');}baseline=box;
+assert(await toolbar.evaluate(el=>el.scrollWidth<=el.clientWidth+1));if(count===2){await toolbar.locator('[role=tab]').nth(1).click();assert.equal(await link.getAttribute('href'),'https://example.invalid/1');const changed=await link.boundingBox();assert(Math.abs(changed.x-box.x)<1,'switching keeps button position');}
+}await page.close();console.log('PASS folder alignment across five types, single/multiple properties '+width);}
+}finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
