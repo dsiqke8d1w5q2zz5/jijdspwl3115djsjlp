@@ -15,6 +15,9 @@
     const pairStyle=document.createElement('style');
     pairStyle.textContent='.det-category-tabs{display:flex;gap:6px;overflow-x:auto;overscroll-behavior-x:contain;border-bottom:1px solid #e2e8f0;margin-bottom:14px;padding:0 0 8px}.det-category-tabs button{flex:0 0 auto;border:1px solid transparent;border-radius:8px;background:#f1f5f9;color:#475569;padding:9px 12px;font:inherit;font-weight:600;cursor:pointer}.det-category-tabs button[aria-selected=true]{background:#173756;color:white}.det-category-tabs button:focus-visible{outline:2px solid #0891b2;outline-offset:1px}'+'.det-field-pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:0 14px}.det-property-page .det-row{display:grid;grid-template-columns:92px minmax(0,1fr);gap:8px;align-items:start;min-width:0}.det-property-page .det-row>.det-key{width:auto!important;min-width:0}.det-field-pair>.det-row>.det-val{min-width:0;overflow-wrap:anywhere}.det-area-part{display:inline-block;margin-right:5px}';
     document.head.append(pairStyle);
+    const spacingStyle=document.createElement('style');
+    spacingStyle.textContent='@media(min-width:1050px){.det-pane:nth-child(2) .det-row{padding-top:4px;padding-bottom:4px}.det-pane:nth-child(2) .det-pane-title{margin-bottom:10px}.det-category-tabs{margin-bottom:8px;padding-bottom:6px}.det-property-title{margin:5px 0}.det-property-tabs{padding-bottom:6px}.det-property-more{margin-top:4px}.det-property-more>summary{padding:7px 0}.det-schedule-card{margin:10px 0;padding:10px}}';
+    document.head.append(spacingStyle);
     const originalShow=window.showDet;
     window.showDet=function(id,viewAs){
         originalShow(id,viewAs);
@@ -33,6 +36,10 @@
         }
         for(const pane of panes)if(pane.children.length===1){const empty=document.createElement('p');empty.className='det-pane-empty';empty.textContent='尚無資料';pane.append(empty);}
         body.replaceWith(columns);
+        for(const page of root.querySelectorAll('.det-property-page')){
+            const details=[...page.querySelectorAll('.det-property-more')];
+            details.forEach(detail=>detail.addEventListener('toggle',()=>{if(detail.open)details.forEach(other=>{if(other!==detail)other.open=false;});}));
+        }
         if(matchMedia('(min-width:1050px)').matches){
             if(identity){identity.classList.add('det-identity');const copy=identity.querySelector('.det-copy-contact');if(copy){copy.parentElement.classList.add('det-copy-wrap');copy.textContent='複製';copy.setAttribute('aria-label','複製姓名與電話');copy.title='複製姓名與電話';}const tags=panes[0].querySelector(':scope>.tags');if(tags)identity.append(tags);}
             const first=panes[1].querySelector(':scope>[id^="collapse_"]');if(first){first.style.display='';const heading=first.previousElementSibling;heading.style.opacity='1';const label=heading.querySelector('span');if(label)label.textContent=label.textContent.replace('（點擊展開）','');const arrow=heading.querySelector('.collapse-arrow');if(arrow)arrow.textContent='⌄';}
@@ -51,9 +58,10 @@
     function title(p, i) {
         const community=String(p.rCommunity||p.community||'').trim();if(community)return community;
         const address=String(p.rAddr||p.addr||'').trim().replace(/^\d{3,6}\s*/, '');
-        const short=address.replace(/^.*?[縣市]/,'').replace(/^.*?[區鄉鎮市]/,'');
+        const region=address.match(/^(?:[^縣市]{2,3}[縣市])?(?:[^區鄉鎮市路街號]+[區鄉鎮市])?/)[0];
+        const short=address.slice(region.length);
         const road=short.match(/^(.+?(?:路|街|大道)(?:[一二三四五六七八九十\d]+段)?)/);
-        return road?road[1]:(address||'物件 '+(i+1));
+        return road?region+road[1]:(address||'物件 '+(i+1));
     }
     function row(label,value){return value===undefined||value===null||value===''?'':dRow(esc(label),String(value));}
     function link(label,value){if(!value)return '';try{const u=new URL(value);if(!['https:','http:'].includes(u.protocol))return row(label,value);return '<div class="det-row"><span class="det-key">'+esc(label)+'</span><span class="det-val"><a target="_blank" rel="noopener noreferrer" href="'+esc(u.href)+'">開啟物件資料夾</a></span></div>';}catch{return row(label,value);}}
