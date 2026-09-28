@@ -21,6 +21,9 @@
     const tripleStyle=document.createElement('style');
     tripleStyle.textContent='.det-property-page{container-type:inline-size}.det-field-triple{grid-template-columns:1fr}@container(min-width:440px){.det-field-triple{grid-template-columns:repeat(3,minmax(0,1fr));gap:0 12px}.det-property-page .det-field-triple>.det-row{grid-template-columns:5em minmax(0,1fr);gap:6px}}';
     document.head.append(tripleStyle);
+    const otherStyle=document.createElement('style');
+    otherStyle.textContent='.det-property-page .det-other-info .det-row{display:flex;flex-direction:column;gap:5px;padding:9px 0;min-width:0}.det-other-info .det-key{font-weight:400;color:#78716c}.det-other-info .det-val{width:100%;min-width:0}.det-other-info .det-field-pair{grid-template-columns:1fr;gap:0 16px}.det-equipment-list{display:flex;flex-wrap:wrap;gap:6px}.det-equipment-chip{display:inline-block;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;max-width:100%;overflow-wrap:anywhere;font-weight:500}.det-folder-link{display:inline-block;color:#173756!important;background:#f0f6fb;border:1px solid #d4e2ee;border-radius:7px;padding:7px 12px;text-decoration:none!important}.det-folder-link:focus-visible{outline:2px solid #0891b2}.det-property-page .det-other-info .det-folder-row{margin-top:6px;border-bottom:0}@container(min-width:440px){.det-other-info .det-field-pair{grid-template-columns:repeat(3,minmax(0,1fr))}}';
+    document.head.append(otherStyle);
     const originalShow=window.showDet;
     window.showDet=function(id,viewAs){
         originalShow(id,viewAs);
@@ -117,6 +120,15 @@
         for(const container of [main,...groups]){
             const pairs=[['物件等級','約種'],['車位型態','車位價格'],['立約日','到期日'],['起租日','到期日'],['身份','成交日期'],['類別','房屋型態'],['底價','服務費'],['主建物','附屬建物'],['基地面積','土地持分面積'],['土地坪數','建物坪數'],['汽車位管理費','機車位管理費'],['租金週期','管理費方式','建物管理費'],['建物管理費','其他管理費'],['瓦斯錶','水錶','電錶'],['垃圾集中處','專用垃圾袋']];
             for(const labels of pairs){const children=[...container.children],rows=labels.map(label=>children.find(el=>el.matches('.det-row')&&el.querySelector('.det-key')?.textContent===label)).filter(Boolean);if(rows.length<2)continue;const pair=document.createElement('div');pair.className='det-field-pair'+(rows.length===3?' det-field-triple':'');children.find(el=>rows.includes(el)).before(pair);pair.append(...rows);}
+        }
+        const other=groups[2];other.classList.add('det-other-info');
+        for(const item of other.querySelectorAll('.det-row')){
+            const label=item.querySelector('.det-key')?.textContent,value=item.querySelector('.det-val');if(!value)continue;
+            if(label==='附屬設備'){
+                const entries=value.textContent.split('、').map(text=>text.trim()).filter(Boolean);value.replaceChildren();value.classList.add('det-equipment-list');
+                for(const text of entries){const chip=document.createElement('span');chip.className='det-equipment-chip';chip.textContent=text.replace(/\s+(\d+)$/,' ×$1');value.append(chip);}
+            }
+            if(label==='物件資料夾'&&value.querySelector('a')){item.classList.add('det-folder-row');const link=value.querySelector('a');link.classList.add('det-folder-link');link.textContent='開啟資料夾';other.append(item);}
         }
         for(const group of groups)if(group.children.length>1)main.append(group);
         return main.innerHTML;
