@@ -31,7 +31,7 @@
     stickyStyle.textContent='.det-property-header{display:contents}@media(min-width:1050px){.det-property-header{display:block;position:sticky;top:-14px;z-index:3;background:white;margin-top:-14px;padding:14px 0 1px}.det-property-header .det-category-tabs{margin-bottom:6px}}';
     document.head.append(stickyStyle);
     const folderStyle=document.createElement('style');
-    folderStyle.textContent='.det-property-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;height:44px;box-sizing:border-box;margin:4px 0 8px}.det-property-toolbar>.det-property-title,.det-property-toolbar>.det-property-tabs{flex:1;min-width:0;margin:0}.det-property-toolbar>.det-property-tabs{padding:0;align-items:center}.det-property-toolbar>.det-property-title{line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.det-property-toolbar .det-property-tabs button{height:36px;box-sizing:border-box;padding:6px 12px}.det-property-toolbar>.det-folder-link{grid-column:2;grid-row:1;justify-self:end;white-space:nowrap;font-size:14px;line-height:20px;padding:5px 9px;margin:0}.det-property-toolbar>.det-folder-link[hidden]{display:none}';
+    folderStyle.textContent='.det-property-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;height:64px;box-sizing:border-box;margin:6px 0 10px}.det-property-toolbar>.det-property-title,.det-property-toolbar>.det-property-tabs{min-width:0;margin:0;height:64px;box-sizing:border-box;background:#f6f8fa;border:1px solid #e2e8f0;border-radius:8px;padding:6px 8px}.det-property-toolbar>.det-property-tabs{align-items:center;overflow-y:hidden;scrollbar-width:thin}.det-property-toolbar>.det-property-title{line-height:50px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.det-property-toolbar .det-property-tabs button{height:36px;box-sizing:border-box;padding:6px 12px}.det-folder-actions{grid-column:2;grid-row:1;display:flex;align-items:center;border-left:1px solid #dce3eb;padding-left:12px;min-height:40px}.det-folder-actions:empty{display:none}.det-folder-actions>.det-folder-link{white-space:nowrap;font-size:14px;line-height:20px;padding:5px 9px;margin:0}.det-folder-actions>.det-folder-link[hidden]{display:none}';
     document.head.append(folderStyle);
     const historyStyle=document.createElement('style');
     historyStyle.textContent='.det-property-page .det-history-row>.det-val{display:flex;flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:4px 14px}.det-history-time{font-weight:400;color:#78716c;line-height:1.5}.det-history-value:empty{display:none}';
@@ -55,9 +55,9 @@
         for(const pane of panes)if(pane.children.length===1){const empty=document.createElement('p');empty.className='det-pane-empty';empty.textContent='尚無資料';pane.append(empty);}
         body.replaceWith(columns);
         for(const group of root.querySelectorAll('.det-property-group')){
-            const toolbar=document.createElement('div');toolbar.className='det-property-toolbar';const heading=group.firstElementChild;group.prepend(toolbar);toolbar.append(heading);
+            const toolbar=document.createElement('div');toolbar.className='det-property-toolbar';const heading=group.firstElementChild;group.prepend(toolbar);toolbar.append(heading);const actions=document.createElement('div');actions.className='det-folder-actions';toolbar.append(actions);
             for(const page of group.querySelectorAll('.det-property-page')){
-                const link=page.querySelector('.det-folder-row a');if(!link)continue;const row=link.closest('.det-row'),details=row.closest('details');link.dataset.folderPage=page.id;link.hidden=page.hidden;toolbar.append(link);row.remove();if(details&&details.children.length===1)details.remove();
+                const link=page.querySelector('.det-folder-row a');if(!link)continue;const row=link.closest('.det-row'),details=row.closest('details');link.dataset.folderPage=page.id;link.hidden=page.hidden;actions.append(link);row.remove();if(details&&details.children.length===1)details.remove();
             }
         }
         for(const page of root.querySelectorAll('.det-property-page')){
@@ -141,7 +141,7 @@
         }
         // Pair only short, related values; keep addresses, people and narrative text full-width.
         for(const container of [main,...groups]){
-            const pairs=[['物件等級','約種'],['車位型態','車位價格'],['立約日','到期日'],['起租日','到期日'],['身份','成交日期'],['類別','房屋型態'],['底價','服務費'],['主建物','附屬建物'],['基地面積','土地持分面積'],['土地坪數','建物坪數'],['汽車位管理費','機車位管理費'],['租金週期','管理費方式','建物管理費'],['建物管理費','其他管理費'],['瓦斯錶','水錶','電錶'],['垃圾集中處','專用垃圾袋']];
+            const pairs=[['物件等級','約種'],['車位型態','車位價格'],['立約日','到期日'],['起租日','到期日'],['成交日期','身份'],['類別','房屋型態'],['底價','服務費'],['主建物','附屬建物'],['基地面積','土地持分面積'],['土地坪數','建物坪數'],['汽車位管理費','機車位管理費'],['租金週期','管理費方式','建物管理費'],['建物管理費','其他管理費'],['瓦斯錶','水錶','電錶'],['垃圾集中處','專用垃圾袋']];
             for(const labels of pairs){const children=[...container.children],rows=labels.map(label=>children.find(el=>el.matches('.det-row')&&el.querySelector('.det-key')?.textContent===label)).filter(Boolean);if(rows.length<2)continue;const pair=document.createElement('div');pair.className='det-field-pair'+(rows.length===3?' det-field-triple':'');children.find(el=>rows.includes(el)).before(pair);pair.append(...rows);}
         }
         const area=groups[0],areaGrid=document.createElement('div');areaGrid.className='det-area-grid';
