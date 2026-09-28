@@ -9,6 +9,23 @@
     const layoutStyle=document.createElement('style');
     layoutStyle.textContent='.det-columns,.det-pane{display:contents}.det-pane-title,.det-pane-empty{display:none}@media(min-width:1050px){#dModal{align-items:center!important;padding:20px!important}#dModal>.modal{width:96vw;max-width:1560px!important;height:90dvh;max-height:90dvh;overflow:hidden}#detContent{height:100%;display:flex;flex-direction:column;min-height:0}#detContent>.det-head{position:static;flex-shrink:0;min-height:58px;padding:8px 18px}.det-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));flex:1;min-height:0;overflow:hidden}.det-pane{display:block;min-width:0;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding:14px 18px;scrollbar-gutter:stable}.det-pane+.det-pane{border-left:1px solid #e7e5e4}.det-pane-title{display:block;font-size:17px;color:#173756;font-weight:700;margin:0 0 14px}.det-pane-empty{display:block;color:#78716c;font-size:14px}.det-pane .det-name{font-size:26px}.det-pane .det-phone{font-size:20px}.det-pane .det-row{display:grid;grid-template-columns:92px minmax(0,1fr);gap:8px;align-items:start}.det-pane .det-key{width:auto!important;min-width:0;white-space:normal!important}.det-pane .det-val{min-width:0;overflow-wrap:anywhere;white-space:pre-wrap}.det-pane .sp-grid{grid-template-columns:1fr!important}.det-pane .sp-grid>div:empty{display:none}.det-pane .sp-grid>div{min-width:0}.det-pane .sp-grid .det-key{flex:0 0 92px}.det-pane .det-sec{margin-top:10px}}';
     document.head.append(layoutStyle);
+    const polishStyle=document.createElement('style');
+    polishStyle.textContent='@media(min-width:1050px){.det-columns{grid-template-columns:minmax(0,28fr) minmax(0,38fr) minmax(0,34fr)}.det-identity{display:grid!important;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px!important;justify-content:normal!important;margin:2px 0 18px}.det-identity .det-name{grid-column:1/-1;text-align:left;margin:0;font-size:26px}.det-identity .det-phone{text-align:left;margin:0;font-size:20px;align-self:center;overflow-wrap:anywhere}.det-identity .det-copy-wrap{margin:0!important}.det-identity .det-copy-contact{padding:5px 9px;font-size:13px;min-height:32px}.det-identity .tags{grid-column:1/-1;margin:4px 0 0!important}.det-schedule-card{padding:12px;background:#f0f6fb;border:1px solid #dfebf4;border-radius:10px;margin:14px 0}.det-schedule-card h3{margin:0 0 6px;font-size:14px;color:#173756}.det-schedule-card .det-row{grid-template-columns:100px minmax(0,1fr);border-color:#dfe8f1}.det-schedule-card .det-row .det-key{white-space:pre-line!important;margin-right:0!important}.det-schedule-card .det-val{font-weight:500}.det-log-group{margin:0 0 16px}.det-log-date{font-size:14px;color:#059669;font-weight:700;margin:0 0 4px}.det-log-item{font-size:14px;font-weight:400;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere;padding:7px 0 7px 12px;border-left:2px solid #d6eee4;border-bottom:1px solid #f1f1ef}.det-log-expand{border:0;background:transparent;color:#059669;padding:8px 0;font:inherit;font-size:14px;cursor:pointer}.det-log-item[hidden],.det-log-group[hidden]{display:none!important}.det-log-filter{margin:0 0 12px}}';
+    document.head.append(polishStyle);
+    const pairStyle=document.createElement('style');
+    pairStyle.textContent='.det-field-pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:0 14px}.det-field-pair>.det-row{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;min-width:0}.det-field-pair>.det-row>.det-key{width:auto!important;flex:0 0 auto}.det-field-pair>.det-row>.det-val{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}.det-area-part{display:inline-block;margin-right:5px}';
+    document.head.append(pairStyle);
+    const originalLogRows=window._detLogRows;
+    window._detLogRows=function(year){
+        if(!matchMedia('(min-width:1050px)').matches)return originalLogRows(year);
+        const list=year?_detLogData.filter(log=>_rocYear(log.date)===year):_detLogData,groups=new Map();
+        list.forEach((log,index)=>{const date=log.date||'';if(!groups.has(date))groups.set(date,[]);groups.get(date).push({log,index});});
+        let html='';
+        for(const [date,items] of groups){html+='<section class="det-log-group"'+(items[0].index>=10?' data-detail-log-extra hidden':'')+'><h3 class="det-log-date">'+esc(date?isoToROC(date):'未填日期')+'</h3>'+items.map(({log,index})=>'<div class="det-log-item"'+(index>=10?' data-detail-log-extra hidden':'')+'>'+esc(log.memo||'')+'</div>').join('')+'</section>';}
+        if(list.length>10)html+='<button type="button" class="det-log-expand" data-log-count="'+(list.length-10)+'" aria-expanded="false">顯示其餘 '+(list.length-10)+' 筆</button>';
+        return html;
+    };
+    document.addEventListener('click',event=>{const button=event.target.closest('.det-log-expand');if(!button)return;const open=button.getAttribute('aria-expanded')!=='true';button.closest('#detLogList').querySelectorAll('[data-detail-log-extra]').forEach(el=>el.hidden=!open);button.setAttribute('aria-expanded',String(open));button.textContent=open?'收合較早紀錄':'顯示其餘 '+button.dataset.logCount+' 筆';},true);
     const originalShow=window.showDet;
     window.showDet=function(id,viewAs){
         originalShow(id,viewAs);
@@ -27,6 +44,12 @@
         }
         for(const pane of panes)if(pane.children.length===1){const empty=document.createElement('p');empty.className='det-pane-empty';empty.textContent='尚無資料';pane.append(empty);}
         body.replaceWith(columns);
+        if(matchMedia('(min-width:1050px)').matches){
+            if(identity){identity.classList.add('det-identity');const copy=identity.querySelector('.det-copy-contact');if(copy){copy.parentElement.classList.add('det-copy-wrap');copy.textContent='複製';copy.setAttribute('aria-label','複製姓名與電話');copy.title='複製姓名與電話';}const tags=panes[0].querySelector(':scope>.tags');if(tags)identity.append(tags);}
+            const first=panes[1].querySelector(':scope>[id^="collapse_"]');if(first){first.style.display='';const heading=first.previousElementSibling;heading.style.opacity='1';const label=heading.querySelector('span');if(label)label.textContent=label.textContent.replace('（點擊展開）','');const arrow=heading.querySelector('.collapse-arrow');if(arrow)arrow.textContent='⌄';}
+            const schedule=[...panes[1].children].find(el=>el.textContent.trim()==='預排行程');if(schedule){const card=document.createElement('section');card.className='det-schedule-card';schedule.before(card);const heading=document.createElement('h3');heading.textContent='預排行程';card.append(heading);let next=schedule.nextElementSibling;schedule.remove();while(next?.classList.contains('det-row')){const following=next.nextElementSibling;const date=next.querySelector('.det-key');if(date)date.textContent=date.textContent.replace(/ (\d{1,2}:\d{2})$/,'\n$1');card.append(next);next=following;}}
+            const logHeading=panes[2].querySelector(':scope>.det-sec');if(logHeading){const years=logHeading.querySelector('#detLogYears');if(years){years.classList.add('det-log-filter');logHeading.replaceWith(years);}else logHeading.remove();}
+        }
     };
     function title(p, i) {
         const community=String(p.rCommunity||p.community||'').trim();if(community)return community;
@@ -59,9 +82,9 @@
         return html;
     }
     function tenants(c,index){return DB.filter(t=>!t._deleted&&t.linkedLandlordId===c.id&&(t.linkedPropertyIdx||0)===index).map(t=>row('租客',[t.ttName||t.name,t.ttPhone||t.phone,t.ttIdNo,t.ttOccupation].filter(Boolean).join('　'))+row('租客條件',[t.rSubsidy2?'租補':'',t.rSocialHouse2?'社宅':'',t.rRegister2?'設籍':'',t.rTax2?'報稅':'',t.rPet2?'寵物':'',t.rAltar2?'神桌':'',t.rGoodCitizen2?'良民':'',t.rNotarize2?'公證':''].filter(Boolean).join('、'))).join('');}
-    function compact(html,extra){
+    function compact(html,extra,kind,property){
         const holder=document.createElement('div');holder.innerHTML=html;
-        const core=new Set(['社區大樓','物件地址','地址','成交地址','開價','租金','成交價格','坪數','坪數/車位','登記面積','車位','車位型態','車位編號','立約日','起租日','到期日','成交日期','租客','房東條件','租客條件','需求區域','房型需求','預算','身份','類別','房屋型態','物件等級','約種']);
+        const core=new Set(['社區大樓','物件地址','地址','成交地址','開價','租金','成交價格','坪數','坪數/車位','登記面積','車位','車位型態','車位價格','車位編號','立約日','起租日','到期日','成交日期','租客','房東條件','租客條件','需求區域','房型需求','預算','身份','類別','房屋型態','物件等級','約種']);
         const main=document.createElement('div'),groups=['面積與持分明細','合約與價格歷程','其他資料'].map(label=>{const box=document.createElement('details');box.className='det-property-more';const summary=document.createElement('summary');summary.textContent=label;box.append(summary);return box;});
         const seen=new Set();
         function distribute(child){
@@ -78,6 +101,15 @@
         for(const child of [...holder.children])distribute(child);
         const added=document.createElement('div');added.innerHTML=extra;
         for(const child of [...added.children])distribute(child);
+        if(kind==='s'){
+            const totalRow=[...main.children].find(el=>el.querySelector('.det-key')?.textContent==='登記面積');
+            if(totalRow){const number=value=>Number.parseFloat(value)||0,building=number(property.mainBldg)+number(property.ancBldg)+number(property.common),parking=number(property.parkingSz),value=totalRow.querySelector('.det-val');value.replaceChildren();const parts=['建物 '+building.toFixed(2)+' 坪'];if(property.parkingSz!==undefined&&String(property.parkingSz).trim()!=='')parts.push('＋ 車位 '+parking.toFixed(2)+' 坪');parts.push('＝ 總計 '+(building+parking).toFixed(2)+' 坪');for(const text of parts){const span=document.createElement('span');span.className='det-area-part';span.textContent=text;value.append(span);}}
+        }
+        // Pair only short, related values; keep addresses, people and narrative text full-width.
+        for(const container of [main,...groups]){
+            const pairs=[['物件等級','約種'],['車位型態','車位價格'],['立約日','到期日'],['起租日','到期日'],['身份','成交日期'],['類別','房屋型態'],['底價','服務費'],['主建物','附屬建物'],['基地面積','土地持分面積'],['土地坪數','建物坪數'],['汽車位管理費','機車位管理費']];
+            for(const [first,second] of pairs){const children=[...container.children],a=children.find(el=>el.matches('.det-row')&&el.querySelector('.det-key')?.textContent===first),b=children.find(el=>el.matches('.det-row')&&el.querySelector('.det-key')?.textContent===second);if(!a||!b)continue;const pair=document.createElement('div');pair.className='det-field-pair';a.before(pair);pair.append(a,b);}
+        }
         for(const group of groups)if(group.children.length>1)main.append(group);
         return main.innerHTML;
     }
@@ -95,7 +127,7 @@
             // Render linked tenants using the original property index, not the single-item clone index.
             if(c.type==='房東'){copy.id='detail-only-'+group;copy.linkedTenantIds=[];}
             const body=original(copy,viewAs)+(c.type==='房東'?tenants(c,index):'');
-            return '<section class="det-property-page" id="'+group+'-page-'+i+'" '+(entries.length>1?'role="tabpanel" aria-labelledby="'+group+'-tab-'+i+'"':'aria-label="'+esc(labels[i])+'"')+(i?' hidden':'')+'>'+compact(body,extras(kind,p))+'</section>';
+            return '<section class="det-property-page" id="'+group+'-page-'+i+'" '+(entries.length>1?'role="tabpanel" aria-labelledby="'+group+'-tab-'+i+'"':'aria-label="'+esc(labels[i])+'"')+(i?' hidden':'')+'>'+compact(body,extras(kind,p),kind,p)+'</section>';
         }).join('')+unlinked+'</div>';
     };
     function activate(button){
