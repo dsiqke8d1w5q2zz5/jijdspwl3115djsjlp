@@ -25,7 +25,7 @@
     otherStyle.textContent='.det-property-page .det-other-info .det-row{display:flex;flex-direction:column;gap:5px;padding:9px 0;min-width:0}.det-other-info .det-key{font-weight:400;color:#78716c}.det-other-info .det-val{width:100%;min-width:0}.det-other-info .det-field-pair{grid-template-columns:1fr;gap:0 16px}.det-equipment-list{display:flex;flex-wrap:wrap;gap:6px}.det-equipment-chip{display:inline-block;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;max-width:100%;overflow-wrap:anywhere;font-weight:500}.det-folder-link{display:inline-block;color:#173756!important;background:#f0f6fb;border:1px solid #d4e2ee;border-radius:7px;padding:7px 12px;text-decoration:none!important}.det-folder-link:focus-visible{outline:2px solid #0891b2}.det-property-page .det-other-info .det-folder-row{margin-top:6px;border-bottom:0}@container(min-width:440px){.det-other-info .det-field-pair{grid-template-columns:repeat(3,minmax(0,1fr))}}';
     document.head.append(otherStyle);
     const areaStyle=document.createElement('style');
-    areaStyle.textContent='.det-area-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px;margin:4px 0 12px}.det-property-page .det-area-grid>.det-row{display:flex;flex-direction:column;gap:5px;padding:9px 10px;background:#f6f8fa;border:1px solid #e8edf1;border-radius:7px}.det-area-grid .det-key,.det-area-records .det-key{width:auto!important;white-space:normal!important}.det-area-grid .det-val,.det-area-records .det-val{min-width:0}.det-area-records{border-top:1px solid #e2e8f0;padding-top:10px}.det-area-records h4{margin:0 0 8px;font-size:inherit;color:#173756}.det-property-page .det-area-records>.det-row{display:flex;flex-direction:column;gap:5px;padding:8px 0}.det-area-records .det-val{display:flex;flex-wrap:wrap;gap:4px 14px}.det-area-records .det-val>span{overflow-wrap:anywhere;max-width:100%}@container(min-width:440px){.det-area-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}';
+    areaStyle.textContent='.det-area-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 10px;margin:2px 0 6px}.det-property-page .det-area-grid>.det-row{display:flex;flex-direction:column;gap:2px;padding:5px 9px;background:#f6f8fa;border:1px solid #e8edf1;border-radius:7px}.det-area-grid .det-key{width:auto!important;white-space:normal!important}.det-area-grid .det-val{min-width:0}@container(min-width:440px){.det-area-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}';
     document.head.append(areaStyle);
     const stickyStyle=document.createElement('style');
     stickyStyle.textContent='.det-property-header{display:contents}@media(min-width:1050px){.det-property-header{display:block;position:sticky;top:-14px;z-index:3;background:white;margin-top:-14px;padding:14px 0 1px}.det-property-header .det-category-tabs{margin-bottom:6px}}';
@@ -128,17 +128,15 @@
             const pairs=[['物件等級','約種'],['車位型態','車位價格'],['立約日','到期日'],['起租日','到期日'],['身份','成交日期'],['類別','房屋型態'],['底價','服務費'],['主建物','附屬建物'],['基地面積','土地持分面積'],['土地坪數','建物坪數'],['汽車位管理費','機車位管理費'],['租金週期','管理費方式','建物管理費'],['建物管理費','其他管理費'],['瓦斯錶','水錶','電錶'],['垃圾集中處','專用垃圾袋']];
             for(const labels of pairs){const children=[...container.children],rows=labels.map(label=>children.find(el=>el.matches('.det-row')&&el.querySelector('.det-key')?.textContent===label)).filter(Boolean);if(rows.length<2)continue;const pair=document.createElement('div');pair.className='det-field-pair'+(rows.length===3?' det-field-triple':'');children.find(el=>rows.includes(el)).before(pair);pair.append(...rows);}
         }
-        const area=groups[0],areaGrid=document.createElement('div'),areaRecords=document.createElement('section');
-        areaGrid.className='det-area-grid';areaRecords.className='det-area-records';const areaHeading=document.createElement('h4');areaHeading.textContent='原始面積與持分';areaRecords.append(areaHeading);
+        const area=groups[0],areaGrid=document.createElement('div');areaGrid.className='det-area-grid';
         for(const item of [...area.children].slice(1)){
             const rows=item.classList.contains('det-field-pair')?[...item.children]:[item];
             for(const entry of rows){const label=entry.querySelector('.det-key')?.textContent||'';
-                if(label.includes('原始面積')){const value=entry.querySelector('.det-val');if(value){const parts=value.textContent.split(' · ');value.replaceChildren();parts.forEach(text=>{const part=document.createElement('span');part.textContent=text;value.append(part);});}areaRecords.append(entry);}
-                else areaGrid.append(entry);
+                if(label.includes('原始面積'))entry.remove();else areaGrid.append(entry);
             }
             if(item.classList.contains('det-field-pair'))item.remove();
         }
-        if(areaGrid.children.length)area.append(areaGrid);if(areaRecords.children.length>1)area.append(areaRecords);
+        if(areaGrid.children.length)area.append(areaGrid);
         const other=groups[2];other.classList.add('det-other-info');
         for(const item of other.querySelectorAll('.det-row')){
             const label=item.querySelector('.det-key')?.textContent,value=item.querySelector('.det-val');if(!value)continue;
