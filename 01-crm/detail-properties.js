@@ -62,7 +62,7 @@
         }
         for(const page of root.querySelectorAll('.det-property-page')){
             const details=[...page.querySelectorAll('.det-property-more')];
-            details.forEach(detail=>detail.addEventListener('toggle',()=>{if(detail.open)details.forEach(other=>{if(other!==detail)other.open=false;});}));
+            details.forEach(detail=>detail.querySelector(':scope>summary').addEventListener('click',event=>{event.preventDefault();const opening=!detail.open;details.forEach(other=>{other.open=opening&&other===detail;});}));
         }
         if(matchMedia('(min-width:1050px)').matches){
             if(identity){identity.classList.add('det-identity');const copy=identity.querySelector('.det-copy-contact');if(copy){copy.parentElement.classList.add('det-copy-wrap');copy.textContent='複製';copy.setAttribute('aria-label','複製姓名與電話');copy.title='複製姓名與電話';}const tags=panes[0].querySelector(':scope>.tags');if(tags)identity.append(tags);}
