@@ -5460,10 +5460,10 @@ function _detLogChip(year, label, active){
 function _detLogRows(year){
     var list = year ? _detLogData.filter(function(l){ return _rocYear(l.date) === year; }) : _detLogData;
     var row = function(log){ return '<div class="det-row"><span class="det-key" style="color:#059669;font-weight:700">'+esc(isoToROC(log.date))+'</span><span class="det-val">'+esc(log.memo)+'</span></div>'; };
-    var html = list.slice(0,15).map(row).join('');
-    if (list.length > 15) {
-        html += '<div id="detLogMore" style="display:none">' + list.slice(15).map(row).join('') + '</div>' +
-            '<div id="detLogToggle" onclick="toggleDetLog()" style="font-size:13px;color:#059669;font-weight:600;cursor:pointer;padding:6px 0;user-select:none">顯示其餘 '+(list.length-15)+' 筆 <i class="ti ti-chevron-down"></i></div>';
+    var html = list.slice(0,10).map(row).join('');
+    if (list.length > 10) {
+        html += '<div id="detLogMore" style="display:none">' + list.slice(10).map(row).join('') + '</div>' +
+            '<div id="detLogToggle" onclick="toggleDetLog()" style="font-size:13px;color:#059669;font-weight:600;cursor:pointer;padding:6px 0;user-select:none">顯示其餘 '+(list.length-10)+' 筆 <i class="ti ti-chevron-down"></i></div>';
     }
     return html;
 }
@@ -12204,7 +12204,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260929detail20';
+var APP_VERSION = '20260929detail21';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13314,6 +13314,6 @@ function deleteMktTemplate(idx) {
 <script src="image-composer.js?v=20260928sync1"></script>
 <script src="area-editor.js?v=20260917audit1"></script>
 <script src="sync-notice.js?v=20260928sync1"></script>
-<script src="detail-properties.js?v=20260929detail20"></script>
+<script src="detail-properties.js?v=20260929detail21"></script>
 </body>
 </html>
