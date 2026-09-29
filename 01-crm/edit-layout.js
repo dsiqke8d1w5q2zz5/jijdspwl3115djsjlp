@@ -60,8 +60,16 @@ tabStyle.textContent='.edit-object-tabs{display:flex;gap:6px;overflow-x:auto;ove
 tabStyle.textContent+='#fModal :is(.rp-mgmt-row,.sp-mgmt-row){align-items:flex-end}#fModal :is(.rp-mgmt-row,.sp-mgmt-row)>div{display:flex;flex-direction:column}#fModal :is(.rp-mgmt-row,.sp-mgmt-row)>div>label{height:18px;line-height:18px;margin-bottom:4px!important}#fModal :is(.rp-mgmt-row,.sp-mgmt-row) :is(select,input,.input-sfx,[data-f="mgmtTotal"]){height:38px;box-sizing:border-box}#fModal :is(.rp-mgmt-row,.sp-mgmt-row) .input-grp{height:38px}#fModal :is(.rp-mgmt-row,.sp-mgmt-row) :is(.input-sfx,[data-f="mgmtTotal"]){display:flex;align-items:center;justify-content:center;padding-top:0!important;padding-bottom:0!important}';
 const compactEdit=document.createElement('style');
 compactEdit.textContent='@media(min-width:1200px){#fModal.edit-layout .edit-pane-heading{margin-bottom:8px}#fModal.edit-layout .edit-property-head{padding-bottom:5px;margin-bottom:6px}#fModal.edit-layout .tp-btn{padding-top:5px;padding-bottom:5px}#fModal.edit-layout .edit-object-tabs{padding:4px 6px;margin:5px 0 6px}#fModal.edit-layout .edit-object-tabs button{padding:5px 10px}#fModal.edit-layout .fg{margin-bottom:6px}#fModal.edit-layout .fg>label{margin-bottom:3px}#fModal.edit-layout :is(.person-block,.deal-box){padding:8px!important;margin-bottom:6px!important}#fModal.edit-layout .edit-pane input:not([type=hidden]):not([type=checkbox]):not([type=radio]),#fModal.edit-layout .edit-pane select{height:32px;padding-top:4px;padding-bottom:4px}#fModal.edit-layout .edit-pane .input-sfx{height:32px;box-sizing:border-box;display:flex;align-items:center;padding-top:0;padding-bottom:0}#fModal.edit-layout :is(.rp-mgmt-row,.sp-mgmt-row) :is(.input-grp,[data-f="mgmtTotal"]){height:32px}#fModal.edit-layout .edit-pane .cal-btn{min-height:32px;height:32px;padding-top:4px;padding-bottom:4px}#fModal.edit-layout .edit-pane .sec-title{margin-bottom:7px;padding-bottom:4px}#fModal.edit-layout .equip-toggle{padding-top:6px;padding-bottom:6px}}@media(min-width:1050px){#dModal .det-pane-title{margin-bottom:8px}#dModal .det-pane .det-row{padding-top:3px;padding-bottom:3px}#dModal .det-property-page .det-other-info .det-row{padding-top:4px;padding-bottom:4px}#dModal .det-property-more>summary{padding-top:4px;padding-bottom:4px}#dModal .det-schedule-card{padding-top:8px;padding-bottom:8px}#dModal .det-property-toolbar{margin-top:2px;margin-bottom:2px}}';
+tabStyle.textContent+='#fModal .edit-section-toolbar{min-height:88px;box-sizing:border-box;margin:0 0 6px}#fModal .edit-section-toolbar>.sec-title{height:36px;box-sizing:border-box;margin:0 0 6px!important;padding:0 0 5px!important;flex-wrap:nowrap}#fModal .edit-section-toolbar>.edit-object-tabs{height:42px;box-sizing:border-box;margin:0!important;align-items:center}#fModal .edit-section-toolbar .add-row-btn{height:30px;box-sizing:border-box;min-width:56px}';
 document.head.append(tabStyle);document.head.append(compactEdit);
 function moveAddButtons(){
+ const buyerList=document.getElementById('bDemandList');
+ if(buyerList&&!buyerList.closest('.type-sec').querySelector('.edit-buyer-heading')){const heading=document.createElement('div');heading.className='sec-title edit-buyer-heading';heading.textContent='買方需求';buyerList.before(heading);}
+ for(const action of ['addBuyerDemand','addSellerProperty','addRentalProperty','addDealRow','addDAddrRow']){
+  const button=modal.querySelector('.add-row-btn[onclick="'+action+'()"]');if(!button)continue;
+  if(!button.dataset.addLabel)button.dataset.addLabel=button.textContent.replace('＋','').trim();
+  button.textContent='新增';button.title=button.dataset.addLabel;button.setAttribute('aria-label',button.dataset.addLabel);button.style.marginBottom='0';
+ }
  for(const button of modal.querySelectorAll('.add-row-btn')){
   if(button.closest('#typeNotesArea')||button.parentElement.classList.contains('edit-add-heading'))continue;
   let sibling=button.previousElementSibling;
@@ -69,8 +77,8 @@ function moveAddButtons(){
   if(sibling){sibling.classList.add('edit-add-heading');sibling.append(button);}
  }
 }
-function setupObjectTabs(){
- for(const id of ['sPropertyList','rPropertyList','dealList','dAddrList']){
+function setupObjectTabs(){moveAddButtons();
+ for(const id of ['bDemandList','sPropertyList','rPropertyList','dealList','dAddrList']){
   const list=document.getElementById(id);if(!list||tabStates.has(id))continue;
   const nav=document.createElement('div');nav.className='edit-object-tabs';nav.setAttribute('role','tablist');nav.setAttribute('aria-label','選擇編輯物件');list.before(nav);
   const state={active:null,known:new Set(),nav,list};tabStates.set(id,state);
@@ -80,7 +88,7 @@ function setupObjectTabs(){
    if(!items.includes(state.active))state.active=items[0]||null;
    if(added.length&&state.known.size)state.active=added[added.length-1];
    state.known=new Set(items);
-   const names=items.map((row,i)=>row.querySelector('[data-f="community"],.deal-community')?.value.trim()||row.querySelector('[data-f="addr"],.deal-addr')?.value.trim()||'物件 '+(i+1));
+   const names=items.map((row,i)=>row.querySelector('[data-f="community"],.deal-community')?.value.trim()||row.querySelector('[data-f="addr"],.deal-addr')?.value.trim()||(id==='bDemandList'?'需求 ':'物件 ')+(i+1));
    nav.replaceChildren();nav.hidden=!items.length;
    items.forEach((row,i)=>{row.classList.add('edit-object-page');row.hidden=row!==state.active;const button=document.createElement('button');button.type='button';button.textContent=names[i]+(names.filter(name=>name===names[i]).length>1?'（'+(i+1)+'）':'');button.setAttribute('role','tab');button.setAttribute('aria-selected',String(row===state.active));button.tabIndex=row===state.active?0:-1;button.setAttribute('aria-controls',row.id);row.setAttribute('role','tabpanel');button.onclick=()=>{state.active=row;refresh();};button.onkeydown=event=>{let n=i;if(event.key==='ArrowRight')n=(i+1)%items.length;else if(event.key==='ArrowLeft')n=(i+items.length-1)%items.length;else if(event.key==='Home')n=0;else if(event.key==='End')n=items.length-1;else return;event.preventDefault();event.stopPropagation();state.active=items[n];refresh();nav.children[n].focus();};nav.append(button);});
   }
@@ -90,6 +98,10 @@ function setupObjectTabs(){
   refresh();
  }
  moveAddButtons();
+ for(const state of tabStates.values()){
+  const section=state.list.closest('.type-sec');let toolbar=section.querySelector(':scope>.edit-section-toolbar');
+  if(!toolbar){toolbar=document.createElement('div');toolbar.className='edit-section-toolbar';const action={bDemandList:'addBuyerDemand',sPropertyList:'addSellerProperty',rPropertyList:'addRentalProperty',dealList:'addDealRow',dAddrList:'addDAddrRow'}[state.list.id];const heading=section.querySelector('.add-row-btn[onclick="'+action+'()"]')?.closest('.sec-title');if(heading)toolbar.append(heading);toolbar.append(state.nav);section.prepend(toolbar);}
+ }
 }
 const validate=window.validateAreaEditors;
 window.validateAreaEditors=function(){const bad=modal.querySelector('.area-editor[data-invalid="1"]'),row=bad?.closest('.edit-object-page');if(row)for(const state of tabStates.values())if(row.parentElement===state.list){state.active=row;state.refresh();}return validate.apply(this,arguments);};
@@ -125,6 +137,8 @@ new MutationObserver(()=>{
  if(JSON.stringify(customer)!==previous.snapshot)showDet(previous.id,previous.viewAs);
  else document.getElementById('dModal').style.display='flex';
 }).observe(modal,{attributes:true,attributeFilter:['style']});
+const applyTypes=window.applyTypePicker;let previousType='';
+window.applyTypePicker=function(){const result=applyTypes.apply(this,arguments);if(activeView!==previousType){const pane=modal.querySelector('.edit-property');if(pane)pane.scrollTop=0;}previousType=activeView;return result;};
 const add=window.openAdd;window.openAdd=function(){returnDetail=null;restore();const result=add.apply(this,arguments);resetObjectTabs();return result;};
 desktop.addEventListener('change',()=>{restore();if(modal.style.display==='flex')arrange();});
 })();
