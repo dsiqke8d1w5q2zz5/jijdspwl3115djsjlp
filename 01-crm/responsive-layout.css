@@ -474,3 +474,18 @@
 /* Enlarge detail actions without changing their outer dimensions. */
 #dModal .det-header-actions button{font-size:18px!important;padding:4px 4px!important;line-height:20px;width:46px;box-sizing:border-box}
 #dModal .det-header-actions button[aria-label='解除封存']{width:74px;padding-inline:0!important}
+
+/* Inventory form typography: consistent field labels and section headings. */
+#fModal #sPropertyList .fg>label,#fModal #sPropertyList .area-editor label,#fModal #sPropertyList [data-fee-layout] label{font-size:14px!important;font-weight:600;color:#475569}
+#fModal #sPropertyList .grade-btn,#fModal #sPropertyList .rm-btn,#fModal #sPropertyList div:has(>[data-f=contractType])>span,#fModal #sPropertyList label:has(>[data-f=spPass]){font-size:14px!important;font-weight:600}
+#fModal #sPropertyList .area-editor-heading>strong,#fModal #sPropertyList .area-section-heading>strong,#fModal #sPropertyList div:has(+.sp-mgmt-row){font-size:15px!important;font-weight:700;color:#173756}
+
+/* Separate the folder action from the property switcher. */
+#dModal .det-folder-actions{padding-top:6px;margin-bottom:6px;min-height:36px;box-sizing:border-box}
+
+#fModal #sPropertyList .person-block>div:has(>.grade-btn){flex-wrap:wrap}
+#fModal #sPropertyList .person-block>div:has(>.grade-btn)>button{white-space:nowrap;flex-shrink:0}
+
+/* Align category, property and folder controls on one left edge. */
+#dModal .det-property-toolbar>.det-property-tabs,#dModal .det-property-toolbar>.det-property-title{padding-left:0!important;padding-right:0!important;border:0;background:transparent;border-radius:0}
+#dModal .det-property-toolbar>.det-property-tabs{gap:6px}
