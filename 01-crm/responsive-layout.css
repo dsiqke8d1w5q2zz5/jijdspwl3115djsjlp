@@ -223,3 +223,69 @@
 /* Dashboard panels stay inside their scroll container on hover and click. */
 #dashboard .dash-section{transition:box-shadow .2s}
 #dashboard .dash-section:hover{transform:none}
+
+/* Compact performance records: identity in one row, notes underneath. */
+#perfBody .perf-record{display:grid;grid-template-columns:76px minmax(0,1fr) auto auto;align-items:center;gap:4px 8px;padding:12px 0;border-bottom:1px solid #e9edf1;font-size:13px;line-height:1.5}
+#perfBody .perf-record-date{color:#78716c;font-variant-numeric:tabular-nums;white-space:nowrap}
+#perfBody .perf-record-info{display:flex;align-items:baseline;gap:6px;min-width:0;flex-wrap:wrap}
+#perfBody .perf-record-badge{padding:2px 6px;border-radius:5px;font-size:12px;font-weight:600;white-space:nowrap}
+#perfBody .perf-record-client{font-weight:600;color:#1f2937;overflow-wrap:anywhere;min-width:0}
+#perfBody .perf-record-amount{color:#047857;text-align:right;font-variant-numeric:tabular-nums;max-width:220px;overflow-wrap:anywhere}
+#perfBody .perf-record-actions{display:flex;gap:4px}
+#perfBody .perf-record-actions button{width:28px;min-height:28px;padding:0;border:1px solid #e5e7eb;border-radius:6px;background:white;color:#78716c;cursor:pointer}
+#perfBody .perf-record-actions button:hover{background:#f1f5f9;color:#173756}
+#perfBody .perf-record-memo{grid-column:2/-1;color:#78716c;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-width:600px){
+ #perfBody .perf-record{grid-template-columns:minmax(0,1fr) auto;gap:6px 8px}
+ #perfBody .perf-record-date{grid-column:1;grid-row:1}
+ #perfBody .perf-record-actions{grid-column:2;grid-row:1}
+ #perfBody .perf-record-actions button{width:36px;min-height:36px}
+ #perfBody .perf-record-info{grid-column:1/-1;grid-row:2}
+ #perfBody .perf-record-amount{grid-column:1/-1;grid-row:3;max-width:none;text-align:left}
+ #perfBody .perf-record-memo{grid-column:1/-1}
+}
+
+/* Template library uses calm cards and consistent action controls. */
+#tplModal>.modal{max-width:760px!important}
+#tplModal .modal-head{padding:16px 20px;border-bottom:1px solid #e5eaf0}
+#tplModal #tplAddBtn{background:#173756!important;min-height:34px;padding:6px 14px!important}
+#tplModal .modal>div:has(>.tpl-tab){gap:6px!important;padding:10px 16px!important;background:#fff;border-bottom:1px solid #e5eaf0!important}
+#tplModal .tpl-tab{flex:1;padding:8px 12px;border:0;border-radius:8px;font-size:14px;color:#64748b;min-height:36px}
+#tplModal .tpl-tab.active{background:#eaf1f8;color:#173756;font-weight:700}
+#tplBody{background:#f5f7fa;padding:14px 16px!important}
+#tplBody>div:has(>pre){padding:14px!important;border:1px solid #e1e7ee!important;border-radius:12px!important;box-shadow:0 2px 5px #17375605;margin-bottom:12px!important}
+#tplBody>div:has(>pre)>div:first-child{gap:6px!important;margin-bottom:10px!important;align-items:center!important}
+#tplBody>div:has(>pre)>div:first-child>span{color:#173756;font-size:15px!important;min-width:0;overflow-wrap:anywhere}
+#tplBody button{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-width:32px;min-height:32px;border-radius:7px!important;flex-shrink:0}
+#tplBody button[onclick^="copy"]{background:#173756!important;padding:5px 10px!important}
+#tplBody button[onclick^="edit"]{background:#f8fafc!important;border-color:#dde5ee!important}
+#tplBody button[onclick^="delete"]{color:#b45353!important;border-color:#eadfdf!important}
+#tplBody pre{background:#f8fafc!important;border:1px solid #edf1f5;border-radius:8px!important;padding:12px 14px!important;line-height:1.75!important;color:#334155!important;scrollbar-width:thin;scrollbar-color:#cbd5e1 transparent}
+@media(max-width:600px){
+ #tplBody{padding:10px!important}
+ #tplBody>div:has(>pre)>div:first-child{flex-wrap:wrap}
+ #tplBody>div:has(>pre)>div:first-child>span{flex:1 0 100%!important}
+ #tplBody button{min-height:36px;min-width:36px}
+ #tplModal .modal-head{padding:12px}
+}
+
+#perfModal .modal-head{padding:16px 20px;border-bottom:1px solid #e5eaf0}
+#perfFixed{background:#fff;padding:14px 16px 0!important}
+#perfFixed .perf-tab{border:0!important;border-radius:8px!important;background:#f1f5f9!important;color:#64748b!important;min-height:34px}
+#perfFixed .perf-tab[style*="var(--deep)"]{background:#173756!important;color:#fff!important}
+#perfFixed button[onclick="addPerfRecord()"]{background:#173756!important;border-radius:8px!important;min-height:34px}
+#perfFixed .perf-summary-cards{gap:10px!important;margin-bottom:10px!important}
+#perfFixed .perf-summary-cards>div{padding:12px!important;border-radius:10px!important;border:1px solid #f3e3b9;background:#fff9e9!important}
+#perfFixed .perf-summary-cards>div+div{background:#f6f3ff!important;border-color:#e8e0fa}
+#perfFixed .perf-summary-cards>div>div{margin-bottom:3px}
+#perfFixed .perf-summary-cards span{font-variant-numeric:tabular-nums}
+#perfFixed .perf-summary-cards>div>div>span:first-child{font-size:12px!important}
+#perfFixed .perf-summary-cards>div>div>span:last-child{font-size:15px!important}
+#perfFixed .perf-income-summary{padding:12px!important;border:1px solid #d9eee4;border-radius:10px!important;background:#f0faf5!important;margin-bottom:12px!important}
+#perfFixed .perf-income-summary>div+div{margin-top:5px;gap:8px;flex-wrap:wrap}
+#perfFixed .perf-income-summary>div+div>span:last-child{font-size:22px!important}
+#perfSearchWrap{padding:0 0 10px;border-bottom:1px solid #e5eaf0;margin-bottom:0!important}
+#perfSearchWrap>div:first-child{color:#173756;white-space:nowrap}
+#perfSearchInput{min-height:36px;border-color:#dde5ee!important;background:#f8fafc;border-radius:8px!important}
+#perfBody .perf-record:hover{background:#f8fafc}
+@media(max-width:600px){#perfModal .modal-head{padding:12px}#perfFixed{padding:10px 12px 0!important}#perfFixed .perf-summary-cards>div{padding:8px!important}}
