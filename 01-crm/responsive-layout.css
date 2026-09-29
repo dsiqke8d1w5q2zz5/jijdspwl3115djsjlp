@@ -400,3 +400,4 @@
 .ic-dialog #icCropSection>.ic-crop-heading h3{display:none}
 .ic-dialog #icCropSection>.ic-crop-heading+p{display:none}
 .ic-dialog #icCropSection>label:has(+select),.ic-dialog #icCropSection>label+select{grid-column:1/-1}
+.ic-dialog .ic-text-card .ic-actions select{min-width:110px;flex:1 0 110px}
