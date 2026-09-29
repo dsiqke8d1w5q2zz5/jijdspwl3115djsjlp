@@ -143,3 +143,6 @@
 
 #dModal .det-property-page .det-other-info .det-utility-row{display:grid;grid-template-columns:5em minmax(0,1fr);align-items:baseline;gap:8px}
 #dModal .det-utility-row>.det-val{width:auto}
+
+#dModal .det-utility-section{margin:10px 0 8px;padding:7px 10px;background:#f6f8fa;border:1px solid #e5eaf0;border-radius:8px}
+#dModal .det-property-page .det-utility-section .det-utility-row{padding:4px 0;border-bottom:0}

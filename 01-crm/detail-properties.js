@@ -337,6 +337,12 @@
             }
             else main.append(group);
         }
+        if(kind==='r'){
+            const utilityRows=[...main.querySelectorAll('.det-utility-row')];
+            const utilityGroups=[...new Set(utilityRows.map(row=>row.parentElement.classList.contains('det-field-pair')?row.parentElement:row))];
+            if(utilityGroups.length){const section=document.createElement('section');section.className='det-utility-section';section.setAttribute('aria-label','水電與垃圾資訊');utilityGroups[0].before(section);section.append(...utilityGroups);}
+        }
+        if(kind==='r'){const renewalHistory=main.querySelector('.det-rental-history');if(renewalHistory){const equipment=main.querySelector('.det-equipment-more');if(equipment)equipment.before(renewalHistory);else main.append(renewalHistory);}}
         return main.innerHTML;
     }
     window.typeDetail=function(c,viewAs){
