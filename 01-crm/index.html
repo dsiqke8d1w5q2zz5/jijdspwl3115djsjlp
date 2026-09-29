@@ -4791,13 +4791,13 @@ function renderCard(c) {
             </div>
             <div class="card-bottom-right">
                 <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
-                    <div style="display:flex;gap:6px">
-                        <button class="btn-ic" onclick="event.stopPropagation();quickContactLog('${_eid}')" title="聯繫紀錄"><i class="ti ti-notebook" style="color:#8B7355"></i></button>
-                        <button class="btn-ic" onclick="event.stopPropagation();quickSchedule('${_eid}')" title="預排行程"><i class="ti ti-calendar-plus" style="color:#2563EB"></i></button>
-                        <button class="btn-ic" onclick="event.stopPropagation();openDriveFolder('${_eid}','${_eva}')" title="雲端資料夾">${getRpDriveIcon(c)}</button>
+                    <div class="card-quick-actions">
+                        <button class="btn-ic" onclick="event.stopPropagation();quickContactLog('${_eid}')" title="聯繫紀錄"><i class="ti ti-notebook" style="color:#8B7355"></i><span class="card-action-label">聯繫紀錄</span></button>
+                        <button class="btn-ic" onclick="event.stopPropagation();quickSchedule('${_eid}')" title="預排行程"><i class="ti ti-calendar-plus" style="color:#2563EB"></i><span class="card-action-label">預排行程</span></button>
+                        <button class="btn-ic" onclick="event.stopPropagation();openDriveFolder('${_eid}','${_eva}')" title="雲端資料夾">${getRpDriveIcon(c)}<span class="card-action-label">資料夾</span></button>
                     </div>
                 </div>
-                ${createdLabel ? `<div style="margin-top:auto;padding-top:16px">${esc(createdLabel)}</div>` : ''}
+                ${createdLabel ? `<div class="card-created-date" style="margin-top:auto;padding-top:16px">${esc(createdLabel)}</div>` : ''}
             </div>
         </div>`;
 }
@@ -12198,7 +12198,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260929detail26';
+var APP_VERSION = '20260929detail27';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13308,6 +13308,6 @@ function deleteMktTemplate(idx) {
 <script src="image-composer.js?v=20260928sync1"></script>
 <script src="area-editor.js?v=20260917audit1"></script>
 <script src="sync-notice.js?v=20260928sync1"></script>
-<script src="detail-properties.js?v=20260929detail26"></script>
+<script src="detail-properties.js?v=20260929detail27"></script>
 </body>
 </html>
