@@ -4517,7 +4517,7 @@ function renderCard(c) {
                 if (_schedFilter && s.schedType && s.schedType !== _schedFilter) return false;
                 return true;
             }).sort(function(a,b){ return (a.date+(a.time||'')).localeCompare(b.date+(b.time||'')); })[0];
-            if (_nextSched) { var _rIcon = _nextSched.recurrence ? ' <i class="ti ti-repeat" style="font-size:11px;color:#0E7490" title="'+esc(recurLabel(_nextSched.recurrence))+'"></i>' : ''; _schedHtml = `<div style="margin-bottom:4px;font-size:13px;line-height:1.4;display:flex;gap:6px"><span style="color:var(--muted);flex-shrink:0">行程</span><div><span style="color:#1E40AF;font-weight:700">${esc(isoToMDW(_nextSched.date))}${_nextSched.time?' '+_nextSched.time:''}${_rIcon}</span>${_nextSched.memo?'<div style="color:#1E40AF;word-break:break-word">'+esc(_nextSched.memo)+'</div>':''}</div></div>`; }
+            if (_nextSched) { var _rIcon = _nextSched.recurrence ? ' <i class="ti ti-repeat" style="font-size:11px;color:#0E7490" title="'+esc(recurLabel(_nextSched.recurrence))+'"></i>' : ''; _schedHtml = `<button type="button" class="card-schedule-edit" data-client-id="${esc(c.id)}" data-schedule-index="${c.schedules.indexOf(_nextSched)}" title="編輯這筆行程" style="border:0;background:none;padding:0;width:100%;text-align:left;font-family:inherit;cursor:pointer;margin-bottom:4px;font-size:13px;line-height:1.4;display:flex;gap:6px"><span style="color:var(--muted);flex-shrink:0">行程</span><div><span style="color:#1E40AF;font-weight:700">${esc(isoToMDW(_nextSched.date))}${_nextSched.time?' '+_nextSched.time:''}${_rIcon}</span>${_nextSched.memo?'<div style="color:#1E40AF;word-break:break-word">'+esc(_nextSched.memo)+'</div>':''}</div></button>`; }
         }
         if (showType==='經營買方') {
             // 選擇要顯示的需求：有篩選時顯示符合的需求，否則顯示第一組
@@ -7637,7 +7637,7 @@ function clearSchedules() { document.getElementById('scheduleList').innerHTML = 
 <!-- ============================================================ -->
 <script>
 // ── 卡片一鍵預排行程 ──
-function quickSchedule(clientId, prefillDate, prefillTime, prefillMemo, prefillType, prefillRecur) {
+function quickSchedule(clientId, prefillDate, prefillTime, prefillMemo, prefillType, prefillRecur, prefillIndex) {
     var c = DB.find(function(x){ return x.id === clientId; });
     if (!c) return;
     var _qsTypeVal = prefillType || (curFilter && curFilter !== 'all' ? curFilter : '');
@@ -7686,7 +7686,7 @@ function quickSchedule(clientId, prefillDate, prefillTime, prefillMemo, prefillT
         if (prefillDate) {
             for (var _i = 0; _i < c.schedules.length; _i++) {
                 var _s = c.schedules[_i];
-                if (!_s._deleted && _s.date === prefillDate && (_s.time||'') === (prefillTime||'')) {
+                if (!_s._deleted && (prefillIndex !== undefined ? _i === prefillIndex : _s.date === prefillDate && (_s.time||'') === (prefillTime||''))) {
                     _s.date = date; _s.time = time; _s.memo = memo; _s.schedType = _qsType;
                     if (_qsRecur) _s.recurrence = _qsRecur; else delete _s.recurrence;
                     _s.updatedAt = _nowISO();
@@ -12200,7 +12200,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260929detail32';
+var APP_VERSION = '20260929detail33';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13310,7 +13310,7 @@ function deleteMktTemplate(idx) {
 <script src="image-composer.js?v=20260928sync1"></script>
 <script src="area-editor.js?v=20260917audit1"></script>
 <script src="sync-notice.js?v=20260928sync1"></script>
-<script src="detail-properties.js?v=20260929detail32"></script>
-<script src="edit-layout.js?v=20260929detail32"></script>
+<script src="detail-properties.js?v=20260929detail33"></script>
+<script src="edit-layout.js?v=20260929detail33"></script>
 </body>
 </html>

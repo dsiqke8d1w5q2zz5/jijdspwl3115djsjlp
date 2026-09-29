@@ -52,7 +52,21 @@ function arrange(){
  for(const child of originalChildren){if(child===picker||child===pickerTitle)continue;if(child.classList.contains('type-sec'))section='property';if(child.classList.contains('sec-title')&&child.textContent.trim()==='預排行程')section='followup';(section==='basic'?basic:section==='property'?property:followup).append(child);}
  body.replaceChildren(basic,property,followup);modal.classList.add('edit-layout');
 }
-const open=window.openEdit;window.openEdit=function(){restore();const result=open.apply(this,arguments);arrange();return result;};
-const add=window.openAdd;window.openAdd=function(){restore();return add.apply(this,arguments);};
+let returnDetail=null;
+const open=window.openEdit;window.openEdit=function(id,viewAs){
+ const detail=document.getElementById('dModal');
+ if(detail.style.display==='flex'&&!returnDetail){returnDetail={id:currentDetId,viewAs:viewAs,snapshot:JSON.stringify(DB.find(c=>c.id===currentDetId))};detail.style.display='none';}
+  restore();const result=open.apply(this,arguments);
+ const basicDetails=document.getElementById('basicDetailWrap');if(basicDetails.style.display!=='none')document.getElementById('basicDetailToggle').click();
+ arrange();return result;
+};
+new MutationObserver(()=>{
+ if(modal.style.display!=='none'||!returnDetail)return;
+ const previous=returnDetail;returnDetail=null;
+ const customer=DB.find(c=>c.id===previous.id);if(!customer||customer._deleted)return;
+ if(JSON.stringify(customer)!==previous.snapshot)showDet(previous.id,previous.viewAs);
+ else document.getElementById('dModal').style.display='flex';
+}).observe(modal,{attributes:true,attributeFilter:['style']});
+const add=window.openAdd;window.openAdd=function(){returnDetail=null;restore();return add.apply(this,arguments);};
 desktop.addEventListener('change',()=>{restore();if(modal.style.display==='flex')arrange();});
 })();
