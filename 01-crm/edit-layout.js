@@ -89,7 +89,7 @@ function setupObjectTabs(){moveAddButtons();
    if(!items.includes(state.active))state.active=items[0]||null;
    if(added.length&&state.known.size)state.active=added[added.length-1];
    state.known=new Set(items);
-   const names=items.map((row,i)=>row.querySelector('[data-f="community"],.deal-community')?.value.trim()||row.querySelector('[data-f="addr"],.deal-addr')?.value.trim()||(id==='bDemandList'?'需求 ':'物件 ')+(i+1));
+   const names=items.map((row,i)=>row.querySelector('[data-f="community"],.deal-community')?.value.trim()||((id==='dealList'||id==='dAddrList')?compactPropertyAddress(row.querySelector('[data-f="addr"],.deal-addr')?.value):row.querySelector('[data-f="addr"],.deal-addr')?.value.trim())||(id==='bDemandList'?'需求 ':'物件 ')+(i+1));
    nav.replaceChildren();nav.hidden=!items.length;
    items.forEach((row,i)=>{row.classList.add('edit-object-page');row.hidden=row!==state.active;const button=document.createElement('button');button.type='button';button.textContent=names[i]+(names.filter(name=>name===names[i]).length>1?'（'+(i+1)+'）':'');button.setAttribute('role','tab');button.setAttribute('aria-selected',String(row===state.active));button.tabIndex=row===state.active?0:-1;button.setAttribute('aria-controls',row.id);row.setAttribute('role','tabpanel');button.onclick=()=>{state.active=row;refresh();};button.onkeydown=event=>{let n=i;if(event.key==='ArrowRight')n=(i+1)%items.length;else if(event.key==='ArrowLeft')n=(i+items.length-1)%items.length;else if(event.key==='Home')n=0;else if(event.key==='End')n=items.length-1;else return;event.preventDefault();event.stopPropagation();state.active=items[n];refresh();nav.children[n].focus();};nav.append(button);});
   }

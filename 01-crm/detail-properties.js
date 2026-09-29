@@ -130,9 +130,19 @@
         }
         const propertyHeader=document.createElement('div');propertyHeader.className='det-property-header';const propertyTitle=panes[1].querySelector(':scope>.det-pane-title'),categoryTabs=panes[1].querySelector(':scope>.det-category-tabs');panes[1].prepend(propertyHeader);if(propertyTitle)propertyHeader.append(propertyTitle);if(categoryTabs)propertyHeader.append(categoryTabs);
     };
-    function title(p, i) {
+    window.compactPropertyAddress=function(value){
+        const address=String(value||'').trim().replace(/^[0-9０-９]{3,6}\s*/,'').replace(/\s+/g,'').replace(/^(?:臺北市|台北市|新北市|桃園市|臺中市|台中市|臺南市|台南市|高雄市|基隆市|新竹市|嘉義市|新竹縣|苗栗縣|彰化縣|南投縣|雲林縣|嘉義縣|屏東縣|宜蘭縣|花蓮縣|臺東縣|台東縣|澎湖縣|金門縣|連江縣)/,'');
+        const district=address.match(/^([^號巷弄0-9０-９]{1,5}[區鄉鎮市])/);
+        const prefix=district?district[1]:'',rest=address.slice(prefix.length);
+        const road=rest.match(/^(.+?(?:大道|路|街|道)(?:[一二三四五六七八九十0-9０-９]+段)?)/);
+        const tail=road?rest.slice(road[1].length):rest;
+        const floor=tail.match(/(?:地下|地上|B)?(?:[0-9０-９]+|[一二三四五六七八九十百]+)(?:樓|F)(?:之[0-9０-９]+)?/i);
+        return prefix+(road?road[1]:'')+(floor?floor[0]:'');
+    };
+    function title(p, i, kind) {
         const community=String(p.rCommunity||p.community||'').trim();if(community)return community;
         const address=String(p.rAddr||p.addr||'').trim().replace(/^\d{3,6}\s*/, '');
+        if(kind==='c'||kind==='d')return compactPropertyAddress(address)||'物件 '+(i+1);
         const region=address.match(/^(?:[^縣市]{2,3}[縣市])?(?:[^區鄉鎮市路街號]+[區鄉鎮市])?/)[0];
         const short=address.slice(region.length);
         const road=short.match(/^(.+?(?:路|街|大道)(?:[一二三四五六七八九十\d]+段)?)/);
@@ -221,7 +231,7 @@
         if(!config)return original(c,viewAs);
         const [key,kind]=config;let entries=(c[key]||[]).map((p,index)=>({p,index}));if(!entries.length)return original(c,viewAs);
         if(kind==='s'&&bfSGrade)entries.sort((a,b)=>Number(b.p.grade===bfSGrade)-Number(a.p.grade===bfSGrade));
-        const group='property-detail-'+(++serial),names=entries.map(({p,index})=>title(p,index));
+        const group='property-detail-'+(++serial),names=entries.map(({p,index})=>title(p,index,kind));
         const labels=names.map((name,i)=>names.filter(n=>n===name).length>1?name+'（'+(i+1)+'）':name);
         const tabs=entries.length>1?'<div class="det-property-tabs" role="tablist" aria-label="切換物件">'+entries.map((_,i)=>'<button type="button" role="tab" id="'+group+'-tab-'+i+'" aria-controls="'+group+'-page-'+i+'" aria-selected="'+(i===0)+'" tabindex="'+(i===0?0:-1)+'" title="'+esc(labels[i])+'">'+esc(labels[i])+'</button>').join('')+'</div>':'<div class="det-property-title">'+esc(labels[0])+'</div>';
         const unlinked=c.type==='房東'?DB.filter(t=>!t._deleted&&t.linkedLandlordId===c.id&&!c.rProperties[t.linkedPropertyIdx||0]).map(t=>row('未指定物件的租客',[t.ttName||t.name,t.ttPhone||t.phone].filter(Boolean).join('　'))).join(''):'';
