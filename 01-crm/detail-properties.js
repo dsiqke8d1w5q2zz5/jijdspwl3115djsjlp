@@ -39,6 +39,9 @@
     const dragStyle=document.createElement('style');
     dragStyle.textContent='.det-property-tabs{cursor:grab;user-select:none}.det-property-tabs.is-dragging,.det-property-tabs.is-dragging button{cursor:grabbing}';
     document.head.append(dragStyle);
+    const compactStyle=document.createElement('style');
+    compactStyle.textContent='@media(min-width:1050px){.det-pane:nth-child(2) .det-pane-title{margin-bottom:6px}.det-property-header .det-category-tabs{gap:5px;margin-bottom:3px;padding-bottom:4px}.det-category-tabs button{padding:5px 10px;min-height:30px}.det-property-toolbar{height:44px;margin:2px 0 3px}.det-property-toolbar>.det-property-title,.det-property-toolbar>.det-property-tabs{height:44px;padding:2px 8px}.det-property-toolbar>.det-property-title{line-height:38px}.det-property-toolbar .det-property-tabs button{height:30px;padding:3px 10px}.det-folder-actions{min-height:28px;margin-bottom:2px}.det-folder-actions>.det-folder-link{padding:3px 9px}.det-pane:nth-child(2) .det-row{padding-top:3px;padding-bottom:3px}.det-property-more{margin-top:2px}.det-property-more>summary{padding:5px 0}.det-property-page .det-other-info .det-row{padding-top:6px;padding-bottom:6px;gap:3px}}';
+    document.head.append(compactStyle);
     const originalShow=window.showDet;
     window.showDet=function(id,viewAs){
         originalShow(id,viewAs);
