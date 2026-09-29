@@ -500,7 +500,7 @@
 #fModal #sPropertyList .fg>label>button{font-size:12px!important}
 
 /* Moderate spacing below the category divider. */
-@media(min-width:1050px){#dModal .det-property-toolbar,#dModal .det-property-toolbar>.det-property-tabs{height:36px!important;min-height:36px!important}#dModal .det-property-toolbar>.det-property-tabs{padding-top:2px!important;padding-bottom:2px!important}}
+@media(min-width:1050px){#dModal .det-property-toolbar,#dModal .det-property-toolbar>.det-property-tabs{height:44px!important;min-height:44px!important}#dModal .det-property-toolbar>.det-property-tabs{align-items:flex-start;padding-top:2px!important;padding-bottom:2px!important}}
 
 #fModal #sPropertyList div:has(>[data-f=contractType])>span{padding-left:4px;color:#475569!important}
 
