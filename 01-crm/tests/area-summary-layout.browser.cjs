@@ -11,6 +11,8 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE);
    const key=await row.locator('.det-key').boundingBox(),value=await row.locator('.det-val').boundingBox();
    assert(Math.abs(key.y-value.y)<2,'area label and value share a row');
    assert(await row.evaluate(e=>e.scrollWidth<=e.clientWidth+1),'area content fits');
+   const baselineGap=await row.evaluate(e=>{const markers=['.det-key','.det-val'].map(sel=>{const marker=document.createElement('i');marker.style.cssText='display:inline-block;width:0;height:0;padding:0;margin:0;vertical-align:baseline';e.querySelector(sel).prepend(marker);return marker;});const gap=Math.abs(markers[0].getBoundingClientRect().y-markers[1].getBoundingClientRect().y);markers.forEach(m=>m.remove());return gap;});
+   assert(baselineGap<1,'area label and number share a baseline');
   }
   assert.equal(await area.locator('.det-row').filter({has:page.getByText('主建物',{exact:true})}).locator('.det-val').textContent(),'5.6坪');
   assert.equal(await area.getByText('共用',{exact:true}).count(),1);

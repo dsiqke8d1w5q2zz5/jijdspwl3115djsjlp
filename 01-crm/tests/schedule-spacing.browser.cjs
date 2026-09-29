@@ -11,7 +11,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE);
   assert(Math.abs(value.x-key.x-key.width-12)<2,'untimed memo immediately follows date');
   const timed=page.locator('.det-schedule-row:not(.det-schedule-no-time)');assert.equal(await timed.count(),1);const timedKey=await timed.locator('.det-key').boundingBox(),timedValue=await timed.locator('.det-val').boundingBox();assert(Math.abs(timedValue.x-timedKey.x-timedKey.width-12)<2,'timed memo immediately follows date and time');
   assert.match(await page.locator('.det-schedule-row:not(.det-schedule-no-time)').innerText(),/15:00/);
-  assert.equal(await page.locator('.det-area-parking h4').first().textContent(),'車位與公設比');
+  assert.equal(await page.locator('.det-area-parking h4').count(),0);assert.match(await page.locator('.det-area-parking').first().textContent(),/車位坪數/);
   await page.close();console.log('PASS untimed schedule spacing and area label '+width);
  }
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1});
