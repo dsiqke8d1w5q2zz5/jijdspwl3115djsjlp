@@ -395,3 +395,8 @@
 .ic-dialog .ic-head>div:first-child>p{display:none}
 .ic-dialog .ic-head h2{font-size:26px;line-height:1.25;letter-spacing:1px}
 @media(max-width:650px){.ic-dialog .ic-head h2{font-size:23px}}
+/* The active tab already names the crop panel; keep reset after its settings. */
+.ic-dialog #icCropSection>.ic-crop-heading{order:10;justify-content:flex-end;border-top:1px solid #e2e8f0;padding-top:8px;margin-top:4px}
+.ic-dialog #icCropSection>.ic-crop-heading h3{display:none}
+.ic-dialog #icCropSection>.ic-crop-heading+p{display:none}
+.ic-dialog #icCropSection>label:has(+select),.ic-dialog #icCropSection>label+select{grid-column:1/-1}
