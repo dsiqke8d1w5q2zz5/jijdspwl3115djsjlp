@@ -208,9 +208,14 @@
             const totalRow=[...main.children].find(el=>el.querySelector('.det-key')?.textContent==='登記面積');
             if(totalRow){const number=value=>Number.parseFloat(value)||0,building=number(property.mainBldg)+number(property.ancBldg)+number(property.common),parking=number(property.parkingSz),value=totalRow.querySelector('.det-val');value.replaceChildren();const parts=['建物 '+building.toFixed(2)+' 坪'];if(property.parkingSz!==undefined&&String(property.parkingSz).trim()!=='')parts.push('＋ 車位 '+parking.toFixed(2)+' 坪');parts.push('＝ 總計 '+(building+parking).toFixed(2)+' 坪');for(const text of parts){const span=document.createElement('span');span.className='det-area-part';span.textContent=text;value.append(span);}}
         }
+        if(kind==='s'){
+            const costs=['底價','服務費','管理費'].map(label=>[...groups[2].children].find(el=>el.querySelector('.det-key')?.textContent===label)).filter(Boolean);
+            const price=[...main.children].find(el=>el.querySelector('.det-key')?.textContent==='開價');
+            if(price)price.after(...costs);else main.prepend(...costs);
+        }
         // Pair only short, related values; keep addresses, people and narrative text full-width.
         for(const container of [main,...groups]){
-            const pairs=[['物件等級','約種'],['車位型態','車位價格'],['立約日','到期日'],['起租日','到期日'],['成交日期','身份'],['類別','房屋型態'],['底價','服務費','管理費'],['主建物','附屬建物'],['基地面積','土地持分面積'],['土地坪數','建物坪數'],['汽車位管理費','機車位管理費'],['租金週期','管理費方式','建物管理費'],['建物管理費','其他管理費'],['瓦斯錶','水錶','電錶'],['垃圾集中處','專用垃圾袋']];
+            const pairs=[['物件等級','約種'],['車位型態','車位價格'],['立約日','到期日'],['起租日','到期日'],['成交日期','身份'],['類別','房屋型態'],...(kind==='s'?[['開價','底價'],['服務費','管理費']]:[['底價','服務費','管理費']]),['主建物','附屬建物'],['基地面積','土地持分面積'],['土地坪數','建物坪數'],['汽車位管理費','機車位管理費'],['租金週期','管理費方式','建物管理費'],['建物管理費','其他管理費'],['瓦斯錶','水錶','電錶'],['垃圾集中處','專用垃圾袋']];
             for(const labels of pairs){const children=[...container.children],rows=labels.map(label=>children.find(el=>el.matches('.det-row')&&el.querySelector('.det-key')?.textContent===label)).filter(Boolean);if(rows.length<2)continue;const pair=document.createElement('div');pair.className='det-field-pair'+(rows.length===3?' det-field-triple':'')+(labels[0]==='底價'?' det-cost-fields':'');children.find(el=>rows.includes(el)).before(pair);pair.append(...rows);}
         }
         const area=groups[0],areaGrid=document.createElement('div');areaGrid.className='det-area-grid';
