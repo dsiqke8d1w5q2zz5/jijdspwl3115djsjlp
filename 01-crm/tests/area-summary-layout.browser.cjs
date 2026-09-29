@@ -4,7 +4,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE);
  for(const width of [1920,1440,430]){
   const page=await browser.newPage({viewport:{width,height:932}});await page.route('https://**/*',r=>r.abort());
   await page.goto(pathToFileURL(path.join(__dirname,'../index.html')).href);
-  await page.evaluate(()=>{DB=[{id:'area',name:'測試',type:'庫存屋主',types:['庫存屋主'],sProperties:[{community:'測試',price:'918',mainBldg:'5.6',ancBldg:'2.6',common:'4.51',baseLand:'1364.28',landShare:'0.42',floorPrice:'886',serviceFee:'4',mgmtBuilding:'17439',mgmtCar:'1500',mgmtMoto:'200',mgmtPeriod:'月繳'}]}];curFilter='庫存屋主';showDet('area');});
+  await page.evaluate(()=>{DB=[{id:'area',name:'測試',type:'庫存屋主',types:['庫存屋主'],sProperties:[{community:'測試',contractType:'專任約',spPass:'1',price:'918',mainBldg:'5.6',ancBldg:'2.6',common:'4.51',baseLand:'1364.28',landShare:'0.42',floorPrice:'886',serviceFee:'4',mgmtBuilding:'17439',mgmtCar:'1500',mgmtMoto:'200',mgmtPeriod:'月繳'}]}];curFilter='庫存屋主';showDet('area');});
   const area=page.locator('.det-property-more').filter({has:page.locator(':scope>summary',{hasText:'面積與持分明細'})}).first();
   await area.locator(':scope>summary').click();
   for(const row of await area.locator('.det-area-grid>.det-row').all()){
@@ -17,6 +17,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE);
   assert.equal(await area.locator('.det-row').filter({has:page.getByText('主建物',{exact:true})}).locator('.det-val').textContent(),'5.6坪');
   assert.equal(await area.getByText('共用',{exact:true}).count(),1);
   const property=page.locator('.det-property-page:visible');
+  assert(await property.locator('.det-row').filter({has:page.getByText('約種',{exact:true})}).getByText('非本人委託',{exact:true}).isVisible());assert.equal(await property.getByText('PASS件',{exact:true}).count(),0);
   const field=label=>property.locator('.det-row').filter({has:page.locator('.det-key',{hasText:new RegExp('^'+label+'$')})});
   for(const label of ['開價','底價','服務費','管理費'])assert(await field(label).isVisible(),label+' is directly visible');
   for(const labels of [['開價','底價'],['服務費','管理費']]){

@@ -138,3 +138,5 @@
 /* Align text baselines, including Chinese labels, dates, numbers and units. */
 #dModal .det-row{align-items:baseline}
 #dModal .det-row>.det-key,#dModal .det-row>.det-val{line-height:1.5}
+
+#dModal .det-pass-badge{display:inline-block;margin-left:6px;vertical-align:baseline;white-space:nowrap}

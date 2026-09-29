@@ -130,6 +130,9 @@
         if(sections.length){
             const tabs=document.createElement('div');tabs.className='det-category-tabs';tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','資料類別');sections[0].previousElementSibling.before(tabs);
             const initiallyOpen=sections.find(panel=>panel.style.display!=='none')||sections[0];
+            const categoryOrder=['買方','庫存','租客','房東','成交','商機'];
+            const categoryRank=panel=>{const text=panel.previousElementSibling.textContent.trim();const rank=categoryOrder.findIndex(label=>text.startsWith(label));return rank<0?categoryOrder.length:rank;};
+            sections.sort((a,b)=>categoryRank(a)-categoryRank(b));
             const buttons=sections.map((panel,index)=>{const heading=panel.previousElementSibling,button=document.createElement('button');button.type='button';button.textContent=heading.textContent.replace('（點擊展開）','').replace(/[⌄›▾▸▼▶❯⌃]/g,'').trim();button.id='det-category-'+serial+'-'+index;button.setAttribute('role','tab');button.setAttribute('aria-controls',panel.id);panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby',button.id);heading.remove();tabs.append(button);return button;});
             function select(index,focus){if(buttons[index].getAttribute('aria-selected')!=='true')resetDetails(panes[1]);sections.forEach((panel,i)=>{const selected=i===index;panel.style.display=selected?'':'none';buttons[i].setAttribute('aria-selected',String(selected));buttons[i].tabIndex=selected?0:-1;});if(focus)buttons[index].focus({preventScroll:true});}
             buttons.forEach((button,index)=>{button.onclick=()=>select(index,false);button.onkeydown=event=>{let next=index;if(event.key==='ArrowRight')next=(index+1)%buttons.length;else if(event.key==='ArrowLeft')next=(index+buttons.length-1)%buttons.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=buttons.length-1;else return;event.preventDefault();event.stopPropagation();select(next,true);};});select(sections.indexOf(initiallyOpen),false);
@@ -205,6 +208,14 @@
         const added=document.createElement('div');added.innerHTML=extra;
         for(const child of [...added.children])distribute(child);
         if(kind==='s'){
+            const pass=[...groups[2].children].find(el=>el.querySelector('.det-key')?.textContent==='PASS件');
+            if(pass){
+                let contractRow=[...main.children].find(el=>el.querySelector('.det-key')?.textContent==='約種');
+                if(!contractRow){contractRow=document.createElement('div');contractRow.className='det-row';contractRow.innerHTML='<span class="det-key">約種</span><span class="det-val"></span>';main.prepend(contractRow);}
+                const badge=pass.querySelector('.det-val>span');
+                if(badge){badge.classList.add('det-pass-badge');badge.title='PASS件：非本人委託';contractRow.querySelector('.det-val').append(badge);}
+                pass.remove();
+            }
             const totalRow=[...main.children].find(el=>el.querySelector('.det-key')?.textContent==='登記面積');
             if(totalRow){const number=value=>Number.parseFloat(value)||0,building=number(property.mainBldg)+number(property.ancBldg)+number(property.common),parking=number(property.parkingSz),value=totalRow.querySelector('.det-val');value.replaceChildren();const parts=['建物 '+building.toFixed(2)+' 坪'];if(property.parkingSz!==undefined&&String(property.parkingSz).trim()!=='')parts.push('＋ 車位 '+parking.toFixed(2)+' 坪');parts.push('＝ 總計 '+(building+parking).toFixed(2)+' 坪');for(const text of parts){const span=document.createElement('span');span.className='det-area-part';span.textContent=text;value.append(span);}}
         }
@@ -272,6 +283,11 @@
         // Keep the first and two most recent entries, preserving original order and data.
         const contract=groups[1];
         const renewals=[...contract.children].filter(el=>/^續約\s+\d+$/.test(el.querySelector('.det-key')?.textContent.trim()||''));
+        if(kind==='r'&&renewals.length){
+            const fold=document.createElement('details');fold.className='det-property-more det-rental-history';
+            const heading=document.createElement('summary');heading.textContent='續約歷程（'+renewals.length+'筆）';fold.append(heading);
+            renewals[0].before(fold);fold.append(...renewals);
+        }
         if(renewals.length>3&&kind!=='r'){
             const fold=document.createElement('details');fold.className='det-history-fold det-renewal-middle';
             const summary=document.createElement('summary');summary.className='det-row';summary.innerHTML='<span class="det-key" aria-hidden="true"></span><span class="det-val"><span class="det-history-collapsed">⋯</span><span class="det-history-expanded">收合</span></span>';
