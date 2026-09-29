@@ -8787,6 +8787,8 @@ function openDriveFolder(clientId, viewAs) {
         showToast('此客戶尚無物件資料，請先新增物件', 'warn');
         return;
     }
+    // 已設定連結的資料夾優先；保留各組原有順序及物件索引。
+    all.sort(function(a,b){ return Number(Boolean(b.url)) - Number(Boolean(a.url)); });
     var withUrl = all.filter(function(a){ return a.url; });
     if (all.length === 1 && !withUrl.length) {
         cardSetDriveFolder(clientId, all[0].src, all[0].idx);
@@ -12198,7 +12200,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260929detail28';
+var APP_VERSION = '20260929detail29';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13308,6 +13310,6 @@ function deleteMktTemplate(idx) {
 <script src="image-composer.js?v=20260928sync1"></script>
 <script src="area-editor.js?v=20260917audit1"></script>
 <script src="sync-notice.js?v=20260928sync1"></script>
-<script src="detail-properties.js?v=20260929detail28"></script>
+<script src="detail-properties.js?v=20260929detail29"></script>
 </body>
 </html>
