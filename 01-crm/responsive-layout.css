@@ -505,3 +505,8 @@
 #fModal #sPropertyList div:has(>[data-f=contractType])>span{padding-left:4px}
 
 #fModal #sPropertyList .person-block>div:has(>.grade-btn){padding-left:4px}
+
+/* Line icons give the desktop detail actions a clearer visual identity. */
+#dModal .det-header-actions button{display:inline-flex;align-items:center;justify-content:center;gap:4px;font-weight:600}
+#dModal .det-action-icon{display:none;width:15px;height:15px;flex:none}
+@media(min-width:1050px){#dModal .det-header-actions button{width:68px}#dModal .det-header-actions button[aria-label='解除封存']{width:104px}#dModal .det-action-icon{display:block}}
