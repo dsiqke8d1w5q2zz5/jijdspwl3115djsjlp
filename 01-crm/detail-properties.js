@@ -46,6 +46,8 @@
     window.showDet=function(id,viewAs){
         originalShow(id,viewAs);
         const root=document.getElementById('detContent'),body=root.querySelector(':scope > .det-body');if(!body)return;
+        const nav=root.querySelector('#detNavWrap');
+        if(nav){const edit=document.createElement('button');edit.type='button';edit.className='btn-ic det-edit-button';edit.textContent='編輯';edit.setAttribute('aria-label','編輯目前資料');edit.style.cssText='font-size:14px;padding:4px 10px;white-space:nowrap;color:#173756;background:#f0f6fb;border:1px solid #d4e2ee;border-radius:7px;margin-right:6px';edit.onclick=()=>{closeDet();openEdit(id,viewAs);};nav.prepend(edit);}
         const identity=root.querySelector('.det-name')?.parentElement;
         const columns=document.createElement('div');columns.className='det-columns';
         const panes=['基本資料','物件與其他資料','聯絡紀錄'].map(label=>{const pane=document.createElement('section');pane.className='det-pane';pane.setAttribute('aria-label',label);const heading=document.createElement('h2');heading.className='det-pane-title';heading.textContent=label;pane.append(heading);columns.append(pane);return pane;});
