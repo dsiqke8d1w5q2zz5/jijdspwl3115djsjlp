@@ -233,13 +233,14 @@
         // Keep the first and two most recent entries, preserving original order and data.
         const contract=groups[1];
         const renewals=[...contract.children].filter(el=>/^續約\s+\d+$/.test(el.querySelector('.det-key')?.textContent.trim()||''));
-        if(renewals.length>3){
+        if(renewals.length>3&&kind!=='r'){
             const fold=document.createElement('details');fold.className='det-history-fold det-renewal-middle';
             const summary=document.createElement('summary');summary.className='det-row';summary.innerHTML='<span class="det-key" aria-hidden="true"></span><span class="det-val"><span class="det-history-collapsed">⋯</span><span class="det-history-expanded">收合</span></span>';
             summary.setAttribute('aria-label','展開或收合中間 '+(renewals.length-3)+' 筆續約紀錄');
             fold.append(summary);renewals[0].after(fold);fold.append(...renewals.slice(1,-2));
         }
         for(const entry of contract.querySelectorAll('.det-row')){
+            if(kind==='r')continue;
             if(entry.querySelector('.det-key')?.textContent.trim()!=='到期歷程')continue;
             const value=entry.querySelector('.det-val');if(!value)continue;
             const dates=value.textContent.split(/\s*→\s*/).filter(Boolean);if(dates.length<=3)continue;
@@ -258,7 +259,19 @@
             }
             if(label==='物件資料夾'&&value.querySelector('a')){item.classList.add('det-folder-row');const link=value.querySelector('a');link.classList.add('det-folder-link');link.textContent='開啟資料夾';other.append(item);}
         }
-        for(const group of groups)if(group.children.length>1)main.append(group);
+        for(const group of groups)if(group.children.length>1){
+            if(kind==='r'){
+                const target=group===other?document.createElement('div'):main;
+                if(target!==main){target.className='det-other-info';main.append(target);}
+                for(const item of [...group.children].slice(1)){
+                    if(item.querySelector('.det-key')?.textContent==='附屬設備'){
+                        const equipment=document.createElement('details');equipment.className='det-property-more det-equipment-more';
+                        const heading=document.createElement('summary');heading.textContent='附屬設備';equipment.append(heading,item.querySelector('.det-val'));target.append(equipment);
+                    }else target.append(item);
+                }
+            }else if(kind==='d'&&group===area)main.append(...[...group.children].slice(1));
+            else main.append(group);
+        }
         return main.innerHTML;
     }
     window.typeDetail=function(c,viewAs){
