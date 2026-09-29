@@ -417,3 +417,8 @@
 @media(max-width:650px){.ic-dialog .ic-photos .ic-photo-moves button{height:34px;min-height:34px}}
 /* Scale the desktop detail dialog as a whole, preserving its three-column layout. */
 @media(min-width:1050px){#dModal>.modal{transform:scale(.9);transform-origin:center center}}
+/* Separate the three desktop detail panes with subtle card boundaries. */
+@media(min-width:1050px){
+ #dModal .det-columns{gap:10px;padding:10px;background:#edf2f6}
+ #dModal .det-columns>.det-pane{background:#fff;border:1px solid #cbd5e1;border-radius:10px;padding:14px 16px}
+}
