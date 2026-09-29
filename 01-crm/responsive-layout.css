@@ -383,3 +383,15 @@
 .ic-dialog #itCapBox>div:has(#itCapColor){display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start!important}
 .ic-dialog #itCapBox>div:has(#itCapColor)>div{min-width:0}
 .ic-dialog #itCapBox>div:has(#itCapColor) .ic-palette{grid-template-columns:repeat(4,minmax(0,1fr))}
+/* Long option labels need the full settings width, including the native arrow. */
+.ic-dialog #icMattingOptions{grid-template-columns:minmax(0,1fr)}
+.ic-dialog #icMattingOptions>label,.ic-dialog #icMattingOptions>select,.ic-dialog #icOutput>div>label[for=icFormat],.ic-dialog #icOutput>div>#icFormat{grid-column:1/-1}
+.ic-dialog #icPersonBody #icMattingOptions{grid-template-columns:minmax(0,1fr)}
+.ic-dialog #icPersonBody #icMattingOptions>label,.ic-dialog #icPersonBody #icMattingOptions>select{grid-column:1/-1}
+/* Text fields and menus use a consistent full-width label-above layout. */
+.ic-dialog .ic-controls :is(#icPersonBody,#icMattingOptions,#icBrandBody,#itCapBox,#itWmBox,#icOutput>div,#icRedactSection)>label:has(+select,+input:not([type=range])),
+.ic-dialog .ic-controls :is(#icPersonBody,#icMattingOptions,#icBrandBody,#itCapBox,#itWmBox,#icOutput>div,#icRedactSection)>label+select,
+.ic-dialog .ic-controls :is(#icPersonBody,#icMattingOptions,#icBrandBody,#itCapBox,#itWmBox,#icOutput>div,#icRedactSection)>label+input:not([type=range]){grid-column:1/-1;width:100%;margin:0}
+.ic-dialog .ic-head>div:first-child>p{display:none}
+.ic-dialog .ic-head h2{font-size:26px;line-height:1.25;letter-spacing:1px}
+@media(max-width:650px){.ic-dialog .ic-head h2{font-size:23px}}
