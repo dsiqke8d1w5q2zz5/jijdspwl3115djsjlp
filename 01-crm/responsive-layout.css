@@ -422,3 +422,5 @@
  #dModal .det-columns{gap:10px;padding:10px;background:#edf2f6}
  #dModal .det-columns>.det-pane{background:#fff;border:1px solid #cbd5e1;border-radius:10px;padding:14px 16px}
 }
+/* Match add/edit customer dialogs to the desktop detail scale. */
+@media(min-width:1050px){#fModal{align-items:center!important;justify-content:center!important}#fModal>.modal{transform:scale(.9);transform-origin:center center}}
