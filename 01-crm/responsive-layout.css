@@ -122,8 +122,15 @@
 
 /* Area details use the same plain rows and label columns as the property fields. */
 #dModal .det-property-page .det-area-section .det-area-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:0 14px;margin:0}
-#dModal .det-property-page .det-area-grid>.det-row{display:grid;grid-template-columns:92px minmax(0,1fr);align-items:start;gap:8px;padding:4px 0;background:transparent;border:0;border-bottom:1px solid #f0efed;border-radius:0}
+#dModal .det-property-page .det-area-grid>.det-row{display:grid;grid-template-columns:92px minmax(0,1fr);align-items:start;gap:8px;padding:2px 0;background:transparent;border:0;border-bottom:1px solid #f0efed;border-radius:0}
 #dModal .det-property-page .det-area-grid .det-val{white-space:normal;overflow-wrap:anywhere}
 
 #dModal .det-management-lines{display:flex;flex-direction:column;gap:2px}
 #dModal .det-management-lines>span{display:block}
+
+#dModal .det-property-page .det-area-section{margin:4px 0}
+#dModal .det-property-page .det-area-section h4{margin:0 0 2px;line-height:1.35}
+#dModal .det-property-more>summary+.det-area-section{margin-top:0}
+
+#dModal .det-folder-link:not([hidden]){display:inline-flex;align-items:center;gap:5px}
+#dModal .det-folder-icon{flex:none}

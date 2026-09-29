@@ -261,7 +261,7 @@
             if(item.classList.contains('det-field-pair'))item.remove();
         }
         if(areaGrid.children.length){
-            const sections=[['建物面積','building'],['車位與公設比','parking'],['土地資料','land']].map(([label,kind])=>{const section=document.createElement('section');section.className='det-area-section det-area-'+kind;const heading=document.createElement('h4');heading.textContent=label;const grid=document.createElement('div');grid.className='det-area-grid';section.append(heading,grid);return {section,grid};});
+            const sections=[['建物面積','building'],['車位與公設比','parking'],['土地資料','land']].map(([label,kind])=>{const section=document.createElement('section');section.className='det-area-section det-area-'+kind;const heading=document.createElement('h4');heading.textContent=label;const grid=document.createElement('div');grid.className='det-area-grid';section.append(grid);return {section,grid};});
             for(const entry of [...areaGrid.children]){const label=entry.querySelector('.det-key')?.textContent||'',value=entry.querySelector('.det-val');const index=/土地|基地/.test(label)?2:/^車位|公設比/.test(label)?1:0;
                 if(value){const match=value.textContent.trim().match(/^([\d,.]+)\s*(坪|%)$/);if(match){const n=Number(match[1].replace(/,/g,''));if(Number.isFinite(n)){const unit=document.createElement('small');unit.textContent=match[2];value.replaceChildren(document.createTextNode(n.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:match[2]==='%'?1:2})),unit);}}}
                 if(label.includes('共有部分'))entry.querySelector('.det-key').textContent='共用';
@@ -296,7 +296,7 @@
                 const entries=value.textContent.split('、').map(text=>text.trim()).filter(Boolean);value.replaceChildren();value.classList.add('det-equipment-list');
                 for(const text of entries){const chip=document.createElement('span');chip.className='det-equipment-chip';chip.textContent=text.replace(/\s+(\d+)$/,' ×$1');value.append(chip);}
             }
-            if(label==='物件資料夾'&&value.querySelector('a')){item.classList.add('det-folder-row');const link=value.querySelector('a');link.classList.add('det-folder-link');link.textContent='開啟資料夾';other.append(item);}
+            if(label==='物件資料夾'&&value.querySelector('a')){item.classList.add('det-folder-row');const link=value.querySelector('a');link.classList.add('det-folder-link');link.innerHTML='<svg class="det-folder-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v2M3 7h5l2 3h11l-3 10H3V7Z"/></svg><span>開啟資料夾</span>';other.append(item);}
         }
         for(const group of groups)if(group.children.length>1){
             if(kind==='r'){
