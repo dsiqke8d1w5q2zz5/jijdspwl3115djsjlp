@@ -219,3 +219,7 @@
 /* Overview has no list controls and reserves no toolbar space. */
 .main-fixed-top.overview-toolbar-hidden{display:none}
 #dashboard>.dash-sections{margin-top:0}
+
+/* Dashboard panels stay inside their scroll container on hover and click. */
+#dashboard .dash-section{transition:box-shadow .2s}
+#dashboard .dash-section:hover{transform:none}
