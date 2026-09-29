@@ -456,3 +456,10 @@
 #sharedContactsWrap:has(>#sharedContactsList:empty)>.sec-title:not(:has(button)){display:none}
 #sharedContactsWrap:has(>#sharedContactsList:empty)>.sec-title:has(button){font-size:0;border:0;padding:0;margin:0}
 #sharedContactsWrap:has(>#sharedContactsList:empty)>.sec-title>button{font-size:13px}
+/* Six fee fields in three paired rows, with readable inline labels. */
+#fModal :is(.sp-mgmt-row,.rp-mgmt-row)[data-fee-layout]{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px!important}
+#fModal [data-fee-layout]>.fee-more,#fModal .fee-extra-grid{display:contents}
+#fModal [data-fee-layout]>div:not(.fee-total):not(.fee-more),#fModal .fee-extra-grid>div{grid-template-columns:2.5em minmax(0,1fr);gap:6px}
+#fModal [data-fee-layout]>div:not(.fee-more)>label,#fModal .fee-extra-grid>div>label{font-size:14px!important;font-weight:600}
+#fModal [data-fee-layout]>.fee-total{grid-column:auto;border:0;padding:0;min-width:0;justify-content:space-between}
+#fModal [data-fee-layout]>.fee-total>[data-f=mgmtTotal]{font-size:14px!important;white-space:nowrap}
