@@ -62,7 +62,49 @@ const compactEdit=document.createElement('style');
 compactEdit.textContent='@media(min-width:1200px){#fModal.edit-layout .edit-pane-heading{margin-bottom:8px}#fModal.edit-layout .edit-property-head{padding-bottom:5px;margin-bottom:6px}#fModal.edit-layout .tp-btn{padding-top:5px;padding-bottom:5px}#fModal.edit-layout .edit-object-tabs{padding:4px 6px;margin:5px 0 6px}#fModal.edit-layout .edit-object-tabs button{padding:5px 10px}#fModal.edit-layout .fg{margin-bottom:6px}#fModal.edit-layout .fg>label{margin-bottom:3px}#fModal.edit-layout :is(.person-block,.deal-box){padding:8px!important;margin-bottom:6px!important}#fModal.edit-layout .edit-pane input:not([type=hidden]):not([type=checkbox]):not([type=radio]),#fModal.edit-layout .edit-pane select{height:32px;padding-top:4px;padding-bottom:4px}#fModal.edit-layout .edit-pane .input-sfx{height:32px;box-sizing:border-box;display:flex;align-items:center;padding-top:0;padding-bottom:0}#fModal.edit-layout :is(.rp-mgmt-row,.sp-mgmt-row) :is(.input-grp,[data-f="mgmtTotal"]){height:32px}#fModal.edit-layout .edit-pane .cal-btn{min-height:32px;height:32px;padding-top:4px;padding-bottom:4px}#fModal.edit-layout .edit-pane .sec-title{margin-bottom:7px;padding-bottom:4px}#fModal.edit-layout .equip-toggle{padding-top:6px;padding-bottom:6px}}@media(min-width:1050px){#dModal .det-pane-title{margin-bottom:8px}#dModal .det-pane .det-row{padding-top:3px;padding-bottom:3px}#dModal .det-property-page .det-other-info .det-row{padding-top:4px;padding-bottom:4px}#dModal .det-property-more>summary{padding-top:4px;padding-bottom:4px}#dModal .det-schedule-card{padding-top:8px;padding-bottom:8px}#dModal .det-property-toolbar{margin-top:2px;margin-bottom:2px}}';
 tabStyle.textContent+='#fModal .edit-section-toolbar{min-height:0;box-sizing:border-box;margin:0 0 6px}#fModal .edit-section-toolbar>.sec-title{height:36px;box-sizing:border-box;margin:0 0 6px!important;padding:0 0 5px!important;flex-wrap:nowrap}#fModal .edit-section-toolbar>.edit-object-tabs{height:42px;box-sizing:border-box;margin:0!important;align-items:center}#fModal .edit-section-toolbar .add-row-btn{height:30px;box-sizing:border-box;min-width:56px}';
 tabStyle.textContent+='#fModal :is(#s-房東,#s-租客)>div:has(>.cond-btn),#fModal :is(#s-房東,#s-租客)>div:has(>input[id^="f-rSubsidy"]){align-items:flex-start!important;margin-bottom:8px!important}#fModal :is(#s-房東,#s-租客)>div:has(>input[id^="f-rSubsidy"])>span{display:inline-flex;align-items:center;height:30px;line-height:20px!important}#fModal :is(#s-房東,#s-租客) .cond-btn{display:inline-flex;align-items:center;justify-content:center;height:30px;box-sizing:border-box;line-height:20px;padding-top:0!important;padding-bottom:0!important}';
+compactEdit.textContent+='@media(min-width:1200px){#fModal.edit-layout .edit-basic .basic-contact-box{padding:9px 10px!important;margin-bottom:8px!important}#fModal.edit-layout .edit-basic [style*="display:grid"]{row-gap:6px!important;margin-bottom:5px!important}#fModal.edit-layout .edit-basic .fg{margin-bottom:0!important}#fModal.edit-layout .edit-basic .fg>label{line-height:18px;margin-bottom:2px!important}#fModal.edit-layout .edit-basic .cal-btn{min-height:32px!important}#fModal.edit-layout .edit-basic [data-addr-row]>.btn-ic{padding:2px 8px!important;height:28px}#fModal.edit-layout .edit-basic #basicDetailToggle{padding:1px 0!important}}';
 document.head.append(tabStyle);document.head.append(compactEdit);
+const fullSpacing=document.createElement('style');
+fullSpacing.textContent=`
+#fModal{--form-control-height:32px}
+#fModal .modal-head{padding-top:8px;padding-bottom:8px;min-height:0}
+#fModal .modal-foot{padding-top:8px;padding-bottom:8px}
+#fModal .modal-foot .btn{padding-top:7px;padding-bottom:7px}
+#fModal .fg{gap:2px;margin-bottom:6px}
+#fModal .fg>label{min-height:18px;line-height:18px;margin-bottom:0!important}
+#fModal :is(.basic-contact-box,.person-block,.deal-box){padding:8px 10px!important;margin-bottom:6px!important}
+#fModal :is(.basic-contact-box,.person-block,.deal-box) [style*="display:grid"]{row-gap:6px!important;margin-bottom:5px!important}
+#fModal :is(.basic-contact-box,.person-block,.deal-box) .fg{margin-bottom:0!important}
+#fModal .modal-body input:not([type=hidden]):not([type=checkbox]):not([type=radio]),#fModal .modal-body select{height:var(--form-control-height);box-sizing:border-box;padding-top:4px;padding-bottom:4px}
+#fModal .modal-body .cal-btn{height:var(--form-control-height);min-height:var(--form-control-height)!important;padding-top:4px;padding-bottom:4px}
+#fModal .input-sfx{height:var(--form-control-height);box-sizing:border-box;display:flex;align-items:center;padding-top:0;padding-bottom:0}
+#fModal :is(.rp-mgmt-row,.sp-mgmt-row) :is(.input-grp,[data-f="mgmtTotal"]){height:var(--form-control-height)}
+#fModal .sec-title{margin-top:8px!important;margin-bottom:6px;padding-bottom:4px}
+#fModal #scheduleList .c-row{padding:8px!important;gap:6px!important;margin-bottom:6px!important}
+#fModal #typeNotesArea .fg{margin-bottom:8px}
+#fModal #typeNotesArea textarea{min-height:56px;height:56px;padding-top:6px;padding-bottom:6px}
+#fModal .equip-toggle{padding-top:5px;padding-bottom:5px}
+#fModal .edit-pane-heading{margin-bottom:6px}
+#fModal.edit-layout .modal-head{min-height:0;padding-top:8px;padding-bottom:8px}
+#fModal.edit-layout .edit-basic .fg>label{margin-bottom:0!important}
+#fModal.edit-layout .edit-basic .basic-contact-box{padding:8px 10px!important;margin-bottom:6px!important}
+#dModal .det-pane-title{margin-bottom:6px}
+#dModal .det-identity{margin-bottom:8px}
+#dModal .det-row{padding-top:3px;padding-bottom:3px}
+#dModal .det-sec{margin-top:8px;margin-bottom:6px;padding-bottom:4px}
+#dModal .det-property-more{margin-top:3px}
+#dModal .det-property-more>summary{padding-top:5px;padding-bottom:5px}
+#dModal .det-property-page .det-other-info .det-row{padding-top:4px;padding-bottom:4px;gap:2px}
+#dModal #detLogList .det-row{padding-top:4px;padding-bottom:4px}
+#dModal .det-schedule-card{padding:8px;margin-top:6px;margin-bottom:8px}
+#dModal .det-pane:nth-child(3)>.det-schedule-card{margin-bottom:8px}
+#dModal .det-category-tabs{margin-bottom:5px;padding-bottom:4px}
+#dModal .det-category-tabs button{padding-top:5px;padding-bottom:5px}
+#dModal .det-folder-actions{margin-bottom:3px;min-height:30px}
+@media(max-width:1199px){#fModal{--form-control-height:38px}#fModal .modal-body{padding-top:10px;padding-bottom:10px}#fModal .tp-btn{padding-top:7px;padding-bottom:7px}}
+@media(max-width:1049px){#dModal .det-property-toolbar,#dModal .det-property-toolbar>.det-property-title,#dModal .det-property-toolbar>.det-property-tabs{height:44px}#dModal .det-property-toolbar>.det-property-title{line-height:36px}#dModal .det-property-tabs button{height:34px;padding-top:4px;padding-bottom:4px}}
+`;
+document.head.append(fullSpacing);
 function moveAddButtons(){
  const buyerList=document.getElementById('bDemandList');
  if(buyerList&&!buyerList.closest('.type-sec').querySelector('.edit-buyer-heading')){const heading=document.createElement('div');heading.className='sec-title edit-buyer-heading';heading.textContent='買方需求';buyerList.before(heading);}
@@ -116,7 +158,7 @@ window.renderTypeNotes=function(c){
  const fields=[...area.querySelectorAll('[data-type-note]')];
  fields.forEach(field=>{const row=field.closest('.fg');row.hidden=!field.value.trim()&&!enabled.has(field.dataset.typeNote);if(enabled.has(field.dataset.typeNote))row.dataset.noteEnabled=field.dataset.typeNote;});
  const controls=document.createElement('div'),add=document.createElement('button');
- controls.style.cssText='display:flex;gap:8px;align-items:center;margin-top:8px';
+ controls.style.cssText='display:flex;gap:8px;align-items:center;margin:8px 0 12px';
  add.type='button';add.className='add-row-btn';add.textContent='＋ 新增備註';add.style.cssText='width:auto;flex:0 0 auto;margin:0;padding:5px 10px;font-size:13px;border:1px solid #cbd9e6;border-radius:7px;background:#f0f6fb;color:#173756;line-height:1.4';
  function refresh(){controls.hidden=!fields.some(field=>field.closest('.fg').hidden);}
  add.onclick=()=>{
@@ -132,12 +174,16 @@ window.renderTypeNotes=function(c){
   picker.onclick=event=>{if(event.target===picker){const rect=picker.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)picker.close();}};
   picker.addEventListener('close',()=>picker.remove(),{once:true});document.body.append(picker);picker.showModal();
  };
- controls.append(add);area.append(controls);refresh();return result;
+ controls.append(add);area.prepend(controls);refresh();return result;
 };
 const open=window.openEdit;window.openEdit=function(id,viewAs){
  const detail=document.getElementById('dModal');
+ const currentLabel=detail.style.display==='flex'?detail.querySelector('.det-category-tabs [aria-selected="true"]')?.textContent.trim():'';
+ const currentType=Object.keys(TYPE_DISPLAY).find(type=>TYPE_DISPLAY[type]+'資料'===currentLabel);
  if(detail.style.display==='flex'&&!returnDetail){returnDetail={id:currentDetId,viewAs:viewAs,snapshot:JSON.stringify(DB.find(c=>c.id===currentDetId))};detail.style.display='none';}
   restore();const result=open.apply(this,arguments);
+ const firstType=['經營買方','庫存屋主','房東','租客','成交客戶','商機募集'].find(type=>selectedTypes.includes(type));
+ if(currentType||(!viewAs&&firstType)){activeView=currentType||firstType;applyTypePicker();}
  const basicDetails=document.getElementById('basicDetailWrap');if(basicDetails.style.display!=='none')document.getElementById('basicDetailToggle').click();
  resetObjectTabs();arrange();return result;
 };
