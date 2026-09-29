@@ -424,3 +424,8 @@
 }
 /* Match add/edit customer dialogs to the desktop detail scale. */
 @media(min-width:1050px){#fModal{align-items:center!important;justify-content:center!important}#fModal>.modal{transform:scale(.9);transform-origin:center center}}
+/* Add/edit uses the same pane proportions and card separation as details. */
+@media(min-width:1200px){
+ body #fModal.edit-layout>.modal>.modal-body{grid-template-columns:minmax(0,28fr) minmax(0,38fr) minmax(0,34fr);gap:10px;padding:10px;background:#edf2f6}
+ #fModal.edit-layout .edit-pane{background:#fff;border:1px solid #cbd5e1;border-radius:10px;padding:14px 16px}
+}

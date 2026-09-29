@@ -14,7 +14,7 @@ if(width>=1200){
  await pane.evaluate(e=>e.scrollTop=0);await page.locator('#fModal>.modal').screenshot({path:path.join(os.tmpdir(),'crm-edit-layout-'+width+'.png')});
 }
 assert.equal(await page.evaluate(()=>JSON.stringify(DB[0])),before);
-await page.evaluate(()=>{document.getElementById('fModal').style.display='none';openAdd();});assert.equal(await page.locator('.edit-pane').count(),0);
+await page.evaluate(()=>{document.getElementById('fModal').style.display='none';openAdd();});assert.equal(await page.locator('.edit-pane').count(),width>=1200?3:0);
 await page.evaluate(()=>{openEdit('edit-layout-test');pickType('庫存屋主');document.querySelector('#sPropertyList [data-f="price"]').value='1250';window.persistAndSyncNow=()=>{};window.persist=()=>true;window.render=()=>{};saveClient();});
 assert.equal(await page.evaluate(()=>DB.find(c=>c.id==='edit-layout-test').sProperties[0].price),'1250');assert.equal(await page.evaluate(()=>DB[0].sProperties[1].price),'1500');assert.equal(await page.evaluate(()=>DB[0].schedules[0].memo),'行程測試');
 console.log('PASS edit layout '+width+': types, preserved fields, resize, fixed footer, save');await page.close();
