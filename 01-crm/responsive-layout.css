@@ -207,3 +207,11 @@
  .main-fixed-top:has(.buyer-filter.on)>.expire-banner{grid-column:1;grid-row:2}
 }
 @media(min-width:769px){.sidebar .filter-overview{margin-top:0}}
+
+/* Keep sorting anchored to the same content coordinates in every category. */
+.main-fixed-top #sortSel{box-sizing:border-box;width:124px;height:36px;flex:0 0 124px}
+@media(min-width:1200px){
+ .main-fixed-top>.main-bar{margin:10px 16px 6px;min-height:36px}
+ .main-fixed-top:has(.buyer-filter.on)>.main-bar{margin:10px 16px 6px}
+ .main-fixed-top>.main-bar:has(#sortSel[style*="display: none"]):has(#archiveToggle[style*="display: none"]){margin:0;min-height:0}
+}
