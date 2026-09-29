@@ -42,6 +42,19 @@
     const compactStyle=document.createElement('style');
     compactStyle.textContent='@media(min-width:1050px){.det-pane:nth-child(2) .det-pane-title{margin-bottom:6px}.det-property-header .det-category-tabs{gap:5px;margin-bottom:3px;padding-bottom:4px}.det-category-tabs button{padding:5px 10px;min-height:30px}.det-property-toolbar{height:44px;margin:2px 0 3px}.det-property-toolbar>.det-property-title,.det-property-toolbar>.det-property-tabs{height:44px;padding:2px 8px}.det-property-toolbar>.det-property-title{line-height:38px}.det-property-toolbar .det-property-tabs button{height:30px;padding:3px 10px}.det-folder-actions{min-height:28px;margin-bottom:2px}.det-folder-actions>.det-folder-link{padding:3px 9px}.det-pane:nth-child(2) .det-row{padding-top:3px;padding-bottom:3px}.det-property-more{margin-top:2px}.det-property-more>summary{padding:5px 0}.det-property-page .det-other-info .det-row{padding-top:6px;padding-bottom:6px;gap:3px}}';
     document.head.append(compactStyle);
+    const archiveStyle=document.createElement('style');
+    archiveStyle.textContent='#archModal{z-index:1100}#archModal>.modal{width:calc(100% - 32px)!important;max-width:400px!important;height:auto;max-height:calc(100dvh - 32px)!important;border-radius:18px!important;overflow-y:auto;box-shadow:0 24px 70px #17375630}#archModal .modal-head{padding:22px 22px 12px;border:0;gap:12px;align-items:flex-start}#archModal .modal-title{display:flex;align-items:center;gap:11px;color:#173756;font-size:19px;letter-spacing:0}#archModal .archive-symbol{display:grid;place-items:center;flex:0 0 38px;height:38px;border-radius:11px;background:#fff3dc;color:#b77916}#archModal .archive-symbol svg{width:22px;height:22px}#archModal .btn-x{font-size:20px;width:30px;height:30px;padding:0;border-radius:8px;color:#94a3b8}#archModal .btn-x:hover{background:#f1f5f9;color:#475569}#archModal .modal-body{padding:0 22px 22px}#archModal .archive-subtitle{margin:0 0 16px;color:#64748b;font-size:14px;line-height:1.6;overflow-wrap:anywhere}#archModal .arch-reasons{gap:8px}#archModal .arch-reason-btn{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;color:#334155;font:inherit;font-size:14px;line-height:1.5;transition:background .12s,border-color .12s}#archModal .arch-reason-btn::after{content:"›";color:#94a3b8;font-size:20px;line-height:1}#archModal .arch-reason-btn:hover{background:#edf4fa;border-color:#b9ccdf;color:#173756}#archModal .arch-reason-btn:focus-visible{outline:2px solid #0284c7;outline-offset:2px}';
+    document.head.append(archiveStyle);
+    const originalArchive=window.archiveClient;
+    window.archiveClient=function(id){
+        originalArchive(id);const customer=DB.find(c=>c.id===id);if(!customer)return;
+        const modal=document.getElementById('archModal'),heading=modal.querySelector('#archModalTitle');
+        heading.innerHTML='<span class="archive-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="5" rx="1.5"/><path d="M5 8v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8M10 12h4"/></svg></span><span>封存客戶</span>';
+        let subtitle=modal.querySelector('.archive-subtitle');if(!subtitle){subtitle=document.createElement('p');subtitle.className='archive-subtitle';modal.querySelector('.modal-body').prepend(subtitle);}subtitle.textContent='請選擇封存「'+customer.name+'」的原因';
+        modal.querySelector('.btn-x').setAttribute('aria-label','關閉封存視窗');
+    };
+    const originalConfirmArchive=window.confirmArchive;
+    window.confirmArchive=function(reason){const id=archiveTargetId;originalConfirmArchive(reason);if(id&&currentDetId===id)closeDet();};
     const originalShow=window.showDet;
     window.showDet=function(id,viewAs){
         originalShow(id,viewAs);
@@ -52,7 +65,7 @@
             const add=(label,color,handler)=>{const button=document.createElement('button');button.type='button';button.className='btn-ic';button.textContent=label;button.setAttribute('aria-label',label==='編輯'?'編輯目前資料':label);button.style.cssText='font-size:14px;padding:4px 8px;white-space:nowrap;color:'+color;button.onclick=handler;actions.append(button);};
             add('編輯','#173756',()=>{closeDet();openEdit(id,viewAs);});
             const customer=DB.find(c=>c.id===id);
-            if(customer&&getTypes(customer).some(t=>ARCHIVABLE.includes(t)))add(customer.archived?'解除封存':'封存',customer.archived?'#059669':'#D97706',()=>{closeDet();if(customer.archived)unarchiveClient(id);else archiveClient(id);});
+            if(customer&&getTypes(customer).some(t=>ARCHIVABLE.includes(t)))add(customer.archived?'解除封存':'封存',customer.archived?'#059669':'#D97706',()=>{if(customer.archived){closeDet();unarchiveClient(id);}else archiveClient(id);});
             add('刪除','#DC2626',()=>del(id));nav.prepend(actions);
             nav.style.flexWrap='wrap';
         }
