@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20260929audit18">
+    <link rel="stylesheet" href="area-editor.css?v=20260929audit19">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20260929audit18">
-    <link rel="stylesheet" href="responsive-layout.css?v=20260929audit18">
+    <link rel="stylesheet" href="ui-foundation.css?v=20260929audit19">
+    <link rel="stylesheet" href="responsive-layout.css?v=20260929audit19">
 </head>
 <body>
 
@@ -5384,7 +5384,7 @@ function showDet(id, viewAs) {
                         if (p.email) lines += '<div>' + esc(p.email) + '</div>';
                         if (p.addr) lines += '<div>' + esc((p.zip?p.zip+' ':'')+p.addr) + '</div>';
                         if (p.extraAddrs) p.extraAddrs.forEach(function(a){ if(a.addr) lines += '<div>' + esc((a.zip?a.zip+' ':'')+a.addr) + '</div>'; });
-                        if (p.bank||p.bankAccount) lines += '<div>銀行 ' + esc((p.bank||'')+(p.bankCode?' ('+p.bankCode+')':'')+(p.bankAccount?' '+p.bankAccount:'')) + '</div>';
+                        if (p.bank||p.bankAccount) lines += '<div>' + esc((p.bank||'')+(p.bankCode?' ('+p.bankCode+')':'')+(p.bankAccount?' '+p.bankAccount:'')) + '</div>';
                         info.push('<div class="det-row"><span class="det-key">聯絡人'+(idx+1)+'</span><span class="det-val" style="font-weight:400">'+lines+'</span></div>');
                     });
                 }
@@ -12203,7 +12203,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260929audit18';
+var APP_VERSION = '20260929audit19';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13311,9 +13311,9 @@ function deleteMktTemplate(idx) {
 <script src="image-studio.js?v=20260928sync1"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
 <script src="image-composer.js?v=20260928sync1"></script>
-<script src="area-editor.js?v=20260929audit18"></script>
+<script src="area-editor.js?v=20260929audit19"></script>
 <script src="sync-notice.js?v=20260928sync1"></script>
-<script src="detail-properties.js?v=20260929audit18"></script>
-<script src="edit-layout.js?v=20260929audit18"></script>
+<script src="detail-properties.js?v=20260929audit19"></script>
+<script src="edit-layout.js?v=20260929audit19"></script>
 </body>
 </html>
