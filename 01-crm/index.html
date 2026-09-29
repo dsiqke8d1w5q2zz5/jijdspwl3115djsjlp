@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20260929audit19">
+    <link rel="stylesheet" href="area-editor.css?v=20260929audit20">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20260929audit19">
-    <link rel="stylesheet" href="responsive-layout.css?v=20260929audit19">
+    <link rel="stylesheet" href="ui-foundation.css?v=20260929audit20">
+    <link rel="stylesheet" href="responsive-layout.css?v=20260929audit20">
 </head>
 <body>
 
@@ -5289,6 +5289,10 @@ async function copyDetailContact(button) {
     }
 }
 
+function bankDetailMarkup(bank,code,account){
+    const name=(bank||'')+(code?' ('+code+')':'');
+    return '<span class="det-bank-parts">'+(name?'<span class="det-bank-name">'+esc(name)+'</span>':'')+(account?'<span class="det-bank-account">'+esc(account)+'</span>':'')+'</span>';
+}
 function showDet(id, viewAs) {
     const c = DB.find(x=>x.id===id); if(!c) return;
     const cTypes = getTypes(c);
@@ -5372,7 +5376,7 @@ function showDet(id, viewAs) {
                 var bank = c.bank || _ll0.bank || c.llBank || '';
                 var bankCode = c.bankCode || _ll0.bankCode || c.llBankCode || '';
                 var bankAccount = c.bankAccount || _ll0.bankAccount || c.llBankAccount || '';
-                if (bank || bankAccount) info.push(dRow('銀行', (bank?bank:'')+(bankCode?' ('+bankCode+')':'')+(bankAccount?' '+bankAccount:'')));
+                if (bank || bankAccount) info.push('<div class="det-row"><span class="det-key">銀行</span><span class="det-val">'+bankDetailMarkup(bank,bankCode,bankAccount)+'</span></div>');
                 // 其他聯絡人
                 if (c.contacts && c.contacts.length) {
                     c.contacts.forEach(function(p, idx) {
@@ -5384,7 +5388,7 @@ function showDet(id, viewAs) {
                         if (p.email) lines += '<div>' + esc(p.email) + '</div>';
                         if (p.addr) lines += '<div>' + esc((p.zip?p.zip+' ':'')+p.addr) + '</div>';
                         if (p.extraAddrs) p.extraAddrs.forEach(function(a){ if(a.addr) lines += '<div>' + esc((a.zip?a.zip+' ':'')+a.addr) + '</div>'; });
-                        if (p.bank||p.bankAccount) lines += '<div>' + esc((p.bank||'')+(p.bankCode?' ('+p.bankCode+')':'')+(p.bankAccount?' '+p.bankAccount:'')) + '</div>';
+                        if (p.bank||p.bankAccount) lines += '<div>' + bankDetailMarkup(p.bank,p.bankCode,p.bankAccount) + '</div>';
                         info.push('<div class="det-row"><span class="det-key">聯絡人'+(idx+1)+'</span><span class="det-val" style="font-weight:400">'+lines+'</span></div>');
                     });
                 }
@@ -12203,7 +12207,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260929audit19';
+var APP_VERSION = '20260929audit20';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13311,9 +13315,9 @@ function deleteMktTemplate(idx) {
 <script src="image-studio.js?v=20260928sync1"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
 <script src="image-composer.js?v=20260928sync1"></script>
-<script src="area-editor.js?v=20260929audit19"></script>
+<script src="area-editor.js?v=20260929audit20"></script>
 <script src="sync-notice.js?v=20260928sync1"></script>
-<script src="detail-properties.js?v=20260929audit19"></script>
-<script src="edit-layout.js?v=20260929audit19"></script>
+<script src="detail-properties.js?v=20260929audit20"></script>
+<script src="edit-layout.js?v=20260929audit20"></script>
 </body>
 </html>

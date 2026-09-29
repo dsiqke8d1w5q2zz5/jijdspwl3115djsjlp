@@ -152,3 +152,7 @@
 .sidebar .filter-btn>.filter-left{min-width:0}
 .sidebar .filter-btn>.cnt-wrap{width:44px;min-width:0}
 .sidebar .filter-btn .cnt{box-sizing:border-box;width:44px;min-width:0;padding:2px 4px;font-variant-numeric:tabular-nums}
+
+#dModal .det-bank-parts{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 6px;max-width:100%}
+#dModal .det-bank-name{min-width:0;max-width:100%;overflow-wrap:anywhere}
+#dModal .det-bank-account{white-space:nowrap;word-break:normal}
