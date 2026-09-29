@@ -463,3 +463,6 @@
 #fModal [data-fee-layout]>div:not(.fee-more)>label,#fModal .fee-extra-grid>div>label{font-size:14px!important;font-weight:600}
 #fModal [data-fee-layout]>.fee-total{grid-column:auto;border:0;padding:0;min-width:0;justify-content:space-between}
 #fModal [data-fee-layout]>.fee-total>[data-f=mgmtTotal]{font-size:14px!important;white-space:nowrap}
+/* Match management and contract headings to the fee labels. */
+#fModal div:has(+.sp-mgmt-row),#fModal div:has(+.rp-mgmt-row),#fModal .sp-contract-row>.fg>label{font-size:14px!important;font-weight:600}
+#fModal [data-fee-layout] [data-f=mgmtTotal]{color:#2563eb!important}
