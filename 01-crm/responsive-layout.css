@@ -452,3 +452,7 @@
 #fModal [data-fee-layout]>div:not(.fee-total):not(.fee-more),#fModal .fee-extra-grid>div{display:grid!important;grid-template-columns:8em minmax(0,1fr);align-items:center;gap:8px}
 #fModal [data-fee-layout]>div:not(.fee-total):not(.fee-more)>label,#fModal .fee-extra-grid>div>label{margin:0!important;padding:0!important;white-space:nowrap}
 #fModal [data-fee-layout] .input-grp{min-width:0}
+/* Show the other-contact heading only when a contact row exists. */
+#sharedContactsWrap:has(>#sharedContactsList:empty)>.sec-title:not(:has(button)){display:none}
+#sharedContactsWrap:has(>#sharedContactsList:empty)>.sec-title:has(button){font-size:0;border:0;padding:0;margin:0}
+#sharedContactsWrap:has(>#sharedContactsList:empty)>.sec-title>button{font-size:13px}
