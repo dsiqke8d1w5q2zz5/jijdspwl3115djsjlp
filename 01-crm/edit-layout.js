@@ -16,9 +16,11 @@ style.textContent=[
 '.edit-pane-heading{font-size:17px;color:#173756;margin:0 0 12px;font-weight:700}',
 '.edit-property-head{position:sticky;top:-14px;background:white;z-index:5;margin:-14px 0 12px;padding:14px 0 8px;border-bottom:1px solid #e2e8f0}',
 '#fModal.edit-layout .type-picker{display:flex;flex-wrap:wrap;gap:5px;margin:0}',
-'#fModal.edit-layout .tp-btn{flex:1 0 auto;min-width:54px;padding:7px 10px;font-size:14px;border:1px solid #e2e8f0!important;border-radius:8px;background:#f1f5f9!important;color:#64748b!important;box-shadow:none!important}',
-'#fModal.edit-layout .tp-btn.selected{background:#eaf1f7!important;color:#173756!important;border-color:#cbd9e6!important}',
-'#fModal.edit-layout .tp-btn.active-view{background:#173756!important;color:white!important;border-color:#173756!important}',
+'#fModal.edit-layout .tp-btn{flex:1 0 auto;min-width:54px;padding:7px 10px;font-size:14px;border:1px solid #e2e8f0!important;border-radius:8px;background:#f1f5f9;color:#64748b;box-shadow:none}',
+'#fModal.edit-layout .tp-btn.selected{background:var(--edit-type-color)!important;color:white!important;border-color:var(--edit-type-color)!important;font-weight:800}',
+'#fModal .tp-buyer{--edit-type-color:#1D4ED8}#fModal .tp-seller{--edit-type-color:#059669}#fModal .tp-landlord{--edit-type-color:#0891B2}#fModal .tp-tenant{--edit-type-color:#DB2777}#fModal .tp-closed{--edit-type-color:#D97706}#fModal .tp-potential{--edit-type-color:#DC2626}',
+'#fModal.edit-layout .tp-btn.active-view{outline:2px solid #173756;outline-offset:2px;box-shadow:inset 0 -3px 0 #17375655}',
+'#typeNotesArea [hidden]{display:none!important}',
 '#fModal.edit-layout .tp-btn:focus-visible{outline:2px solid #0284c7;outline-offset:2px}',
 '#fModal.edit-layout .sec-title{font-size:14px;color:#475569;margin-top:10px!important;padding-bottom:6px}',
 '#fModal.edit-layout .edit-basic>.sec-title:first-of-type{display:none}',
@@ -53,6 +55,22 @@ function arrange(){
  body.replaceChildren(basic,property,followup);modal.classList.add('edit-layout');
 }
 let returnDetail=null;
+const originalNotes=window.renderTypeNotes;
+window.renderTypeNotes=function(c){
+ const area=document.getElementById('typeNotesArea');
+ const enabled=new Set([...area.querySelectorAll('[data-note-enabled]')].map(el=>el.dataset.noteEnabled));
+ const result=originalNotes.apply(this,arguments);
+ const fields=[...area.querySelectorAll('[data-type-note]')];
+ fields.forEach(field=>{const row=field.closest('.fg');row.hidden=!field.value.trim()&&!enabled.has(field.dataset.typeNote);if(enabled.has(field.dataset.typeNote))row.dataset.noteEnabled=field.dataset.typeNote;});
+ const controls=document.createElement('div'),add=document.createElement('button'),picker=document.createElement('select');
+ controls.style.cssText='display:flex;gap:8px;align-items:center;margin-top:8px';
+ add.type='button';add.className='add-row-btn';add.textContent='＋ 新增備註';add.style.margin='0';
+ picker.setAttribute('aria-label','選擇備註項目');picker.hidden=true;picker.style.cssText='width:100%;padding:9px;border:1px solid #d4e2ee;border-radius:8px;background:white;font:inherit;color:#173756';
+ function refresh(){picker.replaceChildren(new Option('選擇備註項目',''));fields.filter(field=>field.closest('.fg').hidden).forEach(field=>picker.add(new Option(_NOTE_LABELS[field.dataset.typeNote]||'備註',field.dataset.typeNote)));controls.hidden=picker.options.length===1;}
+ add.onclick=()=>{add.hidden=true;picker.hidden=false;picker.focus();};
+ picker.onchange=()=>{const field=fields.find(field=>field.dataset.typeNote===picker.value);if(!field)return;const row=field.closest('.fg');row.hidden=false;row.dataset.noteEnabled=field.dataset.typeNote;field.style.height='64px';picker.hidden=true;add.hidden=false;refresh();field.focus();};
+ controls.append(add,picker);area.append(controls);refresh();return result;
+};
 const open=window.openEdit;window.openEdit=function(id,viewAs){
  const detail=document.getElementById('dModal');
  if(detail.style.display==='flex'&&!returnDetail){returnDetail={id:currentDetId,viewAs:viewAs,snapshot:JSON.stringify(DB.find(c=>c.id===currentDetId))};detail.style.display='none';}
