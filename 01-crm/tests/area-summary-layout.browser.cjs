@@ -4,7 +4,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE);
  for(const width of [1920,1440,430]){
   const page=await browser.newPage({viewport:{width,height:932}});await page.route('https://**/*',r=>r.abort());
   await page.goto(pathToFileURL(path.join(__dirname,'../index.html')).href);
-  await page.evaluate(()=>{DB=[{id:'area',name:'測試',type:'庫存屋主',types:['庫存屋主'],sProperties:[{community:'測試',price:'918',mainBldg:'5.6',ancBldg:'2.6',common:'4.51',baseLand:'1364.28',landShare:'0.42',floorPrice:'886',serviceFee:'4',mgmtBuilding:'763',mgmtPeriod:'月繳'}]}];curFilter='庫存屋主';showDet('area');});
+  await page.evaluate(()=>{DB=[{id:'area',name:'測試',type:'庫存屋主',types:['庫存屋主'],sProperties:[{community:'測試',price:'918',mainBldg:'5.6',ancBldg:'2.6',common:'4.51',baseLand:'1364.28',landShare:'0.42',floorPrice:'886',serviceFee:'4',mgmtBuilding:'17439',mgmtCar:'1500',mgmtMoto:'200',mgmtPeriod:'月繳'}]}];curFilter='庫存屋主';showDet('area');});
   const area=page.locator('.det-property-more').filter({has:page.locator(':scope>summary',{hasText:'面積與持分明細'})}).first();
   await area.locator(':scope>summary').click();
   for(const row of await area.locator('.det-area-grid>.det-row').all()){
@@ -22,6 +22,10 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE);
    if(width>=1440)assert(Math.abs(boxes[0].y-boxes[1].y)<2,labels.join('/')+' shares a row');
    for(const label of labels)assert(await field(label).evaluate(e=>e.scrollWidth<=e.clientWidth+1),'cost content fits');
   }
+  const managementLines=field('管理費').locator('.det-management-lines>span');
+  assert.deepEqual(await managementLines.allTextContents(),['建物 17439元','汽車位 1500元','機車位 200元／月繳']);
+  const lineBoxes=await managementLines.evaluateAll(els=>els.map(e=>e.getBoundingClientRect().toJSON()));
+  assert(lineBoxes[1].y>=lineBoxes[0].y+lineBoxes[0].height,'parking fee starts on its own line');
   assert.equal(await property.locator(':scope>details>summary').filter({hasText:'其他資料'}).count(),0,'no empty other section');
   assert((await field('底價').boundingBox()).y<(await field('登記面積').boundingBox()).y,'prices precede area');
   await page.evaluate(()=>{closeDet();DB[0].sProperties=[{community:'土地',baseLand:'9990.37',landShare:'9990.37'}];openEdit('area');});

@@ -210,6 +210,14 @@
         }
         if(kind==='s'){
             const costs=['底價','服務費','管理費'].map(label=>[...groups[2].children].find(el=>el.querySelector('.det-key')?.textContent===label)).filter(Boolean);
+            const management=costs.find(el=>el.querySelector('.det-key')?.textContent==='管理費')?.querySelector('.det-val');
+            if(management){
+                const parts=management.textContent.split('、');
+                if(parts.length>1){
+                    management.replaceChildren();management.classList.add('det-management-lines');
+                    for(const text of parts){const line=document.createElement('span');line.textContent=text;management.append(line);}
+                }
+            }
             const price=[...main.children].find(el=>el.querySelector('.det-key')?.textContent==='開價');
             if(price)price.after(...costs);else main.prepend(...costs);
         }
@@ -226,7 +234,6 @@
                     heading.className='det-renewal-label';heading.textContent=label;
                     dates.textContent=(start?isoToROC(start):'未填')+' ～ '+(end?isoToROC(end):'未填');line.append(heading,dates);value.append(line);
                 }
-                if(renewal.months){const term=document.createElement('small');term.textContent='續約 '+renewal.months+' 個月';value.append(term);}
             }
         }
         // Pair only short, related values; keep addresses, people and narrative text full-width.

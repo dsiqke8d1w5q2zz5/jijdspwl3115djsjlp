@@ -124,3 +124,6 @@
 #dModal .det-property-page .det-area-section .det-area-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:0 14px;margin:0}
 #dModal .det-property-page .det-area-grid>.det-row{display:grid;grid-template-columns:92px minmax(0,1fr);align-items:start;gap:8px;padding:4px 0;background:transparent;border:0;border-bottom:1px solid #f0efed;border-radius:0}
 #dModal .det-property-page .det-area-grid .det-val{white-space:normal;overflow-wrap:anywhere}
+
+#dModal .det-management-lines{display:flex;flex-direction:column;gap:2px}
+#dModal .det-management-lines>span{display:block}
