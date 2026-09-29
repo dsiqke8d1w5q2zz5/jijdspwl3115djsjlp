@@ -447,3 +447,8 @@
 @media(max-width:600px){#fModal :is(.sp-mgmt-row,.rp-mgmt-row)[data-fee-layout],#fModal .fee-extra-grid{grid-template-columns:minmax(0,1fr)}}
 #fModal [data-fee-layout]>.fee-total{flex-direction:row!important;gap:8px}
 #fModal [data-fee-layout]>.fee-total>label{width:auto!important;margin:0!important}
+/* Inline fee labels keep the section compact without narrow amount inputs. */
+#fModal :is(.sp-mgmt-row,.rp-mgmt-row)[data-fee-layout],#fModal .fee-extra-grid{grid-template-columns:minmax(0,1fr)}
+#fModal [data-fee-layout]>div:not(.fee-total),#fModal .fee-extra-grid>div{display:grid!important;grid-template-columns:8em minmax(0,1fr);align-items:center;gap:8px}
+#fModal [data-fee-layout]>div:not(.fee-total)>label,#fModal .fee-extra-grid>div>label{margin:0!important;padding:0!important;white-space:nowrap}
+#fModal [data-fee-layout] .input-grp{min-width:0}
