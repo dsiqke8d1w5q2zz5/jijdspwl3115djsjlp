@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20260929audit24">
+    <link rel="stylesheet" href="area-editor.css?v=20260929audit25">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20260929audit24">
-    <link rel="stylesheet" href="responsive-layout.css?v=20260929audit24">
+    <link rel="stylesheet" href="ui-foundation.css?v=20260929audit25">
+    <link rel="stylesheet" href="responsive-layout.css?v=20260929audit25">
 </head>
 <body>
 
@@ -2408,7 +2408,9 @@ function _crmClearPending() { try { localStorage.removeItem('crm_pendingSync'); 
 function _crmHasPending() { try { return localStorage.getItem('crm_pendingSync') === '1'; } catch(e) { return false; } }
 var _syncInFlight = false;
 var _cloudRequestSeq = 0;
-function autoSync() {
+var _syncNoticeManual = false;
+function autoSync(manual) {
+    if (manual === true) _syncNoticeManual = true;
     var status = document.getElementById('cloudStatus');
     // 離線時直接標記待同步
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
@@ -2499,7 +2501,8 @@ function verifySyncResult(status) {
                 _lastSyncJSON = JSON.stringify(DB);
                 _syncRetryCount = 0;
                 _crmClearPending();
-                showSyncSuccess();
+                if (typeof showSyncSuccess === 'function') showSyncSuccess(_syncNoticeManual);
+                _syncNoticeManual = false;
             } else {
                 // 筆數不符，不解除保護，走失敗重試流程
                 _onSyncFail(status);
@@ -2540,7 +2543,8 @@ function _onSyncFail(status) {
     // 重試都失敗，提供手動重試
     _syncRetryTimer = null;
     _syncRetryCount = 0;
-    if (status) status.innerHTML = '同步失敗 <button onclick="_syncRetryCount=0;autoSync()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:2px 8px;cursor:pointer;font-size:11px;margin-left:4px">重試</button>';
+    if (status) status.innerHTML = '同步失敗 <button onclick="_syncRetryCount=0;autoSync(true)" style="background:none;border:1px solid var(--border);border-radius:6px;padding:2px 8px;cursor:pointer;font-size:11px;margin-left:4px">重試</button>';
+    _syncNoticeManual = false;
     showToast('雲端同步失敗', 'warn', 3000);
 }
 function syncViaIframe(payload, status) {
@@ -12154,7 +12158,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (_ptrActive) {
             ind.textContent = '同步中…';
             ind.classList.add('refreshing');
-            autoSync();
+            autoSync(true);
             autoFetchCloud();
             setTimeout(function() { ind.classList.remove('pulling','refreshing'); render(); showToast('已刷新'); }, 3000);
         } else {
@@ -12207,7 +12211,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260929audit24';
+var APP_VERSION = '20260929audit25';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13315,9 +13319,9 @@ function deleteMktTemplate(idx) {
 <script src="image-studio.js?v=20260928sync1"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
 <script src="image-composer.js?v=20260928sync1"></script>
-<script src="area-editor.js?v=20260929audit24"></script>
-<script src="sync-notice.js?v=20260928sync1"></script>
-<script src="detail-properties.js?v=20260929audit24"></script>
-<script src="edit-layout.js?v=20260929audit24"></script>
+<script src="area-editor.js?v=20260929audit25"></script>
+<script src="sync-notice.js?v=20260929audit25"></script>
+<script src="detail-properties.js?v=20260929audit25"></script>
+<script src="edit-layout.js?v=20260929audit25"></script>
 </body>
 </html>
