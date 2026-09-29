@@ -119,3 +119,8 @@
 #dModal .det-rental-renewal{display:flex;flex-direction:column;gap:3px}
 #dModal .det-rental-renewal>span{display:flex;flex-wrap:wrap;gap:3px 8px}
 #dModal .det-renewal-label,#dModal .det-rental-renewal>small{font-size:14px;color:#64748b;font-weight:400}
+
+/* Area details use the same plain rows and label columns as the property fields. */
+#dModal .det-property-page .det-area-section .det-area-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:0 14px;margin:0}
+#dModal .det-property-page .det-area-grid>.det-row{display:grid;grid-template-columns:92px minmax(0,1fr);align-items:start;gap:8px;padding:4px 0;background:transparent;border:0;border-bottom:1px solid #f0efed;border-radius:0}
+#dModal .det-property-page .det-area-grid .det-val{white-space:normal;overflow-wrap:anywhere}
