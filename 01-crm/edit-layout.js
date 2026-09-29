@@ -246,10 +246,10 @@ desktop.addEventListener('change',()=>{restore();if(modal.style.display==='flex'
   row.dataset.feeLayout='1';const field=k=>row.querySelector('[data-f="'+k+'"]');
   const wrap=k=>{const el=field(k);return el?.closest('.input-grp')?.parentElement||el?.parentElement;};
   const building=wrap('mgmtBuilding'),period=wrap('mgmtPeriod'),type=wrap('mgmtType'),total=wrap('mgmtTotal');
-  const more=document.createElement('details');more.className='fee-more';const summary=document.createElement('summary');summary.textContent='其他費用';more.append(summary);const grid=document.createElement('div');grid.className='fee-extra-grid';more.append(grid);
-  for(const [key,label] of [['mgmtBuilding','建物管理費（元）'],['mgmtCar','汽車（元）'],['mgmtMoto','機車（元）'],['mgmtOther','其他（元）']]){const box=wrap(key);if(!box)continue;box.querySelector('label').textContent=label;box.querySelector('.input-sfx')?.remove();const input=field(key);input.inputMode='decimal';if(key!=='mgmtBuilding'){if(input.value.trim())more.open=true;grid.append(box);}}
+  const more=document.createElement('div');more.className='fee-more';const grid=document.createElement('div');grid.className='fee-extra-grid';more.append(grid);
+  for(const [key,label] of [['mgmtBuilding','建物管理費（元）'],['mgmtCar','汽車（元）'],['mgmtMoto','機車（元）'],['mgmtOther','其他（元）']]){const box=wrap(key);if(!box)continue;box.querySelector('label').textContent=label;box.querySelector('.input-sfx')?.remove();const input=field(key);input.inputMode='decimal';if(key!=='mgmtBuilding'){grid.append(box);}}
   if(period)period.querySelector('label').textContent='繳費週期';if(type)type.querySelector('label').textContent='管理費方式';
-  row.append(...[building,period||type,more,total].filter(Boolean));if(total)total.classList.add('fee-total');
+  row.append(...[period||type,building,more,total].filter(Boolean));if(total)total.classList.add('fee-total');
  });}
  new MutationObserver(arrangeFees).observe(host,{childList:true,subtree:true});arrangeFees();
 })();
