@@ -213,9 +213,25 @@
             const price=[...main.children].find(el=>el.querySelector('.det-key')?.textContent==='開價');
             if(price)price.after(...costs);else main.prepend(...costs);
         }
+        if(kind==='r'){
+            const fees=['租金週期','管理費方式','建物管理費','汽車位管理費','機車位管理費','其他管理費'].map(label=>[...groups[2].children].find(el=>el.querySelector('.det-key')?.textContent===label)).filter(Boolean);
+            const rent=[...main.children].find(el=>el.querySelector('.det-key')?.textContent==='租金');
+            if(rent){const amount=String(property.rent||'');rent.querySelector('.det-val').textContent=amount+(amount.includes('元')?'':'元');rent.after(...fees);}else main.prepend(...fees);
+            for(const entry of [...groups[1].children]){
+                const match=entry.querySelector('.det-key')?.textContent.match(/^續約 (\d+)$/);
+                if(!match)continue;const renewal=property.rpRenewals?.[Number(match[1])-1],value=entry.querySelector('.det-val');if(!renewal||!value)continue;
+                value.replaceChildren();value.classList.add('det-rental-renewal');
+                for(const [label,start,end] of [['原租期',renewal.oldStart,renewal.oldEnd],['新租期',renewal.newStart,renewal.newEnd]]){
+                    const line=document.createElement('span'),heading=document.createElement('span'),dates=document.createElement('span');
+                    heading.className='det-renewal-label';heading.textContent=label;
+                    dates.textContent=(start?isoToROC(start):'未填')+' ～ '+(end?isoToROC(end):'未填');line.append(heading,dates);value.append(line);
+                }
+                if(renewal.months){const term=document.createElement('small');term.textContent='續約 '+renewal.months+' 個月';value.append(term);}
+            }
+        }
         // Pair only short, related values; keep addresses, people and narrative text full-width.
         for(const container of [main,...groups]){
-            const pairs=[['物件等級','約種'],['車位型態','車位價格'],['立約日','到期日'],['起租日','到期日'],['成交日期','身份'],['類別','房屋型態'],...(kind==='s'?[['開價','底價'],['服務費','管理費']]:[['底價','服務費','管理費']]),['主建物','附屬建物'],['基地面積','土地持分面積'],['土地坪數','建物坪數'],['汽車位管理費','機車位管理費'],['租金週期','管理費方式','建物管理費'],['建物管理費','其他管理費'],['瓦斯錶','水錶','電錶'],['垃圾集中處','專用垃圾袋']];
+            const pairs=[['物件等級','約種'],['車位型態','車位價格'],['立約日','到期日'],['起租日','到期日'],['成交日期','身份'],['類別','房屋型態'],...(kind==='s'?[['開價','底價'],['服務費','管理費']]:[['底價','服務費','管理費']]),['主建物','附屬建物'],['基地面積','土地持分面積'],['土地坪數','建物坪數'],['汽車位管理費','機車位管理費'],...(kind==='r'?[['租金','租金週期'],['管理費方式','建物管理費']]:[['租金週期','管理費方式','建物管理費'],['建物管理費','其他管理費']]),['瓦斯錶','水錶','電錶'],['垃圾集中處','專用垃圾袋']];
             for(const labels of pairs){const children=[...container.children],rows=labels.map(label=>children.find(el=>el.matches('.det-row')&&el.querySelector('.det-key')?.textContent===label)).filter(Boolean);if(rows.length<2)continue;const pair=document.createElement('div');pair.className='det-field-pair'+(rows.length===3?' det-field-triple':'')+(labels[0]==='底價'?' det-cost-fields':'');children.find(el=>rows.includes(el)).before(pair);pair.append(...rows);}
         }
         const area=groups[0],areaGrid=document.createElement('div');areaGrid.className='det-area-grid';

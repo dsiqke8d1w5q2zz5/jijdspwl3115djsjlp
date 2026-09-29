@@ -113,3 +113,9 @@
 }@media(max-width:768px),(max-width:1024px) and (pointer:coarse){
  .transcript-dialog .transcript-fields>label:has(input[aria-label*="面積"]){grid-column:1/-1}
 }
+
+#dModal .det-equipment-chip{font-size:14px;line-height:1.4;padding:3px 7px;font-weight:400}
+#dModal .det-equipment-more>summary{font-size:16px}
+#dModal .det-rental-renewal{display:flex;flex-direction:column;gap:3px}
+#dModal .det-rental-renewal>span{display:flex;flex-wrap:wrap;gap:3px 8px}
+#dModal .det-renewal-label,#dModal .det-rental-renewal>small{font-size:14px;color:#64748b;font-weight:400}
