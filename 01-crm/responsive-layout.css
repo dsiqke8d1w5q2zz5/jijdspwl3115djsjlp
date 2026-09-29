@@ -1,4 +1,7 @@
 /* Shared layout corrections from the desktop / iPhone 15 Pro Max audit. */
+#dModal .det-property-page .det-other-info .det-cost-fields{display:flex;flex-wrap:wrap;gap:0 16px}
+#dModal .det-property-page .det-other-info .det-cost-fields>.det-row{flex:1 1 auto;flex-direction:row;align-items:baseline;gap:6px;max-width:100%}
+#dModal .det-cost-fields .det-val{width:auto}
 #dModal .det-schedule-row{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:12px;align-items:baseline}
 #dModal .det-schedule-row .det-key{width:auto!important;margin-right:0!important;white-space:nowrap!important}
 .det-history-fold>summary{cursor:pointer;list-style:none;color:#17637a;line-height:1.5;min-height:32px;display:flex;align-items:center;padding:3px 0}

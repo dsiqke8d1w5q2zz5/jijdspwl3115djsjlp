@@ -25,7 +25,7 @@
     otherStyle.textContent='.det-property-page .det-other-info .det-row{display:flex;flex-direction:column;gap:5px;padding:9px 0;min-width:0}.det-other-info .det-key{font-weight:400;color:#78716c}.det-other-info .det-val{width:100%;min-width:0}.det-other-info .det-field-pair{grid-template-columns:1fr;gap:0 16px}.det-equipment-list{display:flex;flex-wrap:wrap;gap:6px}.det-equipment-chip{display:inline-block;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;max-width:100%;overflow-wrap:anywhere;font-weight:500}.det-folder-link{display:inline-block;color:#173756!important;background:#f0f6fb;border:1px solid #d4e2ee;border-radius:7px;padding:7px 12px;text-decoration:none!important}.det-folder-link:focus-visible{outline:2px solid #0891b2}.det-property-page .det-other-info .det-folder-row{margin-top:6px;border-bottom:0}@container(min-width:440px){.det-other-info .det-field-pair{grid-template-columns:repeat(3,minmax(0,1fr))}}';
     document.head.append(otherStyle);
     const areaStyle=document.createElement('style');
-    areaStyle.textContent='.det-area-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 10px;margin:2px 0 6px}.det-property-page .det-area-grid>.det-row{display:flex;flex-direction:column;gap:2px;padding:5px 9px;background:#f6f8fa;border:1px solid #e8edf1;border-radius:7px}.det-area-grid .det-key{width:auto!important;white-space:normal!important}.det-area-grid .det-val{min-width:0}@container(min-width:440px){.det-area-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}';
+    areaStyle.textContent='.det-area-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 10px;margin:2px 0 6px}.det-property-page .det-area-grid>.det-row{display:flex;flex-direction:row;align-items:baseline;gap:6px;padding:5px 9px;background:#f6f8fa;border:1px solid #e8edf1;border-radius:7px}.det-area-grid .det-key{width:auto!important;white-space:normal!important}.det-area-grid .det-val{min-width:0}@container(min-width:440px){.det-area-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}';
     document.head.append(areaStyle);
     areaStyle.textContent+='.det-area-section{margin:6px 0}.det-area-section h4{font-size:12px;color:#64748b;margin:0 0 4px;font-weight:600}.det-area-section .det-area-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.det-area-section .det-val small{font-size:11px;font-weight:400}.det-property-page .det-area-land .det-row{background:#fafafa}.det-area-section .det-row{min-width:0}.det-area-section .det-val{overflow-wrap:anywhere}@container(min-width:440px){.det-area-building .det-area-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}';
     const stickyStyle=document.createElement('style');
@@ -183,6 +183,7 @@
         }else html+=link('物件資料夾',p.dealDriveUrl||p.dAddrDriveUrl);
         return html;
     }
+    areaStyle.textContent+='.det-property-page .det-area-section .det-area-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr))}.det-property-page .det-area-land .det-area-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))}.det-area-grid .det-val{white-space:nowrap}';
     function tenants(c,index){return DB.filter(t=>!t._deleted&&t.linkedLandlordId===c.id&&(t.linkedPropertyIdx||0)===index).map(t=>row('租客',[t.ttName||t.name,t.ttPhone||t.phone,t.ttIdNo,t.ttOccupation].filter(Boolean).join('　'))+row('租客條件',[t.rSubsidy2?'租補':'',t.rSocialHouse2?'社宅':'',t.rRegister2?'設籍':'',t.rTax2?'報稅':'',t.rPet2?'寵物':'',t.rAltar2?'神桌':'',t.rGoodCitizen2?'良民':'',t.rNotarize2?'公證':''].filter(Boolean).join('、'))).join('');}
     function compact(html,extra,kind,property){
         const holder=document.createElement('div');holder.innerHTML=html;
@@ -209,8 +210,8 @@
         }
         // Pair only short, related values; keep addresses, people and narrative text full-width.
         for(const container of [main,...groups]){
-            const pairs=[['物件等級','約種'],['車位型態','車位價格'],['立約日','到期日'],['起租日','到期日'],['成交日期','身份'],['類別','房屋型態'],['底價','服務費'],['主建物','附屬建物'],['基地面積','土地持分面積'],['土地坪數','建物坪數'],['汽車位管理費','機車位管理費'],['租金週期','管理費方式','建物管理費'],['建物管理費','其他管理費'],['瓦斯錶','水錶','電錶'],['垃圾集中處','專用垃圾袋']];
-            for(const labels of pairs){const children=[...container.children],rows=labels.map(label=>children.find(el=>el.matches('.det-row')&&el.querySelector('.det-key')?.textContent===label)).filter(Boolean);if(rows.length<2)continue;const pair=document.createElement('div');pair.className='det-field-pair'+(rows.length===3?' det-field-triple':'');children.find(el=>rows.includes(el)).before(pair);pair.append(...rows);}
+            const pairs=[['物件等級','約種'],['車位型態','車位價格'],['立約日','到期日'],['起租日','到期日'],['成交日期','身份'],['類別','房屋型態'],['底價','服務費','管理費'],['主建物','附屬建物'],['基地面積','土地持分面積'],['土地坪數','建物坪數'],['汽車位管理費','機車位管理費'],['租金週期','管理費方式','建物管理費'],['建物管理費','其他管理費'],['瓦斯錶','水錶','電錶'],['垃圾集中處','專用垃圾袋']];
+            for(const labels of pairs){const children=[...container.children],rows=labels.map(label=>children.find(el=>el.matches('.det-row')&&el.querySelector('.det-key')?.textContent===label)).filter(Boolean);if(rows.length<2)continue;const pair=document.createElement('div');pair.className='det-field-pair'+(rows.length===3?' det-field-triple':'')+(labels[0]==='底價'?' det-cost-fields':'');children.find(el=>rows.includes(el)).before(pair);pair.append(...rows);}
         }
         const area=groups[0],areaGrid=document.createElement('div');areaGrid.className='det-area-grid';
         for(const item of [...area.children].slice(1)){
@@ -223,7 +224,8 @@
         if(areaGrid.children.length){
             const sections=[['建物面積','building'],['車位與公設比','parking'],['土地資料','land']].map(([label,kind])=>{const section=document.createElement('section');section.className='det-area-section det-area-'+kind;const heading=document.createElement('h4');heading.textContent=label;const grid=document.createElement('div');grid.className='det-area-grid';section.append(heading,grid);return {section,grid};});
             for(const entry of [...areaGrid.children]){const label=entry.querySelector('.det-key')?.textContent||'',value=entry.querySelector('.det-val');const index=/土地|基地/.test(label)?2:/^車位|公設比/.test(label)?1:0;
-                if(value){const match=value.textContent.trim().match(/^([\d,.]+)\s*(坪|%)$/);if(match){const n=Number(match[1].replace(/,/g,''));if(Number.isFinite(n)){const unit=document.createElement('small');unit.textContent=match[2];value.replaceChildren(document.createTextNode(n.toLocaleString('en-US',{minimumFractionDigits:match[2]==='%'?1:2,maximumFractionDigits:match[2]==='%'?1:2})+' '),unit);}}}
+                if(value){const match=value.textContent.trim().match(/^([\d,.]+)\s*(坪|%)$/);if(match){const n=Number(match[1].replace(/,/g,''));if(Number.isFinite(n)){const unit=document.createElement('small');unit.textContent=match[2];value.replaceChildren(document.createTextNode(n.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:match[2]==='%'?1:2})),unit);}}}
+                if(label.includes('共有部分'))entry.querySelector('.det-key').textContent='共用';
                 sections[index].grid.append(entry);
             }
             for(const {section,grid} of sections)if(grid.children.length)area.append(section);

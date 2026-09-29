@@ -145,14 +145,17 @@
                 el.hidden=!el.textContent;
             });
             const building=values.mainBldg+values.ancBldg+values.common;
+            const landOnly=!bad&&building===0&&parking===0&&(values.baseLand>0||values.landShare>0);
             const metrics=node('div','','area-summary-metrics');
-            [['建坪',building],['車坪',parking],['總坪',building+parking]].forEach(([label,value],index)=>{
-                const metric=node('div','',index===2?'area-metric area-metric-total':'area-metric');
-                const number=node('strong',Number(value).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}));
-                metric.append(node('span',label,'area-metric-label'),number,node('small','坪'));metrics.append(metric);
+            totals.dataset.summaryKind=landOnly?'land':'building';
+            const metricValues=landOnly?[['土地總面積',values.baseLand||null],['土地持分面積',values.landShare]]:[['建坪',building],['車坪',parking],['總坪',building+parking]];
+            metricValues.forEach(([label,value],index)=>{
+                const metric=node('div','',index===metricValues.length-1?'area-metric area-metric-total':'area-metric');
+                const number=node('strong',value===null?'待補':Number(value).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}));
+                metric.append(node('span',label,'area-metric-label'),number);if(value!==null)metric.append(node('small','坪'));metrics.append(metric);
             });
             summary.append(node('span','公設比 '+(building?(values.common/building*100).toFixed(1):'0')+'%'));
-            totals.replaceChildren(metrics,summary);
+            totals.replaceChildren(...(landOnly?[metrics]:[metrics,summary]));
             if(root.id==='sellerFixedProperty') calcSellerSz(); else calcSpSellerSz(field(root,'mainBldg'));
         }
         function areaControls(item, label) {
