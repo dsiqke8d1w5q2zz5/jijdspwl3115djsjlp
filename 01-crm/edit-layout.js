@@ -46,7 +46,7 @@ style.textContent=[
 document.head.append(style);
 function restore(){if(!originalChildren)return;const contact=modal.querySelector('.edit-basic>.edit-pane-heading .add-row-btn');if(contact)document.querySelector('#sharedContactsWrap .sec-title').append(contact);const schedule=modal.querySelector('.edit-followup>.edit-pane-heading .add-row-btn');if(schedule)document.getElementById('scheduleList').previousElementSibling.append(schedule);body.replaceChildren(...originalChildren);originalChildren=null;modal.classList.remove('edit-layout');}
 function arrange(){
- if(!desktop.matches||!editId||originalChildren)return;
+ if(!desktop.matches||originalChildren)return;
  originalChildren=[...body.children];
  const make=(name,title)=>{const pane=document.createElement('section');pane.className='edit-pane edit-'+name;pane.setAttribute('aria-label',title);const heading=document.createElement('h2');heading.className='edit-pane-heading';heading.textContent=title;pane.append(heading);return pane;};
  const basic=make('basic','基本資料'),property=make('property','物件與其他資料'),followup=make('followup','行程與備註');
@@ -235,6 +235,6 @@ new MutationObserver(()=>{
 }).observe(modal,{attributes:true,attributeFilter:['style']});
 const applyTypes=window.applyTypePicker;let previousType='';
 window.applyTypePicker=function(){const result=applyTypes.apply(this,arguments);if(activeView!==previousType){const pane=modal.querySelector('.edit-property');if(pane)pane.scrollTop=0;}previousType=activeView;return result;};
-const add=window.openAdd;window.openAdd=function(){returnDetail=null;restore();const result=add.apply(this,arguments);resetObjectTabs();return result;};
+const add=window.openAdd;window.openAdd=function(){returnDetail=null;restore();const result=add.apply(this,arguments);resetObjectTabs();arrange();return result;};
 desktop.addEventListener('change',()=>{restore();if(modal.style.display==='flex')arrange();});
 })();
