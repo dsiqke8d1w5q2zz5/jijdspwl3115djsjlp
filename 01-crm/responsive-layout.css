@@ -140,3 +140,6 @@
 #dModal .det-row>.det-key,#dModal .det-row>.det-val{line-height:1.5}
 
 #dModal .det-pass-badge{display:inline-block;margin-left:6px;vertical-align:baseline;white-space:nowrap}
+
+#dModal .det-property-page .det-other-info .det-utility-row{display:grid;grid-template-columns:5em minmax(0,1fr);align-items:baseline;gap:8px}
+#dModal .det-utility-row>.det-val{width:auto}

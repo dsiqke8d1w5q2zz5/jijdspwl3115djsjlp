@@ -1,11 +1,11 @@
-var CACHE_NAME = 'crm-v20260929audit15';
+var CACHE_NAME = 'crm-v20260929audit16';
 var URLS_TO_CACHE = [
   './',
   './index.html',
-  './ui-foundation.css?v=20260929audit15',
-  './responsive-layout.css?v=20260929audit15',
-  './detail-properties.js?v=20260929audit15',
-  './edit-layout.js?v=20260929audit15',
+  './ui-foundation.css?v=20260929audit16',
+  './responsive-layout.css?v=20260929audit16',
+  './detail-properties.js?v=20260929audit16',
+  './edit-layout.js?v=20260929audit16',
   './sync-notice.js?v=20260928sync1',
   './image-storage.js?v=20260928sync1',
   './image-redaction.js?v=20260928sync1',
@@ -15,8 +15,8 @@ var URLS_TO_CACHE = [
   './portrait-matting.js?v=20260928sync1',
   './image-composer.js?v=20260928sync1',
   './image-composer.css?v=20260928sync1',
-  './area-editor.js?v=20260929audit15',
-  './area-editor.css?v=20260929audit15',
+  './area-editor.js?v=20260929audit16',
+  './area-editor.css?v=20260929audit16',
   './transcript-parser.js?v=20260917audit1',
   './transcript-import.js?v=20260927center1',
   './transcript-import.css?v=20260927center1'

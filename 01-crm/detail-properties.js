@@ -308,6 +308,7 @@
         const other=groups[2];other.classList.add('det-other-info');
         for(const item of other.querySelectorAll('.det-row')){
             const label=item.querySelector('.det-key')?.textContent,value=item.querySelector('.det-val');if(!value)continue;
+            if(['瓦斯錶','水錶','電錶','垃圾集中處','專用垃圾袋'].includes(label))item.classList.add('det-utility-row');
             if(label==='附屬設備'){
                 const entries=value.textContent.split('、').map(text=>text.trim()).filter(Boolean);value.replaceChildren();value.classList.add('det-equipment-list');
                 for(const text of entries){const chip=document.createElement('span');chip.className='det-equipment-chip';chip.textContent=text.replace(/\s+(\d+)$/,' ×$1');value.append(chip);}
