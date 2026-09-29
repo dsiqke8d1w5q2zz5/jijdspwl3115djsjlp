@@ -30,6 +30,10 @@
     const stickyStyle=document.createElement('style');
     stickyStyle.textContent='.det-property-header{display:contents}@media(min-width:1050px){.det-property-header{display:block;position:sticky;top:-14px;z-index:3;background:white;margin-top:-14px;padding:14px 0 1px}.det-property-header .det-category-tabs{margin-bottom:6px}}';
     document.head.append(stickyStyle);
+    const propertyStickyStyle=document.createElement('style');
+    propertyStickyStyle.textContent='@media(min-width:1050px){#dModal .det-property-toolbar{position:sticky;top:var(--detail-property-header-bottom,76px);z-index:2;background:white;box-shadow:0 -3px 0 white}}';
+    document.head.append(propertyStickyStyle);
+    const propertyHeaderObserver=new ResizeObserver(entries=>{for(const entry of entries)entry.target.parentElement.style.setProperty('--detail-property-header-bottom',(entry.target.getBoundingClientRect().height-11)+'px');});
     const folderStyle=document.createElement('style');
     folderStyle.textContent='.det-property-toolbar{display:grid;grid-template-columns:minmax(0,1fr);align-items:center;gap:12px;height:52px;box-sizing:border-box;margin:3px 0 5px}.det-property-toolbar>.det-property-title,.det-property-toolbar>.det-property-tabs{min-width:0;margin:0;height:52px;box-sizing:border-box;background:#f6f8fa;border:1px solid #e2e8f0;border-radius:8px;padding:3px 8px}.det-property-toolbar>.det-property-tabs{align-items:center;overflow-y:hidden;scrollbar-width:thin}.det-property-toolbar>.det-property-title{line-height:44px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.det-property-toolbar .det-property-tabs button{height:36px;box-sizing:border-box;padding:6px 12px}.det-folder-actions{display:flex;align-items:center;justify-content:flex-start;min-height:36px;margin:0 0 6px}.det-folder-actions:empty{display:none}.det-folder-actions>.det-folder-link{white-space:nowrap;font-size:14px;line-height:20px;padding:5px 9px;margin:0}.det-folder-actions>.det-folder-link[hidden]{display:none}';
     document.head.append(folderStyle);
@@ -78,6 +82,7 @@
     window.confirmArchive=function(reason){const id=archiveTargetId;originalConfirmArchive(reason);if(id&&currentDetId===id)closeDet();};
     const originalShow=window.showDet;
     window.showDet=function(id,viewAs){
+        propertyHeaderObserver.disconnect();
         originalShow(id,viewAs);
         const root=document.getElementById('detContent'),body=root.querySelector(':scope > .det-body');if(!body)return;
         const nav=root.querySelector('#detNavWrap');
@@ -129,6 +134,7 @@
             buttons.forEach((button,index)=>{button.onclick=()=>select(index,false);button.onkeydown=event=>{let next=index;if(event.key==='ArrowRight')next=(index+1)%buttons.length;else if(event.key==='ArrowLeft')next=(index+buttons.length-1)%buttons.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=buttons.length-1;else return;event.preventDefault();event.stopPropagation();select(next,true);};});select(sections.indexOf(initiallyOpen),false);
         }
         const propertyHeader=document.createElement('div');propertyHeader.className='det-property-header';const propertyTitle=panes[1].querySelector(':scope>.det-pane-title'),categoryTabs=panes[1].querySelector(':scope>.det-category-tabs');panes[1].prepend(propertyHeader);if(propertyTitle)propertyHeader.append(propertyTitle);if(categoryTabs)propertyHeader.append(categoryTabs);
+        propertyHeaderObserver.observe(propertyHeader);
     };
     window.compactPropertyAddress=function(value){
         const address=String(value||'').trim().replace(/^[0-9０-９]{3,6}\s*/,'').replace(/\s+/g,'').replace(/^(?:臺北市|台北市|新北市|桃園市|臺中市|台中市|臺南市|台南市|高雄市|基隆市|新竹市|嘉義市|新竹縣|苗栗縣|彰化縣|南投縣|雲林縣|嘉義縣|屏東縣|宜蘭縣|花蓮縣|臺東縣|台東縣|澎湖縣|金門縣|連江縣)/,'');
@@ -233,7 +239,7 @@
         if(kind==='s'&&bfSGrade)entries.sort((a,b)=>Number(b.p.grade===bfSGrade)-Number(a.p.grade===bfSGrade));
         const group='property-detail-'+(++serial),names=entries.map(({p,index})=>title(p,index,kind));
         const labels=names.map((name,i)=>names.filter(n=>n===name).length>1?name+'（'+(i+1)+'）':name);
-        const tabs=entries.length>1?'<div class="det-property-tabs" role="tablist" aria-label="切換物件">'+entries.map((_,i)=>'<button type="button" role="tab" id="'+group+'-tab-'+i+'" aria-controls="'+group+'-page-'+i+'" aria-selected="'+(i===0)+'" tabindex="'+(i===0?0:-1)+'" title="'+esc(labels[i])+'">'+esc(labels[i])+'</button>').join('')+'</div>':'<div class="det-property-title">'+esc(labels[0])+'</div>';
+        const tabs='<div class="det-property-tabs" role="tablist" aria-label="切換物件">'+entries.map((_,i)=>'<button type="button" role="tab" id="'+group+'-tab-'+i+'" aria-controls="'+group+'-page-'+i+'" aria-selected="'+(i===0)+'" tabindex="'+(i===0?0:-1)+'" title="'+esc(labels[i])+'">'+esc(labels[i])+'</button>').join('')+'</div>';
         const unlinked=c.type==='房東'?DB.filter(t=>!t._deleted&&t.linkedLandlordId===c.id&&!c.rProperties[t.linkedPropertyIdx||0]).map(t=>row('未指定物件的租客',[t.ttName||t.name,t.ttPhone||t.phone].filter(Boolean).join('　'))).join(''):'';
         return '<div class="det-property-group">'+tabs+entries.map(({p,index},i)=>{
             const copy={...c,[key]:[p]};
