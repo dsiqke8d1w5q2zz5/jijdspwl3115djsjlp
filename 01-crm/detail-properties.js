@@ -290,7 +290,10 @@
                         const heading=document.createElement('summary');heading.textContent='附屬設備';equipment.append(heading,item.querySelector('.det-val'));target.append(equipment);
                     }else target.append(item);
                 }
-            }else if(kind==='d'&&group===area)main.append(...[...group.children].slice(1));
+             }else if(kind==='d'&&group===area){
+                const rows=[...area.querySelectorAll('.det-area-grid>.det-row')];
+                if(rows.length>1){const pair=document.createElement('div');pair.className='det-field-pair det-opportunity-areas';pair.append(...rows);main.append(pair);}else main.append(...rows);
+            }
             else main.append(group);
         }
         return main.innerHTML;
