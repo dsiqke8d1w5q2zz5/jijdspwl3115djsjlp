@@ -305,3 +305,42 @@
 @media(max-width:600px){#tplBody .tpl-object-tabs button{padding:8px 12px}#tplBody .tpl-content-panel>pre{padding:12px!important}}
 
 #perfBody .perf-record{padding-top:6px;padding-bottom:6px;row-gap:2px}
+
+/* Dense image controls keep more of the preview and settings visible. */
+.ic-dialog .ic-head{padding:10px 16px;gap:10px}
+.ic-dialog .ic-head h2{font-size:20px}
+.ic-dialog .ic-toolbar{padding:8px 12px;gap:6px}
+.ic-dialog .ic-controls{padding:0 12px 12px}
+.ic-dialog .ic-section{padding:10px 0}
+.ic-dialog .ic-section>div:not([hidden]){margin-top:8px}
+.ic-dialog .ic-controls .it-lb{margin-top:7px;line-height:1.4}
+.ic-dialog .ic-controls .it-in{padding:5px 8px}
+.ic-dialog .ic-controls .ic-note{font-size:12px;line-height:1.45;margin:5px 0}
+.ic-dialog .ic-controls input[type=range]{margin:4px 0;min-width:0;min-height:24px}
+.ic-dialog .ic-controls .ic-check{margin:7px 0}
+.ic-dialog .ic-controls .ic-size-label{margin-top:8px}
+.ic-dialog .ic-controls .ic-output{padding:10px 0}
+.ic-dialog #icCropSection{display:grid;grid-template-columns:82px minmax(0,1fr);gap:6px 8px;align-items:center}
+.ic-dialog #icCropSection[hidden]{display:none}
+.ic-dialog #icCropSection>.ic-crop-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0}
+.ic-dialog #icCropSection h3{font-size:16px}
+.ic-dialog #icCropSection>div,.ic-dialog #icCropSection>p{grid-column:1/-1}
+.ic-dialog #icCropSection>.it-lb{margin:0}
+.ic-dialog #icCropSection>select{width:100%;min-width:0}
+.ic-dialog #icFrameRanges>.it-lb,.ic-dialog #icSecondControls>.it-lb{display:grid;grid-template-columns:105px minmax(0,1fr);gap:8px;align-items:center;margin:4px 0}
+.ic-dialog .ic-preview{padding:10px 14px;gap:8px}
+@media(min-width:769px){.ic-dialog .ic-controls button,.ic-dialog .ic-controls .ic-file{min-height:32px;padding:5px 8px;font-size:13px}.ic-dialog .ic-toolbar button{min-height:34px;padding:6px 9px;font-size:13px}}
+@media(min-width:1200px){.ic-dialog .ic-toolbar .ic-tabs{flex:1 1 auto;min-width:0}.ic-dialog .ic-toolbar .ic-history{margin-left:0;padding-right:8px}.ic-dialog .ic-downloads{gap:5px}.ic-dialog .ic-body{grid-template-columns:290px minmax(0,1fr)}}
+
+/* Compact template chrome leaves the space for the selected content. */
+#tplModal .modal-head{padding:10px 16px;min-height:0}
+#tplModal .modal>div:has(>.tpl-tab){padding:6px 12px!important;gap:4px!important}
+#tplModal .tpl-tab{padding:6px 10px;min-height:32px}
+#tplBody:has(>.tpl-object-tabs){padding:8px 12px!important;gap:6px}
+#tplBody .tpl-object-tabs{gap:6px;padding:2px 1px 4px}
+#tplBody .tpl-object-tabs button{padding:6px 12px;min-height:34px}
+#tplBody .tpl-content-panel:not([hidden]){display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto minmax(0,1fr);gap:6px 8px;padding:10px!important}
+#tplBody .tpl-content-panel>div:first-child{grid-column:2;grid-row:1;margin:0!important;flex-wrap:nowrap}
+#tplBody .tpl-content-panel>div:nth-child(2){grid-column:1;grid-row:1;align-self:center;margin:0!important;min-width:0;overflow-wrap:anywhere}
+#tplBody .tpl-content-panel>pre{grid-column:1/-1;grid-row:2;min-width:0;padding:12px!important;line-height:1.65!important}
+@media(max-width:600px){#tplBody .tpl-content-panel:not([hidden]){padding:8px!important;gap:5px}#tplBody .tpl-content-panel>div:nth-child(2){font-size:11px!important}}
