@@ -466,3 +466,7 @@
 /* Match management and contract headings to the fee labels. */
 #fModal div:has(+.sp-mgmt-row),#fModal div:has(+.rp-mgmt-row),#fModal .sp-contract-row>.fg>label{font-size:14px!important;font-weight:600}
 #fModal [data-fee-layout] [data-f=mgmtTotal]{color:#2563eb!important}
+
+/* Keep the paired contract actions equal in size. */
+#fModal .sp-contract-row>.bf-chip{display:inline-flex;align-items:center;justify-content:center;gap:4px;box-sizing:border-box;width:72px;min-width:72px;height:34px;padding:0 8px!important;font-size:14px!important;line-height:20px;border-radius:18px;white-space:nowrap}
+#fModal .sp-contract-row>.bf-chip i{font-size:14px!important}
