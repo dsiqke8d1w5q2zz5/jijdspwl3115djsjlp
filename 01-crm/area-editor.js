@@ -102,6 +102,10 @@
         field(root,'parkingSz').closest('.fg').parentElement.style.display='none';
         editor.append(node('strong','面積與持分'),node('p','依謄本填寫總面積與持分，自動換算坪數；車位請選擇「車位」分類。','area-hint'));
         if(window.TranscriptImport) window.TranscriptImport.attach(root,editor);
+        const header=node('div','','area-editor-heading');
+        header.append(editor.querySelector(':scope>strong'));
+        const importTools=editor.querySelector('.transcript-toolbar');if(importTools)header.append(importTools);
+        editor.prepend(header);
         const outputs=[];
         const summary=node('div','','area-summary-meta'); summary.setAttribute('aria-live','polite');
         const oldTotals=root.id==='sellerFixedProperty'?root.querySelector('#sRegSz'):root.querySelector('[data-f="regSz"]');
@@ -192,7 +196,7 @@
                 body.append(section);
                 if(kind==='land'){const buildingSection=node('div','','area-section');buildingSection.append(node('strong','建物'),simple);body.append(buildingSection);}
             });
-            editor.append(body,totals,error);refresh();
+            editor.append(totals,body,error);refresh();
         }
         render();
     }

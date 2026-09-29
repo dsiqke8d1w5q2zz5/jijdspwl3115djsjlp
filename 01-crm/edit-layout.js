@@ -138,8 +138,10 @@ document.head.append(tabOverflow);
 const fixedHeaders=document.createElement('style');
 fixedHeaders.textContent='#fModal.edit-layout :is(.edit-basic,.edit-followup)>.edit-pane-heading{position:sticky;top:-14px;z-index:6;background:white;margin-top:-14px;margin-bottom:0;padding:14px 0 6px}#fModal.edit-layout .edit-followup>.sec-title:first-of-type{position:sticky;top:var(--followup-heading-bottom,36px);z-index:5;background:white;margin-top:0!important;padding-top:4px;padding-bottom:5px}';
 document.head.append(fixedHeaders);
+fixedHeaders.textContent+='#fModal.edit-layout .edit-section-toolbar{position:sticky;top:var(--property-heading-bottom,80px);z-index:4;background:white;box-shadow:0 -6px 0 white}';
 const headingObserver=new ResizeObserver(entries=>{for(const entry of entries)entry.target.parentElement.style.setProperty('--followup-heading-bottom',(entry.target.getBoundingClientRect().height-14)+'px');});
-new MutationObserver(()=>{headingObserver.disconnect();const heading=modal.querySelector('.edit-followup>.edit-pane-heading');if(heading)headingObserver.observe(heading);}).observe(body,{childList:true});
+const propertyHeadingObserver=new ResizeObserver(entries=>{for(const entry of entries)entry.target.parentElement.style.setProperty('--property-heading-bottom',(entry.target.getBoundingClientRect().height-8)+'px');});
+new MutationObserver(()=>{headingObserver.disconnect();propertyHeadingObserver.disconnect();const heading=modal.querySelector('.edit-followup>.edit-pane-heading');if(heading)headingObserver.observe(heading);const propertyHeading=modal.querySelector('.edit-property-head');if(propertyHeading)propertyHeadingObserver.observe(propertyHeading);}).observe(body,{childList:true});
 function moveAddButtons(){
  const buyerList=document.getElementById('bDemandList');
  if(buyerList&&!buyerList.closest('.type-sec').querySelector('.edit-buyer-heading')){const heading=document.createElement('div');heading.className='sec-title edit-buyer-heading';heading.textContent='買方需求';buyerList.before(heading);}
