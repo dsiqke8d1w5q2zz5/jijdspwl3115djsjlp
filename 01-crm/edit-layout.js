@@ -2,6 +2,7 @@
 (function(){
 'use strict';
 const modal=document.getElementById('fModal'),body=modal.querySelector('.modal-body'),desktop=matchMedia('(min-width:1200px)');
+document.getElementById('namePhoneIdRow')?.parentElement.classList.add('basic-contact-box');
 let originalChildren=null;
 const style=document.createElement('style');
 style.textContent=[
@@ -85,6 +86,8 @@ fullSpacing.textContent=`
 #fModal #typeNotesArea textarea{min-height:56px;height:56px;padding-top:6px;padding-bottom:6px}
 #fModal .equip-toggle{padding-top:5px;padding-bottom:5px}
 #fModal .type-sec .city-picker{margin-bottom:6px}
+#fModal :is(.city-btn,.rm-btn){padding:4px 10px;border-radius:6px;font-size:12px}
+@media(max-width:768px){#fModal :is(.city-btn,.rm-btn){font-size:13px!important}}
 #fModal .type-sec>div:has(>#f-bGrade){margin-bottom:6px!important}
 #fModal .type-sec .area-simple{row-gap:6px!important}
 #fModal .type-sec .bf-chip:not(.cond-btn){padding-top:5px!important;padding-bottom:5px!important;min-height:var(--form-control-height);box-sizing:border-box}
@@ -112,6 +115,31 @@ fullSpacing.textContent=`
 @media(max-width:1049px){#dModal .det-property-toolbar,#dModal .det-property-toolbar>.det-property-title,#dModal .det-property-toolbar>.det-property-tabs{height:44px}#dModal .det-property-toolbar>.det-property-title{line-height:36px}#dModal .det-property-tabs button{height:34px;padding-top:4px;padding-bottom:4px}}
 `;
 document.head.append(fullSpacing);
+const contactAlignment=document.createElement('style');
+contactAlignment.textContent=`
+#fModal.edit-layout .edit-basic [data-addr-row]{grid-template-columns:80px minmax(0,1fr) 32px!important}
+#fModal.edit-layout .edit-basic [data-addr-row]>.fg:nth-child(1){grid-column:1;grid-row:1}
+#fModal.edit-layout .edit-basic [data-addr-row]>.fg:nth-child(2){grid-column:2/4;grid-row:1}
+#fModal.edit-layout .edit-basic [data-addr-row]>.fg:nth-child(3){grid-column:1/3;grid-row:2}
+#fModal.edit-layout .edit-basic [data-addr-row]>button{grid-column:3;grid-row:2;align-self:end;width:32px;height:32px!important;min-height:32px;margin:0!important;padding:0!important;display:flex;align-items:center;justify-content:center}
+#fModal.edit-layout .edit-basic .fg:has(>#f-bankAccount),#fModal.edit-layout .edit-basic .fg:has(>[data-f="bankAccount"]){grid-column:1/-1!important}
+@media(max-width:1199px){
+#fModal :is(.basic-contact-box,#sharedContactsWrap) [data-addr-row]{grid-template-columns:80px minmax(0,1fr) 38px!important}
+#fModal :is(.basic-contact-box,#sharedContactsWrap) [data-addr-row]>.fg:nth-child(1){grid-column:1;grid-row:1}
+#fModal :is(.basic-contact-box,#sharedContactsWrap) [data-addr-row]>.fg:nth-child(2){grid-column:2/4;grid-row:1}
+#fModal :is(.basic-contact-box,#sharedContactsWrap) [data-addr-row]>.fg:nth-child(3){grid-column:1/3;grid-row:2}
+#fModal :is(.basic-contact-box,#sharedContactsWrap) [data-addr-row]>button{grid-column:3;grid-row:2;align-self:end;width:38px;height:38px;margin:0!important;padding:0!important;display:flex;align-items:center;justify-content:center}
+#fModal .fg:has(>#f-bankAccount),#fModal #sharedContactsWrap .fg:has(>[data-f="bankAccount"]){grid-column:1/-1!important}
+}`;
+document.head.append(contactAlignment);
+const tabOverflow=document.createElement('style');
+tabOverflow.textContent='#fModal .edit-section-toolbar>.edit-object-tabs{height:auto;min-height:42px;align-items:center;overflow-x:auto;overflow-y:hidden;padding:6px}#fModal .edit-object-tabs button{flex-shrink:0}#dModal .det-property-toolbar:has(.det-property-tabs){height:auto;min-height:44px}#dModal .det-property-toolbar>.det-property-tabs{height:auto;min-height:44px;padding:6px 8px;overflow-x:auto;overflow-y:hidden}';
+document.head.append(tabOverflow);
+const fixedHeaders=document.createElement('style');
+fixedHeaders.textContent='#fModal.edit-layout :is(.edit-basic,.edit-followup)>.edit-pane-heading{position:sticky;top:-14px;z-index:6;background:white;margin-top:-14px;margin-bottom:0;padding:14px 0 6px}#fModal.edit-layout .edit-followup>.sec-title:first-of-type{position:sticky;top:var(--followup-heading-bottom,36px);z-index:5;background:white;margin-top:0!important;padding-top:4px;padding-bottom:5px}';
+document.head.append(fixedHeaders);
+const headingObserver=new ResizeObserver(entries=>{for(const entry of entries)entry.target.parentElement.style.setProperty('--followup-heading-bottom',(entry.target.getBoundingClientRect().height-14)+'px');});
+new MutationObserver(()=>{headingObserver.disconnect();const heading=modal.querySelector('.edit-followup>.edit-pane-heading');if(heading)headingObserver.observe(heading);}).observe(body,{childList:true});
 function moveAddButtons(){
  const buyerList=document.getElementById('bDemandList');
  if(buyerList&&!buyerList.closest('.type-sec').querySelector('.edit-buyer-heading')){const heading=document.createElement('div');heading.className='sec-title edit-buyer-heading';heading.textContent='買方需求';buyerList.before(heading);}
