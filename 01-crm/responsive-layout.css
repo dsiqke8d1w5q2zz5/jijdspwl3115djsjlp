@@ -401,3 +401,6 @@
 .ic-dialog #icCropSection>.ic-crop-heading+p{display:none}
 .ic-dialog #icCropSection>label:has(+select),.ic-dialog #icCropSection>label+select{grid-column:1/-1}
 .ic-dialog .ic-text-card .ic-actions select{min-width:110px;flex:1 0 110px}
+/* Template owner/property caption remains readable beside its actions. */
+#tplBody .tpl-content-panel>div:nth-child(2){font-size:16px!important;font-weight:600;color:#475569!important;line-height:1.5}
+@media(max-width:600px){#tplBody .tpl-content-panel>div:nth-child(2){font-size:15px!important}}
