@@ -92,6 +92,7 @@
             if(empty(item.base)) item.baseUnit='sqm';
             if(empty(item.area) && empty(item.base) && empty(item.numerator) && empty(item.denominator)) item.mode='fraction';
         });
+        state.extraBuildings=state.extraBuildings||[];
         root._areaState=state;
         const editor=node('section','', 'area-editor');
         const baseGroup=field(root,'baseLand').closest('.fg').parentElement;
@@ -117,7 +118,7 @@
         totals=node('div','','area-totals');if(oldTotals)oldTotals.parentElement.parentElement.after(totals);
         const error=node('p','','area-error'); error.setAttribute('role','alert');
         function refresh() {
-            const all=[state.main,state.ancillary,...state.land,...state.common];
+            const all=[state.main,state.ancillary,...state.extraBuildings,...state.land,...state.common];
             let bad=all.some(invalid) || state.land.some(r=>r.base!==undefined && (!Number.isFinite(number(r.base)) || number(r.base)<0));
             const total=rows=>rows.reduce((sum,r)=>sum+(invalid(r)?0:(r.area===''&&!r.pendingLegacy?0:measure(r))),0);
             const separateParking=total(state.common.filter(r=>r.kind==='parking'));
@@ -127,7 +128,7 @@
             if(state.parkingIncluded && separateParking>total(state.common.filter(r=>r.kind!=='parking'&&r.kind!=='commonParking'))) bad=true;
             editor.dataset.invalid=bad?'1':'0';
             error.textContent=bad?'請檢查面積與持分：面積不得為負數，分子／分母須為正整數且分子不大於分母；內含車位持分不得大於該筆整體持分。':'';
-            const values={mainBldg:total([state.main]),ancBldg:total([state.ancillary]),parkingSz:parking,common:Math.max(0,common-(state.parkingIncluded?separateParking:0)),landShare:total(state.land),baseLand:state.land.reduce((sum,r)=>sum+(r.mode==='fraction'&&!invalid(r)?ping(r.area,r.unit):ping(r.base||'',r.baseUnit||r.unit)),0)};
+            const values={mainBldg:total([state.main,...state.extraBuildings.filter(item=>item.kind!=='ancillary')]),ancBldg:total([state.ancillary,...state.extraBuildings.filter(item=>item.kind==='ancillary')]),parkingSz:parking,common:Math.max(0,common-(state.parkingIncluded?separateParking:0)),landShare:total(state.land),baseLand:state.land.reduce((sum,r)=>sum+(r.mode==='fraction'&&!invalid(r)?ping(r.area,r.unit):ping(r.base||'',r.baseUnit||r.unit)),0)};
             Object.entries(values).forEach(([key,value])=>{field(root,key).value=value?String(value):'';});
             const parked=state.common.filter(item=>item.kind==='parking'||item.kind==='commonParking');
             parkingField(root,'parking').value=parked.length?(parked[0].parking||''):'';
@@ -175,7 +176,7 @@
             const check=node('input');check.type='checkbox';check.checked=state.parkingIncluded;check.onchange=()=>{state.parkingIncluded=check.checked;refresh();};
             const checkLabel=node('label','','area-check');checkLabel.append(check,document.createTextNode('舊公設面積已含車位，合計時扣除車位（公設已分開填寫時請取消）'));
             ['land','common'].forEach(kind=>{
-                const title=kind==='land'?'土地':'公設／車位'; const section=node('div','','area-section');section.append(node('strong',title));
+                const title=kind==='land'?'土地':'公設／車位'; const section=node('div','','area-section'),sectionHead=node('div','','area-section-heading');sectionHead.append(node('strong',title),button('＋ 新增',()=>{state[kind].push(Object.assign(row(),{mode:'fraction',kind:'common'}));render();}));section.append(sectionHead);
                 if(kind==='common'&&state.parkingIncluded)section.append(checkLabel);
                 state[kind].forEach((item,index)=>{
                     const card=node('div','','area-row'); const head=node('div','','area-row-head');
@@ -198,9 +199,15 @@
                     }
                     output(item,card);section.append(card);
                 });
-                section.append(button('＋新增'+(kind==='land'?'土地':'公設／車位'),()=>{state[kind].push(Object.assign(row(),{mode:'fraction',kind:'common'}));render();}));
                 body.append(section);
-                if(kind==='land'){const buildingSection=node('div','','area-section');buildingSection.append(node('strong','建物'),simple);body.append(buildingSection);}
+                if(kind==='land'){
+                    const buildingSection=node('div','','area-section'),buildingHead=node('div','','area-section-heading');
+                    buildingHead.append(node('strong','建物'),button('＋ 新增',()=>{state.extraBuildings.push(Object.assign(row(),{kind:'main'}));render();}));buildingSection.append(buildingHead,simple);
+                    state.extraBuildings.forEach((item,index)=>{const card=node('div','','area-row area-building-row'),head=node('div','','area-row-head');
+                        head.append(select(item.kind,{main:'主建物',ancillary:'附屬建物'},v=>{item.kind=v;refresh();},'建物類別'),input(item.id,'建號（選填）',v=>{item.id=v;refresh();},false),button('移除',()=>{state.extraBuildings.splice(index,1);render();}));
+                        card.append(head,labeled('面積',areaControls(item,'新增建物面積')));output(item,card);buildingSection.append(card);
+                    });body.append(buildingSection);
+                }
             });
             editor.append(totals,body,error);refresh();
         }

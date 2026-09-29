@@ -27,6 +27,7 @@
     const areaStyle=document.createElement('style');
     areaStyle.textContent='.det-area-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 10px;margin:2px 0 6px}.det-property-page .det-area-grid>.det-row{display:flex;flex-direction:column;gap:2px;padding:5px 9px;background:#f6f8fa;border:1px solid #e8edf1;border-radius:7px}.det-area-grid .det-key{width:auto!important;white-space:normal!important}.det-area-grid .det-val{min-width:0}@container(min-width:440px){.det-area-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}';
     document.head.append(areaStyle);
+    areaStyle.textContent+='.det-area-section{margin:6px 0}.det-area-section h4{font-size:12px;color:#64748b;margin:0 0 4px;font-weight:600}.det-area-section .det-area-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.det-area-section .det-val small{font-size:11px;font-weight:400}.det-property-page .det-area-land .det-row{background:#fafafa}.det-area-section .det-row{min-width:0}.det-area-section .det-val{overflow-wrap:anywhere}@container(min-width:440px){.det-area-building .det-area-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}';
     const stickyStyle=document.createElement('style');
     stickyStyle.textContent='.det-property-header{display:contents}@media(min-width:1050px){.det-property-header{display:block;position:sticky;top:-14px;z-index:3;background:white;margin-top:-14px;padding:14px 0 1px}.det-property-header .det-category-tabs{margin-bottom:6px}}';
     document.head.append(stickyStyle);
@@ -219,7 +220,14 @@
             }
             if(item.classList.contains('det-field-pair'))item.remove();
         }
-        if(areaGrid.children.length)area.append(areaGrid);
+        if(areaGrid.children.length){
+            const sections=[['建物面積','building'],['車位與比例','parking'],['土地資料','land']].map(([label,kind])=>{const section=document.createElement('section');section.className='det-area-section det-area-'+kind;const heading=document.createElement('h4');heading.textContent=label;const grid=document.createElement('div');grid.className='det-area-grid';section.append(heading,grid);return {section,grid};});
+            for(const entry of [...areaGrid.children]){const label=entry.querySelector('.det-key')?.textContent||'',value=entry.querySelector('.det-val');const index=/土地|基地/.test(label)?2:/^車位|公設比/.test(label)?1:0;
+                if(value){const match=value.textContent.trim().match(/^([\d,.]+)\s*(坪|%)$/);if(match){const n=Number(match[1].replace(/,/g,''));if(Number.isFinite(n)){const unit=document.createElement('small');unit.textContent=match[2];value.replaceChildren(document.createTextNode(n.toLocaleString('en-US',{minimumFractionDigits:match[2]==='%'?1:2,maximumFractionDigits:match[2]==='%'?1:2})+' '),unit);}}}
+                sections[index].grid.append(entry);
+            }
+            for(const {section,grid} of sections)if(grid.children.length)area.append(section);
+        }
         const other=groups[2];other.classList.add('det-other-info');
         for(const item of other.querySelectorAll('.det-row')){
             const label=item.querySelector('.det-key')?.textContent,value=item.querySelector('.det-val');if(!value)continue;
