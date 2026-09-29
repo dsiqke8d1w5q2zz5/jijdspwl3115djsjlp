@@ -162,3 +162,32 @@
 #buyerFilter .bf-row>span{display:none}
 #buyerFilter button.bf-chip,#sellerFilter button.bf-chip{width:72px;height:36px;padding:0 8px;font-size:14px;line-height:1.2;display:inline-flex;align-items:center;justify-content:center}
 @media(max-width:768px){#buyerFilter button.bf-chip,#sellerFilter button.bf-chip{height:40px}}
+
+/* Personal schedule dialogs stay centered instead of using the legacy top offset. */
+.fill-overlay:has(#ps-date){align-items:center!important;justify-content:center!important;box-sizing:border-box;padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))!important;height:100dvh;bottom:auto}
+.fill-overlay:has(#ps-date)>.fill-menu{box-sizing:border-box;min-width:0!important;max-width:calc(100vw - 24px)!important;max-height:calc(100dvh - max(12px,env(safe-area-inset-top)) - max(12px,env(safe-area-inset-bottom)))!important;overflow-y:auto}
+
+.det-nav-pager{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;flex-shrink:0;white-space:nowrap}
+@media(max-width:1049px){
+#dModal .det-head{padding:10px 12px;min-height:0;box-sizing:border-box}
+#dModal .det-head>div:first-child{display:grid!important;grid-template-columns:minmax(0,1fr) auto;gap:6px 8px}
+#dModal .det-head>div:first-child>span{grid-column:1;grid-row:1}
+#dModal .det-head .det-close{grid-column:2;grid-row:1;min-width:40px;min-height:40px}
+#dModal #detNavWrap{grid-column:1/-1;grid-row:2;width:100%;min-width:0;margin-right:0!important;justify-content:space-between!important;gap:6px!important}
+#dModal .det-header-actions{margin-right:0!important;flex-shrink:0}
+#dModal .det-nav-pager button,#dModal .det-header-actions button{min-width:40px;min-height:40px}
+}
+
+/* All mobile surfaces share the same unobscured viewport, including standalone iOS. */
+:root{--app-safe-top:env(safe-area-inset-top,0px);--app-safe-bottom:env(safe-area-inset-bottom,0px);--app-safe-left:env(safe-area-inset-left,0px);--app-safe-right:env(safe-area-inset-right,0px);--app-safe-height:calc(100dvh - var(--app-safe-top) - var(--app-safe-bottom))}
+@media(max-width:768px),(max-width:1049px) and (pointer:coarse){
+ body .header{padding-top:calc(10px + var(--app-safe-top));padding-left:max(12px,var(--app-safe-left));padding-right:max(12px,var(--app-safe-right))}
+ body .overlay,body .fill-overlay{top:var(--app-safe-top)!important;bottom:var(--app-safe-bottom)!important;left:var(--app-safe-left)!important;right:var(--app-safe-right)!important;height:var(--app-safe-height)!important;box-sizing:border-box}
+ body .overlay{padding-top:0!important;padding-bottom:0!important}
+ body .overlay>.modal,body #fModal>.modal,body #dModal>.modal,body #perfModal>.modal,body #tplModal>.modal{max-height:100%!important}
+ body #perfModal>.modal,body #tplModal>.modal{height:100%!important}
+ body .fill-overlay:has(.fill-menu),body .fill-overlay:has(.modal){align-items:center!important;justify-content:center!important;padding:12px!important}
+ body .fill-overlay:has(#ps-date)>.fill-menu,body .fill-overlay>.fill-menu,body .fill-overlay>.modal{min-height:0!important;max-width:100%!important;max-height:calc(var(--app-safe-height) - 24px)!important;overflow-y:auto}
+ body dialog.transcript-dialog,body dialog.ic-dialog{top:var(--app-safe-top);bottom:var(--app-safe-bottom);left:var(--app-safe-left);right:var(--app-safe-right);max-height:calc(var(--app-safe-height) - 24px)!important;margin:auto}
+ body .modal-foot{padding-bottom:8px!important}
+}

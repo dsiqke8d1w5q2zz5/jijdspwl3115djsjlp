@@ -88,6 +88,7 @@
         const root=document.getElementById('detContent'),body=root.querySelector(':scope > .det-body');if(!body)return;
         const nav=root.querySelector('#detNavWrap');
         if(nav){
+            const pager=document.createElement('div');pager.className='det-nav-pager';pager.setAttribute('aria-label','切換客戶');pager.append(...nav.childNodes);nav.append(pager);
             const actions=document.createElement('div');actions.className='det-header-actions';actions.style.cssText='display:flex;gap:5px;margin-right:6px';
             const add=(label,color,handler)=>{const button=document.createElement('button');button.type='button';button.className='btn-ic';button.textContent=label;button.setAttribute('aria-label',label==='編輯'?'編輯目前資料':label);button.style.cssText='font-size:14px;padding:4px 8px;white-space:nowrap;color:'+color;button.onclick=handler;actions.append(button);};
             add('編輯','#173756',()=>openEdit(id,viewAs));

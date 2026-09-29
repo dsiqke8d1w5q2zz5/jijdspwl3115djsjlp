@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20260929audit22">
+    <link rel="stylesheet" href="area-editor.css?v=20260929audit23">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20260929audit22">
-    <link rel="stylesheet" href="responsive-layout.css?v=20260929audit22">
+    <link rel="stylesheet" href="ui-foundation.css?v=20260929audit23">
+    <link rel="stylesheet" href="responsive-layout.css?v=20260929audit23">
 </head>
 <body>
 
@@ -4179,7 +4179,7 @@ function renderDashboard() {
         var delBtn = s.personal
             ? '<button class="btn-ic" onclick="event.stopPropagation();deletePersonalSchedule(\''+esc(s.psId||'')+'\')" title="刪除" style="font-size:13px;padding:2px 4px"><i class="ti ti-trash" style="color:#DC2626"></i></button>'
             : '<button class="btn-ic" onclick="event.stopPropagation();deleteSchedule(\''+esc(s.id)+'\',\''+esc(s.date)+'\',\''+esc(s.time)+'\')" title="刪除" style="font-size:13px;padding:2px 4px"><i class="ti ti-trash" style="color:#DC2626"></i></button>';
-        var toTodoBtn = s.recurrence ? '' : '<button class="btn-ic" onclick="event.stopPropagation();scheduleToTodo(\''+esc(s.id)+'\',\''+esc(s.date)+'\',\''+esc(s.time)+'\')" title="轉為待辦" style="font-size:13px;padding:2px 4px"><i class="ti ti-checkbox" style="color:#7C3AED"></i></button>';
+        var toTodoBtn = s.recurrence ? '' : '<button class="btn-ic" onclick="event.stopPropagation();scheduleToTodo(\''+esc(s.id)+'\',\''+esc(s.date)+'\',\''+esc(s.time)+'\')" title="轉待辦" aria-label="轉待辦" style="font-size:13px;padding:2px 4px"><span aria-hidden="true" style="color:#7C3AED;font-size:20px;line-height:1">⇄</span></button>';
         var rowEdit = s.personal
             ? 'editPersonalSchedule(\''+esc(s.psId||'')+'\')'
             : 'editDashSchedule(\''+esc(s.id)+'\',\''+esc(s.date)+'\',\''+esc(s.time)+'\')';
@@ -4255,7 +4255,7 @@ function renderDashboard() {
             : '<span class="dash-item-name" style="cursor:pointer" onclick="event.stopPropagation();showDet(\''+esc(t.clientId)+'\')">'+esc(t.clientName)+'</span>';
         var editBtn = '<button class="btn-ic" onclick="event.stopPropagation();editTodo(\''+esc(t.id)+'\')" title="編輯" style="font-size:13px;padding:2px 4px"><i class="ti ti-pencil" style="color:#57534E"></i></button>';
         var delBtn = '<button class="btn-ic" onclick="event.stopPropagation();deleteTodo(\''+esc(t.id)+'\')" title="刪除" style="font-size:13px;padding:2px 4px"><i class="ti ti-trash" style="color:#DC2626"></i></button>';
-        var toSchedBtn = '<button class="btn-ic" onclick="event.stopPropagation();todoToSchedule(\''+esc(t.id)+'\')" title="轉為行程" style="font-size:13px;padding:2px 4px"><i class="ti ti-calendar-plus" style="color:#2563EB"></i></button>';
+        var toSchedBtn = '<button class="btn-ic" onclick="event.stopPropagation();todoToSchedule(\''+esc(t.id)+'\')" title="轉行程" aria-label="轉行程" style="font-size:13px;padding:2px 4px"><span aria-hidden="true" style="color:#2563EB;font-size:20px;line-height:1">⇄</span></button>';
         var doneBtn = '<button class="btn-ic dash-done-btn" onclick="event.stopPropagation();completeTodo(\''+esc(t.id)+'\')" title="完成" style="font-size:13px;padding:2px 4px"><i class="ti ti-circle-check" style="color:#059669"></i><span class="dash-done-txt"> 完成</span></button>';
         return '<div class="dash-item dash-clickedit" style="flex-direction:column;align-items:stretch;gap:2px" onclick="editTodo(\''+esc(t.id)+'\')">' +
             '<div style="display:flex;align-items:center;gap:8px;width:100%">' +
@@ -4783,7 +4783,6 @@ function renderCard(c) {
                     var show = indexed.slice(0, 3);
                     return '<div style="margin-bottom:4px;font-size:13px;line-height:1.4;display:flex;gap:6px"><span style="color:var(--muted);flex-shrink:0">紀錄</span><div>' +
                         show.map(function(item){ return '<div style="color:#374151;cursor:pointer" onclick="event.stopPropagation();quickContactLog(\''+_eid+'\','+item.idx+')"><span style="color:#059669;font-weight:600">'+esc(isoToROC(item.log.date))+'</span> '+esc(item.log.memo)+'</div>'; }).join('') +
-                        (indexed.length > 3 ? '<div style="font-size:11px;color:var(--muted);cursor:pointer" onclick="event.stopPropagation();showContactLog(\''+_eid+'\')">還有 '+(indexed.length-3)+' 筆…</div>' : '') +
                     '</div></div>';
                 })()}
                 <div class="notes-inline${notesText?'':' empty-note'}" onclick="editNoteInline('${_eid}',this,'${esc(showType)}')" style="display:flex;gap:6px"><span style="color:var(--muted);flex-shrink:0">備註</span><div style="word-break:break-word">${notesText ? esc(notesText) : '<span style="color:#78716C;font-size:10px">點擊新增備註…</span>'}</div></div>
@@ -8561,7 +8560,7 @@ function filterAllSchedList() {
         var delBtn2 = s.personal
             ? '<button class="btn-ic" onclick="closeOverlay(this.closest(\'.fill-overlay\'));deletePersonalSchedule(\''+esc(s.psId||'')+'\')" title="刪除" style="font-size:14px;padding:4px 8px"><i class="ti ti-trash" style="color:#DC2626"></i></button>'
             : '<button class="btn-ic" onclick="closeOverlay(this.closest(\'.fill-overlay\'));deleteSchedule(\''+esc(s.clientId)+'\',\''+esc(s.date)+'\',\''+esc(s.time)+'\')" title="刪除" style="font-size:14px;padding:4px 8px"><i class="ti ti-trash" style="color:#DC2626"></i></button>';
-        var toTodoBtn2 = s.recurrence ? '' : '<button class="btn-ic" onclick="closeOverlay(this.closest(\'.fill-overlay\'));scheduleToTodo(\''+(s.personal?'_ps':esc(s.clientId))+'\',\''+esc(s.date)+'\',\''+esc(s.time)+'\')" title="轉為待辦" style="font-size:14px;padding:4px 8px"><i class="ti ti-checkbox" style="color:#7C3AED"></i></button>';
+        var toTodoBtn2 = s.recurrence ? '' : '<button class="btn-ic" onclick="closeOverlay(this.closest(\'.fill-overlay\'));scheduleToTodo(\''+(s.personal?'_ps':esc(s.clientId))+'\',\''+esc(s.date)+'\',\''+esc(s.time)+'\')" title="轉待辦" aria-label="轉待辦" style="font-size:14px;padding:4px 8px"><span aria-hidden="true" style="color:#7C3AED;font-size:20px;line-height:1">⇄</span></button>';
         return separator + '<div style="padding:8px 0;border-bottom:1px solid #F1F5F9">' +
             '<div style="display:flex;align-items:center;gap:8px">' +
                 '<div style="flex:1">' +
@@ -12094,6 +12093,7 @@ document.addEventListener('DOMContentLoaded', function() {
         layout.style.marginTop = (hH + nav.offsetHeight) + 'px';
     }
     _fixMobileHeader();
+    new ResizeObserver(_fixMobileHeader).observe(document.querySelector('.header'));
     window.addEventListener('resize', function() { setTimeout(_fixMobileHeader, 100); });
     renderCheckInCount();
     _bindCheckInEdit();
@@ -12207,7 +12207,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260929audit22';
+var APP_VERSION = '20260929audit23';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13315,9 +13315,9 @@ function deleteMktTemplate(idx) {
 <script src="image-studio.js?v=20260928sync1"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
 <script src="image-composer.js?v=20260928sync1"></script>
-<script src="area-editor.js?v=20260929audit22"></script>
+<script src="area-editor.js?v=20260929audit23"></script>
 <script src="sync-notice.js?v=20260928sync1"></script>
-<script src="detail-properties.js?v=20260929audit22"></script>
-<script src="edit-layout.js?v=20260929audit22"></script>
+<script src="detail-properties.js?v=20260929audit23"></script>
+<script src="edit-layout.js?v=20260929audit23"></script>
 </body>
 </html>
