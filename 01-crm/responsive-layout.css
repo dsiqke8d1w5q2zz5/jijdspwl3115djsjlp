@@ -353,3 +353,33 @@
  #dashboard .dash-section{height:100%;min-height:0}
  #dashboard #dashSchedule{max-height:none}
 }
+
+/* Consistent compact settings across every image-tool tab. */
+.ic-dialog :is(#icPersonBody,#icMattingOptions,#icOutlineControls,#icBrandBody,#itCapBox,#itWmBox,#icOutput>div,#icRedactSection){display:grid;grid-template-columns:94px minmax(0,1fr);gap:6px 8px;align-items:center}
+.ic-dialog :is(#icPersonBody,#icMattingOptions,#icOutlineControls,#icBrandBody,#itCapBox,#itWmBox,#icOutput>div,#icRedactSection)>*{grid-column:1/-1;min-width:0}
+.ic-dialog :is(#icPersonBody,#icMattingOptions,#icOutlineControls,#icBrandBody,#itCapBox,#itWmBox,#icOutput>div,#icRedactSection)>label:has(+input,+select){grid-column:1;margin:0;line-height:1.4}
+.ic-dialog :is(#icPersonBody,#icMattingOptions,#icOutlineControls,#icBrandBody,#itCapBox,#itWmBox,#icOutput>div,#icRedactSection)>label+input,.ic-dialog :is(#icPersonBody,#icMattingOptions,#icBrandBody,#itCapBox,#icOutput>div,#icRedactSection)>label+select{grid-column:2;width:100%;min-width:0;margin:0}
+.ic-dialog .ic-controls .ic-section-title{font-size:15px;margin:0 0 4px}
+.ic-dialog .ic-controls :is(.ic-size-label,.it-lb){font-size:12px}
+.ic-dialog .ic-controls .ic-check{font-size:13px;margin:3px 0;min-height:28px}
+.ic-dialog .ic-controls .ic-actions{gap:5px;margin-top:4px}
+.ic-dialog .ic-controls .ic-brand-templates{max-height:180px;overflow-y:auto;gap:5px;padding:2px;scrollbar-gutter:stable}
+.ic-dialog .ic-controls .ic-brand-templates button{padding:4px}
+.ic-dialog .ic-controls .ic-brand-templates span{margin:2px 0;font-size:11px}
+.ic-dialog .ic-controls .ic-brand-colors{margin:0}
+.ic-dialog .ic-controls .ic-brand-colors label{margin-top:4px}
+.ic-dialog .ic-controls .ic-palette{margin:4px 0;gap:4px}
+.ic-dialog .ic-controls .ic-text-tools{padding:7px;margin-bottom:2px}
+.ic-dialog .ic-controls .ic-text-card{margin-top:6px;padding:7px}
+.ic-dialog .ic-controls .ic-asset-library{margin-top:8px;padding-top:6px;border-top:1px solid #e2e8f0}
+.ic-dialog .ic-controls .ic-name{font-size:12px;margin:2px 0}
+.ic-dialog #icRedactStrengthLabel{display:grid;grid-template-columns:1fr auto;gap:2px 6px}
+.ic-dialog #icRedactStrengthLabel input{grid-column:1/-1}
+.ic-dialog .ic-controls .ic-redact-size{margin-top:0;gap:5px}
+.ic-dialog .ic-controls textarea{min-height:64px;resize:vertical}
+.ic-dialog .ic-controls :is(.ic-note,.ic-name):empty{display:none}
+@media(max-width:650px){.ic-dialog .ic-controls :is(button,.ic-file,select,input:not([type=checkbox]):not([type=radio]):not([type=range])){min-height:40px}.ic-dialog .ic-controls input[type=range]{min-height:32px}.ic-dialog .ic-controls .ic-brand-templates{max-height:210px}}
+@media(min-width:651px){.ic-dialog .ic-controls .ic-palette button{width:22px;height:22px;min-height:22px;padding:0}.ic-dialog .ic-controls .ic-palette{grid-template-columns:repeat(8,22px)}}
+.ic-dialog #itCapBox>div:has(#itCapColor){display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start!important}
+.ic-dialog #itCapBox>div:has(#itCapColor)>div{min-width:0}
+.ic-dialog #itCapBox>div:has(#itCapColor) .ic-palette{grid-template-columns:repeat(4,minmax(0,1fr))}
