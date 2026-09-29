@@ -34,7 +34,7 @@
     const propertyStickyStyle=document.createElement('style');
     propertyStickyStyle.textContent='@media(min-width:1050px){#dModal .det-property-toolbar{position:sticky;top:var(--detail-property-header-bottom,76px);z-index:2;background:white;box-shadow:0 -3px 0 white}}';
     document.head.append(propertyStickyStyle);
-    const propertyHeaderObserver=new ResizeObserver(entries=>{for(const entry of entries)entry.target.parentElement.style.setProperty('--detail-property-header-bottom',(entry.target.getBoundingClientRect().height-11)+'px');});
+    const propertyHeaderObserver=new ResizeObserver(entries=>{for(const entry of entries)entry.target.parentElement.style.setProperty('--detail-property-header-bottom',(entry.target.offsetHeight-7)+'px');});
     const folderStyle=document.createElement('style');
     folderStyle.textContent='.det-property-toolbar{display:grid;grid-template-columns:minmax(0,1fr);align-items:center;gap:12px;height:52px;box-sizing:border-box;margin:3px 0 5px}.det-property-toolbar>.det-property-title,.det-property-toolbar>.det-property-tabs{min-width:0;margin:0;height:52px;box-sizing:border-box;background:#f6f8fa;border:1px solid #e2e8f0;border-radius:8px;padding:3px 8px}.det-property-toolbar>.det-property-tabs{align-items:center;overflow-y:hidden;scrollbar-width:thin}.det-property-toolbar>.det-property-title{line-height:44px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.det-property-toolbar .det-property-tabs button{height:36px;box-sizing:border-box;padding:6px 12px}.det-folder-actions{display:flex;align-items:center;justify-content:flex-start;min-height:36px;margin:0 0 6px}.det-folder-actions:empty{display:none}.det-folder-actions>.det-folder-link{white-space:nowrap;font-size:14px;line-height:20px;padding:5px 9px;margin:0}.det-folder-actions>.det-folder-link[hidden]{display:none}';
     document.head.append(folderStyle);
@@ -373,7 +373,7 @@
     document.addEventListener('pointerdown',event=>{
         if(event.pointerType!=='mouse'||event.button!==0)return;
         const rail=event.target.closest('.det-property-tabs');if(!rail||rail.scrollWidth<=rail.clientWidth)return;
-        const rect=rail.getBoundingClientRect();if(event.clientY>=rect.top+rail.clientTop+rail.clientHeight)return;
+        const rect=rail.getBoundingClientRect();if(event.clientY>=rect.top+(rail.clientTop+rail.clientHeight)*(rect.height/rail.offsetHeight))return;
         railDrag={rail,id:event.pointerId,x:event.clientX,left:rail.scrollLeft,moved:false};suppressRailClick=null;
     },true);
     document.addEventListener('pointermove',event=>{
