@@ -233,6 +233,12 @@
             if(price)price.after(...costs);else main.prepend(...costs);
         }
         if(kind==='r'){
+            const tenantRows=[...main.children].filter(el=>['租客','租客條件'].includes(el.querySelector('.det-key')?.textContent));
+            if(tenantRows.length){
+                const anchor=document.createComment('tenants before conditions');tenantRows[0].before(anchor);
+                for(const label of ['租客','租客條件'])for(const entry of tenantRows)if(entry.querySelector('.det-key')?.textContent===label)anchor.before(entry);
+                anchor.remove();
+            }
             const oldAreaRows=[...main.children].filter(el=>['坪數/車位','坪數','車位','車位型態','車位編號'].includes(el.querySelector('.det-key')?.textContent));
             const anchor=document.createComment('rental area and parking');
             if(oldAreaRows.length)oldAreaRows[0].before(anchor);else main.append(anchor);
