@@ -470,3 +470,7 @@
 /* Keep the paired contract actions equal in size. */
 #fModal .sp-contract-row>.bf-chip{display:inline-flex;align-items:center;justify-content:center;gap:4px;box-sizing:border-box;width:72px;min-width:72px;height:34px;padding:0 8px!important;font-size:14px!important;line-height:20px;border-radius:18px;white-space:nowrap}
 #fModal .sp-contract-row>.bf-chip i{font-size:14px!important}
+
+/* Enlarge detail actions without changing their outer dimensions. */
+#dModal .det-header-actions button{font-size:18px!important;padding:4px 4px!important;line-height:20px;width:46px;box-sizing:border-box}
+#dModal .det-header-actions button[aria-label='解除封存']{width:74px;padding-inline:0!important}
