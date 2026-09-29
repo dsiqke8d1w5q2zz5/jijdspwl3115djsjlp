@@ -191,3 +191,6 @@
  body dialog.transcript-dialog,body dialog.ic-dialog{top:var(--app-safe-top);bottom:var(--app-safe-bottom);left:var(--app-safe-left);right:var(--app-safe-right);max-height:calc(var(--app-safe-height) - 24px)!important;margin:auto}
  body .modal-foot{padding-bottom:8px!important}
 }
+
+/* Buyer grading appears only once a demand exists. Preserve saved grade values. */
+#fModal #s-經營買方:not(:has(#bDemandList>.person-block))>div:has(>#f-bGrade){display:none!important}
