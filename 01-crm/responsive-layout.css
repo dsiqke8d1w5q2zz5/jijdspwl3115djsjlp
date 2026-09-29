@@ -289,3 +289,19 @@
 #perfSearchInput{min-height:36px;border-color:#dde5ee!important;background:#f8fafc;border-radius:8px!important}
 #perfBody .perf-record:hover{background:#f8fafc}
 @media(max-width:600px){#perfModal .modal-head{padding:12px}#perfFixed{padding:10px 12px 0!important}#perfFixed .perf-summary-cards>div{padding:8px!important}}
+
+/* All template categories share a title strip and one spacious content panel. */
+#tplBody:has(>.tpl-object-tabs){display:flex;flex-direction:column;overflow:hidden!important;min-height:0;gap:12px}
+#tplBody .tpl-object-tabs{display:flex;flex:none;gap:6px;overflow-x:auto;padding:3px 2px 7px;scrollbar-width:thin}
+#tplBody .tpl-object-tabs button{white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;display:block;padding:8px 14px;border:1px solid #d9e3ef;background:white;color:#173756;font-family:inherit;font-size:14px;font-weight:600;line-height:1.4;min-height:38px}
+#tplBody .tpl-object-tabs button[aria-selected="true"]{background:#173756;border-color:#173756;color:white}
+#tplBody .tpl-content-panel[hidden]{display:none!important}
+#tplBody .tpl-content-panel:not([hidden]){display:flex;flex-direction:column;flex:1;min-height:0;margin-bottom:0!important;overflow:hidden}
+#tplBody .tpl-content-panel>div{flex-shrink:0}
+#tplBody .tpl-content-panel>div:first-child{justify-content:flex-end}
+#tplBody .tpl-content-panel>div:first-child>span{display:none}
+#tplBody .tpl-content-panel>pre{flex:1;min-height:0;max-height:none!important;font-size:16px!important;line-height:1.8!important;padding:16px!important;overflow:auto}
+#tplBody .tpl-object-tabs button:focus-visible,#tplBody .tpl-content-panel:focus-visible{outline:2px solid #0891b2;outline-offset:1px}
+@media(max-width:600px){#tplBody .tpl-object-tabs button{padding:8px 12px}#tplBody .tpl-content-panel>pre{padding:12px!important}}
+
+#perfBody .perf-record{padding-top:6px;padding-bottom:6px;row-gap:2px}

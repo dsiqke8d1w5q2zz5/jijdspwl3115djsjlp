@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20260930audit31">
+    <link rel="stylesheet" href="area-editor.css?v=20260930audit32">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit31">
-    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit31">
+    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit32">
+    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit32">
 </head>
 <body>
 
@@ -12221,7 +12221,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260930audit31';
+var APP_VERSION = '20260930audit32';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -12769,6 +12769,59 @@ function tplAddByTab() {
     else addMktFromModal();
 }
 
+var _tplSelectedPages = {};
+function arrangeTemplatePages() {
+    var body = document.getElementById('tplBody');
+    var cards = Array.from(body.children).filter(function(el){return el.querySelector(':scope > pre');});
+    if (!cards.length) return;
+    var nav = document.createElement('div');
+    nav.className = 'tpl-object-tabs';
+    nav.setAttribute('role','tablist');
+    nav.setAttribute('aria-label','選擇範本');
+    var selected = Math.min(_tplSelectedPages[_tplTab] || 0, cards.length - 1);
+    function select(index, focus) {
+        _tplSelectedPages[_tplTab] = index;
+        cards.forEach(function(card,i){
+            card.hidden = i !== index;
+            nav.children[i].setAttribute('aria-selected', String(i === index));
+            nav.children[i].tabIndex = i === index ? 0 : -1;
+        });
+        if (focus) { nav.children[index].focus({preventScroll:true}); nav.children[index].scrollIntoView({block:'nearest',inline:'nearest'}); }
+    }
+    cards.forEach(function(card,i){
+        card.classList.add('tpl-content-panel');
+        card.id = 'tpl-panel-' + _tplTab + '-' + i;
+        card.setAttribute('role','tabpanel');
+        card.tabIndex = 0;
+        var title = card.querySelector('div:first-child > span');
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.id = 'tpl-page-' + _tplTab + '-' + i;
+        button.textContent = title ? title.textContent : '範本 ' + (i+1);
+        button.setAttribute('role','tab');
+        button.setAttribute('aria-controls',card.id);
+        card.setAttribute('aria-labelledby',button.id);
+        button.onclick = function(){select(i,false);};
+        button.onkeydown = function(event){
+            var next = i;
+            if(event.key==='ArrowRight') next=(i+1)%cards.length;
+            else if(event.key==='ArrowLeft') next=(i+cards.length-1)%cards.length;
+            else if(event.key==='Home') next=0;
+            else if(event.key==='End') next=cards.length-1;
+            else return;
+            event.preventDefault(); select(next,true);
+        };
+        nav.append(button);
+        card.querySelectorAll('button').forEach(function(action){
+            var handler=action.getAttribute('onclick')||'';
+            if(handler.startsWith('edit'))action.setAttribute('aria-label','編輯範本');
+            if(handler.startsWith('delete'))action.setAttribute('aria-label','刪除範本');
+        });
+    });
+    body.prepend(nav);
+    select(selected,false);
+}
+
 function renderTemplateList() {
     var html = '';
     if (!_templates.length) {
@@ -12787,6 +12840,7 @@ function renderTemplateList() {
         });
     }
     document.getElementById('tplBody').innerHTML = html;
+    arrangeTemplatePages();
 }
 
 function renderStockTemplateList() {
@@ -12819,6 +12873,7 @@ function renderStockTemplateList() {
         });
     }
     document.getElementById('tplBody').innerHTML = html;
+    arrangeTemplatePages();
 }
 
 function copyMktFromModal(clientId, idx) {
@@ -13002,6 +13057,7 @@ function renderSigningTemplateList() {
         });
     }
     document.getElementById('tplBody').innerHTML = html;
+    arrangeTemplatePages();
 }
 
 function copySigningTemplate(idx) {
@@ -13107,6 +13163,7 @@ function renderOtherTemplateList() {
         });
     }
     document.getElementById('tplBody').innerHTML = html;
+    arrangeTemplatePages();
 }
 
 function copyOtherTemplate(idx) {
@@ -13329,9 +13386,9 @@ function deleteMktTemplate(idx) {
 <script src="image-studio.js?v=20260928sync1"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
 <script src="image-composer.js?v=20260928sync1"></script>
-<script src="area-editor.js?v=20260930audit31"></script>
-<script src="sync-notice.js?v=20260930audit31"></script>
-<script src="detail-properties.js?v=20260930audit31"></script>
-<script src="edit-layout.js?v=20260930audit31"></script>
+<script src="area-editor.js?v=20260930audit32"></script>
+<script src="sync-notice.js?v=20260930audit32"></script>
+<script src="detail-properties.js?v=20260930audit32"></script>
+<script src="edit-layout.js?v=20260930audit32"></script>
 </body>
 </html>
