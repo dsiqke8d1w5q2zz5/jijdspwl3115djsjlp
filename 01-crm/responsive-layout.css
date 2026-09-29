@@ -194,3 +194,16 @@
 
 /* Buyer grading appears only once a demand exists. Preserve saved grade values. */
 #fModal #s-經營買方:not(:has(#bDemandList>.person-block))>div:has(>#f-bGrade){display:none!important}
+
+/* Start desktop content directly beneath the measured header. */
+@media(min-width:769px){
+ .sidebar{padding-top:0}
+ .main-fixed-top{padding-top:0}
+}
+@media(min-width:1200px){
+ .main-fixed-top:has(.buyer-filter.on){display:grid;grid-template-columns:minmax(0,1fr)}
+ .main-fixed-top:has(.buyer-filter.on)>.main-bar{grid-area:1/1;justify-self:end;align-self:start;z-index:1;margin:10px 16px 0;gap:10px;min-height:36px}
+ .main-fixed-top>.buyer-filter.on{grid-area:1/1;padding-right:240px}
+ .main-fixed-top:has(.buyer-filter.on)>.expire-banner{grid-column:1;grid-row:2}
+}
+@media(min-width:769px){.sidebar .filter-overview{margin-top:0}}

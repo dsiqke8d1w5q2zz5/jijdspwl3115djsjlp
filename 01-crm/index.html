@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20260929audit26">
+    <link rel="stylesheet" href="area-editor.css?v=20260929audit27">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20260929audit26">
-    <link rel="stylesheet" href="responsive-layout.css?v=20260929audit26">
+    <link rel="stylesheet" href="ui-foundation.css?v=20260929audit27">
+    <link rel="stylesheet" href="responsive-layout.css?v=20260929audit27">
 </head>
 <body>
 
@@ -12087,14 +12087,23 @@ function _bindCheckInEdit() {
 document.addEventListener('DOMContentLoaded', function() {
     // 手機版固定 header + nav
     function _fixMobileHeader() {
-        if (window.innerWidth > 768) return;
         var header = document.querySelector('.header');
+        if (window.innerWidth > 768) {
+            var desktopLayout = document.querySelector('.layout');
+            if (header && desktopLayout) {
+                var contentTop = Math.ceil(header.getBoundingClientRect().bottom) + 12;
+                desktopLayout.style.marginTop = contentTop + 'px';
+                desktopLayout.style.height = 'calc(100dvh - ' + contentTop + 'px)';
+            }
+            return;
+        }
         var nav = document.getElementById('mobileNav');
         var layout = document.querySelector('.layout');
         if (!header || !nav || !layout) return;
         var hH = header.offsetHeight;
         nav.style.top = hH + 'px';
         layout.style.marginTop = (hH + nav.offsetHeight) + 'px';
+        layout.style.height = 'auto';
     }
     _fixMobileHeader();
     new ResizeObserver(_fixMobileHeader).observe(document.querySelector('.header'));
@@ -12211,7 +12220,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260929audit26';
+var APP_VERSION = '20260929audit27';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13319,9 +13328,9 @@ function deleteMktTemplate(idx) {
 <script src="image-studio.js?v=20260928sync1"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
 <script src="image-composer.js?v=20260928sync1"></script>
-<script src="area-editor.js?v=20260929audit26"></script>
-<script src="sync-notice.js?v=20260929audit26"></script>
-<script src="detail-properties.js?v=20260929audit26"></script>
-<script src="edit-layout.js?v=20260929audit26"></script>
+<script src="area-editor.js?v=20260929audit27"></script>
+<script src="sync-notice.js?v=20260929audit27"></script>
+<script src="detail-properties.js?v=20260929audit27"></script>
+<script src="edit-layout.js?v=20260929audit27"></script>
 </body>
 </html>
