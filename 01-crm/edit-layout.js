@@ -117,7 +117,7 @@ window.renderTypeNotes=function(c){
  fields.forEach(field=>{const row=field.closest('.fg');row.hidden=!field.value.trim()&&!enabled.has(field.dataset.typeNote);if(enabled.has(field.dataset.typeNote))row.dataset.noteEnabled=field.dataset.typeNote;});
  const controls=document.createElement('div'),add=document.createElement('button'),picker=document.createElement('select');
  controls.style.cssText='display:flex;gap:8px;align-items:center;margin-top:8px';
- add.type='button';add.className='add-row-btn';add.textContent='＋ 新增備註';add.style.margin='0';
+ add.type='button';add.className='add-row-btn';add.textContent='＋ 新增備註';add.style.cssText='width:auto;flex:0 0 auto;margin:0;padding:5px 10px;font-size:13px;border:1px solid #cbd9e6;border-radius:7px;background:#f0f6fb;color:#173756;line-height:1.4';
  picker.setAttribute('aria-label','選擇備註項目');picker.hidden=true;picker.style.cssText='width:100%;padding:9px;border:1px solid #d4e2ee;border-radius:8px;background:white;font:inherit;color:#173756';
  function refresh(){picker.replaceChildren(new Option('選擇備註項目',''));fields.filter(field=>field.closest('.fg').hidden).forEach(field=>picker.add(new Option(_NOTE_LABELS[field.dataset.typeNote]||'備註',field.dataset.typeNote)));controls.hidden=picker.options.length===1;}
  add.onclick=()=>{add.hidden=true;picker.hidden=false;picker.focus();};
