@@ -200,17 +200,18 @@ window.renderTypeNotes=function(c){
  add.type='button';add.className='add-row-btn';add.textContent='＋ 新增備註';add.style.cssText='width:auto;flex:0 0 auto;margin:0;padding:5px 10px;font-size:13px;border:1px solid #cbd9e6;border-radius:7px;background:#f0f6fb;color:#173756;line-height:1.4';
  function refresh(){controls.hidden=!fields.some(field=>field.closest('.fg').hidden);}
  add.onclick=()=>{
-  const picker=document.createElement('dialog');picker.setAttribute('aria-label','選擇備註項目');picker.style.cssText='position:fixed;inset:0;margin:auto;width:340px;max-width:calc(100vw - 32px);max-height:80dvh;box-sizing:border-box;padding:20px;border:1px solid #d4e2ee;border-radius:16px;background:white;color:#173756;box-shadow:0 16px 60px #0003';
-  const style=document.createElement('style');style.textContent='dialog[data-note-picker]::backdrop{background:rgba(15,23,42,.35)}dialog[data-note-picker] button:focus-visible{outline:2px solid #173756;outline-offset:2px}';picker.dataset.notePicker='';picker.append(style);
+  const existing=area.querySelector('dialog[data-note-picker]');if(existing){existing.querySelector('button')?.focus();return;}
+  const picker=document.createElement('dialog');picker.setAttribute('aria-label','選擇備註項目');picker.style.cssText='position:relative;inset:auto;margin:0 0 12px;width:100%;max-width:100%;max-height:60dvh;overflow-y:auto;box-sizing:border-box;padding:12px;border:1px solid #d4e2ee;border-radius:12px;background:white;color:#173756';
+  const style=document.createElement('style');style.textContent='dialog[data-note-picker] button:focus-visible{outline:2px solid #173756;outline-offset:2px}';picker.dataset.notePicker='';picker.append(style);
   const heading=document.createElement('div');heading.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px';
   const title=document.createElement('strong');title.textContent='選擇備註項目';title.style.fontSize='18px';
-  const close=document.createElement('button');close.type='button';close.textContent='×';close.setAttribute('aria-label','關閉備註選擇');close.style.cssText='border:0;background:transparent;color:#64748b;font-size:26px;cursor:pointer;padding:0 6px';close.onclick=()=>picker.close();heading.append(title,close);picker.append(heading);
+  const close=document.createElement('button');close.type='button';close.textContent='×';close.setAttribute('aria-label','關閉備註選擇');close.style.cssText='border:0;background:transparent;color:#64748b;font-size:26px;cursor:pointer;padding:0 6px;min-width:36px;min-height:36px';close.onclick=()=>{picker.close();add.focus();};heading.append(title,close);picker.append(heading);
   fields.filter(field=>field.closest('.fg').hidden).forEach(field=>{
    const option=document.createElement('button');option.type='button';option.textContent=_NOTE_LABELS[field.dataset.typeNote]||'備註';option.style.cssText='display:block;width:100%;padding:12px 14px;margin-top:8px;text-align:left;border:1px solid #d4e2ee;border-radius:9px;background:#f0f6fb;color:#173756;font:inherit;cursor:pointer';
    option.onclick=()=>{const row=field.closest('.fg');row.hidden=false;row.dataset.noteEnabled=field.dataset.typeNote;field.style.height='64px';picker.close();refresh();field.focus();};picker.append(option);
   });
-  picker.onclick=event=>{if(event.target===picker){const rect=picker.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)picker.close();}};
-  picker.addEventListener('close',()=>picker.remove(),{once:true});document.body.append(picker);picker.showModal();
+  picker.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();picker.close();add.focus();}});
+  picker.addEventListener('close',()=>picker.remove(),{once:true});controls.after(picker);picker.show();picker.scrollIntoView({block:'nearest'});
  };
  controls.append(add);area.prepend(controls);refresh();return result;
 };
