@@ -233,7 +233,7 @@
         const renewals=[...contract.children].filter(el=>/^續約\s+\d+$/.test(el.querySelector('.det-key')?.textContent.trim()||''));
         if(renewals.length>3){
             const fold=document.createElement('details');fold.className='det-history-fold det-renewal-middle';
-            const summary=document.createElement('summary');summary.innerHTML='<span class="det-history-collapsed">⋯</span><span class="det-history-expanded">收合</span>';
+            const summary=document.createElement('summary');summary.className='det-row';summary.innerHTML='<span class="det-key" aria-hidden="true"></span><span class="det-val"><span class="det-history-collapsed">⋯</span><span class="det-history-expanded">收合</span></span>';
             summary.setAttribute('aria-label','展開或收合中間 '+(renewals.length-3)+' 筆續約紀錄');
             fold.append(summary);renewals[0].after(fold);fold.append(...renewals.slice(1,-2));
         }

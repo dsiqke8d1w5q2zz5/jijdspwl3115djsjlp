@@ -11,11 +11,11 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE);
   assert.equal(await rows.count(),3);
   if(count>3){
    assert.deepEqual(await rows.locator('.det-key').allTextContents(),['續約 1','續約 '+(count-1),'續約 '+count]);
-   await group.locator('.det-renewal-middle>summary').click();assert.equal(await rows.count(),count);
+   const ellipsis=await group.locator('.det-renewal-middle>summary .det-val').boundingBox(),date=await rows.first().locator('.det-val').boundingBox();assert(Math.abs(ellipsis.x-date.x)<1,'ellipsis aligns with date column');await group.locator('.det-renewal-middle>summary').click();assert.equal(await rows.count(),count);
    await group.locator('.det-renewal-middle>summary').click();assert.equal(await rows.count(),3);
   }else assert.equal(await group.locator('.det-renewal-middle').count(),0);
   const expiry=group.locator('.det-expiry-fold');
-  const short=await expiry.locator('summary').innerText();assert(short.includes('⋯'));assert(short.includes('(現)'));
+  const labelBox=await expiry.locator('..').locator('..').locator(':scope>.det-key').boundingBox(),summaryBox=await expiry.locator('summary').boundingBox();assert(Math.abs(labelBox.y-summaryBox.y)<2,'expiry label and value top align');const short=await expiry.locator('summary').innerText();assert(short.includes('⋯'));assert(short.includes('(現)'));
   await expiry.locator('summary').click();assert.equal(await expiry.locator(':scope>div:visible').count(),1);
   await expiry.locator('summary').click();assert.equal(await expiry.locator(':scope>div:visible').count(),0);
   assert.equal(await page.evaluate(()=>DB[0].sProperties[0].spRenewals.length),count);

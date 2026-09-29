@@ -1,11 +1,11 @@
-var CACHE_NAME = 'crm-v20260929audit3';
+var CACHE_NAME = 'crm-v20260929audit4';
 var URLS_TO_CACHE = [
   './',
   './index.html',
-  './ui-foundation.css?v=20260929audit3',
-  './responsive-layout.css?v=20260929audit3',
-  './detail-properties.js?v=20260929audit3',
-  './edit-layout.js?v=20260929audit3',
+  './ui-foundation.css?v=20260929audit4',
+  './responsive-layout.css?v=20260929audit4',
+  './detail-properties.js?v=20260929audit4',
+  './edit-layout.js?v=20260929audit4',
   './sync-notice.js?v=20260928sync1',
   './image-storage.js?v=20260928sync1',
   './image-redaction.js?v=20260928sync1',

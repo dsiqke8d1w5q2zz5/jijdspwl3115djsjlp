@@ -1,13 +1,14 @@
 /* Shared layout corrections from the desktop / iPhone 15 Pro Max audit. */
-#dModal .det-schedule-row.det-schedule-no-time{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:12px;align-items:baseline}
-#dModal .det-schedule-no-time .det-key{width:auto!important;margin-right:0!important;white-space:nowrap!important}
+#dModal .det-schedule-row{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:12px;align-items:baseline}
+#dModal .det-schedule-row .det-key{width:auto!important;margin-right:0!important;white-space:nowrap!important}
 .det-history-fold>summary{cursor:pointer;list-style:none;color:#17637a;line-height:1.5;min-height:32px;display:flex;align-items:center;padding:3px 0}
 .det-history-fold>summary::-webkit-details-marker{display:none}
 .det-history-fold>summary:focus-visible{outline:2px solid #1486a4;outline-offset:2px}
 .det-history-fold .det-history-expanded{display:none}
 .det-history-fold[open]>summary .det-history-expanded{display:inline}
 .det-history-fold[open]>summary .det-history-collapsed{display:none}
-.det-renewal-middle>summary{padding-left:8px;border-bottom:1px solid #eee}
+.det-renewal-middle>summary{border-bottom:1px solid #eee}
+.det-expiry-fold>summary{display:block;min-height:0;padding:0;line-height:inherit}
 .det-renewal-middle>summary .det-history-collapsed{font-size:22px;letter-spacing:3px}
 .modal-head,.modal-foot,.fill-menu,.transcript-dialog{box-sizing:border-box}
 .modal-head{gap:8px}.modal-title{min-width:0;overflow-wrap:anywhere}
