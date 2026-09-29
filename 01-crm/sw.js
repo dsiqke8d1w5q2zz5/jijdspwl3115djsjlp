@@ -1,9 +1,9 @@
-var CACHE_NAME = 'crm-v20260929detail42';
+var CACHE_NAME = 'crm-v20260929detail43';
 var URLS_TO_CACHE = [
   './',
   './index.html',
-  './detail-properties.js?v=20260929detail42',
-  './edit-layout.js?v=20260929detail42',
+  './detail-properties.js?v=20260929detail43',
+  './edit-layout.js?v=20260929detail43',
   './sync-notice.js?v=20260928sync1',
   './image-storage.js?v=20260928sync1',
   './image-redaction.js?v=20260928sync1',

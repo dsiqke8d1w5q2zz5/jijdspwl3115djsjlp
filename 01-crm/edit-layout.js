@@ -84,6 +84,13 @@ fullSpacing.textContent=`
 #fModal #typeNotesArea .fg{margin-bottom:8px}
 #fModal #typeNotesArea textarea{min-height:56px;height:56px;padding-top:6px;padding-bottom:6px}
 #fModal .equip-toggle{padding-top:5px;padding-bottom:5px}
+#fModal .type-sec .city-picker{margin-bottom:6px}
+#fModal .type-sec>div:has(>#f-bGrade){margin-bottom:6px!important}
+#fModal .type-sec .area-simple{row-gap:6px!important}
+#fModal .type-sec .bf-chip:not(.cond-btn){padding-top:5px!important;padding-bottom:5px!important;min-height:var(--form-control-height);box-sizing:border-box}
+#fModal #s-租客>div:has(#f-linkedLandlord){padding:8px 10px!important;margin-top:6px!important}
+#fModal .edit-object-page>.edit-object-actions{justify-content:flex-end!important}
+#fModal .edit-object-actions>.edit-duplicate-title{display:none!important}
 #fModal .edit-pane-heading{margin-bottom:6px}
 #fModal.edit-layout .modal-head{min-height:0;padding-top:8px;padding-bottom:8px}
 #fModal.edit-layout .edit-basic .fg>label{margin-bottom:0!important}
@@ -131,6 +138,7 @@ function setupObjectTabs(){moveAddButtons();
    if(!items.includes(state.active))state.active=items[0]||null;
    if(added.length&&state.known.size)state.active=added[added.length-1];
    state.known=new Set(items);
+   items.forEach(row=>{const heading=row.firstElementChild,label=heading?.querySelector(':scope>span:first-child');if(label&&/^(?:買方需求|庫存物件|物件資料|成交物件|開發物件|物件)\s*\d+$/.test(label.textContent.trim())){label.classList.add('edit-duplicate-title');heading.classList.add('edit-object-actions');}});
    const names=items.map((row,i)=>row.querySelector('[data-f="community"],.deal-community')?.value.trim()||((id==='dealList'||id==='dAddrList')?compactPropertyAddress(row.querySelector('[data-f="addr"],.deal-addr')?.value):row.querySelector('[data-f="addr"],.deal-addr')?.value.trim())||(id==='bDemandList'?'需求 ':'物件 ')+(i+1));
    nav.replaceChildren();nav.hidden=!items.length;
    items.forEach((row,i)=>{row.classList.add('edit-object-page');row.hidden=row!==state.active;const button=document.createElement('button');button.type='button';button.textContent=names[i]+(names.filter(name=>name===names[i]).length>1?'（'+(i+1)+'）':'');button.setAttribute('role','tab');button.setAttribute('aria-selected',String(row===state.active));button.tabIndex=row===state.active?0:-1;button.setAttribute('aria-controls',row.id);row.setAttribute('role','tabpanel');button.onclick=()=>{state.active=row;refresh();};button.onkeydown=event=>{let n=i;if(event.key==='ArrowRight')n=(i+1)%items.length;else if(event.key==='ArrowLeft')n=(i+items.length-1)%items.length;else if(event.key==='Home')n=0;else if(event.key==='End')n=items.length-1;else return;event.preventDefault();event.stopPropagation();state.active=items[n];refresh();nav.children[n].focus();};nav.append(button);});
