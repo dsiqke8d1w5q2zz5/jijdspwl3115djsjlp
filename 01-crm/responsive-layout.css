@@ -489,3 +489,8 @@
 /* Align category, property and folder controls on one left edge. */
 #dModal .det-property-toolbar>.det-property-tabs,#dModal .det-property-toolbar>.det-property-title{padding-left:0!important;padding-right:0!important;border:0;background:transparent;border-radius:0}
 #dModal .det-property-toolbar>.det-property-tabs{gap:6px}
+
+/* Distinguish property selection from the solid category tabs. */
+#dModal .det-property-tabs button[aria-selected=true]{background:#e8f1fa;color:#173756;border-color:#cbdbea;box-shadow:inset 0 -3px 0 #173756;font-weight:700}
+#dModal .det-property-toolbar{margin-bottom:0!important}
+#dModal .det-folder-actions{padding-top:8px;align-items:flex-start;min-height:0}
