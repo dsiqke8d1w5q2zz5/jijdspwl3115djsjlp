@@ -104,6 +104,9 @@
         if(window.TranscriptImport) window.TranscriptImport.attach(root,editor);
         const header=node('div','','area-editor-heading');
         header.append(editor.querySelector(':scope>strong'));
+        const hint=editor.querySelector(':scope>.area-hint');hint.hidden=true;
+        const help=button('ⓘ',()=>{hint.hidden=!hint.hidden;help.setAttribute('aria-expanded',String(!hint.hidden));});
+        help.className='area-help';help.setAttribute('aria-label','面積與持分填寫說明');help.setAttribute('aria-expanded','false');header.append(help);
         const importTools=editor.querySelector('.transcript-toolbar');if(importTools)header.append(importTools);
         editor.prepend(header);
         const outputs=[];
@@ -141,11 +144,14 @@
                 el.hidden=!el.textContent;
             });
             const building=values.mainBldg+values.ancBldg+values.common;
-            const equation=node('div','','area-total-equation');
-            equation.append(node('span','建坪 '+fmt(building)));
-            if(parking>0) equation.append(node('b','＋'),node('span','車坪 '+fmt(parking)));
-            equation.append(node('b','＝'),node('strong','總坪 '+fmt(building+parking)));
-            totals.replaceChildren(summary,equation,node('div','公設比 '+(building?(values.common/building*100).toFixed(1):'0')+'%','area-total-ratio'));
+            const metrics=node('div','','area-summary-metrics');
+            [['建坪',building],['車坪',parking],['總坪',building+parking]].forEach(([label,value],index)=>{
+                const metric=node('div','',index===2?'area-metric area-metric-total':'area-metric');
+                const number=node('strong',Number(value).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}));
+                metric.append(node('span',label,'area-metric-label'),number,node('small','坪'));metrics.append(metric);
+            });
+            summary.append(node('span','公設比 '+(building?(values.common/building*100).toFixed(1):'0')+'%'));
+            totals.replaceChildren(metrics,summary);
             if(root.id==='sellerFixedProperty') calcSellerSz(); else calcSpSellerSz(field(root,'mainBldg'));
         }
         function areaControls(item, label) {
