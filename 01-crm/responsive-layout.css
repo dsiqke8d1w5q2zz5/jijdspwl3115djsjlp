@@ -510,3 +510,13 @@
 #dModal .det-header-actions button{display:inline-flex;align-items:center;justify-content:center;gap:4px;font-weight:600}
 #dModal .det-action-icon{display:none;width:15px;height:15px;flex:none}
 @media(min-width:1050px){#dModal .det-header-actions button{width:68px}#dModal .det-header-actions button[aria-label='解除封存']{width:104px}#dModal .det-action-icon{display:block}}
+
+/* Align the fee total with the fields above and beside it. */
+#fModal [data-fee-layout]>.fee-total{display:grid!important;grid-template-columns:2.5em minmax(0,1fr);gap:6px;align-self:stretch;align-items:center}
+#fModal [data-fee-layout]>.fee-total>label{padding:0!important;margin:0!important;white-space:nowrap}
+#fModal [data-fee-layout]>.fee-total>[data-f=mgmtTotal]{justify-content:flex-end}
+
+#fModal .edit-object-tabs{cursor:grab;user-select:none}#fModal .edit-object-tabs.is-dragging,#fModal .edit-object-tabs.is-dragging button{cursor:grabbing}
+
+/* A little more vertical room in centered desktop customer dialogs. */
+@media(min-width:1050px){body #fModal>.modal,body #dModal>.modal{height:94dvh!important;max-height:94dvh!important}}

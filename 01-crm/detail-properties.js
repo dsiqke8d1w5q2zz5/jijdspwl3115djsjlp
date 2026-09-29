@@ -372,15 +372,15 @@
     let railDrag=null,suppressRailClick=null;
     document.addEventListener('pointerdown',event=>{
         if(event.pointerType!=='mouse'||event.button!==0)return;
-        const rail=event.target.closest('.det-property-tabs');if(!rail||rail.scrollWidth<=rail.clientWidth)return;
+        const rail=event.target.closest('.det-property-tabs,.edit-object-tabs');if(!rail||rail.scrollWidth<=rail.clientWidth)return;
         const rect=rail.getBoundingClientRect();if(event.clientY>=rect.top+(rail.clientTop+rail.clientHeight)*(rect.height/rail.offsetHeight))return;
-        railDrag={rail,id:event.pointerId,x:event.clientX,left:rail.scrollLeft,moved:false};suppressRailClick=null;
+        railDrag={rail,id:event.pointerId,x:event.clientX,left:rail.scrollLeft,scale:rect.width/rail.offsetWidth,moved:false};suppressRailClick=null;
     },true);
     document.addEventListener('pointermove',event=>{
         const drag=railDrag;if(!drag||event.pointerId!==drag.id)return;
         const delta=event.clientX-drag.x;if(!drag.moved&&Math.abs(delta)<6)return;
         if(!drag.moved){drag.moved=true;drag.rail.classList.add('is-dragging');drag.rail.setPointerCapture(event.pointerId);}
-        event.preventDefault();drag.rail.scrollLeft=drag.left-delta;
+        event.preventDefault();drag.rail.scrollLeft=drag.left-delta/drag.scale;
     },true);
     function endRailDrag(event){const drag=railDrag;if(!drag||(event&&event.pointerId!==drag.id))return;railDrag=null;drag.rail.classList.remove('is-dragging');if(drag.rail.hasPointerCapture(drag.id))drag.rail.releasePointerCapture(drag.id);if(drag.moved){suppressRailClick=drag.rail;setTimeout(()=>{if(suppressRailClick===drag.rail)suppressRailClick=null;},0);}}
     document.addEventListener('pointerup',endRailDrag,true);document.addEventListener('pointercancel',endRailDrag,true);window.addEventListener('blur',()=>endRailDrag());
