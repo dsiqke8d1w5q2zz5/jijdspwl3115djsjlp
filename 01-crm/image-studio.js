@@ -2,16 +2,16 @@
 (function(){
  'use strict';
  const $=id=>document.getElementById(id),copy=o=>JSON.parse(JSON.stringify(o));
- const defaults={guides:true,locks:{person:false,main:false,logo:false},frame:{ratio:'original',mode:'single',split:50,gap:0,zoom:100,x:50,y:50,secondZoom:100,secondX:50,secondY:50},texts:[],capPoint:{x:.5,y:.2},front:false,format:'jpeg',logo:{x:.85,y:.15,size:.15}};
+ const defaults={guides:true,locks:{person:false,main:false,logo:false},frame:{ratio:'original',mode:'single',split:50,gap:0,zoom:100,x:50,y:50,secondZoom:100,secondX:50,secondY:50,thirdZoom:100,thirdX:50,thirdY:50,fourthZoom:100,fourthX:50,fourthY:50},texts:[],capPoint:{x:.5,y:.2},front:false,format:'jpeg',logo:{x:.85,y:.15,size:.15}};
  const families={sans:'"Microsoft JhengHei","PingFang TC",sans-serif',serif:'"PMingLiU","Songti TC",serif',kai:'"DFKai-SB","BiauKai",serif'};
  function canvas(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;return c;}
  function clone(c){if(!c)return null;const out=canvas(c.width,c.height);out.getContext('2d').drawImage(c,0,0);return out;}
  const number=(v,min,max,fallback)=>Number.isFinite(Number(v))?Math.max(min,Math.min(max,Number(v))):fallback;
  function clean(raw={}){
   raw=raw&&typeof raw==='object'?raw:{};const s=copy(defaults),f=raw.frame||{};
-  for(const k of ['ratio','mode'])if((k==='ratio'?['original','1','1.3333333333','1.7777777778','0.8','0.5625']:['single','lr','tb']).includes(f[k]))s.frame[k]=f[k];
-  for(const k of ['x','y','secondX','secondY'])s.frame[k]=number(f[k],0,100,50);
-  for(const k of ['zoom','secondZoom'])s.frame[k]=number(f[k],100,300,100);
+  for(const k of ['ratio','mode'])if((k==='ratio'?['original','1','1.3333333333','1.7777777778','0.8','0.5625']:['single','lr','tb','three','four']).includes(f[k]))s.frame[k]=f[k];
+  for(const k of ['x','y','secondX','secondY','thirdX','thirdY','fourthX','fourthY'])s.frame[k]=number(f[k],0,100,50);
+  for(const k of ['zoom','secondZoom','thirdZoom','fourthZoom'])s.frame[k]=number(f[k],100,300,100);
   s.frame.split=number(f.split,25,75,50);s.frame.gap=number(f.gap,0,40,0);
   s.guides=raw.guides!==false;s.locks={person:raw.locks?.person===true,main:raw.locks?.main===true,logo:raw.locks?.logo===true};s.front=raw.front===true;s.format=raw.format==='png'?'png':'jpeg';
   s.capPoint={x:number(raw.capPoint?.x,0,1,.5),y:number(raw.capPoint?.y,0,1,.2)};
@@ -20,21 +20,22 @@
   return s;
  }
  function mount(api){
-  let settings=copy(defaults),second=null,secondName='',logo=null,boxes=[],targets=[],assetUrls=[],miniVisible=true;
+  let settings=copy(defaults),second=null,secondName='',third=null,fourth=null,logo=null,boxes=[],targets=[],assetUrls=[],miniVisible=true;
   const change=()=>{api.render();};
   const crop=document.createElement('section');crop.id='icCropSection';crop.className='ic-section';
   crop.innerHTML=`<div class="ic-crop-heading"><h3>裁切與拼版</h3><button type="button" id="icCropReset">還原裁切</button></div><p class="ic-note">回到原照片比例、單張與原始取景；已選的第二張照片仍保留。</p><label class="it-lb" for="icRatio">成品比例</label><select id="icRatio" class="it-in"><option value="original">原照片比例</option><option value="1">正方形 1:1</option><option value="1.3333333333">橫式 4:3</option><option value="1.7777777778">橫式 16:9</option><option value="0.8">直式 4:5</option><option value="0.5625">直式 9:16</option></select>
-   <label class="it-lb" for="icFrameMode">排列</label><select id="icFrameMode" class="it-in"><option value="single">單張照片</option><option value="lr">左右雙圖</option><option value="tb">上下雙圖</option></select>
+   <label class="it-lb" for="icFrameMode">排列</label><select id="icFrameMode" class="it-in"><option value="single">單張照片</option><option value="lr">左右雙圖</option><option value="tb">上下雙圖</option><option value="three">三圖：一大兩小</option><option value="four">四圖：四宮格</option></select>
    <div id="icSecondControls"><label class="ic-file">選擇第二張照片<input type="file" id="icSecondFile" accept="image/*"></label><p id="icSecondName" class="ic-note">尚未選擇第二張照片</p><label class="it-lb">第一張占比 <input id="icSplit" type="range" min="25" max="75" value="50"></label><label class="it-lb">圖片間距 <input id="icFrameGap" type="range" min="0" max="40" value="0"></label></div>
    <p class="ic-note">裁切只影響成品，不改原圖。移動取景位置可保留重要區域。</p><div id="icFrameRanges"></div>`;
   $('icPersonSection')?.after(crop);if(!crop.isConnected)document.querySelector('.ic-controls').append(crop);
-  for(const [id,title,min,max] of [['zoom','第一張放大',100,300],['x','第一張左右取景',0,100],['y','第一張上下取景',0,100],['secondZoom','第二張放大',100,300],['secondX','第二張左右取景',0,100],['secondY','第二張上下取景',0,100]]){
+  for(const [id,title,min,max] of [['zoom','第一張放大',100,300],['x','第一張左右取景',0,100],['y','第一張上下取景',0,100],['secondZoom','第二張放大',100,300],['secondX','第二張左右取景',0,100],['secondY','第二張上下取景',0,100],['thirdZoom','第三張放大',100,300],['thirdX','第三張左右取景',0,100],['thirdY','第三張上下取景',0,100],['fourthZoom','第四張放大',100,300],['fourthX','第四張左右取景',0,100],['fourthY','第四張上下取景',0,100]]){
    const label=document.createElement('label');label.className='it-lb';label.textContent=title;
    const input=document.createElement('input');input.type='range';input.id='icFrame_'+id;input.min=min;input.max=max;input.value=settings.frame[id];label.append(input);$('icFrameRanges').append(label);input.oninput=()=>{settings.frame[id]=Number(input.value);change();};
   }
   for(const [id,key] of [['icRatio','ratio'],['icFrameMode','mode'],['icSplit','split'],['icFrameGap','gap']])$(id).oninput=()=>{settings.frame[key]=['ratio','mode'].includes(key)?$(id).value:Number($(id).value);sync();change();};
   $('icCropReset').onclick=()=>{if(api.busy())return;api.flush();settings.frame=copy(defaults.frame);sync();change();api.flush();api.status('已還原為原照片比例與單張取景，可按復原恢復。');};
   $('icSecondFile').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f||api.busy())return;try{api.lock(true);second=await api.decode(f,4000);secondName=f.name;$('icSecondName').textContent=f.name;change();}catch(e){api.status(e.message,true);}finally{api.lock(false);}};
+  for(const [key,title] of [['third','第三張'],['fourth','第四張']]){const box=document.createElement('div');box.id='icExtra_'+key;box.innerHTML='<label class="ic-file">選擇'+title+'照片<input type="file" accept="image/*" id="icFile_'+key+'"></label><p class="ic-note" id="icName_'+key+'">尚未選擇'+title+'照片</p>';$('icSecondControls').after(box);$('icFile_'+key).onchange=async e=>{const file=e.target.files[0];e.target.value='';if(!file||api.busy())return;try{api.flush();api.lock(true);const img=await api.decode(file,4000);if(key==='third')third=img;else fourth=img;sync();change();}catch(e){api.status(e.message,true);}finally{api.lock(false);}};}
   const personBody=$('icPersonBody'),tools=document.createElement('div');tools.innerHTML=`<label class="ic-check"><input id="icLockPerson" type="checkbox">鎖定人物位置與大小</label><label class="ic-check"><input id="icPersonFront" type="checkbox">人物放在品牌底條前面</label><div class="ic-actions"><button id="icRepair" type="button">放大／修補去背</button></div>
    <details class="ic-asset-library"><summary>常用人物與標誌</summary><label class="it-lb" for="icAssetName">素材名稱</label><input id="icAssetName" class="it-in" maxlength="40" placeholder="例如：我的去背人物"><div class="ic-actions"><button id="icAssetSave" type="button">保存目前人物</button><label class="ic-file">匯入 PNG／圖片<input id="icAssetImport" type="file" accept="image/*"></label></div><p class="ic-note">素材存在這個瀏覽器。可選作人物或另加為標誌；更換裝置請另存 PNG。</p><div id="icAssets" class="ic-assets"></div><p id="icAssetStatus" class="ic-note" role="status"></p></details>
    <div id="icLogoControls" hidden><label class="ic-check"><input id="icLockLogo" type="checkbox">鎖定標誌位置與大小</label><label class="it-lb" for="icLogoSize">標誌大小</label><input id="icLogoSize" type="range" min="3" max="50" value="15"><button id="icLogoRemove" type="button">移除標誌</button><p class="ic-note">在預覽上拖曳標誌即可移動。</p></div>`;personBody.append(tools);
@@ -89,13 +90,18 @@
   const mini=document.createElement('div');mini.className='ic-mini';mini.innerHTML='<button id="icMiniToggle" type="button">收合小預覽</button><canvas id="icMiniCanvas" aria-label="即時小預覽"></canvas>';$('imageComposer').querySelector('.ic-body').prepend(mini);$('icMiniToggle').onclick=()=>{miniVisible=!miniVisible;$('icMiniCanvas').hidden=!miniVisible;$('icMiniToggle').textContent=miniVisible?'收合小預覽':'展開小預覽';};
   function sync(){
    $('icRatio').value=settings.frame.ratio;$('icFrameMode').value=settings.frame.mode;$('icSplit').value=settings.frame.split;$('icFrameGap').value=settings.frame.gap;$('icSecondControls').hidden=settings.frame.mode==='single';
-   for(const k of ['zoom','x','y','secondZoom','secondX','secondY']){$('icFrame_'+k).value=settings.frame[k];$('icFrame_'+k).parentElement.hidden=k.startsWith('second')&&settings.frame.mode==='single';}
+   for(const k of ['zoom','x','y','secondZoom','secondX','secondY','thirdZoom','thirdX','thirdY','fourthZoom','fourthX','fourthY']){$('icFrame_'+k).value=settings.frame[k];$('icFrame_'+k).parentElement.hidden=k.startsWith('second')&&settings.frame.mode==='single'||k.startsWith('third')&&!['three','four'].includes(settings.frame.mode)||k.startsWith('fourth')&&settings.frame.mode!=='four';}
+   for(const key of ['third','fourth']){const box=$('icExtra_'+key);if(box){box.hidden=key==='third'?!['three','four'].includes(settings.frame.mode):settings.frame.mode!=='four';$('icName_'+key).textContent=(key==='third'?third:fourth)?'已載入照片':'尚未選擇照片';}}
+   $('icSplit').parentElement.hidden=settings.frame.mode==='four';
    for(const [id,key] of [['icLockPerson','person'],['icLockLogo','logo'],['icLockMain','main']])$(id).checked=settings.locks[key];$('icGuides').checked=settings.guides;$('itCapPos').disabled=settings.locks.main;$('itCapSz').disabled=settings.locks.main;$('icLogoSize').disabled=settings.locks.logo;$('icPersonFront').checked=settings.front;$('icFormat').value=settings.format;$('itQ').disabled=settings.format==='png';$('icLogoControls').hidden=!logo;$('icLogoSize').value=settings.logo.size*100;
   }
   function aspect(photo,o=settings){return o.frame.ratio==='original'?photo.width/photo.height:Number(o.frame.ratio);}
   function cover(ctx,img,x,y,w,h,z=100,fx=50,fy=50){const scale=Math.max(w/img.width,h/img.height)*z/100,sw=w/scale,sh=h/scale;ctx.drawImage(img,(img.width-sw)*fx/100,(img.height-sh)*fy/100,sw,sh,x,y,w,h);}
-  function background(ctx,photo,w,h,o=settings,other=second){const f=o.frame;ctx.fillStyle='#ffffff';ctx.fillRect(0,0,w,h);
+  function background(ctx,photo,w,h,o=settings,other=second,extra={third,fourth}){const f=o.frame;ctx.fillStyle='#ffffff';ctx.fillRect(0,0,w,h);
    if(f.mode==='single'){cover(ctx,photo,0,0,w,h,f.zoom,f.x,f.y);return;}
+   if(['three','four'].includes(f.mode)){const gap=f.gap*w/1000,halfH=(h-gap)/2,leftW=f.mode==='three'?w*f.split/100-gap/2:(w-gap)/2,rightW=w-leftW-gap;
+    const cells=f.mode==='three'?[[photo,0,0,leftW,h,''],[other,leftW+gap,0,rightW,halfH,'second'],[extra.third,leftW+gap,halfH+gap,rightW,halfH,'third']]:[[photo,0,0,leftW,halfH,''],[other,leftW+gap,0,rightW,halfH,'second'],[extra.third,0,halfH+gap,leftW,halfH,'third'],[extra.fourth,leftW+gap,halfH+gap,rightW,halfH,'fourth']];
+    for(const [img,x,y,cw,ch,key] of cells){if(img)cover(ctx,img,x,y,cw,ch,key?f[key+'Zoom']:f.zoom,key?f[key+'X']:f.x,key?f[key+'Y']:f.y);else{ctx.fillStyle='#e7e5e4';ctx.fillRect(x,y,cw,ch);}}return;}
    const gap=f.gap*w/1000,split=f.split/100,lr=f.mode==='lr',a=(lr?w:h)*split-gap/2,b=(lr?w:h)-a-gap;
    cover(ctx,photo,0,0,lr?a:w,lr?h:a,f.zoom,f.x,f.y);
    if(other)cover(ctx,other,lr?a+gap:0,lr?0:a+gap,lr?b:w,lr?h:b,f.secondZoom,f.secondX,f.secondY);
@@ -121,7 +127,7 @@
   function clampLine(v){return Math.max(.001,Math.min(.999,v));}
   function afterRender(){sync();view();$('icRepair').disabled=!api.getFullPerson()||api.busy();$('icAssetSave').disabled=!api.getPerson()||api.busy();const c=$('icCanvas'),m=$('icMiniCanvas');if(c.width&&c.height){m.width=280;m.height=Math.round(280*c.height/c.width);m.getContext('2d').drawImage(c,0,0,m.width,m.height);}mini.hidden=!api.hasPhoto();}
   sync();
-  return {options:()=>copy(settings),set:value=>{settings=clean(value);sync();textList();},aspect,background,paint,hit,dragTo,locked,setTargets,snap,guides,afterRender,hasSecond:()=>!!second,aux:()=>({second,secondName,logo}),restoreAux:a=>{second=a.second;secondName=a.secondName||'';logo=a.logo;$('icSecondName').textContent=second?(secondName||'已載入拼版照片'):'尚未選擇第二張照片';sync();},clean,clone};
+  return {options:()=>copy(settings),set:value=>{settings=clean(value);sync();textList();},aspect,background,paint,hit,dragTo,locked,setTargets,snap,guides,afterRender,hasSecond:()=>!!second,aux:()=>({second,secondName,third,fourth,logo}),restoreAux:a=>{second=a.second;third=a.third||null;fourth=a.fourth||null;secondName=a.secondName||'';logo=a.logo;$('icSecondName').textContent=second?(secondName||'已載入拼版照片'):'尚未選擇第二張照片';sync();},clean,clone};
  }
  function repair(api){
   const source=api.getOriginal(),initial=api.getFullPerson();if(!source||!initial)return;

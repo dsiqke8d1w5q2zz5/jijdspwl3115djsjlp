@@ -411,3 +411,9 @@
 .fill-menu>div:has(> :is(#mktEditContent,#tplEditContent,#stplEditContent,#otplEditContent)){min-height:0;flex:1 1 0!important}
 .fill-menu :is(#mktEditContent,#tplEditContent,#stplEditContent,#otplEditContent){min-height:0!important;resize:none!important;font-size:14px!important;overflow:auto}
 @media(max-width:600px){.fill-menu :is(#mktEditContent,#tplEditContent,#stplEditContent,#otplEditContent){font-size:16px!important}}
+.ic-photo-moves{display:flex;gap:3px;margin-top:3px}
+.ic-dialog .ic-photos .ic-photo-moves button{height:28px;min-height:28px;min-width:0;flex:1;padding:2px;font-size:11px}
+.ic-photo-item[draggable=true]{cursor:grab}
+@media(max-width:650px){.ic-dialog .ic-photos .ic-photo-moves button{height:34px;min-height:34px}}
+/* Scale the desktop detail dialog as a whole, preserving its three-column layout. */
+@media(min-width:1050px){#dModal>.modal{transform:scale(.9);transform-origin:center center}}
