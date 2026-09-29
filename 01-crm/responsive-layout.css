@@ -406,7 +406,7 @@
 @media(max-width:600px){#tplBody .tpl-content-panel>div:nth-child(2){font-size:15px!important}}
 #tplBody .tpl-content-panel>pre{font-size:14px!important;line-height:1.65!important}
 /* Give all template editors a roomy writing area and a visible action row. */
-.fill-menu:has(:is(#mktEditContent,#tplEditContent,#stplEditContent,#otplEditContent)){width:min(860px,94vw)!important;height:min(820px,90dvh);max-height:calc(100dvh - var(--app-safe-top,0px) - var(--app-safe-bottom,0px) - 24px)!important;box-sizing:border-box}
+.fill-menu:has(:is(#mktEditContent,#tplEditContent,#stplEditContent,#otplEditContent)){width:min(680px,90vw)!important;height:min(640px,80dvh);max-height:calc(100dvh - var(--app-safe-top,0px) - var(--app-safe-bottom,0px) - 24px)!important;box-sizing:border-box}
 .fill-menu:has(:is(#mktEditContent,#tplEditContent,#stplEditContent,#otplEditContent))>div{flex-shrink:0}
 .fill-menu>div:has(> :is(#mktEditContent,#tplEditContent,#stplEditContent,#otplEditContent)){min-height:0;flex:1 1 0!important}
 .fill-menu :is(#mktEditContent,#tplEditContent,#stplEditContent,#otplEditContent){min-height:0!important;resize:none!important;font-size:14px!important;overflow:auto}
