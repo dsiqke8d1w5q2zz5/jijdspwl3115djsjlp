@@ -435,3 +435,15 @@
  body #dModal .det-head>div:first-child{height:100%;align-items:center}
  body #dModal .det-head .det-close,body #fModal.edit-layout .modal-head .btn-x{width:40px;height:40px;min-width:40px;min-height:40px;padding:0;display:flex;align-items:center;justify-content:center;font-size:28px;line-height:1;flex-shrink:0}
 }
+/* Management fees: roomy primary fields, optional breakdown and a separate total. */
+#fModal :is(.sp-mgmt-row,.rp-mgmt-row)[data-fee-layout]{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px!important;padding:10px;background:#f6f8fa;border:1px solid #e2e8f0;border-radius:8px}
+#fModal [data-fee-layout]>div,#fModal .fee-extra-grid>div{min-width:0!important}
+#fModal [data-fee-layout] :is(input,select){width:100%;min-width:0;box-sizing:border-box}
+#fModal .fee-more{grid-column:1/-1;border-top:1px solid #e2e8f0;padding-top:6px}
+#fModal .fee-more>summary{cursor:pointer;font-size:13px;color:#173756;font-weight:600;padding:4px 0}
+#fModal .fee-extra-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding-top:6px}
+#fModal [data-fee-layout]>.fee-total{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;border-top:1px solid #e2e8f0;padding-top:6px}
+#fModal .fee-total>[data-f=mgmtTotal]{background:transparent!important;text-align:right!important;padding:4px!important;height:auto!important}
+@media(max-width:600px){#fModal :is(.sp-mgmt-row,.rp-mgmt-row)[data-fee-layout],#fModal .fee-extra-grid{grid-template-columns:minmax(0,1fr)}}
+#fModal [data-fee-layout]>.fee-total{flex-direction:row!important;gap:8px}
+#fModal [data-fee-layout]>.fee-total>label{width:auto!important;margin:0!important}
