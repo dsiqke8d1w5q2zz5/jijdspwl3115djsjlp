@@ -43,7 +43,7 @@ style.textContent=[
 '#fModal.edit-layout .modal-foot .btn-save{background:#173756}'
 ].join('');
 document.head.append(style);
-function restore(){if(!originalChildren)return;body.replaceChildren(...originalChildren);originalChildren=null;modal.classList.remove('edit-layout');}
+function restore(){if(!originalChildren)return;const contact=modal.querySelector('.edit-basic>.edit-pane-heading .add-row-btn');if(contact)document.querySelector('#sharedContactsWrap .sec-title').append(contact);body.replaceChildren(...originalChildren);originalChildren=null;modal.classList.remove('edit-layout');}
 function arrange(){
  if(!desktop.matches||!editId||originalChildren)return;
  originalChildren=[...body.children];
@@ -52,8 +52,46 @@ function arrange(){
  const picker=body.querySelector('.type-picker'),pickerTitle=picker.previousElementSibling,head=document.createElement('div');head.className='edit-property-head';head.append(property.firstElementChild,picker);property.append(head);
  let section='basic';
  for(const child of originalChildren){if(child===picker||child===pickerTitle)continue;if(child.classList.contains('type-sec'))section='property';if(child.classList.contains('sec-title')&&child.textContent.trim()==='預排行程')section='followup';(section==='basic'?basic:section==='property'?property:followup).append(child);}
- body.replaceChildren(basic,property,followup);modal.classList.add('edit-layout');
+ const contact=basic.querySelector('#sharedContactsWrap .add-row-btn');if(contact){basic.firstElementChild.classList.add('edit-add-heading');basic.firstElementChild.append(contact);}body.replaceChildren(basic,property,followup);modal.classList.add('edit-layout');
 }
+const tabStates=new Map();
+const tabStyle=document.createElement('style');
+tabStyle.textContent='.edit-object-tabs{display:flex;gap:6px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;padding:7px;background:#f6f8fa;border:1px solid #e2e8f0;border-radius:9px;margin:8px 0 10px}.edit-object-tabs[hidden]{display:none!important}.edit-object-tabs button{flex:0 0 auto;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid #cbd5e1;border-radius:7px;background:white;color:#173756;font:inherit;font-size:14px;padding:7px 11px;cursor:pointer}.edit-object-tabs button[aria-selected=true]{background:#173756;color:white;border-color:#173756}.edit-object-tabs button:focus-visible{outline:2px solid #0284c7;outline-offset:1px}.edit-object-page[hidden]{display:none!important}#fModal .edit-add-heading{display:flex;align-items:center;gap:10px;flex-wrap:wrap}#fModal .edit-add-heading>.add-row-btn{width:auto;margin:0;padding:5px 10px;font-size:13px;border:1px solid #cbd9e6;border-radius:7px;background:#f0f6fb;color:#173756;line-height:1.4}';
+tabStyle.textContent+='#fModal :is(.rp-mgmt-row,.sp-mgmt-row){align-items:flex-end}#fModal :is(.rp-mgmt-row,.sp-mgmt-row)>div{display:flex;flex-direction:column}#fModal :is(.rp-mgmt-row,.sp-mgmt-row)>div>label{height:18px;line-height:18px;margin-bottom:4px!important}#fModal :is(.rp-mgmt-row,.sp-mgmt-row) :is(select,input,.input-sfx,[data-f="mgmtTotal"]){height:38px;box-sizing:border-box}#fModal :is(.rp-mgmt-row,.sp-mgmt-row) .input-grp{height:38px}#fModal :is(.rp-mgmt-row,.sp-mgmt-row) :is(.input-sfx,[data-f="mgmtTotal"]){display:flex;align-items:center;justify-content:center;padding-top:0!important;padding-bottom:0!important}';
+document.head.append(tabStyle);
+function moveAddButtons(){
+ for(const button of modal.querySelectorAll('.add-row-btn')){
+  if(button.closest('#typeNotesArea')||button.parentElement.classList.contains('edit-add-heading'))continue;
+  let sibling=button.previousElementSibling;
+  while(sibling&&!sibling.classList.contains('sec-title'))sibling=sibling.previousElementSibling;
+  if(sibling){sibling.classList.add('edit-add-heading');sibling.append(button);}
+ }
+}
+function setupObjectTabs(){
+ for(const id of ['sPropertyList','rPropertyList','dealList','dAddrList']){
+  const list=document.getElementById(id);if(!list||tabStates.has(id))continue;
+  const nav=document.createElement('div');nav.className='edit-object-tabs';nav.setAttribute('role','tablist');nav.setAttribute('aria-label','選擇編輯物件');list.before(nav);
+  const state={active:null,known:new Set(),nav,list};tabStates.set(id,state);
+  const rows=()=>[...list.children].filter(el=>el.matches('.person-block,.deal-box'));
+  function refresh(){
+   const items=rows(),added=items.filter(el=>!state.known.has(el));
+   if(!items.includes(state.active))state.active=items[0]||null;
+   if(added.length&&state.known.size)state.active=added[added.length-1];
+   state.known=new Set(items);
+   const names=items.map((row,i)=>row.querySelector('[data-f="community"],.deal-community')?.value.trim()||row.querySelector('[data-f="addr"],.deal-addr')?.value.trim()||'物件 '+(i+1));
+   nav.replaceChildren();nav.hidden=!items.length;
+   items.forEach((row,i)=>{row.classList.add('edit-object-page');row.hidden=row!==state.active;const button=document.createElement('button');button.type='button';button.textContent=names[i]+(names.filter(name=>name===names[i]).length>1?'（'+(i+1)+'）':'');button.setAttribute('role','tab');button.setAttribute('aria-selected',String(row===state.active));button.tabIndex=row===state.active?0:-1;button.setAttribute('aria-controls',row.id);row.setAttribute('role','tabpanel');button.onclick=()=>{state.active=row;refresh();};button.onkeydown=event=>{let n=i;if(event.key==='ArrowRight')n=(i+1)%items.length;else if(event.key==='ArrowLeft')n=(i+items.length-1)%items.length;else if(event.key==='Home')n=0;else if(event.key==='End')n=items.length-1;else return;event.preventDefault();event.stopPropagation();state.active=items[n];refresh();nav.children[n].focus();};nav.append(button);});
+  }
+  state.refresh=refresh;
+  new MutationObserver(refresh).observe(list,{childList:true});
+  list.addEventListener('input',event=>{if(event.target.matches('[data-f="community"],[data-f="addr"],.deal-community,.deal-addr'))refresh();});
+  refresh();
+ }
+ moveAddButtons();
+}
+const validate=window.validateAreaEditors;
+window.validateAreaEditors=function(){const bad=modal.querySelector('.area-editor[data-invalid="1"]'),row=bad?.closest('.edit-object-page');if(row)for(const state of tabStates.values())if(row.parentElement===state.list){state.active=row;state.refresh();}return validate.apply(this,arguments);};
+function resetObjectTabs(){setupObjectTabs();for(const state of tabStates.values()){state.active=null;state.known=new Set();state.refresh();}}
 let returnDetail=null;
 const originalNotes=window.renderTypeNotes;
 window.renderTypeNotes=function(c){
@@ -76,7 +114,7 @@ const open=window.openEdit;window.openEdit=function(id,viewAs){
  if(detail.style.display==='flex'&&!returnDetail){returnDetail={id:currentDetId,viewAs:viewAs,snapshot:JSON.stringify(DB.find(c=>c.id===currentDetId))};detail.style.display='none';}
   restore();const result=open.apply(this,arguments);
  const basicDetails=document.getElementById('basicDetailWrap');if(basicDetails.style.display!=='none')document.getElementById('basicDetailToggle').click();
- arrange();return result;
+ resetObjectTabs();arrange();return result;
 };
 new MutationObserver(()=>{
  if(modal.style.display!=='none'||!returnDetail)return;
@@ -85,6 +123,6 @@ new MutationObserver(()=>{
  if(JSON.stringify(customer)!==previous.snapshot)showDet(previous.id,previous.viewAs);
  else document.getElementById('dModal').style.display='flex';
 }).observe(modal,{attributes:true,attributeFilter:['style']});
-const add=window.openAdd;window.openAdd=function(){returnDetail=null;restore();return add.apply(this,arguments);};
+const add=window.openAdd;window.openAdd=function(){returnDetail=null;restore();const result=add.apply(this,arguments);resetObjectTabs();return result;};
 desktop.addEventListener('change',()=>{restore();if(modal.style.display==='flex')arrange();});
 })();
