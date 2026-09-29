@@ -498,3 +498,10 @@
 /* Complete the inventory form's compact action typography. */
 #fModal #sPropertyList .person-block>div:has(>.grade-btn)>button:not(.c-del),#fModal #sPropertyList .area-editor button:not(.area-help),#fModal #sPropertyList .area-metric-label{font-size:14px!important}
 #fModal #sPropertyList .fg>label>button{font-size:12px!important}
+
+/* Moderate spacing below the category divider. */
+@media(min-width:1050px){#dModal .det-property-toolbar,#dModal .det-property-toolbar>.det-property-tabs{height:36px!important;min-height:36px!important}#dModal .det-property-toolbar>.det-property-tabs{padding-top:2px!important;padding-bottom:2px!important}}
+
+#fModal #sPropertyList div:has(>[data-f=contractType])>span{padding-left:4px}
+
+#fModal #sPropertyList .person-block>div:has(>.grade-btn){padding-left:4px}
