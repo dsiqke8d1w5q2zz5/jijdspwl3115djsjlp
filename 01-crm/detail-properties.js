@@ -221,12 +221,31 @@
             if(item.classList.contains('det-field-pair'))item.remove();
         }
         if(areaGrid.children.length){
-            const sections=[['建物面積','building'],['車位與比例','parking'],['土地資料','land']].map(([label,kind])=>{const section=document.createElement('section');section.className='det-area-section det-area-'+kind;const heading=document.createElement('h4');heading.textContent=label;const grid=document.createElement('div');grid.className='det-area-grid';section.append(heading,grid);return {section,grid};});
+            const sections=[['建物面積','building'],['車位與公設比','parking'],['土地資料','land']].map(([label,kind])=>{const section=document.createElement('section');section.className='det-area-section det-area-'+kind;const heading=document.createElement('h4');heading.textContent=label;const grid=document.createElement('div');grid.className='det-area-grid';section.append(heading,grid);return {section,grid};});
             for(const entry of [...areaGrid.children]){const label=entry.querySelector('.det-key')?.textContent||'',value=entry.querySelector('.det-val');const index=/土地|基地/.test(label)?2:/^車位|公設比/.test(label)?1:0;
                 if(value){const match=value.textContent.trim().match(/^([\d,.]+)\s*(坪|%)$/);if(match){const n=Number(match[1].replace(/,/g,''));if(Number.isFinite(n)){const unit=document.createElement('small');unit.textContent=match[2];value.replaceChildren(document.createTextNode(n.toLocaleString('en-US',{minimumFractionDigits:match[2]==='%'?1:2,maximumFractionDigits:match[2]==='%'?1:2})+' '),unit);}}}
                 sections[index].grid.append(entry);
             }
             for(const {section,grid} of sections)if(grid.children.length)area.append(section);
+        }
+        // Keep the first and two most recent entries, preserving original order and data.
+        const contract=groups[1];
+        const renewals=[...contract.children].filter(el=>/^續約\s+\d+$/.test(el.querySelector('.det-key')?.textContent.trim()||''));
+        if(renewals.length>3){
+            const fold=document.createElement('details');fold.className='det-history-fold det-renewal-middle';
+            const summary=document.createElement('summary');summary.innerHTML='<span class="det-history-collapsed">⋯</span><span class="det-history-expanded">收合</span>';
+            summary.setAttribute('aria-label','展開或收合中間 '+(renewals.length-3)+' 筆續約紀錄');
+            fold.append(summary);renewals[0].after(fold);fold.append(...renewals.slice(1,-2));
+        }
+        for(const entry of contract.querySelectorAll('.det-row')){
+            if(entry.querySelector('.det-key')?.textContent.trim()!=='到期歷程')continue;
+            const value=entry.querySelector('.det-val');if(!value)continue;
+            const dates=value.textContent.split(/\s*→\s*/).filter(Boolean);if(dates.length<=3)continue;
+            const fold=document.createElement('details');fold.className='det-history-fold det-expiry-fold';
+            const summary=document.createElement('summary'),short=document.createElement('span'),expanded=document.createElement('span'),full=document.createElement('div');
+            short.className='det-history-collapsed';short.textContent=dates[0]+' → ⋯ → '+dates.slice(-2).join(' → ');
+            expanded.className='det-history-expanded';expanded.textContent='收合到期歷程';
+            full.textContent=dates.join(' → ');summary.append(short,expanded);summary.setAttribute('aria-label','展開或收合全部 '+dates.length+' 筆到期歷程');fold.append(summary,full);value.replaceChildren(fold);
         }
         const other=groups[2];other.classList.add('det-other-info');
         for(const item of other.querySelectorAll('.det-row')){

@@ -1,0 +1,88 @@
+/* Shared visual components for existing modal, form, and action markup. */
+:root {
+ --ui-space-xs:4px;
+ --ui-space-sm:8px;
+ --ui-space-md:12px;
+ --ui-space-lg:16px;
+ --ui-control-height:32px;
+ --ui-action-height:36px;
+ --ui-input-font:14px;
+ --ui-control-radius:8px;
+ --ui-dialog-radius:14px;
+ --ui-dialog-inset:20px;
+ --ui-primary:#193b58;
+ --ui-border:#dce3ea;
+ --ui-danger:#b42318;
+}
+:is(.modal,.fill-menu,.transcript-dialog,.ic-dialog) {
+ box-sizing:border-box;
+ border-radius:var(--ui-dialog-radius);
+ overscroll-behavior:contain;
+}
+.fill-overlay>.fill-menu {
+ max-height:calc(100dvh - 2 * var(--ui-dialog-inset));
+ overflow-y:auto;
+}
+:is(.modal-head,.modal-foot,.transcript-head,.transcript-footer,.ic-head,.ic-actions) {
+ gap:var(--ui-space-sm);
+}
+:is(.modal-title,.transcript-head h2,.ic-head h2) {
+ font-size:18px;
+ line-height:1.4;
+ font-weight:700;
+ color:var(--ui-primary);
+ overflow-wrap:anywhere;
+}
+.form-row {gap:var(--ui-space-sm)}
+.fg {gap:var(--ui-space-xs);margin-bottom:var(--ui-space-sm)}
+.fg>label {line-height:1.4;min-height:20px}
+:is(.fg,.fill-menu) :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]):not([type=hidden]),select,textarea) {
+ box-sizing:border-box;
+ font-family:inherit;
+ min-width:0;
+ border-radius:var(--ui-control-radius);
+}
+.fg :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]):not([type=hidden]),select) {
+ min-height:var(--ui-control-height);
+}
+:is(.modal-foot,.transcript-footer) button,
+.fill-menu>div:last-child>button {
+ min-height:var(--ui-action-height);
+ border-radius:var(--ui-control-radius)!important;
+ padding:6px 16px!important;
+ font-family:inherit;
+ font-size:var(--ui-input-font);
+ font-weight:600;
+ line-height:1.4;
+ white-space:normal;
+}
+:is(.btn-save,.transcript-primary,#perfSaveBtn,#epSaveBtn,#tplSaveBtn,#stplSaveBtn,#otplSaveBtn,#mktSaveBtn) {
+ background:var(--ui-primary)!important;
+ color:white!important;
+ border:1px solid var(--ui-primary)!important;
+}
+.btn-cancel {
+ background:#fff;
+ color:#475569;
+ border:1px solid var(--ui-border);
+}
+:is(.edit-add-heading,.area-section-heading)>.add-row-btn,
+.area-section-heading>button {
+ border-radius:var(--ui-control-radius);
+ font-weight:600;
+}
+:is(.c-del,.det-delete) {color:var(--ui-danger)}
+:is(.modal,.fill-menu,.transcript-dialog,.ic-dialog) :is(button,input,select,textarea):focus-visible {
+ outline:2px solid #1486a4;
+ outline-offset:2px;
+}
+@media(max-width:768px),(max-width:1024px) and (pointer:coarse) {
+ :root {
+  --ui-control-height:40px;
+  --ui-action-height:42px;
+  --ui-input-font:16px;
+  --ui-dialog-inset:12px;
+ }
+ :is(.modal-foot,.transcript-footer) {flex-wrap:wrap}
+}
+@media(max-height:600px) {:root{--ui-dialog-inset:8px}}

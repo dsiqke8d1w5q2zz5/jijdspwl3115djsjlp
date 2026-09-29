@@ -1,0 +1,111 @@
+/* Shared layout corrections from the desktop / iPhone 15 Pro Max audit. */
+#dModal .det-schedule-row.det-schedule-no-time{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:12px;align-items:baseline}
+#dModal .det-schedule-no-time .det-key{width:auto!important;margin-right:0!important;white-space:nowrap!important}
+.det-history-fold>summary{cursor:pointer;list-style:none;color:#17637a;line-height:1.5;min-height:32px;display:flex;align-items:center;padding:3px 0}
+.det-history-fold>summary::-webkit-details-marker{display:none}
+.det-history-fold>summary:focus-visible{outline:2px solid #1486a4;outline-offset:2px}
+.det-history-fold .det-history-expanded{display:none}
+.det-history-fold[open]>summary .det-history-expanded{display:inline}
+.det-history-fold[open]>summary .det-history-collapsed{display:none}
+.det-renewal-middle>summary{padding-left:8px;border-bottom:1px solid #eee}
+.det-renewal-middle>summary .det-history-collapsed{font-size:22px;letter-spacing:3px}
+.modal-head,.modal-foot,.fill-menu,.transcript-dialog{box-sizing:border-box}
+.modal-head{gap:8px}.modal-title{min-width:0;overflow-wrap:anywhere}
+.roc-date-wrap{min-width:0}.roc-date-wrap>input{min-width:0}
+.input-grp{min-width:0}.input-grp>input{min-width:0}.input-sfx{flex-shrink:0}
+#cr-days-row:not([style*="display:none"]):not([style*="display: none"]){display:grid!important;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px!important}
+#cr-days-row>label{min-width:0!important;padding:7px 0!important;min-height:36px;box-sizing:border-box}
+/* Intermediate widths must not keep the wide desktop toolbar/card geometry. */
+@media(min-width:769px) and (max-width:1199px){
+ .header{flex-wrap:wrap;gap:6px}.header-tools{flex:1 1 100%;justify-content:flex-end;flex-wrap:wrap}
+ .header .search-wrap{min-width:160px;flex:1}.header .header-btn{min-height:34px}
+ .main{min-width:0}.card{min-width:0;max-width:100%;flex-wrap:wrap}
+ .card-main{min-width:0;flex:1 1 180px}.card-meta{min-width:0;flex:1 1 260px}
+ .card-notes-col{min-width:0;flex:1 1 100%}.card-bottom-right{margin-left:auto}
+ .card-divider{display:none}
+}
+@media(max-width:768px),(max-width:1024px) and (pointer:coarse){
+ /* 16px editing text avoids focus-triggered zoom on iPhone. */
+ body input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]):not([type=file]):not([type=color]),body select,body textarea{font-size:16px!important;line-height:1.35;min-width:0;max-width:100%;box-sizing:border-box}
+ body :is(.modal-body,.fill-menu,.transcript-dialog,.ic-dialog) input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]):not([type=file]):not([type=color]),body :is(.modal-body,.fill-menu,.transcript-dialog,.ic-dialog) select{min-height:40px;height:auto}
+ .cal-btn{width:40px!important;min-width:40px!important;min-height:40px!important;height:40px!important;flex:0 0 40px;display:inline-flex;align-items:center;justify-content:center;padding:0!important}
+ body #fModal .modal-body .cal-btn{width:40px!important;height:40px!important;min-height:40px!important}
+ body #fModal{--form-control-height:40px}
+ .modal-foot{padding-bottom:max(8px,env(safe-area-inset-bottom))!important;flex-shrink:0}
+ .modal-foot .btn{min-height:42px}
+ .modal-head>.btn-x,.modal-head .btn-x,.det-close{min-width:40px;min-height:40px;flex-shrink:0}
+ #fModal #editClientName{font-size:20px!important;line-height:1.3;min-width:0;overflow-wrap:anywhere}
+ #fModal .modal-head{flex-wrap:wrap;padding:8px 12px}
+ #fModal .modal-body{scroll-padding-bottom:16px}
+ #fModal .type-picker{gap:5px}.tp-btn{min-height:38px}
+ #fModal .edit-object-tabs button,#dModal .det-property-tabs button{min-height:36px;height:auto;line-height:1.35}
+ #fModal .edit-section-toolbar>.edit-object-tabs,#dModal .det-property-toolbar,#dModal .det-property-toolbar>.det-property-tabs{height:auto;min-height:48px}
+ #fModal .edit-add-heading>.add-row-btn,#fModal .area-section-heading>button{min-height:36px}
+ #fModal .c-del{min-width:30px;min-height:30px}
+ #fModal [data-addr-row]>button{min-height:40px!important;height:40px!important}
+ #dModal .det-row .det-val{min-width:0;overflow-wrap:anywhere}
+ #dModal #detNavWrap{gap:5px!important;flex-wrap:wrap}
+ #dModal .det-header-actions button{min-height:36px}
+ .fill-overlay:has(.fill-menu){padding:12px!important;align-items:center!important;overflow-y:auto;box-sizing:border-box}
+ .fill-overlay>.fill-menu{min-width:0!important;max-width:100%!important;max-height:calc(100dvh - 24px)!important;overflow-y:auto;overscroll-behavior:contain}
+ .fill-menu input,.fill-menu select,.fill-menu textarea{min-width:0;box-sizing:border-box}
+ .fill-menu>div:last-child>button{min-height:40px}
+ .fill-menu:has(#perfDate) .fg label,.fill-menu:has(#perfDate) .input-sfx{line-height:1.35}
+ #perfOtherFields{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #perfOtherFields>.fg:last-child{grid-column:1/-1}
+ #perfFixed div:has(>div>.roc-date-wrap>#perfHistStart):has(>div>.roc-date-wrap>#perfHistEnd){display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px!important}
+ #perfFixed div:has(>div>.roc-date-wrap>#perfHistStart):has(>div>.roc-date-wrap>#perfHistEnd)>span{display:none}
+ #perfFixed div:has(>div>.roc-date-wrap>#perfHistStart):has(>div>.roc-date-wrap>#perfHistEnd)>div{min-width:0}
+ #perfModal button,#tplModal .modal-head button,#tplTabs button{min-height:36px}
+ #perfModal .modal,#tplModal .modal{height:100dvh!important;max-height:100dvh!important}
+ .transcript-dialog{max-height:calc(100dvh - 24px);padding:12px}
+ .transcript-dialog .transcript-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.transcript-dialog .transcript-fields>label{min-width:0}.transcript-dialog .transcript-fields>.transcript-sources{grid-column:1/-1}
+ .transcript-dialog .transcript-fields>label:first-child{grid-column:1/-1}
+ .transcript-head{position:sticky;top:-12px;z-index:3;background:#faf9f7;padding:8px 0}
+ .transcript-footer button{min-height:40px}.transcript-dialog input[type=file]{max-width:100%;font-size:14px}
+ .area-editor .area-measure-line{grid-template-columns:minmax(0,1fr) 12px minmax(0,1fr)!important;gap:5px}
+ .area-editor .area-measure-line>label:first-child{grid-column:1/-1}
+ .area-editor .area-measure-line>label:nth-child(2){grid-column:1}
+ .area-editor .area-measure-line>.area-slash{grid-column:2}
+ .area-editor .area-measure-line>label:nth-child(4){grid-column:3}
+ .area-editor .area-measure-line>button{grid-column:1/-1;justify-self:end;min-height:36px}
+ .area-editor .area-embedded-line>strong{grid-column:1/-1}
+ .area-editor .area-building-row .area-row-head{grid-template-columns:minmax(0,1fr) auto}
+ .area-editor .area-building-row .area-row-head>input{grid-row:2;grid-column:1/-1}
+ .area-editor .area-common-head{grid-template-columns:minmax(0,1fr) auto}
+ .area-editor .area-common-head>input{grid-column:1/-1;grid-row:2}
+ .area-editor .area-common-head>.area-method{display:none}
+ .area-editor .area-parking-info{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .area-editor .area-parking-info>label:last-child{grid-column:1/-1}
+ .ic-dialog .ic-head{padding:10px 12px}.ic-dialog .ic-head h2{font-size:19px}
+ .ic-dialog .ic-tabs{scroll-padding:8px}.ic-dialog .ic-tabs button{flex-shrink:0}
+ .ic-dialog .ic-section{padding:10px 0}.ic-dialog .ic-section>div:not([hidden]){margin-top:8px}
+ .ic-dialog .ic-actions{gap:6px}.ic-dialog .ic-actions button{min-height:40px}
+ .ic-dialog .ic-controls{padding-bottom:max(16px,env(safe-area-inset-bottom))}
+ .ic-dialog .ic-preview-head{gap:6px}.ic-dialog .ic-view-tools{flex-wrap:wrap}
+}
+@media(max-height:600px){
+ .fill-overlay:has(.fill-menu){padding:8px!important;align-items:flex-start!important;overflow-y:auto}
+ .fill-overlay>.fill-menu{max-height:calc(100dvh - 16px)!important;overflow-y:auto;min-height:0!important}
+ .fill-menu:has(#qs-date),.fill-menu:has(#cl-date){height:auto!important;min-height:0!important}
+ .ic-dialog{height:98dvh;max-height:98dvh}.ic-dialog .ic-head{padding-top:6px;padding-bottom:6px}
+ .ic-dialog .ic-toolbar{padding-top:5px;padding-bottom:5px}
+ .transcript-dialog{max-height:calc(100dvh - 16px)}
+}
+/* Keep date, category and time aligned even in the desktop's narrow third pane. */
+#fModal #scheduleList .c-row{display:grid!important;grid-template-columns:66px minmax(0,1fr) 84px;align-items:center}
+#fModal #scheduleList .c-row>div:first-child,#fModal #scheduleList .c-row>input,#fModal #scheduleList .sched-recur{grid-column:1/-1;width:100%!important;min-width:0}
+#fModal #scheduleList :is(.sched-type,.sched-time,.roc-date-wrap){width:100%!important;min-width:0}
+#fModal #scheduleList .roc-date-wrap input{width:0;min-width:0}
+@media(min-width:769px){.cal-btn{min-width:32px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center}}
+@media(max-width:768px){.mobile-setting-menu{max-height:calc(100dvh - 120px);overflow-y:auto}.mobile-setting-menu>button{min-height:44px}}
+#fModal #scheduleList .sched-time{padding-left:6px!important;padding-right:2px!important}
+@media(max-width:768px),(max-width:1024px) and (pointer:coarse){
+ #tplBody>div>div:has(>button[onclick*="Template"]){flex-wrap:wrap;justify-content:flex-end}
+ #tplBody>div>div:has(>button[onclick*="Template"])>span:first-child{flex:1 1 100%!important;overflow-wrap:anywhere}
+ #tplBody button{min-height:40px;min-width:40px}
+ .header{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
+ .modal-head,.modal-foot{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
+}@media(max-width:768px),(max-width:1024px) and (pointer:coarse){
+ .transcript-dialog .transcript-fields>label:has(input[aria-label*="面積"]){grid-column:1/-1}
+}

@@ -1,0 +1,17 @@
+const assert=require('node:assert/strict'),path=require('node:path'),{pathToFileURL}=require('node:url');
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE);
+(async()=>{const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});try{
+ for(const width of [1440,1100,430]){
+  const page=await browser.newPage({viewport:{width,height:932}});
+  await page.route('https://**/*',r=>r.abort());
+  await page.goto(pathToFileURL(path.join(__dirname,'../index.html')).href);
+  await page.evaluate(()=>{DB=[{id:'spacing',name:'測試',type:'庫存屋主',types:['庫存屋主'],sProperties:[{community:'測試',mainBldg:'20',parkingSz:'5'}],schedules:[{date:'2026-10-05',time:'',memo:'未指定時間的行程'},{date:'2026-10-31',time:'15:00',memo:'指定時間的行程'}]}];curFilter='庫存屋主';showDet('spacing');});
+  const row=page.locator('.det-schedule-no-time');
+  const key=await row.locator('.det-key').boundingBox(),value=await row.locator('.det-val').boundingBox();
+  assert(Math.abs(value.x-key.x-key.width-12)<2,'untimed memo immediately follows date');
+  assert.equal(await page.locator('.det-schedule-row:not(.det-schedule-no-time)').count(),1);
+  assert.match(await page.locator('.det-schedule-row:not(.det-schedule-no-time)').innerText(),/15:00/);
+  assert.equal(await page.locator('.det-area-parking h4').first().textContent(),'車位與公設比');
+  await page.close();console.log('PASS untimed schedule spacing and area label '+width);
+ }
+}finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1});
