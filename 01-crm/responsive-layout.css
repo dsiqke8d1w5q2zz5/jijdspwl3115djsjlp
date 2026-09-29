@@ -156,3 +156,9 @@
 #dModal .det-bank-parts{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 6px;max-width:100%}
 #dModal .det-bank-name{min-width:0;max-width:100%;overflow-wrap:anywhere}
 #dModal .det-bank-account{white-space:nowrap;word-break:normal}
+
+#buyerFilter .bf-row{display:grid;grid-template-columns:repeat(auto-fill,72px);gap:8px;margin-bottom:8px}
+#buyerFilter .bf-row:last-child{margin-bottom:0}
+#buyerFilter .bf-row>span{display:none}
+#buyerFilter button.bf-chip,#sellerFilter button.bf-chip{width:72px;height:36px;padding:0 8px;font-size:14px;line-height:1.2;display:inline-flex;align-items:center;justify-content:center}
+@media(max-width:768px){#buyerFilter button.bf-chip,#sellerFilter button.bf-chip{height:40px}}
