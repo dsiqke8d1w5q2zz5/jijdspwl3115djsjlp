@@ -215,3 +215,7 @@
  .main-fixed-top:has(.buyer-filter.on)>.main-bar{margin:10px 16px 6px}
  .main-fixed-top>.main-bar:has(#sortSel[style*="display: none"]):has(#archiveToggle[style*="display: none"]){margin:0;min-height:0}
 }
+
+/* Overview has no list controls and reserves no toolbar space. */
+.main-fixed-top.overview-toolbar-hidden{display:none}
+#dashboard>.dash-sections{margin-top:0}

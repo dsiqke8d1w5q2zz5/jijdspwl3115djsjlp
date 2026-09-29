@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20260930audit28">
+    <link rel="stylesheet" href="area-editor.css?v=20260930audit29">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit28">
-    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit28">
+    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit29">
+    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit29">
 </head>
 <body>
 
@@ -4315,6 +4315,7 @@ function _alignSidebarToContent() {
     }, 50);
 }
 function render() {
+    document.getElementById('_loadMoreBtn')?.remove();
     var _ms = document.querySelector('.main-scroll'); if (_ms) _ms.style.paddingTop = '';
     rebuildDbMap();
     // 單次遍歷計算所有計數（避免 TYPES.length * 2 次重複 filter）
@@ -4347,6 +4348,7 @@ function render() {
     var isDashboard = curFilter === 'all' && !q && !showThisMonthMode;
     if (showThisMonthMode) document.getElementById('filterTitle').textContent = '本月新增';
     document.getElementById('dashboard').style.display = isDashboard ? 'block' : 'none';
+    document.querySelector('.main-fixed-top').classList.toggle('overview-toolbar-hidden', isDashboard);
     document.getElementById('grid').style.display = isDashboard ? 'none' : '';
     document.getElementById('sortSel').style.display = (isDashboard || curFilter === 'all') ? 'none' : '';
     if (isDashboard) {
@@ -12220,7 +12222,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260930audit28';
+var APP_VERSION = '20260930audit29';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13328,9 +13330,9 @@ function deleteMktTemplate(idx) {
 <script src="image-studio.js?v=20260928sync1"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
 <script src="image-composer.js?v=20260928sync1"></script>
-<script src="area-editor.js?v=20260930audit28"></script>
-<script src="sync-notice.js?v=20260930audit28"></script>
-<script src="detail-properties.js?v=20260930audit28"></script>
-<script src="edit-layout.js?v=20260930audit28"></script>
+<script src="area-editor.js?v=20260930audit29"></script>
+<script src="sync-notice.js?v=20260930audit29"></script>
+<script src="detail-properties.js?v=20260930audit29"></script>
+<script src="edit-layout.js?v=20260930audit29"></script>
 </body>
 </html>
