@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20260930audit64">
+    <link rel="stylesheet" href="area-editor.css?v=20260930audit65">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit64">
-    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit64">
+    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit65">
+    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit65">
 </head>
 <body>
 
@@ -3583,6 +3583,20 @@ function _showDataCheckResult(issues) {
     document.body.appendChild(overlay);
 }
 
+// Display common copied emoji names without changing the saved contact record.
+function escContactMemo(value) {
+    var aliases = Object.freeze({
+        'hands together':'🙏', 'thumbs up':'👍', 'thumbs down':'👎',
+        'smile':'😊', 'laugh':'😆', 'cry':'😢', 'angry':'😠',
+        'surprised':'😮', 'heart':'❤️', 'broken heart':'💔',
+        'clap':'👏', 'muscle':'💪', 'sparkles':'✨', 'party popper':'🎉'
+    });
+    return esc(String(value == null ? '' : value).replace(/\(([a-z]+(?:[ -][a-z]+)*)\)/gi, function(token, name) {
+        var key = name.toLowerCase().replace(/-/g, ' ');
+        return Object.prototype.hasOwnProperty.call(aliases, key) ? aliases[key] : token;
+    }));
+}
+
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 // 給 `onclick="foo('" + escJs(val) + "')"` 這種把值嵌在單引號內的 JS 字串用
 // （esc() 會把 ' 變 &#39;，HTML 解析後還原成 '，破壞 JS；escJs 輸出可直接塞進單引號）
@@ -4788,7 +4802,7 @@ function renderCard(c) {
                     if (!indexed.length) return '';
                     var show = indexed.slice(0, 3);
                     return '<div style="margin-bottom:4px;font-size:13px;line-height:1.4;display:flex;gap:6px"><span style="color:var(--muted);flex-shrink:0">紀錄</span><div>' +
-                        show.map(function(item){ return '<div style="color:#374151;cursor:pointer" onclick="event.stopPropagation();quickContactLog(\''+_eid+'\','+item.idx+')"><span style="color:#059669;font-weight:600">'+esc(isoToROC(item.log.date))+'</span> '+esc(item.log.memo)+'</div>'; }).join('') +
+                        show.map(function(item){ return '<div style="color:#374151;cursor:pointer" onclick="event.stopPropagation();quickContactLog(\''+_eid+'\','+item.idx+')"><span style="color:#059669;font-weight:600">'+esc(isoToROC(item.log.date))+'</span> '+escContactMemo(item.log.memo)+'</div>'; }).join('') +
                     '</div></div>';
                 })()}
                 <div class="notes-inline${notesText?'':' empty-note'}" onclick="editNoteInline('${_eid}',this,'${esc(showType)}')" style="display:flex;gap:6px"><span style="color:var(--muted);flex-shrink:0">備註</span><div style="word-break:break-word">${notesText ? esc(notesText) : '<span style="color:#78716C;font-size:10px">點擊新增備註…</span>'}</div></div>
@@ -5465,7 +5479,7 @@ function _detLogChip(year, label, active){
 }
 function _detLogRows(year){
     var list = year ? _detLogData.filter(function(l){ return _rocYear(l.date) === year; }) : _detLogData;
-    var row = function(log){ return '<div class="det-row"><span class="det-key" style="color:#059669;font-weight:700">'+esc(isoToROC(log.date))+'</span><span class="det-val">'+esc(log.memo)+'</span></div>'; };
+    var row = function(log){ return '<div class="det-row"><span class="det-key" style="color:#059669;font-weight:700">'+esc(isoToROC(log.date))+'</span><span class="det-val">'+escContactMemo(log.memo)+'</span></div>'; };
     var html = list.slice(0,10).map(row).join('');
     if (list.length > 10) {
         html += '<div id="detLogMore" style="display:none">' + list.slice(10).map(row).join('') + '</div>' +
@@ -7876,7 +7890,7 @@ function showContactLog(clientId) {
     box.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="font-weight:700;font-size:15px"><i class="ti ti-notebook" style="color:#8B7355"></i> 聯繫紀錄 — '+esc(c.name)+'</span><button onclick="closeOverlay(this.closest(\'.fill-overlay\'))" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted)">✕</button></div>' +
         sorted.map(function(log, i) {
             return '<div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start">' +
-                '<div><div style="font-weight:600;color:#059669;font-size:13px">'+esc(isoToROC(log.date))+'</div><div style="font-size:14px;color:#374151;margin-top:2px">'+esc(log.memo)+'</div></div>' +
+                '<div><div style="font-weight:600;color:#059669;font-size:13px">'+esc(isoToROC(log.date))+'</div><div style="font-size:14px;color:#374151;margin-top:2px">'+escContactMemo(log.memo)+'</div></div>' +
                 '<div style="display:flex;gap:4px;flex-shrink:0"><button class="btn-ic" onclick="closeOverlay(this.closest(\'.fill-overlay\'));quickContactLog(\''+esc(clientId)+'\','+i+')" title="編輯" style="font-size:12px;padding:2px 4px"><i class="ti ti-pencil" style="color:#57534E"></i></button><button class="btn-ic" onclick="closeOverlay(this.closest(\'.fill-overlay\'));deleteContactLog(\''+esc(clientId)+'\','+i+')" title="刪除" style="font-size:12px;padding:2px 4px"><i class="ti ti-trash" style="color:#DC2626"></i></button></div></div>';
         }).join('') +
         '<div style="margin-top:12px"><button onclick="closeOverlay(this.closest(\'.fill-overlay\'));quickContactLog(\''+esc(clientId)+'\')" style="width:100%;padding:10px;border:none;border-radius:8px;background:#059669;color:white;font-size:14px;font-weight:700;cursor:pointer">＋ 新增紀錄</button></div>';
@@ -12221,7 +12235,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260930audit64';
+var APP_VERSION = '20260930audit65';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13383,12 +13397,12 @@ function deleteMktTemplate(idx) {
 <script src="brand-banner.js?v=20260928sync1"></script>
 <script src="image-storage.js?v=20260928sync1"></script>
 <script src="image-redaction.js?v=20260928sync1"></script>
-<script src="image-studio.js?v=20260930audit64"></script>
+<script src="image-studio.js?v=20260930audit65"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
-<script src="image-composer.js?v=20260930audit64"></script>
-<script src="area-editor.js?v=20260930audit64"></script>
-<script src="sync-notice.js?v=20260930audit64"></script>
-<script src="detail-properties.js?v=20260930audit64"></script>
-<script src="edit-layout.js?v=20260930audit64"></script>
+<script src="image-composer.js?v=20260930audit65"></script>
+<script src="area-editor.js?v=20260930audit65"></script>
+<script src="sync-notice.js?v=20260930audit65"></script>
+<script src="detail-properties.js?v=20260930audit65"></script>
+<script src="edit-layout.js?v=20260930audit65"></script>
 </body>
 </html>
