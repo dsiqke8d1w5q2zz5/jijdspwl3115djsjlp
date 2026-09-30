@@ -691,3 +691,6 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
  #dModal .det-activity-content .det-schedule-card .det-row,
  #dModal .det-activity-content #detLogList .det-row{grid-template-columns:var(--activity-date-width,92px) minmax(0,1fr)}
 }
+/* Cover the pane inset behind sticky headers while scrolling. */
+#fModal.edit-layout .edit-property-head::before,
+#fModal.edit-layout .edit-section-toolbar::before{content:'';position:absolute;inset:-16px -16px 0;background:#fff;z-index:-1;pointer-events:none}
