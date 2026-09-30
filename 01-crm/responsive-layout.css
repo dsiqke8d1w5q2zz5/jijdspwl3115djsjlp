@@ -706,3 +706,6 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
 #dModal .det-category-tabs>button:first-child{padding-left:0}
 #dModal .det-property-tabs>button:first-child{padding-left:0!important}
 #dModal .det-folder-actions>.det-folder-link{padding-left:0}
+/* Use the same leading edge for every editing property tab group. */
+#fModal .edit-section-toolbar>.edit-object-tabs{padding-left:0!important;padding-right:0!important;border-left:0;border-right:0}
+#fModal .edit-object-tabs>button:first-child{padding-left:0!important}
