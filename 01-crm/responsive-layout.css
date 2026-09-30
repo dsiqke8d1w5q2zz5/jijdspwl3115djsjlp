@@ -702,3 +702,7 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
 #dModal .det-property-toolbar>.det-property-tabs,#fModal .edit-section-toolbar>.edit-object-tabs{row-gap:3px;padding-top:3px!important;padding-bottom:3px!important}
 #dModal .det-property-tabs button,#fModal .edit-object-tabs button{min-height:30px!important;padding:3px 10px!important;line-height:1.35}
 #dModal .det-property-toolbar{min-height:0!important;margin-top:2px!important}
+/* Align the leading content of property controls with the fields below. */
+#dModal .det-category-tabs>button:first-child{padding-left:0}
+#dModal .det-property-tabs>button:first-child{padding-left:0!important}
+#dModal .det-folder-actions>.det-folder-link{padding-left:0}
