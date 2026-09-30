@@ -721,3 +721,4 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
 #fModal [data-fee-layout]>div:not(.fee-total):not(.fee-more),#fModal .fee-extra-grid>div{grid-template-columns:70px minmax(0,1fr)}
 
 #fModal div:has(+.rp-meter-row){font-size:14px!important;font-weight:600}
+#fModal #rPropertyList [data-fee-layout] label{font-size:13px!important;font-weight:600;color:#64748b}

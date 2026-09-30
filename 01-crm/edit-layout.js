@@ -254,3 +254,24 @@ desktop.addEventListener('change',()=>{restore();if(modal.style.display==='flex'
  });}
  new MutationObserver(arrangeFees).observe(host,{childList:true,subtree:true});arrangeFees();
 })();
+
+/* Confirm form-row deletion before the original handler can remove data. */
+(function(){
+ const approved=new WeakSet();
+ document.addEventListener('click',event=>{
+  const button=event.target.closest('button');if(!button)return;
+  if(approved.has(button)){approved.delete(button);return;}
+  const formDelete=button.matches('#fModal .c-del');
+  const areaDelete=button.closest('.area-editor')&&button.textContent.trim()==='移除';
+  const intermediary=button.matches('.perf-intermediary-remove');
+  const history=button.id==='btnHistDel';
+  if(!formDelete&&!areaDelete&&!intermediary&&!history)return;
+  event.preventDefault();event.stopImmediatePropagation();
+  let label=areaDelete?'這筆面積明細':intermediary?'這位中人及費用':history?'勾選的歷程':'這筆資料';
+  if(formDelete){const group=button.closest('#sPropertyList,#rPropertyList,#dealList,#dAddrList,#bDemandList,#scheduleList,#sharedContactsList');
+   if(group)label=({sPropertyList:'這筆庫存物件',rPropertyList:'這筆租案資料',dealList:'這筆成交物件',dAddrList:'這筆商機物件',bDemandList:'這筆買方需求',scheduleList:'這筆行程',sharedContactsList:'這位聯絡人'})[group.id];
+   if(button.closest('.rp-equip-custom .equip-item'))label='這個設備項目';
+  }
+  confirmAction('確定刪除'+label+'？',()=>{if(!button.isConnected)return;approved.add(button);button.click();});
+ },true);
+})();
