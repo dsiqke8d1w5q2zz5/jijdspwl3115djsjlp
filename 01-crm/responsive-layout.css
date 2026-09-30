@@ -702,7 +702,3 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
 #dModal .det-property-toolbar>.det-property-tabs,#fModal .edit-section-toolbar>.edit-object-tabs{row-gap:3px;padding-top:3px!important;padding-bottom:3px!important}
 #dModal .det-property-tabs button,#fModal .edit-object-tabs button{min-height:30px!important;padding:3px 10px!important;line-height:1.35}
 #dModal .det-property-toolbar{min-height:0!important;margin-top:2px!important}
-/* Equal columns sized from the longest property label. */
-#dModal .det-property-toolbar>.det-property-tabs,#fModal .edit-section-toolbar>.edit-object-tabs{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(min(100%,var(--property-tab-width,120px)),1fr));gap:3px 6px;align-items:stretch}
-#dModal .det-property-tabs button,#fModal .edit-object-tabs button{width:100%;min-width:0;text-align:center}
-#fModal .edit-section-toolbar>.edit-object-tabs[hidden]{display:none!important}
