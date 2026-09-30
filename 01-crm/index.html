@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20260930audit68">
+    <link rel="stylesheet" href="area-editor.css?v=20260930audit69">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit68">
-    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit68">
+    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit69">
+    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit69">
 </head>
 <body>
 
@@ -10827,7 +10827,7 @@ function renderPerformance() {
     var _totalFeeNoTax = buyFeeNoTax + rentFeeNoTax;
     var _totalFeeOtherIncome = buyFeeOtherIncome + rentFeeOtherIncome;
     var intermediaryTotal = filtered.reduce(function(sum,r){return sum + perfIntermediaryAmount(r);},0);
-    var intermediaryCount = filtered.filter(function(r){return r.intermediaryFee != null && r.intermediaryFee !== '';}).length;
+    var intermediaryCount = filtered.filter(function(r){return perfIntermediaries(r).some(function(item){return item.fee!=='';});}).length;
     var _rate = 0.63;
     var _totalIncome = Math.round((buyFeeTax + rentFeeTax) * _rate + _totalFeeNoTax + _totalFeeOtherIncome);
     html += '<div class="perf-summary-cards" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">' +
@@ -10851,15 +10851,22 @@ function renderPerformance() {
     '</div>';
     var intermediaryGroups = new Map();
     filtered.forEach(function(r){
-        var name = String(r.intermediaryName||'').trim().replace(/\s+/g,' '); if (!name) return;
-        var group = intermediaryGroups.get(name) || {name:name,count:0,income:0,fee:0};
+        var items = perfIntermediaries(r), perCase = new Map();
         var tax = parseFloat(r.feeTax)||0, cash = parseFloat(r.feeNoTax)||0, other = parseFloat(r.feeOther)||0;
         if (!r.caseType && !tax && !cash && !other && r.fee) tax = parseFloat(r.fee)||0;
-        group.count++; group.income += tax * _rate + cash + other; group.fee += perfIntermediaryAmount(r);
-        intermediaryGroups.set(name,group);
+        items.forEach(function(item){
+            var name=item.name.replace(/\s+/g,' '); if (!name) return;
+            var part=perCase.get(name)||{income:0,fee:0};
+            part.income += item.income!=='' ? (Number(item.income)||0) : (items.length===1?tax*_rate+cash+other:0);
+            part.fee += perfIntermediaryAmount({intermediaries:[item]}); perCase.set(name,part);
+        });
+        perCase.forEach(function(part,name){
+            var group=intermediaryGroups.get(name)||{name:name,count:0,income:0,fee:0};
+            group.count++;group.income+=part.income;group.fee+=part.fee;intermediaryGroups.set(name,group);
+        });
     });
     if (intermediaryGroups.size) {
-        html += '<details class="perf-contribution"><summary>中人貢獻統計 <span>'+intermediaryGroups.size+' 位</span></summary><p>占比＝該中人案件收入 ÷ 本期總收入；中人費另計。</p><div class="perf-contribution-scroll"><table><thead><tr><th>中人姓名</th><th>合作筆數</th><th>案件收入</th><th>中人費</th><th>收入占比</th></tr></thead><tbody>' +
+        html += '<details class="perf-contribution"><summary>中人貢獻統計 <span>'+intermediaryGroups.size+' 位</span></summary><p>占比＝中人貢獻收入 ÷ 本期總收入；多位按自訂金額計算，中人費另計。</p><div class="perf-contribution-scroll"><table><thead><tr><th>中人姓名</th><th>合作筆數</th><th>貢獻收入</th><th>中人費</th><th>收入占比</th></tr></thead><tbody>' +
             Array.from(intermediaryGroups.values()).sort(function(a,b){return b.income-a.income || a.name.localeCompare(b.name);}).map(function(g){return '<tr><th>'+esc(g.name)+'</th><td>'+g.count+'</td><td>'+Math.round(g.income).toLocaleString()+'</td><td>'+g.fee.toLocaleString()+'</td><td>'+(_totalIncome>0?(g.income/_totalIncome*100).toFixed(1)+'%':'—')+'</td></tr>';}).join('') +
             '</tbody></table></div></details>';
     }
@@ -10901,7 +10908,7 @@ function renderPerfList(filtered) {
     if (_perfSearch) {
         var _sq = _perfSearch.toLowerCase();
         filtered = filtered.filter(function(r) {
-            return (r.client||'').toLowerCase().indexOf(_sq) >= 0 || (r.memo||'').toLowerCase().indexOf(_sq) >= 0 || (r.intermediaryName||'').toLowerCase().indexOf(_sq) >= 0;
+            return (r.client||'').toLowerCase().indexOf(_sq) >= 0 || (r.memo||'').toLowerCase().indexOf(_sq) >= 0 || perfIntermediaries(r).some(function(item){return item.name.toLowerCase().indexOf(_sq)>=0;});
         });
     }
     // 更新清除按鈕
@@ -10957,7 +10964,7 @@ function renderPerfList(filtered) {
                     '<button type="button" onclick="editPerfRecord('+idx+')" title="修改" aria-label="修改業績紀錄"><i class="ti ti-pencil"></i></button>' +
                     '<button type="button" onclick="deletePerfRecord('+idx+')" title="刪除" aria-label="刪除業績紀錄">✕</button>' +
                 '</div>' +
-                ((r.intermediaryName || (r.intermediaryFee != null && r.intermediaryFee !== '')) ? '<div class="perf-record-intermediary"><span>中人 '+esc(r.intermediaryName||'未填姓名')+'</span>'+((r.intermediaryFee != null && r.intermediaryFee !== '')?'<strong>中人費 '+perfIntermediaryAmount(r).toLocaleString()+' 元</strong>':'')+'</div>' : '') +
+                perfIntermediaryRecordRows(r) +
                 (r.memo ? '<div class="perf-record-memo">'+esc(r.memo)+'</div>' : '') +
             '</div>';
         });
@@ -11127,21 +11134,59 @@ function perfGoClient(id) {
     currentDetIdx = 0;
     showDet(id, '');
 }
-function perfIntermediaryFields(prefix, record) {
+function perfIntermediaries(record) {
     var r = record || {};
-    return '<div class="perf-intermediary-fields"><div class="fg"><label for="'+prefix+'IntermediaryName">中人姓名</label><input id="'+prefix+'IntermediaryName" value="'+esc(r.intermediaryName||'')+'" placeholder="選填"></div><div class="fg"><label for="'+prefix+'IntermediaryFee">中人費用</label><div class="input-grp"><input id="'+prefix+'IntermediaryFee" inputmode="decimal" value="'+esc(r.intermediaryFee == null ? '' : r.intermediaryFee)+'" placeholder="選填"><span class="input-sfx">元</span></div></div></div>';
+    var items = Array.isArray(r.intermediaries) ? r.intermediaries : [{name:r.intermediaryName,fee:r.intermediaryFee}];
+    return items.filter(function(item){return item && (String(item.name||'').trim() || (item.fee != null && item.fee !== '') || (item.income != null && item.income !== ''));}).map(function(item){return {name:String(item.name||'').trim(),fee:item.fee == null ? '' : String(item.fee),income:item.income == null ? '' : String(item.income)};});
+}
+var _perfIntermediaryRowId = 0;
+function perfIntermediaryRow(prefix, item, first) {
+    var rowId = first ? prefix : prefix + (++_perfIntermediaryRowId);
+    return '<div class="perf-intermediary-fields"><div class="fg"><label for="'+rowId+'IntermediaryName">中人姓名</label><input data-middleman="name" id="'+rowId+'IntermediaryName" value="'+esc(item.name||'')+'" placeholder="選填"></div><div class="fg"><label for="'+rowId+'IntermediaryFee">中人費用</label><div class="input-grp"><input data-middleman="fee" id="'+rowId+'IntermediaryFee" inputmode="decimal" value="'+esc(item.fee == null ? '' : item.fee)+'" placeholder="選填"><span class="input-sfx">元</span></div></div><div class="fg perf-intermediary-income"><label for="'+rowId+'IntermediaryIncome">貢獻收入</label><div class="input-grp"><input data-middleman="income" id="'+rowId+'IntermediaryIncome" inputmode="decimal" value="'+esc(item.income == null ? '' : item.income)+'" placeholder="自行分配"><span class="input-sfx">元</span></div></div><button type="button" class="perf-intermediary-remove" onclick="removePerfIntermediary(this)" aria-label="移除此中人" title="移除此中人">×</button></div>';
+}
+function perfIntermediaryFields(prefix, record) {
+    var items = perfIntermediaries(record); if (!items.length) items = [{}];
+    return '<div class="perf-intermediary-editor"><div id="'+prefix+'IntermediaryRows">'+items.map(function(item,i){return perfIntermediaryRow(prefix,item,i===0);}).join('')+'</div><button type="button" class="perf-intermediary-add" onclick="addPerfIntermediary(\''+prefix+'\')">＋ 新增中人</button><p class="perf-intermediary-hint">一位中人留白時，貢獻收入採整筆案件收入；多位請各自填寫金額，未分配的收入不計入中人貢獻。中人費另計。</p></div>';
+}
+function addPerfIntermediary(prefix) {
+    var rows = document.getElementById(prefix+'IntermediaryRows');
+    rows.insertAdjacentHTML('beforeend',perfIntermediaryRow(prefix,{},false));
+    rows.lastElementChild.querySelector('input').focus();
+}
+function removePerfIntermediary(button) {
+    var row = button.closest('.perf-intermediary-fields'), rows = row.parentElement;
+    if (rows.children.length === 1) row.querySelectorAll('input').forEach(function(input){input.value='';});
+    else row.remove();
 }
 function readPerfIntermediary(prefix) {
-    var fee = document.getElementById(prefix+'IntermediaryFee').value.trim().replace(/,/g,'');
-    if (fee && (!/^\d+(?:\.\d{1,2})?$/.test(fee) || !Number.isFinite(Number(fee)) || Number(fee)>Number.MAX_SAFE_INTEGER)) {
-        showToast('中人費用請輸入零以上的金額，最多兩位小數', 'warn');
-        document.getElementById(prefix+'IntermediaryFee').focus(); return null;
-    }
-    return {name:document.getElementById(prefix+'IntermediaryName').value.trim(),fee:fee === '' ? '' : String(Number(fee))};
+    var items = [], invalid = false;
+    document.querySelectorAll('#'+prefix+'IntermediaryRows .perf-intermediary-fields').forEach(function(row){
+        if (invalid) return;
+        var input = row.querySelector('[data-middleman="fee"]');
+        var fee = input.value.trim().replace(/,/g,'');
+        if (fee && (!/^\d+(?:\.\d{1,2})?$/.test(fee) || !Number.isFinite(Number(fee)) || Number(fee)>Number.MAX_SAFE_INTEGER)) {
+            showToast('中人費用請輸入零以上的金額，最多兩位小數','warn'); input.focus(); invalid=true; return;
+        }
+        var name = row.querySelector('[data-middleman="name"]').value.trim();
+        var incomeInput = row.querySelector('[data-middleman="income"]'), income = incomeInput.value.trim().replace(/,/g,'');
+        if (income && (!/^\d+(?:\.\d{1,2})?$/.test(income) || !Number.isFinite(Number(income)) || Number(income)>Number.MAX_SAFE_INTEGER)) {
+            showToast('貢獻收入請輸入零以上的金額，最多兩位小數','warn'); incomeInput.focus(); invalid=true; return;
+        }
+        if (name || fee !== '' || income !== '') items.push({name:name,fee:fee === '' ? '' : String(Number(fee)),income:income === '' ? '' : String(Number(income))});
+    });
+    if (invalid) return null;
+    if (items.length>1 && items.some(function(item){return item.income==='';})) { showToast('多位中人請各自填寫貢獻收入，無分配請填 0','warn'); return null; }
+    var fieldNumber = function(suffix){var input=document.getElementById(prefix+suffix);return input?(parseFloat(input.value)||0):0;};
+    var caseIncome = fieldNumber('FeeTax')*0.63+fieldNumber('FeeNoTax')+Math.round(fieldNumber('OtherAmt')*fieldNumber('OtherRate'));
+    var allocated = items.reduce(function(sum,item){return sum+(Number(item.income)||0);},0);
+    if (allocated>Math.round(caseIncome*100)/100+0.001) {showToast('中人貢獻收入合計不可超過案件收入 '+caseIncome.toLocaleString()+' 元','warn');return null;}
+    return {items:items,name:items.length?items[0].name:'',fee:items.length?items[0].fee:''};
 }
 function perfIntermediaryAmount(r) {
-    var amount = Number(String(r.intermediaryFee || '').replace(/,/g,''));
-    return Number.isFinite(amount) && amount >= 0 ? amount : 0;
+    return perfIntermediaries(r).reduce(function(sum,item){var amount=Number(item.fee.replace(/,/g,''));return sum+(Number.isFinite(amount)&&amount>=0?amount:0);},0);
+}
+function perfIntermediaryRecordRows(r) {
+    return perfIntermediaries(r).map(function(item){return '<div class="perf-record-intermediary"><span>中人 '+esc(item.name||'未填姓名')+(item.income!==''?'<small>貢獻收入 '+Number(item.income).toLocaleString()+' 元</small>':'')+'</span>'+(item.fee!==''?'<strong>中人費 '+perfIntermediaryAmount({intermediaries:[item]}).toLocaleString()+' 元</strong>':'')+'</div>';}).join('');
 }
 function addPerfRecord() {
     var overlay = document.createElement('div');
@@ -11206,7 +11251,7 @@ function addPerfRecord() {
         var intermediary = readPerfIntermediary('perf'); if (!intermediary) return;
         var memo = document.getElementById('perfMemo').value.trim();
         var fee = (parseFloat(feeTax)||0) + (parseFloat(feeNoTax)||0) + (parseFloat(feeOther)||0);
-        _perfRecords.push({ caseType:_perfSelectedCase, category:_perfSelectedCat, date:date, client:client, clientId:clientId, feeTax:feeTax, feeNoTax:feeNoTax, feeOther:feeOther, feeOtherAmt:otherAmt, feeOtherRate:otherRate, fee:String(fee||''), intermediaryName:intermediary.name, intermediaryFee:intermediary.fee, memo:memo, created:new Date().toISOString() });
+        _perfRecords.push({ caseType:_perfSelectedCase, category:_perfSelectedCat, date:date, client:client, clientId:clientId, feeTax:feeTax, feeNoTax:feeNoTax, feeOther:feeOther, feeOtherAmt:otherAmt, feeOtherRate:otherRate, fee:String(fee||''), intermediaries:intermediary.items, intermediaryName:intermediary.name, intermediaryFee:intermediary.fee, memo:memo, created:new Date().toISOString() });
         persistPerf();
         overlay.remove();
         renderPerformance();
@@ -11341,7 +11386,7 @@ function editPerfRecord(idx) {
         var date = rocToISO(document.getElementById('epDate').value);
         if (!date) { showToast('請填寫成交日期', 'warn'); return; }
         var intermediary = readPerfIntermediary('ep'); if (!intermediary) return;
-        r.intermediaryName = intermediary.name; r.intermediaryFee = intermediary.fee;
+        r.intermediaries = intermediary.items; r.intermediaryName = intermediary.name; r.intermediaryFee = intermediary.fee;
         r.caseType = selCase;
         r.category = selCat;
         r.date = date;
@@ -11440,10 +11485,12 @@ function exportCSV() {
     if (_perfRecords.length) {
         rows.push('');
         rows.push('"[業績紀錄]"');
-        var PH = ['案件類型','項目','成交日期','客戶/物件','業績(報稅)','實收(不報稅)','自訂','總業績','備註','建立時間','中人姓名','中人費用'];
+        var PH = ['案件類型','項目','成交日期','客戶/物件','業績(報稅)','實收(不報稅)','自訂','總業績','備註','建立時間','中人姓名','中人費用','中人貢獻收入'];
+        var maxMiddlemen = Math.max(1,..._perfRecords.map(function(r){return perfIntermediaries(r).length;}));
+        for(var mi=2;mi<=maxMiddlemen;mi++) PH.push('中人'+mi+'姓名','中人'+mi+'費用','中人'+mi+'貢獻收入');
         rows.push(PH.join(','));
         _perfRecords.forEach(function(r) {
-            rows.push([r.caseType||'', r.category||'', r.date?isoToROC(r.date):'', r.client||'', r.feeTax||'', r.feeNoTax||'', r.feeOther||'', r.fee||'', r.memo||'', r.created?r.created.slice(0,10):'',r.intermediaryName||'',r.intermediaryFee == null ? '' : r.intermediaryFee]
+            rows.push([r.caseType||'', r.category||'', r.date?isoToROC(r.date):'', r.client||'', r.feeTax||'', r.feeNoTax||'', r.feeOther||'', r.fee||'', r.memo||'', r.created?r.created.slice(0,10):'',(perfIntermediaries(r)[0]||{}).name||'',(perfIntermediaries(r)[0]||{}).fee||'',(perfIntermediaries(r)[0]||{}).income||''].concat(Array.from({length:maxMiddlemen-1},function(_,i){var item=perfIntermediaries(r)[i+1]||{};return [item.name||'',item.fee||'',item.income||''];}).flat())
                 .map(_csvSafe).join(','));
         });
     }
@@ -11532,7 +11579,15 @@ function importCSV(file) {
                 var feeNoTax = iFeeNoTax >= 0 ? (prow[iFeeNoTax]||'').trim() : '';
                 var feeOther = iFeeOther >= 0 ? (prow[iFeeOther]||'').trim() : '';
                 var fee = iFee >= 0 ? (prow[iFee]||'').trim() : String((parseFloat(feeTax)||0) + (parseFloat(feeNoTax)||0) + (parseFloat(feeOther)||0) || '');
+                var middlemen = [];
+                for(var mi=1;mi===1 || perfHeaders.indexOf('中人'+mi+'姓名')>=0;mi++){
+                    var ni=mi===1?iIntermediaryName:perfHeaders.indexOf('中人'+mi+'姓名'), fi=mi===1?iIntermediaryFee:perfHeaders.indexOf('中人'+mi+'費用');
+                    var mn=ni>=0?(prow[ni]||'').trim():'', mf=fi>=0?(prow[fi]||'').trim():'';
+                    var ii=perfHeaders.indexOf(mi===1?'中人貢獻收入':'中人'+mi+'貢獻收入'), income=ii>=0?(prow[ii]||'').trim():'';
+                    if(mn || mf!=='' || income!=='') middlemen.push({name:mn,fee:mf,income:income});
+                }
                 _perfRecords.push({
+                    intermediaries:middlemen,
                     caseType: iCaseType >= 0 ? (prow[iCaseType]||'').trim() : '買賣案',
                     category: iCategory >= 0 ? (prow[iCategory]||'').trim() : '',
                     date: date,
@@ -12277,7 +12332,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260930audit68';
+var APP_VERSION = '20260930audit69';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13439,12 +13494,12 @@ function deleteMktTemplate(idx) {
 <script src="brand-banner.js?v=20260928sync1"></script>
 <script src="image-storage.js?v=20260928sync1"></script>
 <script src="image-redaction.js?v=20260928sync1"></script>
-<script src="image-studio.js?v=20260930audit68"></script>
+<script src="image-studio.js?v=20260930audit69"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
-<script src="image-composer.js?v=20260930audit68"></script>
-<script src="area-editor.js?v=20260930audit68"></script>
-<script src="sync-notice.js?v=20260930audit68"></script>
-<script src="detail-properties.js?v=20260930audit68"></script>
-<script src="edit-layout.js?v=20260930audit68"></script>
+<script src="image-composer.js?v=20260930audit69"></script>
+<script src="area-editor.js?v=20260930audit69"></script>
+<script src="sync-notice.js?v=20260930audit69"></script>
+<script src="detail-properties.js?v=20260930audit69"></script>
+<script src="edit-layout.js?v=20260930audit69"></script>
 </body>
 </html>

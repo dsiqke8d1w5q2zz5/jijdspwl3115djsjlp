@@ -555,3 +555,12 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
  #perfBody .perf-record-intermediary,#perfBody .perf-record-memo{grid-column:1/-1}
  #perfBody .perf-record-intermediary{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 }
+
+/* Multiple intermediary entries keep names and two distinct amounts readable. */
+.perf-intermediary-editor{margin-bottom:12px}
+.perf-intermediary-editor .perf-intermediary-fields{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 28px;padding:10px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;gap:8px}
+.perf-intermediary-income{grid-column:1/3}
+.perf-intermediary-remove{grid-column:3;grid-row:1;align-self:end;width:28px;height:34px;padding:0;border:1px solid #e2e8f0;border-radius:6px;background:white;color:#78716c;font-size:18px}
+.perf-intermediary-add{border:1px solid #cfdfef;background:#eff6ff;color:#173756;border-radius:6px;padding:6px 10px;font-size:13px;font-weight:600}
+.perf-intermediary-hint{font-size:11px;color:#64748b;line-height:1.5;margin:6px 0 0}
+#perfBody .perf-record-intermediary small{display:block;font-size:11px;color:#64748b}
