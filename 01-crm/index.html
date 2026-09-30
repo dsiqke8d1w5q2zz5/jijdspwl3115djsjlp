@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20260930audit71">
+    <link rel="stylesheet" href="area-editor.css?v=20260930audit72">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit71">
-    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit71">
+    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit72">
+    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit72">
 </head>
 <body>
 
@@ -11227,7 +11227,8 @@ function addPerfRecord() {
             '<button type="button" id="perfSaveBtn" style="padding:8px 16px;border:none;border-radius:8px;background:#57534E;color:white;cursor:pointer;font-size:14px;font-weight:600">儲存</button>' +
         '</div>';
     overlay.appendChild(box);
-    overlay.onclick = function(e){ if(e.target===overlay) { confirmAction('確定要關閉？尚未儲存的資料將會遺失', function(){ overlay.remove(); }); } };
+    // Keep the form open when the backdrop is clicked accidentally.
+    overlay.onclick = function(e){ if(e.target===overlay) e.stopPropagation(); };
     document.body.appendChild(overlay);
     layoutPerfEntryActions('perf');
     _perfSelectedCase = '買賣案';
@@ -11353,7 +11354,8 @@ function editPerfRecord(idx) {
             '<button type="button" id="epSaveBtn" style="padding:8px 16px;border:none;border-radius:8px;background:#57534E;color:white;cursor:pointer;font-size:14px;font-weight:600">儲存</button>' +
         '</div>';
     overlay.appendChild(box);
-    overlay.onclick = function(e){ if(e.target===overlay) { confirmAction('確定要關閉？尚未儲存的資料將會遺失', function(){ overlay.remove(); }); } };
+    // Keep the form open when the backdrop is clicked accidentally.
+    overlay.onclick = function(e){ if(e.target===overlay) e.stopPropagation(); };
     document.body.appendChild(overlay);
     layoutPerfEntryActions('ep');
     function bindCatBtns() {
@@ -12329,7 +12331,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260930audit71';
+var APP_VERSION = '20260930audit72';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13491,12 +13493,12 @@ function deleteMktTemplate(idx) {
 <script src="brand-banner.js?v=20260928sync1"></script>
 <script src="image-storage.js?v=20260928sync1"></script>
 <script src="image-redaction.js?v=20260928sync1"></script>
-<script src="image-studio.js?v=20260930audit71"></script>
+<script src="image-studio.js?v=20260930audit72"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
-<script src="image-composer.js?v=20260930audit71"></script>
-<script src="area-editor.js?v=20260930audit71"></script>
-<script src="sync-notice.js?v=20260930audit71"></script>
-<script src="detail-properties.js?v=20260930audit71"></script>
-<script src="edit-layout.js?v=20260930audit71"></script>
+<script src="image-composer.js?v=20260930audit72"></script>
+<script src="area-editor.js?v=20260930audit72"></script>
+<script src="sync-notice.js?v=20260930audit72"></script>
+<script src="detail-properties.js?v=20260930audit72"></script>
+<script src="edit-layout.js?v=20260930audit72"></script>
 </body>
 </html>
