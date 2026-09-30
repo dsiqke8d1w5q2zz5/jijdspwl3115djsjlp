@@ -676,3 +676,10 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
  #dModal .det-activity-content .det-row>.det-val{line-height:1.55}
 }
 @media(min-width:1050px){#dModal .det-activity-content>.det-schedule-card{padding:10px}}
+/* Equal-sized category and property labels, with a soft property rail. */
+#dModal .det-category-tabs button,#dModal .det-property-tabs button,#dModal .det-property-toolbar>.det-property-title{font-size:16px!important}
+#dModal .det-category-tabs button{font-weight:700}
+#dModal .det-property-toolbar>.det-property-tabs,#dModal .det-property-toolbar>.det-property-title{background:#f0f6fb;border:0;border-radius:8px}
+#dModal .det-property-tabs button{background:transparent;color:#173756;border-color:transparent;font-weight:400}
+#dModal .det-property-tabs button[aria-selected=true]{background:#e3eef9;color:#173756;border-color:transparent;box-shadow:inset 0 -3px 0 #173756;font-weight:700}
+#dModal .det-folder-actions>.det-folder-link{font-size:14px}
