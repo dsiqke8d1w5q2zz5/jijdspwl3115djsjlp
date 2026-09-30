@@ -167,11 +167,12 @@ function setupObjectTabs(){moveAddButtons();
    const items=rows(),added=items.filter(el=>!state.known.has(el));
    if(!items.includes(state.active))state.active=items[0]||null;
    if(added.length&&state.known.size)state.active=added[added.length-1];
+   if(state.known.size&&added.length)resetPropertyScroll(nav);
    state.known=new Set(items);
    items.forEach(row=>{const heading=row.firstElementChild,label=heading?.querySelector(':scope>span:first-child');if(label&&/^(?:買方需求|庫存物件|物件資料|成交物件|開發物件|物件)\s*\d+$/.test(label.textContent.trim())){label.classList.add('edit-duplicate-title');heading.classList.add('edit-object-actions');}});
    const names=items.map((row,i)=>row.querySelector('[data-f="community"],.deal-community')?.value.trim()||compactPropertyAddress(row.querySelector('[data-f="addr"],.deal-addr')?.value)||(id==='bDemandList'?'需求 ':'物件 ')+(i+1));
    nav.replaceChildren();nav.hidden=!items.length;
-   items.forEach((row,i)=>{row.classList.add('edit-object-page');row.hidden=row!==state.active;const button=document.createElement('button');button.type='button';button.textContent=names[i]+(names.filter(name=>name===names[i]).length>1?'（'+(i+1)+'）':'');button.setAttribute('role','tab');button.setAttribute('aria-selected',String(row===state.active));button.tabIndex=row===state.active?0:-1;button.setAttribute('aria-controls',row.id);row.setAttribute('role','tabpanel');button.onclick=()=>{state.active=row;refresh();};button.onkeydown=event=>{let n=i;if(event.key==='ArrowRight')n=(i+1)%items.length;else if(event.key==='ArrowLeft')n=(i+items.length-1)%items.length;else if(event.key==='Home')n=0;else if(event.key==='End')n=items.length-1;else return;event.preventDefault();event.stopPropagation();state.active=items[n];refresh();nav.children[n].focus();};nav.append(button);});
+   items.forEach((row,i)=>{row.classList.add('edit-object-page');row.hidden=row!==state.active;const button=document.createElement('button');button.type='button';button.textContent=names[i]+(names.filter(name=>name===names[i]).length>1?'（'+(i+1)+'）':'');button.setAttribute('role','tab');button.setAttribute('aria-selected',String(row===state.active));button.tabIndex=row===state.active?0:-1;button.setAttribute('aria-controls',row.id);row.setAttribute('role','tabpanel');button.onclick=()=>{const changed=state.active!==row;state.active=row;refresh();if(changed)resetPropertyScroll(nav);};button.onkeydown=event=>{let n=i;if(event.key==='ArrowRight')n=(i+1)%items.length;else if(event.key==='ArrowLeft')n=(i+items.length-1)%items.length;else if(event.key==='Home')n=0;else if(event.key==='End')n=items.length-1;else return;event.preventDefault();event.stopPropagation();state.active=items[n];refresh();resetPropertyScroll(nav);nav.children[n].focus({preventScroll:true});};nav.append(button);});
   }
   state.refresh=refresh;
   new MutationObserver(refresh).observe(list,{childList:true});
@@ -224,7 +225,7 @@ const open=window.openEdit;window.openEdit=function(id,viewAs){
  const firstType=['經營買方','庫存屋主','房東','租客','成交客戶','商機募集'].find(type=>selectedTypes.includes(type));
  if(currentType||(!viewAs&&firstType)){activeView=currentType||firstType;applyTypePicker();}
  const basicDetails=document.getElementById('basicDetailWrap');if(basicDetails.style.display!=='none')document.getElementById('basicDetailToggle').click();
- resetObjectTabs();arrange();return result;
+ resetObjectTabs();arrange();modal.querySelectorAll('.edit-pane,.modal-body,.modal').forEach(el=>el.scrollTop=0);return result;
 };
 new MutationObserver(()=>{
  if(modal.style.display!=='none'||!returnDetail)return;
@@ -234,8 +235,8 @@ new MutationObserver(()=>{
  else document.getElementById('dModal').style.display='flex';
 }).observe(modal,{attributes:true,attributeFilter:['style']});
 const applyTypes=window.applyTypePicker;let previousType='';
-window.applyTypePicker=function(){const result=applyTypes.apply(this,arguments);if(activeView!==previousType){const pane=modal.querySelector('.edit-property');if(pane)pane.scrollTop=0;}previousType=activeView;return result;};
-const add=window.openAdd;window.openAdd=function(){returnDetail=null;restore();const result=add.apply(this,arguments);resetObjectTabs();arrange();return result;};
+window.applyTypePicker=function(){const result=applyTypes.apply(this,arguments);if(activeView!==previousType){resetPropertyScroll(modal.querySelector('.edit-property')||modal.querySelector('.modal-body'));}previousType=activeView;return result;};
+const add=window.openAdd;window.openAdd=function(){returnDetail=null;restore();const result=add.apply(this,arguments);resetObjectTabs();arrange();modal.querySelectorAll('.edit-pane,.modal-body,.modal').forEach(el=>el.scrollTop=0);return result;};
 desktop.addEventListener('change',()=>{restore();if(modal.style.display==='flex')arrange();});
 })();
 
