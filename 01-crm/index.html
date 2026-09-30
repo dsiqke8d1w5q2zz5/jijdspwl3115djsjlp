@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20260930audit92">
+    <link rel="stylesheet" href="area-editor.css?v=20260930audit93">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit92">
-    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit92">
+    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit93">
+    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit93">
 </head>
 <body>
 
@@ -1756,10 +1756,10 @@ window.onerror = function(msg, url, line, col, err) {
         if (ms) ms.style.overflowY = isMobile.matches ? '' : 'auto';
     }
     new MutationObserver(function(){
-        var has = !!document.querySelector('.fill-overlay');
+        var has = !!document.querySelector('body > .fill-overlay:not(.det-inline-overlay)');
         if (has) lock(); else unlock();
     }).observe(document.body, {childList:true});
-    document.addEventListener('touchmove', function(e){ if(document.querySelector('.fill-overlay') && !e.target.closest('.fill-menu')) e.preventDefault(); }, {passive:false});
+    document.addEventListener('touchmove', function(e){ if(document.querySelector('body > .fill-overlay:not(.det-inline-overlay)') && !e.target.closest('.fill-menu')) e.preventDefault(); }, {passive:false});
 })();
 // ── 搜尋 debounce（避免每鍵觸發完整 render）──
 var _searchTimer = null;
@@ -12388,7 +12388,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260930audit92';
+var APP_VERSION = '20260930audit93';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13554,12 +13554,12 @@ function deleteMktTemplate(idx) {
 <script src="brand-banner.js?v=20260928sync1"></script>
 <script src="image-storage.js?v=20260928sync1"></script>
 <script src="image-redaction.js?v=20260928sync1"></script>
-<script src="image-studio.js?v=20260930audit92"></script>
+<script src="image-studio.js?v=20260930audit93"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
-<script src="image-composer.js?v=20260930audit92"></script>
-<script src="area-editor.js?v=20260930audit92"></script>
-<script src="sync-notice.js?v=20260930audit92"></script>
-<script src="detail-properties.js?v=20260930audit92"></script>
-<script src="edit-layout.js?v=20260930audit92"></script>
+<script src="image-composer.js?v=20260930audit93"></script>
+<script src="area-editor.js?v=20260930audit93"></script>
+<script src="sync-notice.js?v=20260930audit93"></script>
+<script src="detail-properties.js?v=20260930audit93"></script>
+<script src="edit-layout.js?v=20260930audit93"></script>
 </body>
 </html>
