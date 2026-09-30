@@ -585,3 +585,7 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
 #perfBody .perf-record-intermediary>strong{background:transparent;border-radius:0;padding:0}
 
 #perfFixed .perf-intermediary-summary>strong{font-size:15px;font-weight:800}
+
+#perfFixed .perf-intermediary-total-row{align-items:baseline;font-weight:400}
+#perfIntermediaryTotal{text-align:right;font-weight:800}
+#perfFixed .perf-summary-cards>.perf-intermediary-summary{display:block}

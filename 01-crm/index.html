@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20260930audit76">
+    <link rel="stylesheet" href="area-editor.css?v=20260930audit77">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit76">
-    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit76">
+    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit77">
+    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit77">
 </head>
 <body>
 
@@ -10843,7 +10843,7 @@ function renderPerformance() {
             '<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:10px;color:#6D28D9">實收</span><span style="font-size:13px;font-weight:800;color:#5B21B6">'+rentFeeNoTax.toLocaleString()+'</span></div>' +
             (rentFeeOtherIncome ? '<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:10px;color:#6D28D9">自訂收入</span><span style="font-size:13px;font-weight:800;color:#5B21B6">'+rentFeeOtherIncome.toLocaleString()+'</span></div>' : '') +
         '</div>' +
-        '<div class="perf-intermediary-summary"><div><span>'+rangeLabel+'中人費</span><span>'+intermediaryCount+' 筆</span></div><strong id="perfIntermediaryTotal">'+intermediaryTotal.toLocaleString()+'<small> 元</small></strong><p>獨立統計，不扣總收入</p></div>' +
+        '<div class="perf-intermediary-summary"><div style="align-items:baseline;margin-bottom:2px"><span>'+rangeLabel+'中人費</span><span style="font-weight:800">'+intermediaryCount+'<span style="font-size:10px;font-weight:600"> 筆</span></span></div><div class="perf-intermediary-total-row"><span>合計</span><span id="perfIntermediaryTotal">'+intermediaryTotal.toLocaleString()+'<small> 元</small></span></div><p>獨立統計，不扣總收入</p></div>' +
     '</div>' +
     '<div class="perf-income-summary" style="background:#F0FDF4;border-radius:8px;padding:6px 10px;margin-bottom:6px">' +
         '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px"><span style="font-size:11px;font-weight:600;color:#065F46">總業績 '+_totalFeeTax.toLocaleString()+' ｜ 總實收 '+_totalFeeNoTax.toLocaleString()+(_totalFeeOtherIncome?' ｜ 自訂收入 '+_totalFeeOtherIncome.toLocaleString():'')+'</span></div>' +
@@ -12342,7 +12342,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260930audit76';
+var APP_VERSION = '20260930audit77';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13504,12 +13504,12 @@ function deleteMktTemplate(idx) {
 <script src="brand-banner.js?v=20260928sync1"></script>
 <script src="image-storage.js?v=20260928sync1"></script>
 <script src="image-redaction.js?v=20260928sync1"></script>
-<script src="image-studio.js?v=20260930audit76"></script>
+<script src="image-studio.js?v=20260930audit77"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
-<script src="image-composer.js?v=20260930audit76"></script>
-<script src="area-editor.js?v=20260930audit76"></script>
-<script src="sync-notice.js?v=20260930audit76"></script>
-<script src="detail-properties.js?v=20260930audit76"></script>
-<script src="edit-layout.js?v=20260930audit76"></script>
+<script src="image-composer.js?v=20260930audit77"></script>
+<script src="area-editor.js?v=20260930audit77"></script>
+<script src="sync-notice.js?v=20260930audit77"></script>
+<script src="detail-properties.js?v=20260930audit77"></script>
+<script src="edit-layout.js?v=20260930audit77"></script>
 </body>
 </html>
