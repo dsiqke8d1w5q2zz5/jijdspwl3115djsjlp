@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20260930audit66">
+    <link rel="stylesheet" href="area-editor.css?v=20260930audit67">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit66">
-    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit66">
+    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit67">
+    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit67">
 </head>
 <body>
 
@@ -10826,6 +10826,8 @@ function renderPerformance() {
     var _totalFeeTax = buyFeeTax + rentFeeTax + buyFeeOtherAmt + rentFeeOtherAmt;
     var _totalFeeNoTax = buyFeeNoTax + rentFeeNoTax;
     var _totalFeeOtherIncome = buyFeeOtherIncome + rentFeeOtherIncome;
+    var intermediaryTotal = filtered.reduce(function(sum,r){return sum + perfIntermediaryAmount(r);},0);
+    var intermediaryCount = filtered.filter(function(r){return r.intermediaryFee != null && r.intermediaryFee !== '';}).length;
     var _rate = 0.63;
     var _totalIncome = Math.round((buyFeeTax + rentFeeTax) * _rate + _totalFeeNoTax + _totalFeeOtherIncome);
     html += '<div class="perf-summary-cards" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">' +
@@ -10841,15 +10843,30 @@ function renderPerformance() {
             '<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:10px;color:#6D28D9">實收</span><span style="font-size:13px;font-weight:800;color:#5B21B6">'+rentFeeNoTax.toLocaleString()+'</span></div>' +
             (rentFeeOtherIncome ? '<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:10px;color:#6D28D9">自訂收入</span><span style="font-size:13px;font-weight:800;color:#5B21B6">'+rentFeeOtherIncome.toLocaleString()+'</span></div>' : '') +
         '</div>' +
+        '<div class="perf-intermediary-summary"><div><span>'+rangeLabel+'中人費</span><span>'+intermediaryCount+' 筆</span></div><strong id="perfIntermediaryTotal">'+intermediaryTotal.toLocaleString()+'<small> 元</small></strong><p>獨立統計，不扣總收入</p></div>' +
     '</div>' +
     '<div class="perf-income-summary" style="background:#F0FDF4;border-radius:8px;padding:6px 10px;margin-bottom:6px">' +
         '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px"><span style="font-size:11px;font-weight:600;color:#065F46">總業績 '+_totalFeeTax.toLocaleString()+' ｜ 總實收 '+_totalFeeNoTax.toLocaleString()+(_totalFeeOtherIncome?' ｜ 自訂收入 '+_totalFeeOtherIncome.toLocaleString():'')+'</span></div>' +
         '<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:11px;font-weight:700;color:#065F46">總收入 <span style="font-size:10px;color:#6B7280;font-weight:400">業績×'+_rate+'+實收'+(_totalFeeOtherIncome?'+自訂收入':'')+'</span></span><span style="font-size:16px;font-weight:800;color:#047857">'+_totalIncome.toLocaleString()+'<span style="font-size:10px">元</span></span></div>' +
     '</div>';
+    var intermediaryGroups = new Map();
+    filtered.forEach(function(r){
+        var name = String(r.intermediaryName||'').trim().replace(/\s+/g,' '); if (!name) return;
+        var group = intermediaryGroups.get(name) || {name:name,count:0,income:0,fee:0};
+        var tax = parseFloat(r.feeTax)||0, cash = parseFloat(r.feeNoTax)||0, other = parseFloat(r.feeOther)||0;
+        if (!r.caseType && !tax && !cash && !other && r.fee) tax = parseFloat(r.fee)||0;
+        group.count++; group.income += tax * _rate + cash + other; group.fee += perfIntermediaryAmount(r);
+        intermediaryGroups.set(name,group);
+    });
+    if (intermediaryGroups.size) {
+        html += '<details class="perf-contribution"><summary>中人貢獻統計 <span>'+intermediaryGroups.size+' 位</span></summary><p>占比＝該中人案件收入 ÷ 本期總收入；中人費另計。</p><div class="perf-contribution-scroll"><table><thead><tr><th>中人姓名</th><th>合作筆數</th><th>案件收入</th><th>中人費</th><th>收入占比</th></tr></thead><tbody>' +
+            Array.from(intermediaryGroups.values()).sort(function(a,b){return b.income-a.income || a.name.localeCompare(b.name);}).map(function(g){return '<tr><th>'+esc(g.name)+'</th><td>'+g.count+'</td><td>'+Math.round(g.income).toLocaleString()+'</td><td>'+g.fee.toLocaleString()+'</td><td>'+(_totalIncome>0?(g.income/_totalIncome*100).toFixed(1)+'%':'—')+'</td></tr>';}).join('') +
+            '</tbody></table></div></details>';
+    }
     // 搜尋列（固定區域）
     html += '<div id="perfSearchWrap" style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
         '<div style="font-size:13px;font-weight:700;color:var(--text)">業績紀錄</div>' +
-        '<div style="flex:1;position:relative"><input id="perfSearchInput" type="text" placeholder="搜尋名字/物件" value="'+esc(_perfSearch)+'" oninput="_perfSearch=this.value;renderPerfList()" style="width:100%;padding:5px 28px 5px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;box-sizing:border-box">' +
+        '<div style="flex:1;position:relative"><input id="perfSearchInput" type="text" placeholder="搜尋客戶、物件或中人" value="'+esc(_perfSearch)+'" oninput="_perfSearch=this.value;renderPerfList()" style="width:100%;padding:5px 28px 5px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;box-sizing:border-box">' +
         (_perfSearch ? '<button type="button" onclick="_perfSearch=\'\';var si=document.getElementById(\'perfSearchInput\');if(si)si.value=\'\';renderPerfList()" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;line-height:1">✕</button>' : '') +
         '</div></div>';
     // 固定區域結束，以下為可捲動區域
@@ -10884,7 +10901,7 @@ function renderPerfList(filtered) {
     if (_perfSearch) {
         var _sq = _perfSearch.toLowerCase();
         filtered = filtered.filter(function(r) {
-            return (r.client||'').toLowerCase().indexOf(_sq) >= 0 || (r.memo||'').toLowerCase().indexOf(_sq) >= 0;
+            return (r.client||'').toLowerCase().indexOf(_sq) >= 0 || (r.memo||'').toLowerCase().indexOf(_sq) >= 0 || (r.intermediaryName||'').toLowerCase().indexOf(_sq) >= 0;
         });
     }
     // 更新清除按鈕
@@ -10940,6 +10957,7 @@ function renderPerfList(filtered) {
                     '<button type="button" onclick="editPerfRecord('+idx+')" title="修改" aria-label="修改業績紀錄"><i class="ti ti-pencil"></i></button>' +
                     '<button type="button" onclick="deletePerfRecord('+idx+')" title="刪除" aria-label="刪除業績紀錄">✕</button>' +
                 '</div>' +
+                ((r.intermediaryName || (r.intermediaryFee != null && r.intermediaryFee !== '')) ? '<div class="perf-record-intermediary"><span>中人 '+esc(r.intermediaryName||'未填姓名')+'</span>'+((r.intermediaryFee != null && r.intermediaryFee !== '')?'<strong>中人費 '+perfIntermediaryAmount(r).toLocaleString()+' 元</strong>':'')+'</div>' : '') +
                 (r.memo ? '<div class="perf-record-memo">'+esc(r.memo)+'</div>' : '') +
             '</div>';
         });
@@ -11109,6 +11127,22 @@ function perfGoClient(id) {
     currentDetIdx = 0;
     showDet(id, '');
 }
+function perfIntermediaryFields(prefix, record) {
+    var r = record || {};
+    return '<div class="perf-intermediary-fields"><div class="fg"><label for="'+prefix+'IntermediaryName">中人姓名</label><input id="'+prefix+'IntermediaryName" value="'+esc(r.intermediaryName||'')+'" placeholder="選填"></div><div class="fg"><label for="'+prefix+'IntermediaryFee">中人費用</label><div class="input-grp"><input id="'+prefix+'IntermediaryFee" inputmode="decimal" value="'+esc(r.intermediaryFee == null ? '' : r.intermediaryFee)+'" placeholder="選填"><span class="input-sfx">元</span></div></div></div>';
+}
+function readPerfIntermediary(prefix) {
+    var fee = document.getElementById(prefix+'IntermediaryFee').value.trim().replace(/,/g,'');
+    if (fee && (!/^\d+(?:\.\d{1,2})?$/.test(fee) || !Number.isFinite(Number(fee)) || Number(fee)>Number.MAX_SAFE_INTEGER)) {
+        showToast('中人費用請輸入零以上的金額，最多兩位小數', 'warn');
+        document.getElementById(prefix+'IntermediaryFee').focus(); return null;
+    }
+    return {name:document.getElementById(prefix+'IntermediaryName').value.trim(),fee:fee === '' ? '' : String(Number(fee))};
+}
+function perfIntermediaryAmount(r) {
+    var amount = Number(String(r.intermediaryFee || '').replace(/,/g,''));
+    return Number.isFinite(amount) && amount >= 0 ? amount : 0;
+}
 function addPerfRecord() {
     var overlay = document.createElement('div');
     overlay.className = 'fill-overlay';
@@ -11137,6 +11171,7 @@ function addPerfRecord() {
             '<div class="fg" style="margin-bottom:0"><label style="font-size:12px">業績（報稅）</label><div class="input-grp"><input id="perfFeeTax" style="min-width:0;flex:1"><span class="input-sfx">元</span></div></div>' +
             '<div class="fg" style="margin-bottom:0"><label style="font-size:12px">實收（不報稅）</label><div class="input-grp"><input id="perfFeeNoTax" style="min-width:0;flex:1"><span class="input-sfx">元</span></div></div>' +
         '</div>' +
+        perfIntermediaryFields('perf', {}) +
         '<div id="perfOtherWrap" style="margin-bottom:8px">' +
             '<button type="button" id="perfOtherToggle" onclick="togglePerfOther(\'perf\')" style="font-size:12px;font-weight:600;color:#57534E;background:none;border:1px dashed #8B7355;border-radius:6px;padding:4px 10px;cursor:pointer">＋ 自訂業績比例</button>' +
             '<div id="perfOtherFields" style="display:none;margin-top:6px;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:end">' +
@@ -11168,9 +11203,10 @@ function addPerfRecord() {
         var otherAmt = _pOA ? _pOA.value.trim() : '';
         var otherRate = _pOR ? _pOR.value.trim() : '';
         var feeOther = String(Math.round((parseFloat(otherAmt)||0) * (parseFloat(otherRate)||0)) || '');
+        var intermediary = readPerfIntermediary('perf'); if (!intermediary) return;
         var memo = document.getElementById('perfMemo').value.trim();
         var fee = (parseFloat(feeTax)||0) + (parseFloat(feeNoTax)||0) + (parseFloat(feeOther)||0);
-        _perfRecords.push({ caseType:_perfSelectedCase, category:_perfSelectedCat, date:date, client:client, clientId:clientId, feeTax:feeTax, feeNoTax:feeNoTax, feeOther:feeOther, feeOtherAmt:otherAmt, feeOtherRate:otherRate, fee:String(fee||''), memo:memo, created:new Date().toISOString() });
+        _perfRecords.push({ caseType:_perfSelectedCase, category:_perfSelectedCat, date:date, client:client, clientId:clientId, feeTax:feeTax, feeNoTax:feeNoTax, feeOther:feeOther, feeOtherAmt:otherAmt, feeOtherRate:otherRate, fee:String(fee||''), intermediaryName:intermediary.name, intermediaryFee:intermediary.fee, memo:memo, created:new Date().toISOString() });
         persistPerf();
         overlay.remove();
         renderPerformance();
@@ -11260,6 +11296,7 @@ function editPerfRecord(idx) {
             '<div class="fg" style="margin-bottom:0"><label style="font-size:12px">業績（報稅）</label><div class="input-grp"><input id="epFeeTax" value="'+esc(r.feeTax||'')+'" style="min-width:0;flex:1"><span class="input-sfx">元</span></div></div>' +
             '<div class="fg" style="margin-bottom:0"><label style="font-size:12px">實收（不報稅）</label><div class="input-grp"><input id="epFeeNoTax" value="'+esc(r.feeNoTax||'')+'" style="min-width:0;flex:1"><span class="input-sfx">元</span></div></div>' +
         '</div>' +
+        perfIntermediaryFields('ep', r) +
         '<div id="epOtherWrap" style="margin-bottom:8px">' +
             '<button type="button" id="epOtherToggle" onclick="togglePerfOther(\'ep\')" style="font-size:12px;font-weight:600;color:#57534E;background:none;border:1px dashed #8B7355;border-radius:6px;padding:4px 10px;cursor:pointer;'+(r.feeOther?'display:none':'')+'">＋ 自訂業績比例</button>' +
             '<div id="epOtherFields" style="'+(r.feeOther?'display:grid;':'display:none;')+'margin-top:6px;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:end">' +
@@ -11303,6 +11340,8 @@ function editPerfRecord(idx) {
         if (!selCat) { showToast('請選擇項目', 'warn'); return; }
         var date = rocToISO(document.getElementById('epDate').value);
         if (!date) { showToast('請填寫成交日期', 'warn'); return; }
+        var intermediary = readPerfIntermediary('ep'); if (!intermediary) return;
+        r.intermediaryName = intermediary.name; r.intermediaryFee = intermediary.fee;
         r.caseType = selCase;
         r.category = selCat;
         r.date = date;
@@ -11401,10 +11440,10 @@ function exportCSV() {
     if (_perfRecords.length) {
         rows.push('');
         rows.push('"[業績紀錄]"');
-        var PH = ['案件類型','項目','成交日期','客戶/物件','業績(報稅)','實收(不報稅)','自訂','總業績','備註','建立時間'];
+        var PH = ['案件類型','項目','成交日期','客戶/物件','業績(報稅)','實收(不報稅)','自訂','總業績','備註','建立時間','中人姓名','中人費用'];
         rows.push(PH.join(','));
         _perfRecords.forEach(function(r) {
-            rows.push([r.caseType||'', r.category||'', r.date?isoToROC(r.date):'', r.client||'', r.feeTax||'', r.feeNoTax||'', r.feeOther||'', r.fee||'', r.memo||'', r.created?r.created.slice(0,10):'']
+            rows.push([r.caseType||'', r.category||'', r.date?isoToROC(r.date):'', r.client||'', r.feeTax||'', r.feeNoTax||'', r.feeOther||'', r.fee||'', r.memo||'', r.created?r.created.slice(0,10):'',r.intermediaryName||'',r.intermediaryFee == null ? '' : r.intermediaryFee]
                 .map(_csvSafe).join(','));
         });
     }
@@ -11484,6 +11523,7 @@ function importCSV(file) {
             var iFeeOther = perfHeaders.indexOf('自訂'); if(iFeeOther<0) iFeeOther = perfHeaders.indexOf('其他');
             var iFee = perfHeaders.indexOf('總業績');
             var iMemo = perfHeaders.indexOf('備註');
+            var iIntermediaryName = perfHeaders.indexOf('中人姓名'), iIntermediaryFee = perfHeaders.indexOf('中人費用');
             for (var j = perfStartIdx + 2; j < lines.length; j++) {
                 var prow = lines[j];
                 var date = iDate >= 0 ? rocToISO((prow[iDate]||'').trim()) : '';
@@ -11498,6 +11538,8 @@ function importCSV(file) {
                     date: date,
                     client: iClient >= 0 ? (prow[iClient]||'').trim() : '',
                     clientId: '',
+                    intermediaryName: iIntermediaryName >= 0 ? (prow[iIntermediaryName]||'').trim() : '',
+                    intermediaryFee: iIntermediaryFee >= 0 ? (prow[iIntermediaryFee]||'').trim() : '',
                     feeTax: feeTax,
                     feeNoTax: feeNoTax,
                     feeOther: feeOther,
@@ -12235,7 +12277,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260930audit66';
+var APP_VERSION = '20260930audit67';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13397,12 +13439,12 @@ function deleteMktTemplate(idx) {
 <script src="brand-banner.js?v=20260928sync1"></script>
 <script src="image-storage.js?v=20260928sync1"></script>
 <script src="image-redaction.js?v=20260928sync1"></script>
-<script src="image-studio.js?v=20260930audit66"></script>
+<script src="image-studio.js?v=20260930audit67"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
-<script src="image-composer.js?v=20260930audit66"></script>
-<script src="area-editor.js?v=20260930audit66"></script>
-<script src="sync-notice.js?v=20260930audit66"></script>
-<script src="detail-properties.js?v=20260930audit66"></script>
-<script src="edit-layout.js?v=20260930audit66"></script>
+<script src="image-composer.js?v=20260930audit67"></script>
+<script src="area-editor.js?v=20260930audit67"></script>
+<script src="sync-notice.js?v=20260930audit67"></script>
+<script src="detail-properties.js?v=20260930audit67"></script>
+<script src="edit-layout.js?v=20260930audit67"></script>
 </body>
 </html>

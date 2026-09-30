@@ -529,3 +529,16 @@ body :is(button,a[href],summary,select,[role=button],[role=tab],[role=menuitem],
 body :is(input:not([type]),input[type=text],input[type=search],input[type=tel],input[type=email],input[type=url],input[type=password],input[type=number],textarea,[contenteditable=true]){cursor:text!important}
 body :is(button,input,select,textarea):disabled,body [aria-disabled=true],body label:has(input:disabled){cursor:not-allowed!important}
 body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging button{cursor:grabbing!important}
+
+/* Performance dashboard: separate referral costs and associated income. */
+.perf-intermediary-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-bottom:10px}
+.perf-intermediary-fields .fg{min-width:0;margin-bottom:0}.perf-intermediary-fields input{min-width:0;width:100%;box-sizing:border-box}.perf-intermediary-fields .input-grp input{flex:1;width:0}.perf-intermediary-fields label{font-size:13px}
+#perfFixed .perf-summary-cards{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
+#perfFixed .perf-summary-cards>div{padding:10px!important;min-width:0}
+#perfFixed .perf-summary-cards>.perf-intermediary-summary{background:#eff6ff!important;border-color:#d5e4f5;color:#173756}
+.perf-intermediary-summary>div{display:flex;justify-content:space-between;gap:4px;font-weight:600}
+.perf-intermediary-summary>strong{display:block;font-size:23px;line-height:1.5;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.perf-intermediary-summary small{font-size:12px;font-weight:500}.perf-intermediary-summary p{margin:3px 0 0;font-size:11px;color:#64748b}
+#perfFixed .perf-income-summary{padding:9px 12px!important;margin-bottom:8px!important}
+#perfBody .perf-record-intermediary{grid-column:2/-1;display:flex;gap:8px 16px;flex-wrap:wrap;color:#475569;font-size:12px;overflow-wrap:anywhere}#perfBody .perf-record-intermediary strong{font-weight:600;color:#2563eb}
+.perf-contribution{border:1px solid #dde5ee;border-radius:8px;margin-bottom:10px;background:#f8fafc}.perf-contribution summary{padding:8px 10px;font-size:13px;font-weight:600;color:#173756}.perf-contribution summary span{color:#64748b;font-weight:400;margin-left:6px}.perf-contribution p{font-size:11px;color:#64748b;margin:0 10px 6px}.perf-contribution-scroll{max-height:170px;overflow:auto}.perf-contribution table{border-collapse:collapse;width:100%;font-size:12px}.perf-contribution th,.perf-contribution td{padding:7px 10px;border-top:1px solid #e2e8f0;text-align:right;white-space:nowrap}.perf-contribution th:first-child{text-align:left;max-width:200px;white-space:normal;overflow-wrap:anywhere}.perf-contribution thead{background:#eef2f7;color:#475569}.perf-contribution td:last-child{color:#2563eb;font-weight:600}
+@media(max-width:600px){#perfFixed .perf-summary-cards{grid-template-columns:repeat(2,minmax(0,1fr))!important}#perfFixed .perf-summary-cards>.perf-intermediary-summary{grid-column:1/-1;display:grid;grid-template-columns:1fr auto;align-items:center;gap:0 10px}.perf-intermediary-summary p{grid-column:1/-1}.perf-intermediary-summary>strong{font-size:20px}#perfBody .perf-record-intermediary{grid-column:1/-1}}
