@@ -664,3 +664,15 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
 #dModal .det-inline-overlay .fill-menu:has(#det-qs-save){grid-template-columns:52px 62px minmax(0,1fr) 88px 118px}
 #dModal .det-inline-overlay .fill-menu:has(#det-qs-save)>div:last-child{width:118px;justify-self:end}
 #dModal .det-inline-overlay .fill-menu:has(#det-qs-save)>div:nth-child(2){margin-right:0!important}
+/* Align schedule and contact headings, dates, content and row spacing. */
+@media(min-width:1050px){
+ #dModal .det-activity-content>.det-pane-title,
+ #dModal .det-activity-content>.det-log-filter{padding-left:11px;padding-right:11px}
+ #dModal #detLogList{padding-left:11px;padding-right:11px;box-sizing:border-box}
+ #dModal .det-schedule-card h3{margin-bottom:14px}
+ #dModal .det-activity-content .det-schedule-card .det-row,
+ #dModal .det-activity-content #detLogList .det-row{grid-template-columns:92px minmax(0,1fr);gap:8px;padding:6px 0;align-items:baseline;border-bottom:1px solid #e5edf3}
+ #dModal .det-activity-content .det-row>.det-key,
+ #dModal .det-activity-content .det-row>.det-val{line-height:1.55}
+}
+@media(min-width:1050px){#dModal .det-activity-content>.det-schedule-card{padding:10px}}
