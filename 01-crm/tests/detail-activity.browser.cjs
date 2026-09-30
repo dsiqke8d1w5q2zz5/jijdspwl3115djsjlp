@@ -1,25 +1,16 @@
 const assert=require('node:assert/strict'),path=require('node:path'),os=require('node:os'),{pathToFileURL}=require('node:url'),{chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
-(async()=>{const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});try{for(const width of [1440,390]){
-const page=await browser.newPage({viewport:{width,height:1000}});const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.route('https://**/*',r=>r.abort());await page.goto(pathToFileURL(path.join(__dirname,'../index.html')).href);
-await page.evaluate(()=>{DB=[{id:'activity-test',name:'測試客戶',type:'買方',types:['買方'],schedules:[],contactLog:[]}];persistAndSyncNow=()=>true;showDet('activity-test');});
-const actions=page.locator('.det-activity-actions');assert.equal(await actions.locator('button').count(),2);
-await actions.getByRole('button',{name:'新增聯繫'}).click();await page.locator('#cl-memo').fill('新的聯繫測試');await page.locator('#cl-save').click();assert.equal(await page.evaluate(()=>DB[0].contactLog[0].memo),'新的聯繫測試');assert.match(await page.locator('#detContent').innerText(),/新的聯繫測試/);assert.equal(await actions.count(),1);
-await actions.getByRole('button',{name:'新增行程'}).click();await page.locator('#qs-date').fill('115/12/30');await page.locator('#qs-memo').fill('新的行程測試');await page.locator('#qs-save').click();assert.equal(await page.evaluate(()=>DB[0].schedules[0].memo),'新的行程測試');assert.match(await page.locator('#detContent').innerText(),/新的行程測試/);
-await actions.getByRole('button',{name:'新增聯繫'}).click();await page.locator('#cl-memo').fill('');await page.locator('#cl-save').click();assert.equal(await page.locator('#cl-save').count(),1,'validation keeps quick form open');await page.locator('#cl-save').locator('..').getByRole('button',{name:'取消',exact:true}).click();await page.locator('#cl-save').waitFor({state:'detached'});assert.equal(await page.evaluate(()=>DB[0].contactLog.length),1);
-await page.evaluate(()=>{DB[0].contactLog=Array.from({length:60},(_,i)=>({date:'2026-09-30',memo:'聯繫測試 '+i}));showDet('activity-test')});
-if(width>=1050){const a=await actions.boundingBox(),pane=await page.locator('.det-pane').nth(2).boundingBox();assert(a.y>=pane.y&&a.y+a.height<=pane.y+pane.height,'footer visible inside pane');}
-if(width>=1050){
- const beforeCount=await page.locator('#detLogList>.det-row').count();
- await page.evaluate(()=>{DB[0].schedules=Array.from({length:18},(_,i)=>({date:'2026-12-30',memo:'行程 '+i+' 多行內容測試，多行內容測試，多行內容測試'}));showDet('activity-test');});
- await page.setViewportSize({width,height:700});
- await page.waitForFunction(previous=>document.querySelectorAll('#detLogList>.det-row').length<previous,beforeCount);
- const toggle=page.locator('#detLogToggle'),footer=await actions.boundingBox(),toggleRect=await toggle.boundingBox();
- assert(toggleRect.y+toggleRect.height<=footer.y,'collapsed logs and remaining link stay above fixed actions');
- const visible=await page.locator('#detLogList>.det-row').count(),hidden=await page.locator('#detLogMore>.det-row').count();assert.equal(visible+hidden,60);
- await toggle.click();assert.equal(await page.locator('#detLogMore').evaluate(e=>getComputedStyle(e).display!=='none'),true);
- assert.equal((await actions.boundingBox()).y,footer.y,'expanded logs do not move actions');
- await page.locator('.det-activity-content').evaluate(e=>e.scrollTop=e.scrollHeight);assert.equal((await actions.boundingBox()).y,footer.y);
- await toggle.click();await page.locator('.det-activity-content').evaluate(e=>e.scrollTop=0);
-}
-await actions.scrollIntoViewIfNeeded();await page.screenshot({path:path.join(os.tmpdir(),'detail-activity-'+width+'.png')});assert.deepEqual(errors,[]);console.log('PASS',width,'empty customer actions, save refresh, validation, cancel, long records and visible footer');await page.close();
-}}finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1});
+(async()=>{const b=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});try{for(const width of [1440,390]){
+ const p=await b.newPage({viewport:{width,height:900}}),errors=[];p.on('pageerror',e=>errors.push(e.message));await p.route('https://**/*',r=>r.abort());await p.goto(pathToFileURL(path.join(__dirname,'../index.html')).href);
+ await p.evaluate(()=>{DB=[{id:'inline-test',name:'測試客戶',type:'買方',schedules:[],contactLog:[]}];persistAndSyncNow=()=>true;showDet('inline-test')});
+ const editor=p.locator('.det-activity-editor');assert.equal(await p.locator('body>.fill-overlay').count(),0);await p.locator('#det-qs-date').fill('115/12/30');await p.locator('#det-qs-memo').fill('未儲存行程');
+ await editor.getByRole('tab',{name:'聯繫紀錄'}).click();await p.locator('#det-cl-memo').fill('新的聯繫');await editor.getByRole('tab',{name:'預排行程'}).click();assert.equal(await p.locator('#det-qs-memo').inputValue(),'未儲存行程');
+ await p.locator('#det-qs-save').click();assert.equal(await p.evaluate(()=>DB[0].schedules[0].memo),'未儲存行程');assert.match(await p.locator('#detContent').innerText(),/未儲存行程/);assert.equal(await p.locator('#det-qs-memo').inputValue(),'');
+ await editor.getByRole('tab',{name:'聯繫紀錄'}).click();assert.equal(await p.locator('#det-cl-memo').inputValue(),'新的聯繫');await p.locator('#det-cl-save').click();assert.equal(await p.evaluate(()=>DB[0].contactLog[0].memo),'新的聯繫');assert.match(await p.locator('.det-activity-content').innerText(),/新的聯繫/);
+ await p.locator('#det-cl-save').click();assert.equal(await p.evaluate(()=>DB[0].contactLog.length),1,'blank contact blocked');
+ // Standalone quick dialogs continue to work and have distinct IDs.
+ await p.evaluate(()=>quickContactLog('inline-test'));await p.locator('#cl-memo').fill('外部聯繫');await p.locator('#cl-save').click();assert.equal(await p.evaluate(()=>DB[0].contactLog.length),2);assert.equal(await p.locator('#det-cl-memo').inputValue(),'');
+ await editor.getByRole('tab',{name:'預排行程'}).click();await p.locator('#det-qs-memo').fill('清空測試');await editor.getByRole('button',{name:'清空',exact:true}).click();assert.equal(await p.locator('#det-qs-memo').inputValue(),'');
+ await p.evaluate(()=>{DB[0].contactLog=Array.from({length:60},(_,i)=>({date:'2026-09-30',memo:'聯繫 '+i}));DB[0].schedules=Array.from({length:18},(_,i)=>({date:'2026-12-30',memo:'行程 '+i}));showDet('inline-test')});
+ if(width>=1050){await p.setViewportSize({width,height:700});await p.waitForFunction(()=>document.querySelectorAll('#detLogList>.det-row').length<10);const foot=await editor.boundingBox();assert(foot.height<190,'compact editor');const toggle=p.locator('#detLogToggle');const r=await toggle.boundingBox();assert(r.y+r.height<=foot.y,'logs fit above editor');await toggle.click();assert.equal((await editor.boundingBox()).y,foot.y,'expanded records do not move editor');await toggle.click();}
+ await editor.scrollIntoViewIfNeeded();assert.equal(await editor.evaluate(e=>e.scrollWidth<=e.clientWidth),true);await p.screenshot({path:path.join(os.tmpdir(),'detail-inline-'+width+'.png')});assert.deepEqual(errors,[]);console.log('PASS',width,'inline saves, draft tabs, reset, validation, standalone coexistence, adaptive list and fixed compact editor');await p.close();
+}}finally{await b.close()}})().catch(e=>{console.error(e);process.exitCode=1});

@@ -606,3 +606,24 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
  .det-activity-content>.det-schedule-card{max-height:45%;overflow-y:auto;box-sizing:border-box}
  .det-activity-content>.det-schedule-card h3{position:sticky;top:0;background:#f0f6fb;z-index:1}
 }
+
+/* Embedded quick entry: compact fields, no dialog or backdrop. */
+#dModal .det-activity-editor{display:block;padding-top:8px}
+.det-activity-tabs{display:flex;gap:6px;margin-bottom:7px}
+#dModal .det-activity-tabs button{min-height:28px;padding:3px 10px;font-size:13px;background:#f1f5f9;border-color:transparent}
+#dModal .det-activity-tabs button[aria-selected=true]{background:#173756;color:white}
+#dModal .det-inline-overlay{position:static!important;inset:auto!important;display:block!important;background:none!important;padding:0!important;backdrop-filter:none!important;z-index:auto!important}
+#dModal .det-inline-overlay>.fill-menu{display:grid!important;grid-template-columns:minmax(0,1fr) auto;gap:6px!important;width:100%!important;min-width:0!important;max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;transform:none!important;overflow:visible!important}
+#dModal .det-inline-overlay .fill-menu>div{margin:0!important;min-width:0}
+#dModal .det-inline-overlay input,#dModal .det-inline-overlay select{font-size:13px!important;min-height:30px!important;height:30px!important;padding:4px 7px!important;min-width:0!important;box-sizing:border-box}
+#dModal .det-inline-overlay .cal-btn{height:30px!important;min-height:30px!important;width:30px!important;padding:0!important}
+#dModal .det-inline-overlay .roc-date-wrap{min-width:0}
+#dModal .det-inline-overlay button{font-size:12px!important;min-height:30px!important;padding:4px 8px!important;white-space:nowrap}
+#dModal .det-inline-overlay .fill-menu>div:nth-child(2){grid-column:1/-1}
+#dModal .det-inline-overlay .fill-menu:has(#det-qs-save)>div:first-child{grid-column:1/-1;gap:5px!important}
+#dModal #det-qs-type{width:62px!important;flex-shrink:0}
+#dModal #det-qs-time{width:74px!important;flex-shrink:0}
+#dModal .det-inline-overlay .fill-menu:has(#det-qs-save)>div:nth-child(3){gap:4px!important}
+#dModal .det-inline-overlay .fill-menu:has(#det-cl-save)>div:last-child{grid-column:2;grid-row:1}
+#dModal .det-inline-overlay :is(#det-qs-save,#det-cl-save){background:#173756!important;color:white!important}
+#dModal .det-inline-overlay{height:auto!important;min-height:0!important;max-height:none!important;width:100%!important;overflow:visible!important}

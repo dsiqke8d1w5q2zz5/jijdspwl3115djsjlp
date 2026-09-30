@@ -82,6 +82,7 @@
     const originalConfirmArchive=window.confirmArchive;
     window.confirmArchive=function(reason){const id=archiveTargetId;originalConfirmArchive(reason);if(id&&currentDetId===id)closeDet();};
     let activityResizeObserver=null, activityFrame=0;
+    let activityDraft={id:null,kind:"schedule",values:{}};
     function fitActivityLogs(){
         cancelAnimationFrame(activityFrame);
         activityFrame=requestAnimationFrame(()=>{
@@ -156,24 +157,38 @@
         }
         const activityContent=document.createElement('div');activityContent.className='det-activity-content';
         activityContent.append(...panes[2].childNodes);panes[2].append(activityContent);
-        const activityActions=document.createElement('div');activityActions.className='det-activity-actions';
-        const addActivity=(label,kind)=>{
-            const button=document.createElement('button');button.type='button';button.textContent='＋ '+label;
-            button.onclick=()=>{
+        const activityActions=document.createElement('div');activityActions.className='det-activity-actions det-activity-editor';panes[2].append(activityActions);
+        if(activityDraft.id!==id)activityDraft={id:id,kind:'schedule',values:{}};
+        const tabs=document.createElement('div');tabs.className='det-activity-tabs';tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','新增紀錄類型');
+        const mount=document.createElement('div');mount.className='det-activity-mount';activityActions.append(tabs,mount);
+        const snapshot=()=>{const values={};mount.querySelectorAll('input[data-quick-field],select[data-quick-field]').forEach(el=>values[el.dataset.quickField]=el.value);activityDraft.values[activityDraft.kind]=values;};
+        const displayForm=kind=>{
+            activityDraft.kind=kind;mount.replaceChildren();
+            tabs.querySelectorAll('button').forEach(el=>el.setAttribute('aria-selected',String(el.dataset.kind===kind)));
+            const overlay=kind==='schedule'?window.quickSchedule(id,undefined,undefined,undefined,undefined,undefined,undefined,mount):window.quickContactLog(id,undefined,mount);
+            if(!overlay)return;
+            const prefix=kind==='schedule'?'qs':'cl',box=overlay.querySelector('.fill-menu');
+            box.firstElementChild.remove();
+            const save=box.querySelector('[data-quick-field="'+prefix+'-save"]'),cancel=save.parentElement.querySelector('button');
+            cancel.textContent='清空';cancel.type='button';cancel.onclick=()=>{delete activityDraft.values[kind];displayForm(kind);};
+            save.textContent=kind==='schedule'?'儲存行程':'儲存聯繫';
+            for(const [key,value] of Object.entries(activityDraft.values[kind]||{})){const el=box.querySelector('[data-quick-field="'+key+'"]');if(el)el.value=value;}
+            mount.oninput=snapshot;mount.onchange=snapshot;
+            const originalSave=save.onclick;
+            save.onclick=function(event){
                 const category=root.querySelector('.det-category-tabs [aria-selected=true]')?.textContent;
-                if(kind==='schedule')window.quickSchedule(id);else window.quickContactLog(id);
-                const save=document.getElementById(kind==='schedule'?'qs-save':'cl-save');if(!save)return;
-                const overlay=save.closest('.fill-overlay'),originalSave=save.onclick;
-                save.onclick=function(event){
-                    originalSave.call(this,event);
-                    if(!overlay.isConnected&&currentDetId===id&&document.getElementById('dModal').style.display!=='none'){
-                        window.showDet(id,viewAs);
-                        if(category)[...document.querySelectorAll('#detContent .det-category-tabs button')].find(el=>el.textContent===category)?.click();
-                    }
-                };
-            };activityActions.append(button);
+                originalSave.call(this,event);
+                if(!overlay.isConnected&&currentDetId===id){
+                    delete activityDraft.values[kind];window.showDet(id,viewAs);
+                    if(category)[...document.querySelectorAll('#detContent .det-category-tabs button')].find(el=>el.textContent===category)?.click();
+                }
+            };
+            fitActivityLogs();
         };
-        addActivity('新增行程','schedule');addActivity('新增聯繫','contact');panes[2].append(activityActions);
+        for(const [kind,label] of [['schedule','預排行程'],['contact','聯繫紀錄']]){
+            const tab=document.createElement('button');tab.type='button';tab.textContent=label;tab.dataset.kind=kind;tab.setAttribute('role','tab');tab.onclick=()=>{snapshot();displayForm(kind);};tabs.append(tab);
+        }
+        displayForm(activityDraft.kind);
         activityResizeObserver=new ResizeObserver(fitActivityLogs);activityResizeObserver.observe(activityContent);
         const scheduleCard=activityContent.querySelector('.det-schedule-card');if(scheduleCard)activityResizeObserver.observe(scheduleCard);
         fitActivityLogs();
