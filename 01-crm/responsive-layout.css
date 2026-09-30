@@ -715,3 +715,5 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
 #dModal .det-property-toolbar>.det-property-tabs,#fModal .edit-section-toolbar>.edit-object-tabs{margin-left:-8px!important;width:calc(100% + 8px)}
 #dModal .det-property-tabs>button:first-child,#fModal .edit-object-tabs>button:first-child{padding-left:8px!important}
 #dModal .det-folder-actions>.det-folder-link{margin-left:-8px;padding-left:8px}
+/* Every wrapped row uses the same text inset, including its first item. */
+#dModal .det-property-tabs>button,#fModal .edit-object-tabs>button{padding-left:8px!important;padding-right:8px!important}
