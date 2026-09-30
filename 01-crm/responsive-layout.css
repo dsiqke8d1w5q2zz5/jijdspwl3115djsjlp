@@ -722,3 +722,6 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
 
 #fModal div:has(+.rp-meter-row){font-size:14px!important;font-weight:600}
 #fModal #rPropertyList [data-fee-layout] label{font-size:13px!important;font-weight:600;color:#64748b}
+/* Give rental subsections a clear heading without adding another box. */
+#fModal #rPropertyList div:has(+.rp-mgmt-row),#fModal #rPropertyList div:has(+.rp-meter-row){display:flex;align-items:center;gap:10px;font-size:14px!important;font-weight:700!important;color:#5b21b6;margin-top:10px!important;margin-bottom:7px!important;line-height:1.4}
+#fModal #rPropertyList div:has(+.rp-mgmt-row)::after,#fModal #rPropertyList div:has(+.rp-meter-row)::after{content:'';flex:1;height:1px;background:#ddd6ed}
