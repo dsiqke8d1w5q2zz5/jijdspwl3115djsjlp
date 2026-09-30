@@ -694,3 +694,7 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
 /* Cover the pane inset behind sticky headers while scrolling. */
 #fModal.edit-layout .edit-property-head::before,
 #fModal.edit-layout .edit-section-toolbar::before{content:'';position:absolute;inset:-16px -16px 0;background:#fff;z-index:-1;pointer-events:none}
+/* Show every property tab; wrap onto more rows instead of scrolling. */
+#dModal .det-property-toolbar,#fModal .edit-section-toolbar{height:auto!important}
+#dModal .det-property-toolbar>.det-property-tabs,#fModal .edit-section-toolbar>.edit-object-tabs{display:flex;flex-wrap:wrap;height:auto!important;min-height:0!important;overflow:visible!important;gap:6px;padding-top:6px!important;padding-bottom:6px!important}
+#dModal .det-property-tabs button,#fModal .edit-object-tabs button{flex:0 1 auto;max-width:100%;height:auto!important;min-height:36px;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
