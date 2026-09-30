@@ -728,3 +728,9 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
 /* Inventory management fees use the same subsection separation. */
 #fModal #sPropertyList div:has(+.sp-mgmt-row){display:flex;align-items:center;gap:10px;font-size:14px!important;font-weight:700!important;color:#8b7355!important;margin-top:10px!important;margin-bottom:7px!important;line-height:1.4}
 #fModal #sPropertyList div:has(+.sp-mgmt-row)::after{content:'';flex:1;height:1px;background:#ded6ca}
+/* Compact fee fields, with the total on its own summary row. */
+#fModal [data-fee-layout]>div:not(.fee-total):not(.fee-more),#fModal .fee-extra-grid>div{grid-template-columns:56px minmax(0,1fr)}
+#fModal [data-fee-layout]>.fee-total{grid-column:1/-1;border-top:1px solid #dfe6ee;padding-top:7px;margin-top:2px;justify-content:flex-end;gap:12px}
+#fModal [data-fee-layout]>.fee-total>label{flex:0 0 auto}
+#fModal [data-fee-layout]>.fee-total>[data-f=mgmtTotal]{flex:0 0 auto;width:auto!important;min-width:0!important;padding:0!important}
+#fModal [data-fee-layout]>.fee-total{display:flex!important}
