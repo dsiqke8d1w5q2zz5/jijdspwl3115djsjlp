@@ -698,3 +698,7 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
 #dModal .det-property-toolbar,#fModal .edit-section-toolbar{height:auto!important}
 #dModal .det-property-toolbar>.det-property-tabs,#fModal .edit-section-toolbar>.edit-object-tabs{display:flex;flex-wrap:wrap;height:auto!important;min-height:0!important;overflow:visible!important;gap:6px;padding-top:6px!important;padding-bottom:6px!important}
 #dModal .det-property-tabs button,#fModal .edit-object-tabs button{flex:0 1 auto;max-width:100%;height:auto!important;min-height:36px;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+/* Compact wrapped property rows without shrinking their labels. */
+#dModal .det-property-toolbar>.det-property-tabs,#fModal .edit-section-toolbar>.edit-object-tabs{row-gap:3px;padding-top:3px!important;padding-bottom:3px!important}
+#dModal .det-property-tabs button,#fModal .edit-object-tabs button{min-height:30px!important;padding:3px 10px!important;line-height:1.35}
+#dModal .det-property-toolbar{min-height:0!important;margin-top:2px!important}
