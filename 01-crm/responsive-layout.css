@@ -252,8 +252,8 @@
 #tplModal .modal>div:has(>.tpl-tab){gap:6px!important;padding:10px 16px!important;background:#fff;border-bottom:1px solid #e5eaf0!important}
 #tplModal .tpl-tab{flex:1;padding:8px 12px;border:0;border-radius:8px;font-size:14px;color:#64748b;min-height:36px}
 #tplModal .tpl-tab.active{background:#eaf1f8;color:#173756;font-weight:700}
-#tplBody{background:#f5f7fa;padding:14px 16px!important}
-#tplBody>div:has(>pre){padding:14px!important;border:1px solid #e1e7ee!important;border-radius:12px!important;box-shadow:0 2px 5px #17375605;margin-bottom:12px!important}
+#tplBody{background:#fff;padding:14px 16px!important}
+#tplBody>div:has(>pre){padding:0!important;border:0!important;border-radius:0!important;box-shadow:none;margin-bottom:12px!important}
 #tplBody>div:has(>pre)>div:first-child{gap:6px!important;margin-bottom:10px!important;align-items:center!important}
 #tplBody>div:has(>pre)>div:first-child>span{color:#173756;font-size:15px!important;min-width:0;overflow-wrap:anywhere}
 #tplBody button{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-width:32px;min-height:32px;border-radius:7px!important;flex-shrink:0}
@@ -339,11 +339,11 @@
 #tplBody:has(>.tpl-object-tabs){padding:8px 12px!important;gap:6px}
 #tplBody .tpl-object-tabs{gap:6px;padding:2px 1px 4px}
 #tplBody .tpl-object-tabs button{padding:6px 12px;min-height:34px}
-#tplBody .tpl-content-panel:not([hidden]){display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto minmax(0,1fr);gap:6px 8px;padding:10px!important}
+#tplBody .tpl-content-panel:not([hidden]){display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto minmax(0,1fr);gap:6px 8px;padding:0!important}
 #tplBody .tpl-content-panel>div:first-child{grid-column:2;grid-row:1;margin:0!important;flex-wrap:nowrap}
 #tplBody .tpl-content-panel>div:nth-child(2){grid-column:1;grid-row:1;align-self:center;margin:0!important;min-width:0;overflow-wrap:anywhere}
 #tplBody .tpl-content-panel>pre{grid-column:1/-1;grid-row:2;min-width:0;padding:12px!important;line-height:1.65!important}
-@media(max-width:600px){#tplBody .tpl-content-panel:not([hidden]){padding:8px!important;gap:5px}#tplBody .tpl-content-panel>div:nth-child(2){font-size:11px!important}}
+@media(max-width:600px){#tplBody .tpl-content-panel:not([hidden]){padding:0!important;gap:5px}#tplBody .tpl-content-panel>div:nth-child(2){font-size:11px!important}}
 
 /* Desktop overview fills the available height; the three alerts share it equally. */
 @media(min-width:769px){
@@ -457,7 +457,7 @@
 #sharedContactsWrap:has(>#sharedContactsList:empty)>.sec-title:has(button){font-size:0;border:0;padding:0;margin:0}
 #sharedContactsWrap:has(>#sharedContactsList:empty)>.sec-title>button{font-size:13px}
 /* Six fee fields in three paired rows, with readable inline labels. */
-#fModal :is(.sp-mgmt-row,.rp-mgmt-row)[data-fee-layout]{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px!important}
+#fModal :is(.sp-mgmt-row,.rp-mgmt-row)[data-fee-layout]{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 12px!important;padding:6px 10px}
 #fModal [data-fee-layout]>.fee-more,#fModal .fee-extra-grid{display:contents}
 #fModal [data-fee-layout]>div:not(.fee-total):not(.fee-more),#fModal .fee-extra-grid>div{grid-template-columns:2.5em minmax(0,1fr);gap:6px}
 #fModal [data-fee-layout]>div:not(.fee-more)>label,#fModal .fee-extra-grid>div>label{font-size:14px!important;font-weight:600}
@@ -730,7 +730,7 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
 #fModal #sPropertyList div:has(+.sp-mgmt-row)::after{content:'';flex:1;height:1px;background:#ded6ca}
 /* Compact fee fields, with the total on its own summary row. */
 #fModal [data-fee-layout]>div:not(.fee-total):not(.fee-more),#fModal .fee-extra-grid>div{grid-template-columns:56px minmax(0,1fr)}
-#fModal [data-fee-layout]>.fee-total{grid-column:1/-1;border-top:1px solid #dfe6ee;padding-top:7px;margin-top:2px;justify-content:flex-end;gap:12px}
+#fModal [data-fee-layout]>.fee-total{grid-column:1/-1;border-top:1px solid #dfe6ee;padding-top:4px;margin-top:0;justify-content:flex-end;gap:12px}
 #fModal [data-fee-layout]>.fee-total>label{flex:0 0 auto}
 #fModal [data-fee-layout]>.fee-total>[data-f=mgmtTotal]{flex:0 0 auto;width:auto!important;min-width:0!important;padding:0!important}
 #fModal [data-fee-layout]>.fee-total{display:flex!important}
@@ -824,7 +824,55 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
 }
 #fModal .edit-section-toolbar>.edit-object-tabs{box-sizing:border-box;max-width:100%}
 
-/* Compact the utility section vertically without changing typography or columns. */
-#dModal .det-utility-section{margin-top:6px;margin-bottom:5px;padding-top:4px;padding-bottom:4px}
-#dModal .det-utility-section>h4{margin-bottom:2px}
-#dModal .det-property-page .det-utility-section .det-utility-row{padding-top:2px;padding-bottom:2px}
+/* Compact utility pairs keep labels and values together in two columns. */
+#dModal .det-utility-section{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 14px;margin-top:4px;margin-bottom:4px;padding-top:4px;padding-bottom:4px}
+@media(max-width:600px){#dModal .det-utility-section{grid-template-columns:minmax(0,1fr)}}
+#dModal .det-utility-section>h4{grid-column:1/-1;margin:0;line-height:1.3}
+#dModal .det-utility-section>.det-field-pair{display:contents}
+#dModal .det-property-page .det-utility-section .det-utility-row{display:grid;grid-template-columns:6em minmax(0,1fr);align-items:baseline;gap:6px!important;min-width:0;padding:0!important}
+#dModal .det-property-page .det-utility-section .det-utility-row>.det-key{font-size:13px;min-width:0;line-height:1.4}
+#dModal .det-property-page .det-utility-section .det-utility-row>.det-val{line-height:1.4;max-width:100%;overflow-wrap:anywhere}
+/* Keep the optional-note action beside its heading, and the picker in the body. */
+#fModal .edit-notes-heading{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap}
+#fModal .edit-note-actions{display:flex;align-items:center;margin-left:auto}
+#fModal .edit-note-actions[hidden]{display:none}
+/* Add actions use the same typography as the surrounding form. */
+#fModal .add-row-btn{font-family:inherit!important;font-size:13px!important;font-weight:600!important;line-height:1.4!important;letter-spacing:normal}
+
+/* Tighten only the four-row desktop property header; retain control sizes. */
+@media(min-width:1200px){
+ #fModal.edit-layout .edit-property-head>.edit-pane-heading{margin-bottom:4px}
+ #fModal.edit-layout .edit-property{padding-top:0}
+ #fModal.edit-layout .edit-property>.edit-property-head{top:0;margin-top:0;padding-top:14px;padding-bottom:3px;margin-bottom:3px}
+ #fModal.edit-layout .edit-section-toolbar{margin-bottom:4px}
+ #fModal.edit-layout .edit-section-toolbar>.sec-title{height:32px;margin-bottom:3px!important;padding-bottom:1px!important}
+ #fModal.edit-layout .edit-section-toolbar>.edit-object-tabs{padding-top:2px!important;padding-bottom:2px!important}
+}
+
+/* Use one typography rule for the category subsection headings. */
+#fModal .edit-section-toolbar>.sec-title,
+#fModal .type-sec .rental-conditions-title{font-family:inherit;font-size:14px;font-weight:700;color:#475569;letter-spacing:.3px}
+/* Give the first subsection title the same baseline when switching categories. */
+#fModal .edit-section-toolbar>.sec-title{display:flex;align-items:center;line-height:20px;height:32px;padding-top:0!important;padding-bottom:0!important}
+#fModal .tenant-demand-title{font-size:13px;font-weight:600;color:#64748b}
+#fModal .tenant-landlord-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#fModal .tenant-landlord-controls>#f-linkedLandlord{flex:1 1 160px;min-width:0;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:white;cursor:pointer}
+#fModal .tenant-landlord-controls>.btn-ic{flex:none;font-family:inherit;font-size:13px;padding:6px 10px;white-space:nowrap}
+#fModal .tenant-landlord-clear{color:#b45353}
+#fModal .landlord-select-text{display:none}
+#fModal #f-linkedLandlord:placeholder-shown{border-color:transparent;background:transparent;cursor:default;padding-left:0}
+#fModal #f-linkedLandlord:placeholder-shown~.tenant-landlord-clear,
+#fModal #f-linkedLandlord:placeholder-shown~.tenant-landlord-pick .landlord-change-text{display:none}
+#fModal #f-linkedLandlord:placeholder-shown~.tenant-landlord-pick .landlord-select-text{display:inline}
+#fModal #linkedLandlordInfo{overflow-wrap:anywhere;line-height:1.6}
+#fModal #linkedLandlordInfo:empty{display:none}
+/* Property field labels share a 13px size across all editing categories. */
+#fModal #s-房東:not(:has(#rPropertyList>.person-block))>div:has(>.rental-conditions-title){display:none!important}
+#fModal .type-sec :is(#bDemandList,#sPropertyList,#rPropertyList,#dealList,#dAddrList) :is(label,.area-metric-label){font-size:13px!important}
+#fModal .type-sec #sPropertyList div:has(>[data-f=contractType])>span{font-size:13px!important}
+/* Remove the delete-only row in rental and completed-deal property cards. */
+#fModal :is(#rPropertyList,#dealList)>.edit-object-page>.edit-object-actions{position:absolute;top:8px;right:8px;margin:0!important;z-index:1}
+#fModal :is(#rPropertyList,#dealList)>.edit-object-page>.edit-object-actions>.c-del{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;width:24px;height:24px;padding:0;line-height:1}
+#fModal #rPropertyList>.edit-object-page>.sp-addr-row>.fg>label{min-height:24px}
+#fModal #rPropertyList>.edit-object-page>.sp-addr-row>.fg:last-child>label{padding-right:30px}
+#fModal #dealList>.edit-object-page>.edit-object-actions+div{max-width:calc(100% - 32px);box-sizing:border-box}

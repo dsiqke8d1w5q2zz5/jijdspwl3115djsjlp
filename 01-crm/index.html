@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20260930audit114">
+    <link rel="stylesheet" href="area-editor.css?v=20260930audit115">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit114">
-    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit114">
+    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit115">
+    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit115">
 </head>
 <body>
 
@@ -1253,7 +1253,7 @@
             <!-- 房東 -->
             <div class="type-sec" id="s-房東">
                     <div style="display:flex;margin-bottom:14px;align-items:flex-start">
-                        <span style="font-size:15px;color:var(--text);line-height:30px;font-weight:700;flex-shrink:0">租屋條件：</span>
+                        <span class="rental-conditions-title" style="line-height:30px;flex-shrink:0">租屋條件：</span>
                         <input type="checkbox" id="f-rSubsidy" style="display:none">
                         <input type="checkbox" id="f-rSocialHouse" style="display:none">
                         <input type="checkbox" id="f-rRegister" style="display:none">
@@ -1312,8 +1312,9 @@
 
             <!-- 租客 -->
             <div class="type-sec" id="s-租客">
+                    <div class="edit-section-toolbar tenant-section-toolbar"><div class="sec-title">租客資料</div></div>
                     <div style="display:flex;margin-bottom:14px;align-items:flex-start">
-                        <span style="font-size:15px;color:var(--text);line-height:30px;font-weight:700;flex-shrink:0">租屋條件：</span>
+                        <span class="tenant-demand-title" style="line-height:30px;flex-shrink:0">租屋需求：</span>
                         <input type="checkbox" id="f-rSubsidy2" style="display:none">
                         <input type="checkbox" id="f-rSocialHouse2" style="display:none">
                         <input type="checkbox" id="f-rRegister2" style="display:none">
@@ -1357,10 +1358,10 @@
                     <!-- 指定房東 -->
                     <div style="border:1px solid var(--border);border-left:4px solid #8B7355;border-radius:10px;padding:10px;margin-top:10px;background:#F0FDFA">
                         <div style="font-size:12px;font-weight:700;color:#0E7490;margin-bottom:6px">連結房東</div>
-                        <div style="display:flex;gap:8px;align-items:center">
-                            <input id="f-linkedLandlord" readonly placeholder="點擊選擇房東" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:white;cursor:pointer" onclick="pickLandlord()">
-                            <button type="button" class="btn-ic" onclick="pickLandlord()" title="選擇房東" style="font-size:16px;padding:6px 10px"><i class="ti ti-search" style="color:#57534E"></i></button>
-                            <button type="button" class="btn-ic" onclick="clearLinkedLandlord()" title="清除" style="font-size:14px;padding:6px 10px;color:#EF4444">✕</button>
+                        <div class="tenant-landlord-controls">
+                            <input id="f-linkedLandlord" readonly placeholder="尚未連結房東" onclick="pickLandlord()" aria-label="連結的房東">
+                            <button type="button" class="btn-ic tenant-landlord-pick" onclick="pickLandlord()"><span class="landlord-select-text">選擇房東</span><span class="landlord-change-text">更換</span></button>
+                            <button type="button" class="btn-ic tenant-landlord-clear" onclick="clearLinkedLandlord()">解除</button>
                         </div>
                         <input type="hidden" id="f-linkedLandlordId" value="">
                         <input type="hidden" id="f-linkedPropertyIdx" value="">
@@ -9879,7 +9880,7 @@ function selectLandlord(id, propIdx) {
     var sp = props[selectedIdx];
     var info = '';
     if (sp) {
-        info = esc(sp.rAddr || sp.rCommunity || '未填地址');
+        info = [sp.rCommunity,sp.rAddr].filter(Boolean).map(esc).join(' · ') || '未填地址';
         if (sp.rent) {
             info += '（月租 ' + esc(sp.rent);
             var _mgmtSum = (parseFloat(sp.rMgmtBuilding)||0)+(parseFloat(sp.rMgmtCar)||0)+(parseFloat(sp.rMgmtMoto)||0)+(parseFloat(sp.rMgmtOther)||0);
@@ -12393,7 +12394,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260930audit114';
+var APP_VERSION = '20260930audit115';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13559,12 +13560,12 @@ function deleteMktTemplate(idx) {
 <script src="brand-banner.js?v=20260928sync1"></script>
 <script src="image-storage.js?v=20260928sync1"></script>
 <script src="image-redaction.js?v=20260928sync1"></script>
-<script src="image-studio.js?v=20260930audit114"></script>
+<script src="image-studio.js?v=20260930audit115"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
-<script src="image-composer.js?v=20260930audit114"></script>
-<script src="area-editor.js?v=20260930audit114"></script>
-<script src="sync-notice.js?v=20260930audit114"></script>
-<script src="detail-properties.js?v=20260930audit114"></script>
-<script src="edit-layout.js?v=20260930audit114"></script>
+<script src="image-composer.js?v=20260930audit115"></script>
+<script src="area-editor.js?v=20260930audit115"></script>
+<script src="sync-notice.js?v=20260930audit115"></script>
+<script src="detail-properties.js?v=20260930audit115"></script>
+<script src="edit-layout.js?v=20260930audit115"></script>
 </body>
 </html>

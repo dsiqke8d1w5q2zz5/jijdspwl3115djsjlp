@@ -140,7 +140,7 @@ fixedHeaders.textContent='#fModal.edit-layout :is(.edit-basic,.edit-followup)>.e
 document.head.append(fixedHeaders);
 fixedHeaders.textContent+='#fModal.edit-layout .edit-section-toolbar{position:sticky;top:var(--property-heading-bottom,80px);z-index:4;background:white;box-shadow:0 -6px 0 white}';
 const headingObserver=new ResizeObserver(entries=>{for(const entry of entries)entry.target.parentElement.style.setProperty('--followup-heading-bottom',(entry.target.offsetHeight-14)+'px');});
-const propertyHeadingObserver=new ResizeObserver(entries=>{for(const entry of entries)entry.target.parentElement.style.setProperty('--property-heading-bottom',(entry.target.offsetHeight-8)+'px');});
+const propertyHeadingObserver=new ResizeObserver(entries=>{for(const entry of entries){const css=getComputedStyle(entry.target),height=entry.borderBoxSize?.[0]?.blockSize||entry.target.offsetHeight;entry.target.parentElement.style.setProperty('--property-heading-bottom',(height+(parseFloat(css.top)||0)+(parseFloat(css.marginBottom)||0))+'px');}});
 new MutationObserver(()=>{headingObserver.disconnect();propertyHeadingObserver.disconnect();const heading=modal.querySelector('.edit-followup>.edit-pane-heading');if(heading)headingObserver.observe(heading);const propertyHeading=modal.querySelector('.edit-property-head');if(propertyHeading)propertyHeadingObserver.observe(propertyHeading);}).observe(body,{childList:true});
 function moveAddButtons(){
  const buyerList=document.getElementById('bDemandList');
@@ -192,12 +192,13 @@ let returnDetail=null;
 const originalNotes=window.renderTypeNotes;
 window.renderTypeNotes=function(c){
  const area=document.getElementById('typeNotesArea');
+ const notesHeading=area.previousElementSibling;notesHeading.querySelector('.edit-note-actions')?.remove();notesHeading.classList.add('edit-notes-heading');
  const enabled=new Set([...area.querySelectorAll('[data-note-enabled]')].map(el=>el.dataset.noteEnabled));
  const result=originalNotes.apply(this,arguments);
  const fields=[...area.querySelectorAll('[data-type-note]')];
  fields.forEach(field=>{const row=field.closest('.fg');row.hidden=!field.value.trim()&&!enabled.has(field.dataset.typeNote);if(enabled.has(field.dataset.typeNote))row.dataset.noteEnabled=field.dataset.typeNote;});
  const controls=document.createElement('div'),add=document.createElement('button');
- controls.style.cssText='display:flex;gap:8px;align-items:center;margin:8px 0 12px';
+ controls.className='edit-note-actions';
  add.type='button';add.className='add-row-btn';add.textContent='＋ 新增備註';add.style.cssText='width:auto;flex:0 0 auto;margin:0;padding:5px 10px;font-size:13px;border:1px solid #cbd9e6;border-radius:7px;background:#f0f6fb;color:#173756;line-height:1.4';
  function refresh(){controls.hidden=!fields.some(field=>field.closest('.fg').hidden);}
  add.onclick=()=>{
@@ -212,9 +213,9 @@ window.renderTypeNotes=function(c){
    option.onclick=()=>{const row=field.closest('.fg');row.hidden=false;row.dataset.noteEnabled=field.dataset.typeNote;field.style.height='64px';picker.close();refresh();field.focus();};picker.append(option);
   });
   picker.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();picker.close();add.focus();}});
-  picker.addEventListener('close',()=>picker.remove(),{once:true});controls.after(picker);picker.show();picker.scrollIntoView({block:'nearest'});
+  picker.addEventListener('close',()=>picker.remove(),{once:true});area.prepend(picker);picker.show();picker.scrollIntoView({block:'nearest'});
  };
- controls.append(add);area.prepend(controls);refresh();return result;
+ controls.append(add);notesHeading.append(controls);refresh();return result;
 };
 const open=window.openEdit;window.openEdit=function(id,viewAs){
  const detail=document.getElementById('dModal');
