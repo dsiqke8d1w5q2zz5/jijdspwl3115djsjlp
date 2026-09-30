@@ -820,6 +820,6 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
 /* Align schedule descriptions on narrow screens too, including mixed timed rows. */
 @media(max-width:1049px){
  #dModal .det-schedule-row{grid-template-columns:92px minmax(0,1fr)}
- #dModal .det-activity-content:has(.det-schedule-row:not(.det-schedule-no-time)) .det-schedule-row{grid-template-columns:11em minmax(0,1fr)}
+ #dModal #detContent:has(.det-schedule-row:not(.det-schedule-no-time)) .det-schedule-row{grid-template-columns:11em minmax(0,1fr)}
 }
 #fModal .edit-section-toolbar>.edit-object-tabs{box-sizing:border-box;max-width:100%}
