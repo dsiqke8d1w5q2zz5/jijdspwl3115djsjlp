@@ -823,3 +823,8 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
  #dModal #detContent:has(.det-schedule-row:not(.det-schedule-no-time)) .det-schedule-row{grid-template-columns:11em minmax(0,1fr)}
 }
 #fModal .edit-section-toolbar>.edit-object-tabs{box-sizing:border-box;max-width:100%}
+
+/* Compact the utility section vertically without changing typography or columns. */
+#dModal .det-utility-section{margin-top:6px;margin-bottom:5px;padding-top:4px;padding-bottom:4px}
+#dModal .det-utility-section>h4{margin-bottom:2px}
+#dModal .det-property-page .det-utility-section .det-utility-row{padding-top:2px;padding-bottom:2px}
