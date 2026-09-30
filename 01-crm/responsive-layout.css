@@ -260,7 +260,7 @@
 #tplBody button[onclick^="copy"]{background:#173756!important;padding:5px 10px!important}
 #tplBody button[onclick^="edit"]{background:#f8fafc!important;border-color:#dde5ee!important}
 #tplBody button[onclick^="delete"]{color:#b45353!important;border-color:#eadfdf!important}
-#tplBody pre{background:#f8fafc!important;border:1px solid #edf1f5;border-radius:8px!important;padding:12px 14px!important;line-height:1.75!important;color:#334155!important;scrollbar-width:thin;scrollbar-color:#cbd5e1 transparent}
+#tplBody pre{background:#f8fafc!important;border:1px solid #edf1f5;border-radius:8px!important;padding:12px 14px!important;line-height:1.75!important;color:#334155!important;scrollbar-width:thin;scrollbar-color:#b4bcc5 transparent}
 @media(max-width:600px){
  #tplBody{padding:10px!important}
  #tplBody>div:has(>pre)>div:first-child{flex-wrap:wrap}
@@ -952,9 +952,9 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 #tplModal #tplAddBtn{flex:none;margin-left:auto;margin-top:2px;border:1px solid #d9e3ef;border-radius:8px;background:#f8fafc!important;color:#173756;font-family:inherit;font-size:13px;font-weight:600;line-height:1.4;white-space:nowrap;cursor:pointer}
 #tplModal #tplAddBtn:hover{background:#eaf1f7!important}
 #tplModal #tplAddBtn:focus-visible{outline:2px solid #0891b2;outline-offset:2px}
-/* Narrow scrollbars for the image tool's outer controls and inner presets. */
-.ic-dialog :is(.ic-controls,.ic-brand-templates){scrollbar-width:thin;scrollbar-color:#b4bcc5 transparent}
-.ic-dialog :is(.ic-controls,.ic-brand-templates)::-webkit-scrollbar{width:6px;height:6px}
-.ic-dialog :is(.ic-controls,.ic-brand-templates)::-webkit-scrollbar-thumb{background:#b4bcc5;border-radius:6px}
-.ic-dialog :is(.ic-controls,.ic-brand-templates)::-webkit-scrollbar-track{background:transparent}
-.ic-dialog :is(.ic-controls,.ic-brand-templates)::-webkit-scrollbar-button{display:none}
+/* Shared vertical and horizontal scrollbars throughout CRM. */
+*{scrollbar-width:thin;scrollbar-color:#b4bcc5 transparent}
+*::-webkit-scrollbar{width:6px;height:6px}
+*::-webkit-scrollbar-thumb{background:#b4bcc5;border-radius:6px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-button{display:none}
