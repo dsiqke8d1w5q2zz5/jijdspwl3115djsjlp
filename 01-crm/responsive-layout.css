@@ -564,3 +564,13 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
 
 #perfBody .perf-record[role=button]{cursor:pointer}
 #perfBody .perf-record[role=button]:focus-visible{outline:2px solid #2563eb;outline-offset:-2px;border-radius:6px;background:#eff6ff}
+
+/* One compact action row for the optional performance fields. */
+.perf-entry-form .perf-intermediary-editor{margin-bottom:8px}
+.perf-entry-form .perf-intermediary-fields{margin-bottom:8px;padding:10px;background:#f8fafc}
+.perf-entry-form .perf-intermediary-fields:last-child{margin-bottom:0}
+.perf-entry-actions{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.perf-entry-actions>button{min-height:34px;padding:6px 12px!important;border:1px solid #cfddea!important;border-radius:7px!important;background:#f1f6fb!important;color:#173756!important;font-size:13px!important;font-weight:600!important;line-height:20px;white-space:nowrap}
+.perf-entry-actions>button:hover{background:#e4eef8!important;border-color:#9fb9d0!important}
+.perf-entry-form :is(#perfOtherWrap,#epOtherWrap):not(:has(>div[style*="display: grid"])):has(>div[style*="display:none"]){margin-bottom:0!important}
+.perf-entry-form :is(#perfOtherFields,#epOtherFields){padding:10px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;margin-top:0!important}

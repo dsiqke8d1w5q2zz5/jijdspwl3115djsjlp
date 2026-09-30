@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20260930audit70">
+    <link rel="stylesheet" href="area-editor.css?v=20260930audit71">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit70">
-    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit70">
+    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit71">
+    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit71">
 </head>
 <body>
 
@@ -11175,6 +11175,15 @@ function perfIntermediaryAmount(r) {
 function perfIntermediaryRecordRows(r) {
     return perfIntermediaries(r).map(function(item){return '<div class="perf-record-intermediary"><span>中人 '+esc(item.name||'未填姓名')+'</span>'+(item.fee!==''?'<strong>中人費 '+perfIntermediaryAmount({intermediaries:[item]}).toLocaleString()+' 元</strong>':'')+'</div>';}).join('');
 }
+function layoutPerfEntryActions(prefix) {
+    var editor = document.getElementById(prefix+'IntermediaryRows').parentElement;
+    var wrap = document.getElementById(prefix+'OtherWrap');
+    var toolbar = document.createElement('div'); toolbar.className='perf-entry-actions';
+    toolbar.appendChild(editor.querySelector('.perf-intermediary-add'));
+    toolbar.appendChild(document.getElementById(prefix+'OtherToggle'));
+    wrap.parentElement.insertBefore(toolbar,wrap);
+    editor.closest('.fill-menu').classList.add('perf-entry-form');
+}
 function addPerfRecord() {
     var overlay = document.createElement('div');
     overlay.className = 'fill-overlay';
@@ -11220,6 +11229,7 @@ function addPerfRecord() {
     overlay.appendChild(box);
     overlay.onclick = function(e){ if(e.target===overlay) { confirmAction('確定要關閉？尚未儲存的資料將會遺失', function(){ overlay.remove(); }); } };
     document.body.appendChild(overlay);
+    layoutPerfEntryActions('perf');
     _perfSelectedCase = '買賣案';
     _perfSelectedCat = '';
     document.getElementById('perfSaveBtn').onclick = function() {
@@ -11345,6 +11355,7 @@ function editPerfRecord(idx) {
     overlay.appendChild(box);
     overlay.onclick = function(e){ if(e.target===overlay) { confirmAction('確定要關閉？尚未儲存的資料將會遺失', function(){ overlay.remove(); }); } };
     document.body.appendChild(overlay);
+    layoutPerfEntryActions('ep');
     function bindCatBtns() {
         document.querySelectorAll('.epCatBtn').forEach(function(b) {
             b.onclick = function() {
@@ -12318,7 +12329,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260930audit70';
+var APP_VERSION = '20260930audit71';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13480,12 +13491,12 @@ function deleteMktTemplate(idx) {
 <script src="brand-banner.js?v=20260928sync1"></script>
 <script src="image-storage.js?v=20260928sync1"></script>
 <script src="image-redaction.js?v=20260928sync1"></script>
-<script src="image-studio.js?v=20260930audit70"></script>
+<script src="image-studio.js?v=20260930audit71"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
-<script src="image-composer.js?v=20260930audit70"></script>
-<script src="area-editor.js?v=20260930audit70"></script>
-<script src="sync-notice.js?v=20260930audit70"></script>
-<script src="detail-properties.js?v=20260930audit70"></script>
-<script src="edit-layout.js?v=20260930audit70"></script>
+<script src="image-composer.js?v=20260930audit71"></script>
+<script src="area-editor.js?v=20260930audit71"></script>
+<script src="sync-notice.js?v=20260930audit71"></script>
+<script src="detail-properties.js?v=20260930audit71"></script>
+<script src="edit-layout.js?v=20260930audit71"></script>
 </body>
 </html>
