@@ -20,7 +20,7 @@ style.textContent=[
 '#fModal.edit-layout .tp-btn{flex:1 0 auto;min-width:54px;padding:7px 10px;font-size:14px;border:1px solid #e2e8f0!important;border-radius:8px;background:#f1f5f9;color:#64748b;box-shadow:none}',
 '#fModal.edit-layout .tp-btn.selected{background:var(--edit-type-color)!important;color:white!important;border-color:var(--edit-type-color)!important;font-weight:800}',
 '#fModal .tp-buyer{--edit-type-color:#1D4ED8}#fModal .tp-seller{--edit-type-color:#059669}#fModal .tp-landlord{--edit-type-color:#0891B2}#fModal .tp-tenant{--edit-type-color:#DB2777}#fModal .tp-closed{--edit-type-color:#D97706}#fModal .tp-potential{--edit-type-color:#DC2626}',
-'#fModal.edit-layout .tp-btn.active-view{outline:2px solid #173756;outline-offset:2px;box-shadow:inset 0 -3px 0 #17375655}',
+'#fModal.edit-layout .tp-btn.active-view{outline:none;box-shadow:none;text-decoration:underline;text-underline-offset:5px;text-decoration-thickness:2px}',
 '#typeNotesArea [hidden]{display:none!important}',
 '#fModal.edit-layout .tp-btn:focus-visible{outline:2px solid #0284c7;outline-offset:2px}',
 '#fModal.edit-layout .sec-title{font-size:14px;color:#475569;margin-top:10px!important;padding-bottom:6px}',
