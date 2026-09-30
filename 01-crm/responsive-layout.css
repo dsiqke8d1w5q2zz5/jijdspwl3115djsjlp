@@ -291,7 +291,7 @@
 @media(max-width:600px){#perfModal .modal-head{padding:12px}#perfFixed{padding:10px 12px 0!important}#perfFixed .perf-summary-cards>div{padding:8px!important}}
 
 /* All template categories share a title strip and one spacious content panel. */
-#tplBody:has(>.tpl-object-tabs){display:flex;flex-direction:column;overflow:hidden!important;min-height:0;gap:12px}
+#tplBody:has(>.tpl-list-toolbar){display:flex;flex-direction:column;overflow:hidden!important;min-height:0;gap:12px}
 #tplBody .tpl-object-tabs{display:flex;flex:none;gap:6px;overflow-x:auto;padding:3px 2px 7px;scrollbar-width:thin}
 #tplBody .tpl-object-tabs button{white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;display:block;padding:8px 14px;border:1px solid #d9e3ef;background:white;color:#173756;font-family:inherit;font-size:14px;font-weight:600;line-height:1.4;min-height:38px}
 #tplBody .tpl-object-tabs button[aria-selected="true"]{background:#173756;border-color:#173756;color:white}
@@ -336,7 +336,7 @@
 #tplModal .modal-head{padding:10px 16px;min-height:0}
 #tplModal .modal>div:has(>.tpl-tab){padding:6px 12px!important;gap:4px!important}
 #tplModal .tpl-tab{padding:6px 10px;min-height:32px}
-#tplBody:has(>.tpl-object-tabs){padding:8px 12px!important;gap:6px}
+#tplBody:has(>.tpl-list-toolbar){padding:8px 12px!important;gap:6px}
 #tplBody .tpl-object-tabs{gap:6px;padding:2px 1px 4px}
 #tplBody .tpl-object-tabs button{padding:6px 12px;min-height:34px}
 #tplBody .tpl-content-panel:not([hidden]){display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto minmax(0,1fr);gap:6px 8px;padding:0!important}
@@ -945,3 +945,16 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 .transcript-summary-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;column-gap:12px}
 .transcript-summary-headline{display:grid;grid-template-columns:76px minmax(0,1fr);align-items:baseline;gap:8px;min-width:0}
 @media(max-width:550px){.transcript-summary-head{grid-template-columns:minmax(0,1fr)}.transcript-summary-headline{grid-template-columns:minmax(0,1fr);gap:4px}.transcript-summary-ratio{justify-self:start}}
+
+/* Keep template creation beside the template list, outside its tab semantics. */
+#tplBody .tpl-list-toolbar{display:flex;align-items:flex-start;gap:8px;flex:none;min-width:0}
+#tplBody .tpl-list-toolbar>.tpl-object-tabs{flex:1;min-width:0}
+#tplModal #tplAddBtn{flex:none;margin-left:auto;margin-top:2px;border:1px solid #d9e3ef;border-radius:8px;background:#f8fafc!important;color:#173756;font-family:inherit;font-size:13px;font-weight:600;line-height:1.4;white-space:nowrap;cursor:pointer}
+#tplModal #tplAddBtn:hover{background:#eaf1f7!important}
+#tplModal #tplAddBtn:focus-visible{outline:2px solid #0891b2;outline-offset:2px}
+/* Narrow scrollbars for the image tool's outer controls and inner presets. */
+.ic-dialog :is(.ic-controls,.ic-brand-templates){scrollbar-width:thin;scrollbar-color:#b4bcc5 transparent}
+.ic-dialog :is(.ic-controls,.ic-brand-templates)::-webkit-scrollbar{width:6px;height:6px}
+.ic-dialog :is(.ic-controls,.ic-brand-templates)::-webkit-scrollbar-thumb{background:#b4bcc5;border-radius:6px}
+.ic-dialog :is(.ic-controls,.ic-brand-templates)::-webkit-scrollbar-track{background:transparent}
+.ic-dialog :is(.ic-controls,.ic-brand-templates)::-webkit-scrollbar-button{display:none}
