@@ -249,7 +249,7 @@ desktop.addEventListener('change',()=>{restore();if(modal.style.display==='flex'
   const building=wrap('mgmtBuilding'),period=wrap('mgmtPeriod'),type=wrap('mgmtType'),total=wrap('mgmtTotal');
   const more=document.createElement('div');more.className='fee-more';const grid=document.createElement('div');grid.className='fee-extra-grid';more.append(grid);
   for(const [key,label] of [['mgmtBuilding','建物'],['mgmtCar','汽車'],['mgmtMoto','機車'],['mgmtOther','其他']]){const box=wrap(key);if(!box)continue;box.querySelector('label').textContent=label;box.querySelector('.input-sfx')?.remove();const input=field(key);input.inputMode='decimal';input.setAttribute('aria-label',label+'管理費（元）');input.removeAttribute('placeholder');if(key!=='mgmtBuilding'){grid.append(box);}}
-  if(period)period.querySelector('label').textContent='週期';if(type)type.querySelector('label').textContent='計費方式';
+  if(period)period.querySelector('label').textContent='週期';if(type)type.querySelector('label').textContent='租金含管';
   row.append(...[period||type,building,more,total].filter(Boolean));if(total)total.classList.add('fee-total');
  });}
  new MutationObserver(arrangeFees).observe(host,{childList:true,subtree:true});arrangeFees();

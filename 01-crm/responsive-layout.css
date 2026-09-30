@@ -734,3 +734,92 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
 #fModal [data-fee-layout]>.fee-total>label{flex:0 0 auto}
 #fModal [data-fee-layout]>.fee-total>[data-f=mgmtTotal]{flex:0 0 auto;width:auto!important;min-width:0!important;padding:0!important}
 #fModal [data-fee-layout]>.fee-total{display:flex!important}
+/* Buyer-demand hierarchy: compact navigation, softer choices and inline removal. */
+#fModal #s-經營買方 .edit-object-tabs:has(>button:only-child){width:fit-content;background:transparent;border:0;padding-top:0!important;padding-bottom:0!important}
+#fModal #s-經營買方>div:has(>#f-bGrade){gap:6px!important;margin-bottom:7px!important;align-items:center}
+#fModal #s-經營買方 .grade-btn{padding:3px 10px;font-size:13px;min-height:30px;border-width:1px;border-radius:7px}
+#fModal #s-經營買方>div:has(>#f-bGrade)>span{font-size:13px;color:#64748b;font-weight:600}
+#fModal #bDemandList .person-block>.edit-object-actions{position:absolute;top:8px;right:8px;margin:0!important;z-index:1}
+#fModal #bDemandList .person-block>.edit-object-actions .c-del{width:26px;height:26px;border:1px solid #e2e8f0;border-radius:6px;background:white;color:#9f5353;line-height:1}
+#fModal #bDemandList .person-block>.fg:first-of-type>label{padding-right:32px}
+#fModal #bDemandList :is(.city-btn,.dist-btn,.rm-btn){border:1px solid #d5dfe9;background:white;color:#526579;border-radius:6px;font-size:13px;font-weight:500;padding:4px 10px;min-height:29px}
+#fModal #bDemandList :is(.city-btn,.dist-btn,.rm-btn).on{background:#e7f0f9;border-color:#8eabc5;color:#173756;font-weight:700}
+/* Detail values use regular weight; prices and fee totals carry emphasis. */
+#dModal .det-property-page .det-val{font-weight:400}
+#dModal .det-property-page .det-emphasis>.det-val{font-weight:700}
+#dModal .det-property-page .det-management-summary{display:flex;flex-direction:column;gap:3px}
+#dModal .det-management-summary>strong{font-weight:700}
+#dModal .det-management-summary>small{font-size:13px;font-weight:400;color:#64748b;line-height:1.5}
+
+/* Clear renewal date and period labels, with wrapping on narrow screens. */
+#dModal .det-renewal-record{display:flex;flex-direction:column;gap:3px;min-width:0}
+#dModal .det-renewal-record>span{display:flex;flex-wrap:wrap;gap:2px 12px}
+#dModal .det-renewal-record .det-renewal-label{color:#64748b;font-size:13px;min-width:78px}
+#dModal .det-renewal-record>span:last-child{color:#78716c;font-size:13px}
+#dModal .det-history-fold>summary{padding:7px 0;color:#006b85;cursor:pointer}
+
+#dModal .det-renewal-extra>summary{cursor:pointer;list-style:none;font-weight:400;line-height:1.5}
+#dModal .det-renewal-extra>summary::-webkit-details-marker{display:none}
+#dModal .det-renewal-extra>summary::after{content:'⌄';margin-left:8px;color:#94a3b8;font-size:12px}
+#dModal .det-renewal-extra[open]>summary::after{content:'⌃'}
+#dModal .det-renewal-extra>summary:focus-visible{outline:2px solid #1486a4;outline-offset:2px}
+#dModal .det-renewal-extra>span{display:flex;flex-wrap:wrap;gap:2px 12px;color:#78716c;font-size:13px;margin-top:4px}
+
+/* Rental details: consistent units and readable utility labels. */
+#dModal .det-tenant-info,#dModal .det-rental-fee{display:flex;flex-direction:column;gap:3px}
+#dModal .det-tenant-info>small,#dModal .det-rental-fee>small{font-size:13px;color:#64748b;font-weight:400}
+#dModal .det-utility-section>h4{font-size:14px;color:#173756;margin:0 0 5px;font-weight:700}
+#dModal .det-property-page .det-utility-section .det-utility-row{display:grid;grid-template-columns:6em minmax(0,1fr);gap:12px;align-items:baseline}
+#dModal .det-property-page .det-utility-section .det-utility-row>.det-key{width:auto;min-width:0}
+#dModal .det-property-page .det-utility-section .det-utility-row>.det-val{width:auto;min-width:0;overflow-wrap:anywhere}
+#dModal .det-property-page .det-utility-section .det-utility-row{grid-template-columns:max-content minmax(0,1fr)}
+#dModal .det-property-page .det-utility-section .det-utility-row>.det-key{margin:0!important;width:auto!important;min-width:6em}
+#dModal .det-property-page .det-utility-section .det-utility-row{column-gap:12px!important}
+
+/* Rental history keeps the label beside its period, including inside other-info. */
+#dModal .det-property-page .det-rental-history .det-row{display:grid;grid-template-columns:92px minmax(0,1fr);column-gap:8px!important;align-items:baseline;padding:3px 0}
+#dModal .det-property-page .det-rental-history .det-row>.det-val{width:auto;min-width:0}
+/* Extend the background outward while keeping text on the main field edge. */
+#dModal .det-utility-section{margin-left:-11px}
+
+/* Basic information and additional contacts share a quiet, labelled hierarchy. */
+#dModal .det-basic-info .det-val{font-weight:400}
+#dModal .det-basic-info .det-contact-row{border-top:1px solid #e2e8f0;margin-top:9px;padding-top:9px}
+#dModal .det-contact-name{font-weight:700;color:#173756;margin-bottom:3px}
+#dModal .det-contact-field{display:grid;grid-template-columns:5.5em minmax(0,1fr);gap:3px 8px;margin:3px 0;align-items:baseline}
+#dModal .det-contact-label{font-size:13px;color:#78716c;font-weight:400}
+#dModal .det-contact-field>span:last-child{min-width:0;overflow-wrap:anywhere}
+#dModal .det-contact-bank{margin-top:6px}
+@media(max-width:480px){#dModal .det-contact-field{grid-template-columns:1fr;gap:0;margin:5px 0}}
+
+/* Contact editing: compact codes, subtle section separators and consistent removal. */
+#fModal.edit-layout .edit-basic [data-addr-row],
+#fModal :is(.basic-contact-box,#sharedContactsWrap) [data-addr-row]{grid-template-columns:minmax(90px,1fr) 84px 38px!important;border-top:1px solid #e2e8f0;padding-top:10px;margin-top:10px}
+#fModal.edit-layout .edit-basic [data-addr-row]>.fg:nth-child(2),
+#fModal :is(.basic-contact-box,#sharedContactsWrap) [data-addr-row]>.fg:nth-child(2){width:96px;max-width:100%;justify-self:start}
+#fModal .basic-contact-box div:has(>.fg>#f-bank),
+#fModal #sharedContactsWrap div:has(>.fg>[data-f="bank"]){display:grid;grid-template-columns:minmax(0,1fr) 90px!important;border-top:1px solid #e2e8f0;padding-top:10px;margin-top:10px}
+#fModal .basic-contact-box .fg:has(>#f-bankAccount),
+#fModal #sharedContactsWrap .fg:has(>[data-f="bankAccount"]){grid-column:1/-1!important}
+#fModal #sharedContactsList .person-block>div>.c-del{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;min-width:30px;min-height:30px;padding:0;border:1px solid #e2e8f0;border-radius:6px;background:white;color:#9f5353;line-height:1;cursor:pointer}
+#fModal #sharedContactsList .c-del:hover{background:#fff1f2;border-color:#fda4af}
+#fModal #sharedContactsList .c-del:focus-visible{outline:2px solid #1486a4;outline-offset:2px}
+/* Additional contacts start below their heading at the basic-info left edge. */
+#dModal .det-basic-info .det-contact-row{display:flex;flex-direction:column;align-items:stretch;gap:5px!important}
+#dModal .det-basic-info .det-contact-row>.det-key{width:auto!important;flex:none;margin:0!important}
+#dModal .det-basic-info .det-contact-row>.det-val{width:100%;min-width:0}
+/* Share label and value columns between primary and additional contacts. */
+#dModal .det-basic-info>.det-row:not(.det-contact-row),
+#dModal .det-basic-info .det-contact-field{display:grid;grid-template-columns:92px minmax(0,1fr)!important;column-gap:8px!important;align-items:baseline}
+#dModal .det-basic-info>.det-row:not(.det-contact-row)>.det-key{width:auto!important;min-width:0;margin:0!important}
+#dModal .det-basic-info .det-contact-row>.det-key{font-weight:700}
+
+/* Reserve room for the outward tab shapes on narrow detail screens. */
+@media(max-width:768px){#dModal #detContent{box-sizing:border-box;padding-left:8px;padding-right:8px}}
+
+/* Align schedule descriptions on narrow screens too, including mixed timed rows. */
+@media(max-width:1049px){
+ #dModal .det-schedule-row{grid-template-columns:92px minmax(0,1fr)}
+ #dModal .det-activity-content:has(.det-schedule-row:not(.det-schedule-no-time)) .det-schedule-row{grid-template-columns:11em minmax(0,1fr)}
+}
+#fModal .edit-section-toolbar>.edit-object-tabs{box-sizing:border-box;max-width:100%}

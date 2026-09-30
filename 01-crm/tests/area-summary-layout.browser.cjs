@@ -14,21 +14,19 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE);
    const baselineGap=await row.evaluate(e=>{const markers=['.det-key','.det-val'].map(sel=>{const marker=document.createElement('i');marker.style.cssText='display:inline-block;width:0;height:0;padding:0;margin:0;vertical-align:baseline';e.querySelector(sel).prepend(marker);return marker;});const gap=Math.abs(markers[0].getBoundingClientRect().y-markers[1].getBoundingClientRect().y);markers.forEach(m=>m.remove());return gap;});
    assert(baselineGap<1,'area label and number share a baseline');
   }
-  assert.equal(await area.locator('.det-row').filter({has:page.getByText('主建物',{exact:true})}).locator('.det-val').textContent(),'5.6坪');
+  assert.equal(await area.locator('.det-row').filter({has:page.getByText('主建物',{exact:true})}).locator('.det-val').textContent(),'5.6 坪');
   assert.equal(await area.getByText('共用',{exact:true}).count(),1);
   const property=page.locator('.det-property-page:visible');
   assert(await property.locator('.det-row').filter({has:page.getByText('約種',{exact:true})}).getByText('非本人委託',{exact:true}).isVisible());assert.equal(await property.getByText('PASS件',{exact:true}).count(),0);
   const field=label=>property.locator('.det-row').filter({has:page.locator('.det-key',{hasText:new RegExp('^'+label+'$')})});
   for(const label of ['開價','底價','服務費','管理費'])assert(await field(label).isVisible(),label+' is directly visible');
-  for(const labels of [['開價','底價'],['服務費','管理費']]){
+  for(const labels of [['開價','底價']]){
    const boxes=await Promise.all(labels.map(label=>field(label).boundingBox()));
    if(width>=1440)assert(Math.abs(boxes[0].y-boxes[1].y)<2,labels.join('/')+' shares a row');
    for(const label of labels)assert(await field(label).evaluate(e=>e.scrollWidth<=e.clientWidth+1),'cost content fits');
   }
-  const managementLines=field('管理費').locator('.det-management-lines>span');
-  assert.deepEqual(await managementLines.allTextContents(),['建物 17439元','汽車位 1500元','機車位 200元／月繳']);
-  const lineBoxes=await managementLines.evaluateAll(els=>els.map(e=>e.getBoundingClientRect().toJSON()));
-  assert(lineBoxes[1].y>=lineBoxes[0].y+lineBoxes[0].height,'parking fee starts on its own line');
+  assert.equal(await field('管理費').locator('strong').textContent(),'每月 合計 19,139 元');
+  assert.equal(await field('管理費').locator('small').textContent(),'建物 17,439 ＋ 車位 1,500 ＋ 機車位 200');
   assert.equal(await property.locator(':scope>details>summary').filter({hasText:'其他資料'}).count(),0,'no empty other section');
   assert((await field('底價').boundingBox()).y<(await field('登記面積').boundingBox()).y,'prices precede area');
   await page.evaluate(()=>{closeDet();DB[0].sProperties=[{community:'土地',baseLand:'9990.37',landShare:'9990.37'}];openEdit('area');});
@@ -41,6 +39,6 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE);
   await editor.getByLabel('主建物',{exact:true}).fill('');assert.equal(await totals.getAttribute('data-summary-kind'),'land');
   await page.evaluate(()=>{const root=document.querySelector('#sPropertyList>.person-block');const data=areaEditorData(root);data.common=[{kind:'parking',area:'10',unit:'ping',mode:'direct'}];mountAreaEditor(root,data);});
   assert.equal(await totals.getAttribute('data-summary-kind'),'building','parking-only is not classified as land');
-  await page.goto(pathToFileURL(path.join(__dirname,'../index.html')).href);await page.evaluate(()=>{DB=[{id:'opportunity-area',name:'測試',type:'商機募集',types:['商機募集'],dAddrs:[{community:'第一商機',bldgSz:'19.55'},{community:'第二商機',landSz:'120'}]}];curFilter='商機募集';showDet('opportunity-area');});const visible=page.locator('.det-property-page:visible');assert(await visible.getByText('19.55坪',{exact:true}).isVisible(),'opportunity area visible without expanding');assert.equal(await visible.getByText('面積與持分明細',{exact:true}).count(),0);assert.equal(await visible.locator('.det-area-section').count(),0);assert(await visible.locator(':scope>.det-row').filter({hasText:'建物坪數'}).isVisible());await page.getByRole('tab',{name:'第二商機',exact:true}).click();assert(await visible.getByText('120坪',{exact:true}).isVisible(),'opportunity land visible after switching');await page.close();console.log('PASS inline area/costs, land summary and always-visible opportunity area '+width);
+  await page.goto(pathToFileURL(path.join(__dirname,'../index.html')).href);await page.evaluate(()=>{DB=[{id:'opportunity-area',name:'測試',type:'商機募集',types:['商機募集'],dAddrs:[{community:'第一商機',bldgSz:'19.55'},{community:'第二商機',landSz:'120'}]}];curFilter='商機募集';showDet('opportunity-area');});const visible=page.locator('.det-property-page:visible');assert(await visible.getByText('19.55 坪',{exact:true}).isVisible(),'opportunity area visible without expanding');assert.equal(await visible.getByText('面積與持分明細',{exact:true}).count(),0);assert.equal(await visible.locator('.det-area-section').count(),0);assert(await visible.locator(':scope>.det-row').filter({hasText:'建物坪數'}).isVisible());await page.getByRole('tab',{name:'第二商機',exact:true}).click();assert(await visible.getByText('120 坪',{exact:true}).isVisible(),'opportunity land visible after switching');await page.close();console.log('PASS inline area/costs, land summary and always-visible opportunity area '+width);
  }
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1});

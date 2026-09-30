@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20260930audit111">
+    <link rel="stylesheet" href="area-editor.css?v=20260930audit112">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit111">
-    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit111">
+    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit112">
+    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit112">
 </head>
 <body>
 
@@ -1085,7 +1085,7 @@
                 </div>
             </div>
             <div data-addr-row style="display:grid;grid-template-columns:2fr 2fr 10fr auto;gap:6px;margin-bottom:6px;align-items:end">
-                <div class="fg" style="margin-bottom:0"><label>地址類型</label><select id="f-addrType" onchange="onAddrTypeChange(this)"><option value="住家">住家</option><option value="公司">公司</option><option value="自訂">自訂</option></select></div>
+                <div class="fg" style="margin-bottom:0"><label>地址</label><select id="f-addrType" onchange="onAddrTypeChange(this)"><option value="住家">住家</option><option value="公司">公司</option><option value="自訂">自訂</option></select></div>
                 <div class="fg" style="margin-bottom:0"><label>郵遞區號</label><input id="f-zip" data-f="zip" placeholder="" style="min-width:0"></div>
                 <div class="fg" style="margin-bottom:0"><label>地址</label><input id="f-addr" placeholder="" onblur="autoZip(this)"></div>
                 <button type="button" class="btn-ic" onclick="addBuyerAddrRow('basicAddrList')" title="新增地址" style="margin-bottom:2px;font-size:16px;padding:6px 8px">＋</button>
@@ -1093,7 +1093,7 @@
             <div id="basicAddrList"></div>
             <div style="display:grid;grid-template-columns:3fr 1fr 4fr;gap:10px;margin-bottom:6px">
                 <div class="fg" style="margin-bottom:0"><label>銀行名稱</label><input id="f-bank" placeholder="" onblur="autoBankCode(this)"></div>
-                <div class="fg" style="margin-bottom:0"><label>代碼</label><input id="f-bankCode" placeholder=""></div>
+                <div class="fg" style="margin-bottom:0"><label>銀行代碼</label><input id="f-bankCode" placeholder=""></div>
                 <div class="fg" style="margin-bottom:0"><label>銀行帳號</label><input id="f-bankAccount" placeholder="" onblur="formatBankAccount(this)"></div>
             </div>
             </div></div>
@@ -1133,7 +1133,7 @@
                     <div class="fg" style="margin-bottom:0"><label>客戶來源</label><input id="f-bSource" placeholder=""></div>
                 </div>
                 <div id="bRow3" data-addr-row style="display:grid;grid-template-columns:2fr 2fr 10fr auto;gap:6px;margin-bottom:6px;align-items:end">
-                    <div class="fg" style="margin-bottom:0"><label>類型</label><select id="f-bAddrType" onchange="onAddrTypeChange(this)"><option value="住家">住家</option><option value="公司">公司</option><option value="自訂">自訂</option></select></div>
+                    <div class="fg" style="margin-bottom:0"><label>地址</label><select id="f-bAddrType" onchange="onAddrTypeChange(this)"><option value="住家">住家</option><option value="公司">公司</option><option value="自訂">自訂</option></select></div>
                     <div class="fg" style="margin-bottom:0"><label>郵遞區號</label><input id="f-bZip" data-f="zip" placeholder="" style="min-width:0"></div>
                     <div class="fg" style="margin-bottom:0"><label>地址</label><input id="f-bAddr" placeholder="" onblur="autoZip(this)"></div>
                     <button type="button" class="btn-ic" onclick="addBuyerAddrRow('bBasicAddrList')" title="新增地址" style="margin-bottom:2px;font-size:16px;padding:6px 8px">＋</button>
@@ -1164,7 +1164,7 @@
                     <div class="fg" style="margin-bottom:0"><label>客戶來源</label><input id="f-sSource" placeholder=""></div>
                 </div>
                 <div id="sellerBasicRow3" data-addr-row style="display:grid;grid-template-columns:2fr 2fr 10fr auto;gap:6px;margin-bottom:6px;align-items:end">
-                    <div class="fg" style="margin-bottom:0"><label>類型</label><select id="f-sAddrType" onchange="onAddrTypeChange(this)"><option value="住家">住家</option><option value="公司">公司</option><option value="自訂">自訂</option></select></div>
+                    <div class="fg" style="margin-bottom:0"><label>地址</label><select id="f-sAddrType" onchange="onAddrTypeChange(this)"><option value="住家">住家</option><option value="公司">公司</option><option value="自訂">自訂</option></select></div>
                     <div class="fg" style="margin-bottom:0"><label>郵遞區號</label><input id="f-sZip" data-f="zip" placeholder="" style="min-width:0"></div>
                     <div class="fg" style="margin-bottom:0"><label>地址</label><input id="f-sOwnerAddr" placeholder="" onblur="autoZip(this)"></div>
                     <button type="button" class="btn-ic" onclick="addBuyerAddrRow('sBasicAddrList')" title="新增地址" style="margin-bottom:2px;font-size:16px;padding:6px 8px">＋</button>
@@ -1286,7 +1286,7 @@
                         <div class="fg" style="margin-bottom:0"><label>客戶來源</label><input id="f-llSource" placeholder=""></div>
                     </div>
                     <div data-addr-row style="display:grid;grid-template-columns:2fr 2fr 10fr auto;gap:6px;margin-bottom:6px;align-items:end">
-                        <div class="fg" style="margin-bottom:0"><label>類型</label><select id="f-llAddrType" onchange="onAddrTypeChange(this)"><option value="住家">住家</option><option value="公司">公司</option><option value="自訂">自訂</option></select></div>
+                        <div class="fg" style="margin-bottom:0"><label>地址</label><select id="f-llAddrType" onchange="onAddrTypeChange(this)"><option value="住家">住家</option><option value="公司">公司</option><option value="自訂">自訂</option></select></div>
                         <div class="fg" style="margin-bottom:0"><label>郵遞區號</label><input id="f-llZip" data-f="zip" placeholder="" style="min-width:0"></div>
                         <div class="fg" style="margin-bottom:0"><label>地址</label><input id="f-llAddr" placeholder="" onblur="autoZip(this)"></div>
                         <button type="button" class="btn-ic" onclick="addBuyerAddrRow('llBasicAddrList')" title="新增地址" style="margin-bottom:2px;font-size:16px;padding:6px 8px">＋</button>
@@ -1346,7 +1346,7 @@
                         <div class="fg" style="margin-bottom:0"><label>客戶來源</label><input id="f-ttSource" placeholder=""></div>
                     </div>
                     <div data-addr-row style="display:grid;grid-template-columns:2fr 2fr 10fr auto;gap:6px;margin-bottom:6px;align-items:end">
-                        <div class="fg" style="margin-bottom:0"><label>類型</label><select id="f-ttAddrType" onchange="onAddrTypeChange(this)"><option value="住家">住家</option><option value="公司">公司</option><option value="自訂">自訂</option></select></div>
+                        <div class="fg" style="margin-bottom:0"><label>地址</label><select id="f-ttAddrType" onchange="onAddrTypeChange(this)"><option value="住家">住家</option><option value="公司">公司</option><option value="自訂">自訂</option></select></div>
                         <div class="fg" style="margin-bottom:0"><label>郵遞區號</label><input id="f-ttZip" data-f="zip" placeholder="" style="min-width:0"></div>
                         <div class="fg" style="margin-bottom:0"><label>地址</label><input id="f-ttAddr" placeholder="" onblur="autoZip(this)"></div>
                         <button type="button" class="btn-ic" onclick="addBuyerAddrRow('ttBasicAddrList')" title="新增地址" style="margin-bottom:2px;font-size:16px;padding:6px 8px">＋</button>
@@ -1383,7 +1383,7 @@
                     <div class="fg" style="margin-bottom:0"><label>客戶來源</label><input id="f-cSource" placeholder=""></div>
                 </div>
                 <div data-addr-row style="display:grid;grid-template-columns:2fr 2fr 10fr auto;gap:6px;margin-bottom:6px;align-items:end">
-                    <div class="fg" style="margin-bottom:0"><label>類型</label><select id="f-cAddrType" onchange="onAddrTypeChange(this)"><option value="住家">住家</option><option value="公司">公司</option><option value="自訂">自訂</option></select></div>
+                    <div class="fg" style="margin-bottom:0"><label>地址</label><select id="f-cAddrType" onchange="onAddrTypeChange(this)"><option value="住家">住家</option><option value="公司">公司</option><option value="自訂">自訂</option></select></div>
                     <div class="fg" style="margin-bottom:0"><label>郵遞區號</label><input id="f-cZip" data-f="zip" placeholder="" style="min-width:0"></div>
                     <div class="fg" style="margin-bottom:0"><label>地址</label><input id="f-cAddr" placeholder="" onblur="autoZip(this)"></div>
                     <button type="button" class="btn-ic" onclick="addBuyerAddrRow('cBasicAddrList')" title="新增地址" style="margin-bottom:2px;font-size:16px;padding:6px 8px">＋</button>
@@ -1413,7 +1413,7 @@
                     <div class="fg" style="margin-bottom:0"><label>客戶來源</label><input id="f-dSource" placeholder=""></div>
                 </div>
                 <div data-addr-row style="display:grid;grid-template-columns:2fr 2fr 10fr auto;gap:6px;margin-bottom:6px;align-items:end">
-                    <div class="fg" style="margin-bottom:0"><label>類型</label><select id="f-dAddrType" onchange="onAddrTypeChange(this)"><option value="住家">住家</option><option value="公司">公司</option><option value="自訂">自訂</option></select></div>
+                    <div class="fg" style="margin-bottom:0"><label>地址</label><select id="f-dAddrType" onchange="onAddrTypeChange(this)"><option value="住家">住家</option><option value="公司">公司</option><option value="自訂">自訂</option></select></div>
                     <div class="fg" style="margin-bottom:0"><label>郵遞區號</label><input id="f-dZip" data-f="zip" placeholder="" style="min-width:0"></div>
                     <div class="fg" style="margin-bottom:0"><label>地址</label><input id="f-dAddr" placeholder="" onblur="autoZip(this)"></div>
                     <button type="button" class="btn-ic" onclick="addBuyerAddrRow('dBasicAddrList')" title="新增地址" style="margin-bottom:2px;font-size:16px;padding:6px 8px">＋</button>
@@ -4701,18 +4701,18 @@ function renderCard(c) {
             if (_rAddr) meta += `<div class="cmeta-row"><span class="cmeta-k">地址</span><span class="cmeta-v full">${esc(_rAddr)}</span></div>`;
             if (_rSz || _rParking) {
                 var _szParts = [];
-                if (_rSz) _szParts.push(esc(_rSz) + '坪');
+                if (_rSz) _szParts.push(listUnitValue(_rSz,'坪'));
                 if (_rParking) _szParts.push(esc(_rParking));
                 meta += `<div class="cmeta-row"><span class="cmeta-k">${_rSz?'坪數':'車位'}</span><span class="cmeta-v">${_szParts.join(' / ')}</span></div>`;
             }
             if (_rRent) {
                 var _rPeriod = _rp0.rRentPeriod || c.rRentPeriod || '';
-                var _rentDisp = esc(_rRent) + (_rRent.includes('元')?'':'元') + (_rPeriod?'／'+esc(_rPeriod):'');
+                var _rentDisp = listUnitValue(_rRent,'元') + (_rPeriod?'／'+esc(_rPeriod):'');
                 var _rMgmt = (parseFloat(_rp0.rMgmtBuilding)||0)+(parseFloat(_rp0.rMgmtCar)||0)+(parseFloat(_rp0.rMgmtMoto)||0)+(parseFloat(_rp0.rMgmtOther)||0);
                 if (_rp0.rMgmtType === '含管' || _rp0.rMgmtType === '內含') {
-                    _rentDisp += ' <span style="color:#475569">含管' + (_rMgmt ? ' ' + _rMgmt.toLocaleString() + '元' : '') + '</span>';
+                    _rentDisp += ' <span style="color:#475569">含管' + (_rMgmt ? ' ' + _rMgmt.toLocaleString() + ' 元' : '') + '</span>';
                 } else if (_rp0.rMgmtType === '不含管') {
-                    _rentDisp += ' <span style="color:#475569">不含管' + (_rMgmt ? ' ' + _rMgmt.toLocaleString() + '元' : '') + '</span>';
+                    _rentDisp += ' <span style="color:#475569">不含管' + (_rMgmt ? ' ' + _rMgmt.toLocaleString() + ' 元' : '') + '</span>';
                 }
                 meta += `<div class="cmeta-row"><span class="cmeta-k">租金</span><span class="cmeta-v">${_rentDisp}</span></div>`;
             }
@@ -4733,13 +4733,13 @@ function renderCard(c) {
                     var _ttRent = _llRp.rent || _llC.rent || '';
                     if (_ttRent) {
                         var _ttPeriod = _llRp.rRentPeriod || _llC.rRentPeriod || '';
-                        var _ttRentDisp = esc(_ttRent) + (_ttRent.includes('元')?'':'元') + (_ttPeriod?'／'+esc(_ttPeriod):'');
+                        var _ttRentDisp = listUnitValue(_ttRent,'元') + (_ttPeriod?'／'+esc(_ttPeriod):'');
                         var _ttMgmt = (parseFloat(_llRp.rMgmtBuilding||_llC.rMgmtBuilding)||0)+(parseFloat(_llRp.rMgmtCar||_llC.rMgmtCar)||0)+(parseFloat(_llRp.rMgmtMoto||_llC.rMgmtMoto)||0)+(parseFloat(_llRp.rMgmtOther||_llC.rMgmtOther)||0);
                         var _ttMgmtType = _llRp.rMgmtType || _llC.rMgmtType || '';
                         if (_ttMgmtType === '含管' || _ttMgmtType === '內含') {
-                            _ttRentDisp += ' <span style="color:#475569">含管' + (_ttMgmt ? ' ' + _ttMgmt.toLocaleString() + '元' : '') + '</span>';
+                            _ttRentDisp += ' <span style="color:#475569">含管' + (_ttMgmt ? ' ' + _ttMgmt.toLocaleString() + ' 元' : '') + '</span>';
                         } else if (_ttMgmtType === '不含管') {
-                            _ttRentDisp += ' <span style="color:#475569">不含管' + (_ttMgmt ? ' ' + _ttMgmt.toLocaleString() + '元' : '') + '</span>';
+                            _ttRentDisp += ' <span style="color:#475569">不含管' + (_ttMgmt ? ' ' + _ttMgmt.toLocaleString() + ' 元' : '') + '</span>';
                         }
                         meta += `<div class="cmeta-row"><span class="cmeta-k">租金</span><span class="cmeta-v">${_ttRentDisp}</span></div>`;
                     }
@@ -4751,12 +4751,12 @@ function renderCard(c) {
             }
             if (c.rCommunity) meta += `<div class="cmeta-row"><span class="cmeta-k">社區</span><span class="cmeta-v">${esc(c.rCommunity)}</span></div>`;
             if (c.rAddr) meta += `<div class="cmeta-row"><span class="cmeta-k">地址</span><span class="cmeta-v full">${esc(c.rAddr)}</span></div>`;
-            if (c.rSz) meta += `<div class="cmeta-row"><span class="cmeta-k">坪數</span><span class="cmeta-v">${esc(c.rSz)}坪${c.rParking?' / '+esc(c.rParking):''}</span></div>`;
+            if (c.rSz) meta += `<div class="cmeta-row"><span class="cmeta-k">坪數</span><span class="cmeta-v">${listUnitValue(c.rSz,'坪')}${c.rParking?' / '+esc(c.rParking):''}</span></div>`;
             if (c.rent) {
-                let rentDisp = esc(c.rent) + (c.rent&&!c.rent.includes('元')?'元':'') + (c.rRentPeriod&&c.rRentPeriod!=='月繳'?'／'+esc(c.rRentPeriod):'');
+                let rentDisp = listUnitValue(c.rent,'元') + (c.rRentPeriod&&c.rRentPeriod!=='月繳'?'／'+esc(c.rRentPeriod):'');
                 var rMgmtSum = (parseFloat(c.rMgmtBuilding)||0)+(parseFloat(c.rMgmtCar)||0)+(parseFloat(c.rMgmtMoto)||0)+(parseFloat(c.rMgmtOther)||0);
                 if (!rMgmtSum && c.rMgmtFee) rMgmtSum = parseFloat(c.rMgmtFee)||0;
-                if (c.rMgmtType || rMgmtSum) rentDisp += ` <span style="color:#475569">${esc(c.rMgmtType||'')}${rMgmtSum?' '+rMgmtSum.toLocaleString()+'元':''}</span>`;
+                if (c.rMgmtType || rMgmtSum) rentDisp += ` <span style="color:#475569">${esc(c.rMgmtType||'')}${rMgmtSum?' '+rMgmtSum.toLocaleString()+' 元':''}</span>`;
                 meta += `<div class="cmeta-row"><span class="cmeta-k">租金</span><span class="cmeta-v">${rentDisp}</span></div>`;
             }
             if (c.renewals && c.renewals.length) {
@@ -4926,6 +4926,12 @@ function editNoteInline(id, el, noteType) {
 <!-- ============================================================ -->
 <script>
 // ── Detail ──
+function listUnitValue(value,unit){
+    var raw=String(value??'').trim();
+    if(raw.endsWith(unit))raw=raw.slice(0,-unit.length).trim();
+    if(unit==='元'&&/^\d[\d,]*(?:\.\d+)?$/.test(raw))raw=Number(raw.replace(/,/g,'')).toLocaleString('zh-TW',{maximumFractionDigits:10});
+    return esc(raw)+(raw?' '+unit:'');
+}
 function dRow(k,v){ return v?`<div class="det-row"><span class="det-key">${k}</span><span class="det-val">${esc(v)}</span></div>`:''; }
 
 function typeDetail(origC, viewAs) {
@@ -5439,19 +5445,18 @@ function showDet(id, viewAs) {
                 // 其他聯絡人
                 if (c.contacts && c.contacts.length) {
                     c.contacts.forEach(function(p, idx) {
-                        var lines = '<div style="font-weight:700;color:#EF4444">' + esc(p.name||'') + '</div>';
-                        if (p.phone) lines += '<div>' + esc(p.phone) + '</div>';
-                        if (p.idNo) lines += '<div>' + esc(p.idNo) + '</div>';
-                        if (p.birthday) lines += '<div>生日 ' + esc(p.birthday.includes('-')?isoToROC(p.birthday):p.birthday) + '</div>';
-                        if (p.occupation) lines += '<div>' + esc(p.occupation) + '</div>';
-                        if (p.email) lines += '<div>' + esc(p.email) + '</div>';
-                        if (p.addr) lines += '<div>' + esc((p.zip?p.zip+' ':'')+p.addr) + '</div>';
-                        if (p.extraAddrs) p.extraAddrs.forEach(function(a){ if(a.addr) lines += '<div>' + esc((a.zip?a.zip+' ':'')+a.addr) + '</div>'; });
-                        if (p.bank||p.bankAccount) lines += '<div>' + bankDetailMarkup(p.bank,p.bankCode,p.bankAccount) + '</div>';
-                        info.push('<div class="det-row"><span class="det-key">聯絡人'+(idx+1)+'</span><span class="det-val" style="font-weight:400">'+lines+'</span></div>');
+                        function field(label,value){return value?'<div class="det-contact-field"><span class="det-contact-label">'+esc(label)+'</span><span>'+esc(value)+'</span></div>':'';}
+                        var lines = '<div class="det-contact-field"><span class="det-contact-label">姓名</span><span class="det-contact-name">' + esc(p.name||'') + '</span></div>';
+                        lines += field('電話',p.phone)+field('身分證字號',p.idNo);
+                        if(p.birthday)lines += field('生日',p.birthday.includes('-')?isoToROC(p.birthday):p.birthday);
+                        lines += field('職業',p.occupation)+field('Email',p.email);
+                        if(p.addr)lines += field(p.addrType||'地址',(p.zip?p.zip+' ':'')+p.addr);
+                        if(p.extraAddrs)p.extraAddrs.forEach(function(a){if(a.addr)lines+=field(a.addrType||a.type||'地址',(a.zip?a.zip+' ':'')+a.addr);});
+                        if(p.bank||p.bankCode||p.bankAccount)lines+='<div class="det-contact-bank">'+field('銀行',(p.bank||'')+(p.bankCode?' ('+p.bankCode+')':''))+field('帳號',p.bankAccount)+'</div>';
+                        info.push('<div class="det-row det-contact-row"><span class="det-key">聯絡人 '+(idx+1)+'</span><span class="det-val">'+lines+'</span></div>');
                     });
                 }
-                return info.length ? '<div style="border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:8px">'+info.join('')+'</div>' : '';
+                return info.length ? '<div class="det-basic-info" style="border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:8px">'+info.join('')+'</div>' : '';
             })()}
             ${allTd}
             ${(function(){
@@ -6891,7 +6896,7 @@ function addRentalProperty(data) {
     var localNum = document.querySelectorAll('#rPropertyList .person-block').length + 1;
     var parkOpts = ['','坡道平面','坡道機械','升降平面','升降機械','塔式車位','其他車位'];
     var parkHtml = parkOpts.map(function(p){ return '<option value="'+p+'"'+(d.rParking===p?' selected':'')+'>'+(p||'無車位')+'</option>'; }).join('');
-    var mgmtSel = function(v){ return '<option value="'+v+'"'+(d.rMgmtType===v?' selected':'')+'>'+v+'</option>'; };
+    var mgmtSel = function(v){ return '<option value="'+v+'"'+(d.rMgmtType===v?' selected':'')+'>'+(v==='含管'?'已含':v==='不含管'?'不含':v)+'</option>'; };
     var periodSel = function(v,label){ return '<option value="'+v+'"'+(d.rRentPeriod===v?' selected':'')+'>'+(label||v)+'</option>'; };
 
     var html = '<div class="person-block" id="'+pid+'" style="border:1px solid var(--border);border-left:4px solid #5B21B6;border-radius:10px;padding:10px;margin-bottom:10px;background:#FAFAF9;position:relative">' +
@@ -6929,7 +6934,7 @@ function addRentalProperty(data) {
             '<div class="fg" style="margin-bottom:0"><label style="font-size:12px">水錶</label><input data-f="meterWater" value="'+esc(d.rMeterWater||'')+'" placeholder=""></div>' +
             '<div class="fg" style="margin-bottom:0"><label style="font-size:12px">瓦斯錶</label><input data-f="meterGas" value="'+esc(d.rMeterGas||'')+'" placeholder=""></div>' +
             '<div class="fg" style="margin-bottom:0"><label style="font-size:12px">垃圾集中</label><input data-f="trashSpot" value="'+esc(d.rTrashSpot||'')+'" placeholder=""></div>' +
-            '<div class="fg" style="margin-bottom:0"><label style="font-size:12px">專用袋</label><select data-f="trashBag" style="width:100%"><option value=""'+(d.rTrashBag?'':' selected')+'>—</option><option value="Y"'+(d.rTrashBag==='Y'?' selected':'')+'>Y</option><option value="N"'+(d.rTrashBag==='N'?' selected':'')+'>N</option></select></div>' +
+            '<div class="fg" style="margin-bottom:0"><label style="font-size:12px">專用袋</label><select data-f="trashBag" style="width:100%"><option value=""'+(d.rTrashBag?'':' selected')+'>—</option><option value="Y"'+(d.rTrashBag==='Y'?' selected':'')+'>是</option><option value="N"'+(d.rTrashBag==='N'?' selected':'')+'>否</option></select></div>' +
         '</div>' +
         // 起租日+到期日+續約+歷程
         '<div class="sp-contract-row" style="display:grid;grid-template-columns:3fr 3fr auto auto;gap:8px;align-items:end">' +
@@ -7480,7 +7485,7 @@ function addPersonBlock(listId, data) {
         ? '<input data-f="addrType" type="text" value="'+esc(d.addrType)+'">'
         : '<select data-f="addrType" onchange="onAddrTypeChange(this)"><option value="住家"'+(d.addrType==='住家'?' selected':'')+'>住家</option><option value="公司"'+(d.addrType==='公司'?' selected':'')+'>公司</option><option value="自訂"'+(d.addrType==='自訂'?' selected':'')+'>自訂</option></select>';
     var html = '<div class="person-block" id="pb-'+personBlockId+'" style="border:1px solid var(--border);border-left:4px solid #8B7355;border-radius:10px;padding:10px;margin-bottom:10px;position:relative;background:#FAFAF9">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:12px;font-weight:700;color:#8B7355">聯絡人 '+localNum+'</span><button type="button" class="c-del" onclick="this.parentElement.parentElement.remove()">✕</button></div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:12px;font-weight:700;color:#8B7355">聯絡人 '+localNum+'</span><button type="button" class="c-del" aria-label="刪除聯絡人" title="刪除聯絡人" onclick="this.parentElement.parentElement.remove()">✕</button></div>' +
         '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:6px">' +
             '<div class="fg" style="margin-bottom:0"><label>姓名 <button type="button" class="btn-fill" onclick="fillPersonBlock(this)">帶入</button></label><input data-f="name" value="'+esc(d.name||'')+'" placeholder=""></div>' +
             '<div class="fg" style="margin-bottom:0"><label>電話</label><input data-f="phone" value="'+esc(d.phone||'')+'" placeholder="" onblur="autoPhone(this)"></div>' +
@@ -7495,7 +7500,7 @@ function addPersonBlock(listId, data) {
             '<div class="fg" style="margin-bottom:0;grid-column:span 2"><label>Email</label><input data-f="email" type="email" value="'+esc(d.email||'')+'" placeholder=""></div>' +
         '</div>' +
         '<div data-addr-row style="display:grid;grid-template-columns:2fr 2fr 10fr auto;gap:6px;margin-bottom:6px;align-items:end">' +
-            '<div class="fg" style="margin-bottom:0"><label>類型</label>'+typeHtml+'</div>' +
+            '<div class="fg" style="margin-bottom:0"><label>地址</label>'+typeHtml+'</div>' +
             '<div class="fg" style="margin-bottom:0"><label>郵遞區號</label><input data-f="zip" value="'+esc(d.zip||'')+'" placeholder="" style="min-width:0"></div>' +
             '<div class="fg" style="margin-bottom:0"><label>地址</label><input data-f="addr" value="'+esc(d.addr||'')+'" placeholder="" onblur="autoZip(this)"></div>' +
             '<button type="button" class="btn-ic" onclick="addPbAddrRow(this)" title="新增地址" style="margin-bottom:2px;font-size:16px;padding:6px 8px">＋</button>' +
@@ -7544,7 +7549,7 @@ function addBuyerAddrRow(listId, data) {
         ? '<input data-f="type" type="text" value="'+esc(d.type)+'" style="width:100%;min-width:0;box-sizing:border-box">'
         : '<select data-f="type" onchange="onAddrTypeChange(this)"><option value="住家"'+(d.type==='住家'?' selected':'')+'>住家</option><option value="公司"'+(d.type==='公司'?' selected':'')+'>公司</option><option value="自訂"'+(d.type==='自訂'?' selected':'')+'>自訂</option></select>';
     var html = '<div class="c-row" data-addr-row id="bba-'+bBasicAddrId+'" style="display:grid;grid-template-columns:2fr 2fr 10fr auto;gap:6px;align-items:end;margin-bottom:4px">' +
-        '<div class="fg" style="margin-bottom:0"><label style="font-size:12px">類型</label>'+typeHtml+'</div>' +
+        '<div class="fg" style="margin-bottom:0"><label style="font-size:12px">地址</label>'+typeHtml+'</div>' +
         '<div class="fg" style="margin-bottom:0"><label style="font-size:12px">郵遞區號</label><input data-f="zip" value="'+esc(d.zip||'')+'" placeholder="" style="min-width:0"></div>' +
         '<div class="fg" style="margin-bottom:0"><label style="font-size:12px">地址</label><input data-f="addr" value="'+esc(d.addr||'')+'" placeholder="" onblur="autoZip(this)"></div>' +
         '<button type="button" class="c-del" onclick="this.parentElement.remove()" style="margin-bottom:4px">✕</button></div>';
@@ -7570,7 +7575,7 @@ function addPbAddrRow(btn, data) {
         ? '<input data-f="type" type="text" value="'+esc(d.type)+'" style="width:100%;min-width:0;box-sizing:border-box">'
         : '<select data-f="type" onchange="onAddrTypeChange(this)"><option value="住家"'+(d.type==='住家'?' selected':'')+'>住家</option><option value="公司"'+(d.type==='公司'?' selected':'')+'>公司</option><option value="自訂"'+(d.type==='自訂'?' selected':'')+'>自訂</option></select>';
     var html = '<div class="c-row" data-addr-row style="display:grid;grid-template-columns:2fr 2fr 10fr auto;gap:6px;align-items:end;margin-bottom:4px">' +
-        '<div class="fg" style="margin-bottom:0"><label style="font-size:12px">類型</label>'+typeHtml+'</div>' +
+        '<div class="fg" style="margin-bottom:0"><label style="font-size:12px">地址</label>'+typeHtml+'</div>' +
         '<div class="fg" style="margin-bottom:0"><label style="font-size:12px">郵遞區號</label><input data-f="zip" value="'+esc(d.zip||'')+'" placeholder="" style="min-width:0"></div>' +
         '<div class="fg" style="margin-bottom:0"><label style="font-size:12px">地址</label><input data-f="addr" value="'+esc(d.addr||'')+'" placeholder="" onblur="autoZip(this)"></div>' +
         '<button type="button" class="c-del" onclick="this.parentElement.remove()" style="margin-bottom:4px">✕</button></div>';
@@ -12388,7 +12393,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260930audit111';
+var APP_VERSION = '20260930audit112';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13554,12 +13559,12 @@ function deleteMktTemplate(idx) {
 <script src="brand-banner.js?v=20260928sync1"></script>
 <script src="image-storage.js?v=20260928sync1"></script>
 <script src="image-redaction.js?v=20260928sync1"></script>
-<script src="image-studio.js?v=20260930audit111"></script>
+<script src="image-studio.js?v=20260930audit112"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
-<script src="image-composer.js?v=20260930audit111"></script>
-<script src="area-editor.js?v=20260930audit111"></script>
-<script src="sync-notice.js?v=20260930audit111"></script>
-<script src="detail-properties.js?v=20260930audit111"></script>
-<script src="edit-layout.js?v=20260930audit111"></script>
+<script src="image-composer.js?v=20260930audit112"></script>
+<script src="area-editor.js?v=20260930audit112"></script>
+<script src="sync-notice.js?v=20260930audit112"></script>
+<script src="detail-properties.js?v=20260930audit112"></script>
+<script src="edit-layout.js?v=20260930audit112"></script>
 </body>
 </html>

@@ -222,7 +222,7 @@
     }
     function row(label,value){return value===undefined||value===null||value===''?'':dRow(esc(label),String(value));}
     function link(label,value){if(!value)return '';try{const u=new URL(value);if(!['https:','http:'].includes(u.protocol))return row(label,value);return '<div class="det-row"><span class="det-key">'+esc(label)+'</span><span class="det-val"><a target="_blank" rel="noopener noreferrer" href="'+esc(u.href)+'">開啟物件資料夾</a></span></div>';}catch{return row(label,value);}}
-    function history(label,list){return (list||[]).map((h,i)=>{
+    function history(label,list){return (list||[]).map((h,i)=>({h,i})).sort((a,b)=>String(b.h.date||b.h.time||'').localeCompare(String(a.h.date||a.h.time||''))||b.i-a.i).map(({h,i})=>{
         const amount=h.value==null?'':String(h.value).trim(),value=['開價歷程','底價歷程'].includes(label)&&/^\d[\d,]*(?:\.\d+)?$/.test(amount)?amount+'萬':h.value;
         const content=[value,h.action,h.reason].filter(v=>v!==undefined&&v!==null&&v!=='').join(' · ');
         const date=h.date?(/^\d{4}-\d{2}-\d{2}/.test(h.date)?isoToROC(String(h.date).slice(0,10)):String(h.date).split(' ')[0]):(h.time?toROCDateTime(h.time).replace(/^民國/,'').split(' ')[0]:'');
@@ -249,7 +249,7 @@
         return html;
     }
     areaStyle.textContent+='.det-property-page .det-area-section .det-area-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr))}.det-property-page .det-area-land .det-area-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))}.det-area-grid .det-val{white-space:nowrap}';
-    function tenants(c,index){return DB.filter(t=>!t._deleted&&t.linkedLandlordId===c.id&&(t.linkedPropertyIdx||0)===index).map(t=>row('租客',[t.ttName||t.name,t.ttPhone||t.phone,t.ttIdNo,t.ttOccupation].filter(Boolean).join('　'))+row('租客條件',[t.rSubsidy2?'租補':'',t.rSocialHouse2?'社宅':'',t.rRegister2?'設籍':'',t.rTax2?'報稅':'',t.rPet2?'寵物':'',t.rAltar2?'神桌':'',t.rGoodCitizen2?'良民':'',t.rNotarize2?'公證':''].filter(Boolean).join('、'))).join('');}
+    function tenants(c,index){return DB.filter(t=>!t._deleted&&t.linkedLandlordId===c.id&&(t.linkedPropertyIdx||0)===index).map(t=>'<div class="det-row"><span class="det-key">租客</span><span class="det-val det-tenant-info"><span>'+esc([t.ttName||t.name,t.ttPhone||t.phone].filter(Boolean).join('　'))+'</span>'+[t.ttIdNo,t.ttOccupation].filter(Boolean).map(text=>'<small>'+esc(text)+'</small>').join('')+'</span></div>'+row('租客條件',[t.rSubsidy2?'租補':'',t.rSocialHouse2?'社宅':'',t.rRegister2?'設籍':'',t.rTax2?'報稅':'',t.rPet2?'寵物':'',t.rAltar2?'神桌':'',t.rGoodCitizen2?'良民':'',t.rNotarize2?'公證':''].filter(Boolean).join('、'))).join('');}
     function compact(html,extra,kind,property){
         const holder=document.createElement('div');holder.innerHTML=html;
         const core=new Set(['社區大樓','物件地址','地址','成交地址','開價','租金','成交價格','坪數','坪數/車位','登記面積','車位','車位型態','車位價格','車位編號','立約日','起租日','到期日','成交日期','租客','房東條件','租客條件','需求區域','房型需求','預算','身份','類別','房屋型態','物件等級','約種']);
@@ -285,10 +285,13 @@
             const costs=['底價','服務費','管理費'].map(label=>[...groups[2].children].find(el=>el.querySelector('.det-key')?.textContent===label)).filter(Boolean);
             const management=costs.find(el=>el.querySelector('.det-key')?.textContent==='管理費')?.querySelector('.det-val');
             if(management){
-                const parts=management.textContent.split('、');
-                if(parts.length>1){
-                    management.replaceChildren();management.classList.add('det-management-lines');
-                    for(const text of parts){const line=document.createElement('span');line.textContent=text;management.append(line);}
+                const entries=[['mgmtBuilding','建物'],['mgmtCar','車位'],['mgmtMoto','機車位'],['mgmtOther','其他']].filter(([key])=>String(property[key]??'').trim()!=='').map(([key,label])=>({label,value:Number(String(property[key]).replace(/,/g,''))}));
+                if(entries.length&&entries.every(entry=>Number.isFinite(entry.value))){
+                    const period=String(property.mgmtPeriod||'').trim(),periodLabel=({'月繳':'每月','季繳':'每季','半年繳':'每半年','年繳':'每年'})[period]||period;
+                    const total=entries.reduce((sum,entry)=>sum+entry.value,0),headline=document.createElement('strong'),detail=document.createElement('small');
+                    headline.textContent=(periodLabel?periodLabel+' ':'')+'合計 '+total.toLocaleString('zh-TW')+' 元';
+                    detail.textContent=entries.map(entry=>entry.label+' '+entry.value.toLocaleString('zh-TW')).join(' ＋ ');
+                    management.replaceChildren(headline,detail);management.classList.add('det-management-summary');
                 }
             }
             const price=[...main.children].find(el=>el.querySelector('.det-key')?.textContent==='開價');
@@ -306,15 +309,30 @@
             if(oldAreaRows.length)oldAreaRows[0].before(anchor);else main.append(anchor);
             oldAreaRows.forEach(el=>el.remove());
             const size=String(property.rSz||'').trim();
-            for(const [label,value] of [['坪數',size?(size.includes('坪')?size:size+'坪'):''],['車位型態',property.rParking],['車位編號',property.rParkingNo]]){
+            for(const [label,value] of [['坪數',size?(size.replace(/\s*坪$/, '')+' 坪'):''],['車位型態',property.rParking],['車位編號',property.rParkingNo]]){
                 if(value===undefined||value===null||String(value).trim()==='')continue;
                 const entry=document.createElement('div'),key=document.createElement('span'),content=document.createElement('span');
                 entry.className='det-row';key.className='det-key';content.className='det-val';key.textContent=label;content.textContent=String(value);entry.append(key,content);anchor.before(entry);
             }
             anchor.remove();
-            const fees=['租金週期','管理費方式','建物管理費','汽車位管理費','機車位管理費','其他管理費'].map(label=>[...groups[2].children].find(el=>el.querySelector('.det-key')?.textContent===label)).filter(Boolean);
+            const feeLabels=['管理費','管理費方式','建物管理費','汽車位管理費','機車位管理費','其他管理費'];
+            for(const container of [main,...groups])for(const entry of [...container.children])if(feeLabels.includes(entry.querySelector('.det-key')?.textContent))entry.remove();
             const rent=[...main.children].find(el=>el.querySelector('.det-key')?.textContent==='租金');
-            if(rent){const amount=String(property.rent||'');rent.querySelector('.det-val').textContent=amount+(amount.includes('元')?'':'元');rent.after(...fees);}else main.prepend(...fees);
+            const formatAmount=value=>{const raw=String(value??'').trim().replace(/\s*元$/,'');return /^\d[\d,]*(?:\.\d+)?$/.test(raw)?Number(raw.replace(/,/g,'')).toLocaleString('zh-TW',{maximumFractionDigits:10})+' 元':raw?raw+' 元':'';};
+            if(rent)rent.querySelector('.det-val').textContent=formatAmount(property.rent);
+            const period=[...groups[2].children].find(el=>el.querySelector('.det-key')?.textContent==='租金週期');
+            if(period){if(rent)rent.after(period);else main.append(period);}
+            const entries=[['rMgmtBuilding','建物'],['rMgmtCar','汽車位'],['rMgmtMoto','機車位'],['rMgmtOther','其他']].filter(([key])=>String(property[key]??'').trim()!=='');
+            const amounts=entries.map(([key])=>Number(String(property[key]).replace(/,/g,'')));
+            const type=({'不含管':'租金不含','含管':'租金已含','內含':'租金已含'})[property.rMgmtType]||property.rMgmtType||'';
+            if(entries.length||type){
+                const entry=document.createElement('div');entry.className='det-row';
+                const key=document.createElement('span'),value=document.createElement('span');key.className='det-key';key.textContent='管理費';value.className='det-val det-rental-fee';
+                const total=entries.length&&amounts.every(Number.isFinite)?formatAmount(amounts.reduce((a,b)=>a+b,0)):'';
+                const headline=document.createElement('span');headline.textContent=total+(type?(total?'（':'')+type+(total?'）':''):'');value.append(headline);
+                if(entries.length>1||!total){const detail=document.createElement('small');detail.textContent=entries.map(([key,label])=>label+' '+formatAmount(property[key])).join(' ＋ ');value.append(detail);}
+                entry.append(key,value);if(period)period.after(entry);else if(rent)rent.after(entry);else main.append(entry);
+            }
             for(const entry of [...groups[1].children]){
                 const match=entry.querySelector('.det-key')?.textContent.match(/^續約 (\d+)$/);
                 if(!match)continue;const renewal=property.rpRenewals?.[Number(match[1])-1],value=entry.querySelector('.det-val');if(!renewal||!value)continue;
@@ -328,7 +346,7 @@
         }
         // Pair only short, related values; keep addresses, people and narrative text full-width.
         for(const container of [main,...groups]){
-            const pairs=[['物件等級','約種'],(kind==='r'?['車位型態','車位編號']:['車位型態','車位價格']),['立約日','到期日'],['起租日','到期日'],['成交日期','身份'],['類別','房屋型態'],...(kind==='s'?[['開價','底價'],['服務費','管理費']]:[['底價','服務費','管理費']]),['主建物','附屬建物'],['基地面積','土地持分面積'],['土地坪數','建物坪數'],['汽車位管理費','機車位管理費'],...(kind==='r'?[['租金','租金週期'],['管理費方式','建物管理費']]:[['租金週期','管理費方式','建物管理費'],['建物管理費','其他管理費']]),['瓦斯錶','水錶','電錶'],['垃圾集中處','專用垃圾袋']];
+            const pairs=[['物件等級','約種'],(kind==='r'?['車位型態','車位編號']:['車位型態','車位價格']),['立約日','到期日'],['起租日','到期日'],['成交日期','身份'],['類別','房屋型態'],...(kind==='s'?[['開價','底價']]:[['底價','服務費','管理費']]),['主建物','附屬建物'],['基地面積','土地持分面積'],['土地坪數','建物坪數'],['汽車位管理費','機車位管理費'],...(kind==='r'?[['租金','租金週期'],['管理費方式','建物管理費']]:[['租金週期','管理費方式','建物管理費'],['建物管理費','其他管理費']]),['瓦斯錶','水錶','電錶'],['垃圾集中處','專用垃圾袋']];
             for(const labels of pairs){const children=[...container.children],rows=labels.map(label=>children.find(el=>el.matches('.det-row')&&el.querySelector('.det-key')?.textContent===label)).filter(Boolean);if(rows.length<2)continue;const pair=document.createElement('div');pair.className='det-field-pair'+(rows.length===3?' det-field-triple':'')+(labels[0]==='底價'?' det-cost-fields':'');children.find(el=>rows.includes(el)).before(pair);pair.append(...rows);}
         }
         const area=groups[0],areaGrid=document.createElement('div');areaGrid.className='det-area-grid';
@@ -342,41 +360,58 @@
         if(areaGrid.children.length){
             const sections=[['建物面積','building'],['車位與公設比','parking'],['土地資料','land']].map(([label,kind])=>{const section=document.createElement('section');section.className='det-area-section det-area-'+kind;const heading=document.createElement('h4');heading.textContent=label;const grid=document.createElement('div');grid.className='det-area-grid';section.append(grid);return {section,grid};});
             for(const entry of [...areaGrid.children]){const label=entry.querySelector('.det-key')?.textContent||'',value=entry.querySelector('.det-val');const index=/土地|基地/.test(label)?2:/^車位|公設比/.test(label)?1:0;
-                if(value){const match=value.textContent.trim().match(/^([\d,.]+)\s*(坪|%)$/);if(match){const n=Number(match[1].replace(/,/g,''));if(Number.isFinite(n)){const unit=document.createElement('small');unit.textContent=match[2];value.replaceChildren(document.createTextNode(n.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:match[2]==='%'?1:2})),unit);}}}
+                if(value){const match=value.textContent.trim().match(/^([\d,.]+)\s*(坪|%)$/);if(match){const n=Number(match[1].replace(/,/g,''));if(Number.isFinite(n)){const unit=document.createElement('small');unit.textContent=' '+match[2];value.replaceChildren(document.createTextNode(n.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:match[2]==='%'?1:2})),unit);}}}
                 if(label.includes('共有部分'))entry.querySelector('.det-key').textContent='共用';
                 sections[index].grid.append(entry);
             }
             for(const {section,grid} of sections)if(grid.children.length)area.append(section);
         }
-        // Keep the first and two most recent entries, preserving original order and data.
+        // Label complete records and show the newest first without modifying data.
         const contract=groups[1];
         const renewals=[...contract.children].filter(el=>/^續約\s+\d+$/.test(el.querySelector('.det-key')?.textContent.trim()||''));
-        if(kind==='r'&&renewals.length){
-            const fold=document.createElement('details');fold.className='det-property-more det-rental-history';
-            const heading=document.createElement('summary');heading.textContent='續約歷程（'+renewals.length+'筆）';fold.append(heading);
-            renewals[0].before(fold);fold.append(...renewals);
+        const records=kind==='r'?property.rpRenewals:property.spRenewals;
+        for(const entry of renewals){
+            const index=Number(entry.querySelector('.det-key').textContent.match(/\d+/)[0])-1,h=records?.[index];
+            if(!h)continue;
+            entry.dataset.historyDate=h.time||h.date||h.newStart||'';
+            const value=entry.querySelector('.det-val');value.replaceChildren();value.className='det-val det-renewal-record';
+            const date=h.time?toROCDateTime(h.time).replace(/^民國/,'').split(' ')[0]:h.date?isoToROC(h.date):'未記錄';
+            const period=(start,end)=>(start?isoToROC(start):'未填')+' ～ '+(end?isoToROC(end):'未填');
+            const detail=document.createElement('details'),summary=document.createElement('summary');
+            detail.className='det-renewal-extra';summary.textContent=period(h.newStart,h.newEnd);
+            summary.setAttribute('aria-label','新合約期間 '+summary.textContent+'，展開續約詳情');
+            detail.append(summary);value.append(detail);
+            for(const [label,text] of [['續約日期',date],['原合約期間',period(h.oldStart,h.oldEnd)],...(h.months?[['續約月數',h.months+' 個月']]:[])]){
+                const line=document.createElement('span'),key=document.createElement('span'),content=document.createElement('span');
+                key.className='det-renewal-label';key.textContent=label;content.textContent=text;line.append(key,content);detail.append(line);
+            }
         }
-        if(renewals.length>3&&kind!=='r'){
-            const fold=document.createElement('details');fold.className='det-history-fold det-renewal-middle';
-            const summary=document.createElement('summary');summary.className='det-row';summary.innerHTML='<span class="det-key" aria-hidden="true"></span><span class="det-val"><span class="det-history-collapsed">⋯</span><span class="det-history-expanded">收合</span></span>';
-            summary.setAttribute('aria-label','展開或收合中間 '+(renewals.length-3)+' 筆續約紀錄');
-            fold.append(summary);renewals[0].after(fold);fold.append(...renewals.slice(1,-2));
+        renewals.sort((a,b)=>(b.dataset.historyDate||'').localeCompare(a.dataset.historyDate||'')||Number(b.querySelector('.det-key').textContent.match(/\d+/)[0])-Number(a.querySelector('.det-key').textContent.match(/\d+/)[0]));
+        function foldOlder(container,entries){
+            container.append(...entries);
+            if(entries.length<=3)return;
+            const fold=document.createElement('details');fold.className='det-history-fold';
+            const summary=document.createElement('summary'),closed=document.createElement('span'),opened=document.createElement('span');
+            closed.className='det-history-collapsed';closed.textContent='展開其餘 '+(entries.length-3)+' 筆';
+            opened.className='det-history-expanded';opened.textContent='收合較早紀錄';summary.append(closed,opened);fold.append(summary,...entries.slice(3));container.append(fold);
         }
-        for(const entry of contract.querySelectorAll('.det-row')){
-            if(kind==='r')continue;
-            if(entry.querySelector('.det-key')?.textContent.trim()!=='到期歷程')continue;
-            const value=entry.querySelector('.det-val');if(!value)continue;
-            const dates=value.textContent.split(/\s*→\s*/).filter(Boolean);if(dates.length<=3)continue;
-            const fold=document.createElement('details');fold.className='det-history-fold det-expiry-fold';
-            const summary=document.createElement('summary'),short=document.createElement('span'),expanded=document.createElement('span'),full=document.createElement('div');
-            short.className='det-history-collapsed';short.textContent=dates[0]+' → ⋯ → '+dates.slice(-2).join(' → ');
-            expanded.className='det-history-expanded';expanded.textContent='收合到期歷程';
-            full.textContent=dates.join(' → ');summary.append(short,expanded);summary.setAttribute('aria-label','展開或收合全部 '+dates.length+' 筆到期歷程');fold.append(summary,full);value.replaceChildren(fold);
+        for(const entry of [...contract.children])if(entry.querySelector('.det-key')?.textContent.trim()==='到期歷程')entry.remove();
+        const end=kind==='r'?property.rEndDate:property.contractEnd;
+        if(kind!=='r'&&end&&renewals.length){const current=document.createElement('div');current.innerHTML=row('目前到期日',isoToROC(end));contract.children[0].after(...current.children);}
+        if(renewals.length){
+            const section=document.createElement(kind==='r'?'details':'section');section.className=kind==='r'?'det-property-more det-rental-history':'det-renewal-history';
+            if(kind==='r'){const heading=document.createElement('summary');heading.textContent='續約歷程（'+renewals.length+'筆）';section.append(heading);}
+            contract.append(section);foldOlder(section,renewals);
+        }
+        for(const label of ['開價歷程','底價歷程','暫停歷程']){
+            const entries=[...contract.children].filter(el=>el.classList.contains('det-history-row')&&el.querySelector('.det-key')?.textContent.startsWith(label));
+            if(entries.length){const section=document.createElement('section');section.className='det-price-history';contract.append(section);foldOlder(section,entries);}
         }
         const other=groups[2];other.classList.add('det-other-info');
         for(const item of other.querySelectorAll('.det-row')){
             const label=item.querySelector('.det-key')?.textContent,value=item.querySelector('.det-val');if(!value)continue;
             if(['瓦斯錶','水錶','電錶','垃圾集中處','專用垃圾袋'].includes(label))item.classList.add('det-utility-row');
+            if(label==='專用垃圾袋'){const answer=value.textContent.trim().toUpperCase();if(answer==='N')value.textContent='否';else if(answer==='Y')value.textContent='是';}
             if(label==='附屬設備'){
                 const entries=value.textContent.split('、').map(text=>text.trim()).filter(Boolean);value.replaceChildren();value.classList.add('det-equipment-list');
                 for(const text of entries){const chip=document.createElement('span');chip.className='det-equipment-chip';chip.textContent=text.replace(/\s+(\d+)$/,' ×$1');value.append(chip);}
@@ -402,9 +437,10 @@
         if(kind==='r'){
             const utilityRows=[...main.querySelectorAll('.det-utility-row')];
             const utilityGroups=[...new Set(utilityRows.map(row=>row.parentElement.classList.contains('det-field-pair')?row.parentElement:row))];
-            if(utilityGroups.length){const section=document.createElement('section');section.className='det-utility-section';section.setAttribute('aria-label','水電與垃圾資訊');utilityGroups[0].before(section);section.append(...utilityGroups);}
+            if(utilityGroups.length){const section=document.createElement('section');section.className='det-utility-section';section.setAttribute('aria-label','水電與垃圾資訊');utilityGroups[0].before(section);const heading=document.createElement('h4');heading.textContent='裝置';section.append(heading,...utilityGroups);}
         }
         if(kind==='r'){const renewalHistory=main.querySelector('.det-rental-history');if(renewalHistory){const equipment=main.querySelector('.det-equipment-more');if(equipment)equipment.before(renewalHistory);else main.append(renewalHistory);}}
+        main.querySelectorAll('.det-row').forEach(entry=>{if(['開價','底價','租金','成交價格','服務費','車位價格'].includes(entry.querySelector('.det-key')?.textContent.trim()))entry.classList.add('det-emphasis');});
         return main.innerHTML;
     }
     window.typeDetail=function(c,viewAs){
