@@ -627,3 +627,12 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
 #dModal .det-inline-overlay .fill-menu:has(#det-cl-save)>div:last-child{grid-column:2;grid-row:1}
 #dModal .det-inline-overlay :is(#det-qs-save,#det-cl-save){background:#173756!important;color:white!important}
 #dModal .det-inline-overlay{height:auto!important;min-height:0!important;max-height:none!important;width:100%!important;overflow:visible!important}
+
+/* Schedule entry uses two rows below its tabs. */
+#dModal .det-inline-overlay .fill-menu:has(#det-qs-save){grid-template-columns:62px minmax(0,1fr) 74px 118px;gap:6px!important}
+#dModal .det-inline-overlay .fill-menu:has(#det-qs-save)>div:first-child{display:contents!important}
+#dModal #det-qs-type,#dModal #det-qs-time{width:100%!important}
+#dModal .det-inline-overlay .fill-menu:has(#det-qs-save)>div:nth-child(3){grid-column:4;grid-row:1}
+#dModal .det-inline-overlay .fill-menu:has(#det-qs-save)>div:nth-child(3)>i{display:none}
+#dModal .det-inline-overlay .fill-menu:has(#det-qs-save)>div:nth-child(2){grid-column:1/4;grid-row:2}
+#dModal .det-inline-overlay .fill-menu:has(#det-qs-save)>div:last-child{grid-column:4;grid-row:2;gap:5px!important}
