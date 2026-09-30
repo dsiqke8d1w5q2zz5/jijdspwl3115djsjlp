@@ -655,7 +655,7 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
 .det-quick-section{position:relative}
 .det-quick-section h3{position:absolute;left:0;top:6px;margin:0;width:66px;line-height:18px}
 .det-quick-section+.det-quick-section h3{top:14px}
-#dModal .det-inline-overlay .fill-menu:has(#det-cl-save)>div:first-child{padding-left:72px}
+#dModal .det-inline-overlay .fill-menu:has(#det-cl-save)>div:first-child{padding-left:58px}
 #dModal .det-inline-overlay .fill-menu:has(#det-qs-save){grid-template-columns:66px 56px minmax(0,1fr) 64px 118px}
 #dModal .det-inline-overlay .fill-menu:has(#det-qs-save)::before{content:'';grid-column:1;grid-row:1}
 #dModal .det-inline-overlay .fill-menu:has(#det-qs-save)>div:nth-child(3){grid-column:5}
