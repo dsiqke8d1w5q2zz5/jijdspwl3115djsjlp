@@ -56,7 +56,7 @@
  line-height:1.4;
  white-space:normal;
 }
-:is(.btn-save,.transcript-primary,#perfSaveBtn,#epSaveBtn,#tplSaveBtn,#stplSaveBtn,#otplSaveBtn,#mktSaveBtn) {
+:is(.btn-save,.transcript-primary,#perfSaveBtn,#epSaveBtn,#tplSaveBtn,#stplSaveBtn,#otplSaveBtn,#mktSaveBtn,#cr-ok,#tp-ok,#ci-edit-save,#qs-save,#cl-save,#td-save,#ps-save,#cardFolderSaveBtn,#confirmCustomDistBtn,#spSzConfirm) {
  background:var(--ui-primary)!important;
  color:white!important;
  border:1px solid var(--ui-primary)!important;
