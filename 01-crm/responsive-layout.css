@@ -709,3 +709,9 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
 /* Use the same leading edge for every editing property tab group. */
 #fModal .edit-section-toolbar>.edit-object-tabs{padding-left:0!important;padding-right:0!important;border-left:0;border-right:0}
 #fModal .edit-object-tabs>button:first-child{padding-left:0!important}
+/* Let rounded controls extend left while preserving their text anchor. */
+#dModal .det-category-tabs{margin-left:-8px;width:calc(100% + 8px)}
+#dModal .det-category-tabs>button:first-child{padding-left:8px}
+#dModal .det-property-toolbar>.det-property-tabs,#fModal .edit-section-toolbar>.edit-object-tabs{margin-left:-8px!important;width:calc(100% + 8px)}
+#dModal .det-property-tabs>button:first-child,#fModal .edit-object-tabs>button:first-child{padding-left:8px!important}
+#dModal .det-folder-actions>.det-folder-link{margin-left:-8px;padding-left:8px}
