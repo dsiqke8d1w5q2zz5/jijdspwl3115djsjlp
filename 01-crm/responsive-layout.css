@@ -574,3 +574,12 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
 .perf-entry-actions>button:hover{background:#e4eef8!important;border-color:#9fb9d0!important}
 .perf-entry-form :is(#perfOtherWrap,#epOtherWrap):not(:has(>div[style*="display: grid"])):has(>div[style*="display:none"]){margin-bottom:0!important}
 .perf-entry-form :is(#perfOtherFields,#epOtherFields){padding:10px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;margin-top:0!important}
+
+/* Tighter performance rows and clearer intermediary names. */
+#perfBody .perf-record{padding-top:6px;padding-bottom:6px;row-gap:3px}
+#perfBody .perf-record-intermediary{line-height:1.4}
+#perfBody .perf-record-intermediary>span{color:#173756;font-size:13px;font-weight:600}
+#perfBody .perf-record-intermediary>strong{padding-top:1px;padding-bottom:1px}
+#perfBody .perf-middleman-label{color:#64748b;font-weight:400}
+#perfBody .perf-middleman-name{color:#173756;font-weight:600}
+#perfBody .perf-record-intermediary>strong{background:transparent;border-radius:0;padding:0}
