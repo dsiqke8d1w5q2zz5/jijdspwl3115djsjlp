@@ -520,3 +520,12 @@
 
 /* A little more vertical room in centered desktop customer dialogs. */
 @media(min-width:1050px){body #fModal>.modal,body #dModal>.modal{height:94dvh!important;max-height:94dvh!important}}
+
+/* Template object tabs are clickable, like their category tabs. */
+#tplBody .tpl-object-tabs button{cursor:pointer}
+
+/* Consistent cursor feedback for clickable controls across the CRM. */
+body :is(button,a[href],summary,select,[role=button],[role=tab],[role=menuitem],[onclick],input[type=button],input[type=submit],input[type=reset],input[type=checkbox],input[type=radio],input[type=color],input[type=file],input[type=range],label[for],label:has(input[type=checkbox]),label:has(input[type=radio]),.ic-file,.ic-photo-item[draggable=true],.det-property-tabs,.edit-object-tabs):not(:disabled):not([aria-disabled=true]):not(label:has(input:disabled)){cursor:pointer!important}
+body :is(input:not([type]),input[type=text],input[type=search],input[type=tel],input[type=email],input[type=url],input[type=password],input[type=number],textarea,[contenteditable=true]){cursor:text!important}
+body :is(button,input,select,textarea):disabled,body [aria-disabled=true],body label:has(input:disabled){cursor:not-allowed!important}
+body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging button{cursor:grabbing!important}
