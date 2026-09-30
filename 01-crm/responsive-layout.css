@@ -542,3 +542,16 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
 #perfBody .perf-record-intermediary{grid-column:2/-1;display:flex;gap:8px 16px;flex-wrap:wrap;color:#475569;font-size:12px;overflow-wrap:anywhere}#perfBody .perf-record-intermediary strong{font-weight:600;color:#2563eb}
 .perf-contribution{border:1px solid #dde5ee;border-radius:8px;margin-bottom:10px;background:#f8fafc}.perf-contribution summary{padding:8px 10px;font-size:13px;font-weight:600;color:#173756}.perf-contribution summary span{color:#64748b;font-weight:400;margin-left:6px}.perf-contribution p{font-size:11px;color:#64748b;margin:0 10px 6px}.perf-contribution-scroll{max-height:170px;overflow:auto}.perf-contribution table{border-collapse:collapse;width:100%;font-size:12px}.perf-contribution th,.perf-contribution td{padding:7px 10px;border-top:1px solid #e2e8f0;text-align:right;white-space:nowrap}.perf-contribution th:first-child{text-align:left;max-width:200px;white-space:normal;overflow-wrap:anywhere}.perf-contribution thead{background:#eef2f7;color:#475569}.perf-contribution td:last-child{color:#2563eb;font-weight:600}
 @media(max-width:600px){#perfFixed .perf-summary-cards{grid-template-columns:repeat(2,minmax(0,1fr))!important}#perfFixed .perf-summary-cards>.perf-intermediary-summary{grid-column:1/-1;display:grid;grid-template-columns:1fr auto;align-items:center;gap:0 10px}.perf-intermediary-summary p{grid-column:1/-1}.perf-intermediary-summary>strong{font-size:20px}#perfBody .perf-record-intermediary{grid-column:1/-1}}
+
+/* Align record identity and its intermediary details on shared column edges. */
+#perfBody .perf-record{padding-top:10px;padding-bottom:10px;row-gap:6px}
+#perfBody .perf-record-info{align-items:center}
+#perfBody .perf-record-actions{align-items:center}
+#perfBody .perf-record-intermediary{grid-column:2/4;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px 12px;min-width:0;line-height:1.6}
+#perfBody .perf-record-intermediary>span{min-width:0;color:#64748b}
+#perfBody .perf-record-intermediary>strong{justify-self:end;text-align:right;font-variant-numeric:tabular-nums;background:#eff6ff;border-radius:5px;padding:2px 6px;max-width:100%;overflow-wrap:anywhere}
+#perfBody .perf-record-memo{grid-column:2/4}
+@media(max-width:600px){
+ #perfBody .perf-record-intermediary,#perfBody .perf-record-memo{grid-column:1/-1}
+ #perfBody .perf-record-intermediary{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+}
