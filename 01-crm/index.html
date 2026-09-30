@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20260930audit72">
+    <link rel="stylesheet" href="area-editor.css?v=20260930audit73">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit72">
-    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit72">
+    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit73">
+    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit73">
 </head>
 <body>
 
@@ -11182,7 +11182,18 @@ function layoutPerfEntryActions(prefix) {
     toolbar.appendChild(editor.querySelector('.perf-intermediary-add'));
     toolbar.appendChild(document.getElementById(prefix+'OtherToggle'));
     wrap.parentElement.insertBefore(toolbar,wrap);
-    editor.closest('.fill-menu').classList.add('perf-entry-form');
+    var form = editor.closest('.fill-menu');
+    form.classList.add('perf-entry-form');
+    var composing = false, compositionEndedAt = -Infinity;
+    form.addEventListener('compositionstart',function(){composing=true;});
+    form.addEventListener('compositionend',function(){composing=false;compositionEndedAt=performance.now();});
+    form.addEventListener('keydown',function(event){
+        if(event.key!=='Enter' || event.defaultPrevented || event.repeat || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
+        if(composing || event.isComposing || event.keyCode===229 || performance.now()-compositionEndedAt<50) return;
+        if(!event.target.matches('input:not([type=button]):not([type=submit]):not([type=checkbox]):not([type=radio])')) return;
+        event.preventDefault(); event.stopPropagation();
+        document.getElementById(prefix+'SaveBtn').click();
+    });
 }
 function addPerfRecord() {
     var overlay = document.createElement('div');
@@ -12331,7 +12342,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260930audit72';
+var APP_VERSION = '20260930audit73';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13493,12 +13504,12 @@ function deleteMktTemplate(idx) {
 <script src="brand-banner.js?v=20260928sync1"></script>
 <script src="image-storage.js?v=20260928sync1"></script>
 <script src="image-redaction.js?v=20260928sync1"></script>
-<script src="image-studio.js?v=20260930audit72"></script>
+<script src="image-studio.js?v=20260930audit73"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
-<script src="image-composer.js?v=20260930audit72"></script>
-<script src="area-editor.js?v=20260930audit72"></script>
-<script src="sync-notice.js?v=20260930audit72"></script>
-<script src="detail-properties.js?v=20260930audit72"></script>
-<script src="edit-layout.js?v=20260930audit72"></script>
+<script src="image-composer.js?v=20260930audit73"></script>
+<script src="area-editor.js?v=20260930audit73"></script>
+<script src="sync-notice.js?v=20260930audit73"></script>
+<script src="detail-properties.js?v=20260930audit73"></script>
+<script src="edit-layout.js?v=20260930audit73"></script>
 </body>
 </html>
