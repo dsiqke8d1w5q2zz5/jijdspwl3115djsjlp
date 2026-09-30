@@ -81,9 +81,36 @@
     };
     const originalConfirmArchive=window.confirmArchive;
     window.confirmArchive=function(reason){const id=archiveTargetId;originalConfirmArchive(reason);if(id&&currentDetId===id)closeDet();};
+    let activityResizeObserver=null, activityFrame=0;
+    function fitActivityLogs(){
+        cancelAnimationFrame(activityFrame);
+        activityFrame=requestAnimationFrame(()=>{
+            const content=document.querySelector('#detContent .det-activity-content'),list=document.getElementById('detLogList');
+            if(!content||!list||!matchMedia('(min-width:1050px)').matches)return;
+            let more=document.getElementById('detLogMore'),toggle=document.getElementById('detLogToggle');
+            const expanded=more&&more.style.display!=='none';
+            const rows=[...list.querySelectorAll(':scope>.det-row'),...(more?[...more.children]:[])];
+            if(!rows.length)return;
+            if(!more){more=document.createElement('div');more.id='detLogMore';more.style.display='none';list.append(more);}
+            if(!toggle){toggle=document.createElement('div');toggle.id='detLogToggle';toggle.setAttribute('role','button');toggle.tabIndex=0;toggle.style.cssText='font-size:13px;color:#059669;font-weight:600;cursor:pointer;padding:6px 0';toggle.onclick=()=>window.toggleDetLog();toggle.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();window.toggleDetLog();}};list.append(toggle);}
+            for(const row of rows)list.insertBefore(row,more);
+            toggle.style.display='';
+            const scale=content.getBoundingClientRect().height/content.offsetHeight||1;
+            const available=Math.max(0,(content.getBoundingClientRect().bottom-list.getBoundingClientRect().top)/scale-toggle.offsetHeight-4);
+            let used=0,count=0;
+            for(const row of rows){if(count>=10||used+row.offsetHeight>available)break;used+=row.offsetHeight;count++;}
+            count=Math.max(1,count);
+            rows.slice(count).forEach(row=>more.append(row));
+            more.style.display=expanded?'':'none';toggle.style.display=more.children.length?'':'none';
+            toggle.innerHTML=expanded?'收合 <i class="ti ti-chevron-up"></i>':'顯示其餘 '+more.children.length+' 筆 <i class="ti ti-chevron-down"></i>';
+        });
+    }
+    const originalLogYear=window.selDetLogYear;
+    window.selDetLogYear=function(){const result=originalLogYear.apply(this,arguments);fitActivityLogs();return result;};
     const originalShow=window.showDet;
     window.showDet=function(id,viewAs){
         propertyHeaderObserver.disconnect();
+        activityResizeObserver?.disconnect();cancelAnimationFrame(activityFrame);
         originalShow(id,viewAs);
         const root=document.getElementById('detContent'),body=root.querySelector(':scope > .det-body');if(!body)return;
         const nav=root.querySelector('#detNavWrap');
@@ -127,6 +154,29 @@
             const schedule=[...panes[1].children].find(el=>el.textContent.trim()==='預排行程');if(schedule){const card=document.createElement('section');card.className='det-schedule-card';schedule.before(card);const heading=document.createElement('h3');heading.textContent='預排行程';card.append(heading);let next=schedule.nextElementSibling;schedule.remove();while(next?.classList.contains('det-row')){const following=next.nextElementSibling;card.append(next);next=following;}panes[2].prepend(card);}
             const logHeading=panes[2].querySelector(':scope>.det-sec');if(logHeading){const years=logHeading.querySelector('#detLogYears');if(years){years.classList.add('det-log-filter');logHeading.replaceWith(years);}else logHeading.remove();}
         }
+        const activityContent=document.createElement('div');activityContent.className='det-activity-content';
+        activityContent.append(...panes[2].childNodes);panes[2].append(activityContent);
+        const activityActions=document.createElement('div');activityActions.className='det-activity-actions';
+        const addActivity=(label,kind)=>{
+            const button=document.createElement('button');button.type='button';button.textContent='＋ '+label;
+            button.onclick=()=>{
+                const category=root.querySelector('.det-category-tabs [aria-selected=true]')?.textContent;
+                if(kind==='schedule')window.quickSchedule(id);else window.quickContactLog(id);
+                const save=document.getElementById(kind==='schedule'?'qs-save':'cl-save');if(!save)return;
+                const overlay=save.closest('.fill-overlay'),originalSave=save.onclick;
+                save.onclick=function(event){
+                    originalSave.call(this,event);
+                    if(!overlay.isConnected&&currentDetId===id&&document.getElementById('dModal').style.display!=='none'){
+                        window.showDet(id,viewAs);
+                        if(category)[...document.querySelectorAll('#detContent .det-category-tabs button')].find(el=>el.textContent===category)?.click();
+                    }
+                };
+            };activityActions.append(button);
+        };
+        addActivity('新增行程','schedule');addActivity('新增聯繫','contact');panes[2].append(activityActions);
+        activityResizeObserver=new ResizeObserver(fitActivityLogs);activityResizeObserver.observe(activityContent);
+        const scheduleCard=activityContent.querySelector('.det-schedule-card');if(scheduleCard)activityResizeObserver.observe(scheduleCard);
+        fitActivityLogs();
         const sections=[...panes[1].querySelectorAll(':scope>[id^="collapse_"]')];
         if(sections.length){
             const tabs=document.createElement('div');tabs.className='det-category-tabs';tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','資料類別');sections[0].previousElementSibling.before(tabs);
