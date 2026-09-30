@@ -717,3 +717,6 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
 #dModal .det-folder-actions>.det-folder-link{margin-left:-8px;padding-left:8px}
 /* Every wrapped row uses the same text inset, including its first item. */
 #dModal .det-property-tabs>button,#fModal .edit-object-tabs>button{padding-left:8px!important;padding-right:8px!important}
+/* Keep the full management-fee label clear of its selector. */
+#fModal [data-fee-layout]>div:not(.fee-total):not(.fee-more),#fModal .fee-extra-grid>div{grid-template-columns:70px minmax(0,1fr)}
+
