@@ -685,3 +685,9 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
 #dModal .det-folder-actions>.det-folder-link{font-size:14px}
 /* Match editing and detail tab typography. */
 #fModal.edit-layout .tp-btn,#fModal .edit-object-tabs button{font-size:16px!important}
+/* Reserve the same date/time column in both lists when schedules have times. */
+@media(min-width:1050px){
+ #dModal .det-activity-content:has(.det-schedule-row:not(.det-schedule-no-time)){--activity-date-width:11em}
+ #dModal .det-activity-content .det-schedule-card .det-row,
+ #dModal .det-activity-content #detLogList .det-row{grid-template-columns:var(--activity-date-width,92px) minmax(0,1fr)}
+}

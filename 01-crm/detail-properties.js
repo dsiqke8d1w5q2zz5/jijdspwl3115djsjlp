@@ -216,11 +216,7 @@
     function title(p, i, kind) {
         const community=String(p.rCommunity||p.community||'').trim();if(community)return community;
         const address=String(p.rAddr||p.addr||'').trim().replace(/^\d{3,6}\s*/, '');
-        if(kind==='c'||kind==='d')return compactPropertyAddress(address)||'物件 '+(i+1);
-        const region=address.match(/^(?:[^縣市]{2,3}[縣市])?(?:[^區鄉鎮市路街號]+[區鄉鎮市])?/)[0];
-        const short=address.slice(region.length);
-        const road=short.match(/^(.+?(?:路|街|大道)(?:[一二三四五六七八九十\d]+段)?)/);
-        return road?region+road[1]:(address||'物件 '+(i+1));
+        return compactPropertyAddress(address)||address||'物件 '+(i+1);
     }
     function row(label,value){return value===undefined||value===null||value===''?'':dRow(esc(label),String(value));}
     function link(label,value){if(!value)return '';try{const u=new URL(value);if(!['https:','http:'].includes(u.protocol))return row(label,value);return '<div class="det-row"><span class="det-key">'+esc(label)+'</span><span class="det-val"><a target="_blank" rel="noopener noreferrer" href="'+esc(u.href)+'">開啟物件資料夾</a></span></div>';}catch{return row(label,value);}}
