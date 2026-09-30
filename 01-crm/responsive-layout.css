@@ -876,3 +876,72 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
 #fModal #rPropertyList>.edit-object-page>.sp-addr-row>.fg>label{min-height:24px}
 #fModal #rPropertyList>.edit-object-page>.sp-addr-row>.fg:last-child>label{padding-right:30px}
 #fModal #dealList>.edit-object-page>.edit-object-actions+div{max-width:calc(100% - 32px);box-sizing:border-box}
+
+/* Shared desktop/tool typography and semantic section colors. */
+:root{--ui-font:Inter,"Noto Sans TC",-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft JhengHei","PingFang TC",sans-serif}
+body,.ic-dialog,.ic-repair-dialog,.transcript-dialog{font-family:var(--ui-font)}
+:is(.modal,.fill-menu,.ic-dialog,.ic-repair-dialog,.transcript-dialog) :is(button,input,select,textarea){font-family:var(--ui-font)!important}
+:is(#tplModal,#perfModal,.ic-dialog) button{font-weight:600}
+.ic-dialog .ic-controls :is(.ic-size-label,.it-lb,.ic-name),.ic-dialog .ic-controls .ic-brand-templates span{font-size:13px}
+.ic-dialog .ic-controls :is(.it-lb,.ic-size-label){color:#64748b;font-weight:600}
+.ic-dialog .ic-controls .ic-brand-templates span{line-height:1.4}
+#perfFixed .perf-summary-cards>div>div>span:first-child{font-size:13px!important}
+#perfFixed .perf-summary-cards>div>div>span:last-child>span{font-size:12px!important}
+#perfFixed .perf-intermediary-summary p{font-size:12px;color:#475569}
+#perfFixed .perf-income-summary>div>span:first-child{font-size:13px!important}
+#perfFixed .perf-income-summary>div>span>span{font-size:12px!important;color:#475569}
+#fModal :is(.sec-title,.edit-section-toolbar>.sec-title,.edit-notes-heading,.edit-add-heading,.area-section-heading,.rental-conditions-title),
+#fModal #rPropertyList div:has(+.rp-mgmt-row),#fModal #rPropertyList div:has(+.rp-meter-row),#fModal #sPropertyList div:has(+.sp-mgmt-row){color:#173756!important}
+#fModal #rPropertyList div:has(+.rp-mgmt-row)::after,#fModal #rPropertyList div:has(+.rp-meter-row)::after,#fModal #sPropertyList div:has(+.sp-mgmt-row)::after{background:#d5dfe8}
+#fModal .fg>label{color:#64748b}
+.ic-dialog .ic-brand-advanced{margin-top:10px;border-top:1px solid #d5dfe8;padding-top:8px}
+.ic-dialog .ic-brand-advanced>summary{cursor:pointer;font-size:13px;font-weight:600;color:#173756;padding:6px 0;line-height:1.4}
+.ic-dialog .ic-brand-advanced>summary:focus-visible{outline:2px solid #1486a4;outline-offset:2px}
+.ic-dialog .ic-brand-advanced-body{padding:2px 0 8px}
+/* Keep the review actions outside the scrolling transcript content. */
+body dialog.transcript-dialog[open]{display:flex;flex-direction:column;overflow:hidden;scrollbar-gutter:auto}
+.transcript-dialog>.transcript-head{position:static;flex:none;padding:0 0 8px;background:inherit}
+.transcript-dialog>.transcript-scroll{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:0 2px}
+.transcript-dialog>.transcript-footer{flex:none;background:#faf9f7;margin-top:8px;padding-top:8px}
+.transcript-dialog>.transcript-footer:empty{display:none}
+.transcript-footer>.transcript-muted{max-height:4.5em;overflow:auto;color:#475569}
+.transcript-footer .transcript-confirm{margin:6px 0}
+
+/* Dismiss icons and compact transcript summary. */
+.ui-close-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon{display:inline-flex;align-items:center;justify-content:center;flex:none;width:32px!important;height:32px;min-height:32px;min-width:32px;padding:0!important;margin:0!important;border:0!important;border-radius:6px!important;background:transparent!important;color:#78716c!important;font-size:26px!important;font-weight:400!important;line-height:1;cursor:pointer}
+body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{background:#eef2f6!important;color:#173756!important}
+.transcript-preview{padding:7px 10px;margin:6px 0;font-weight:400}
+.transcript-preview-title{font-weight:600;margin-bottom:4px;color:#173756}
+.transcript-breakdown{gap:4px 10px;grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+.transcript-breakdown strong{font-size:14px;font-weight:400;color:#334155}
+.transcript-preview-total{margin-top:5px;padding-top:5px;font-size:14px;color:#173756}
+.transcript-preview-total .transcript-muted{margin:2px 0;font-weight:400}
+.transcript-selection-summary{font-size:13px;color:#173756;margin:0 0 5px;line-height:1.4;max-height:6em;overflow:auto}
+.transcript-selection-summary>.transcript-muted{font-size:12px;color:#64748b;margin:2px 0}
+@media(max-width:550px){.transcript-breakdown{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Compact transcript summary: total first, inline building and land details. */
+.transcript-dialog .transcript-preview{background:#fff;border:1px solid #d5dfe8;border-radius:9px;padding:0;color:#173756;overflow:hidden}
+.transcript-dialog .transcript-preview:not(:has(.transcript-summary-head)){padding:8px 10px}
+.transcript-summary-head{display:flex;align-items:center;justify-content:space-between;gap:6px 16px;flex-wrap:wrap;padding:8px 12px;background:#f0f5f9}
+.transcript-summary-headline{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.transcript-summary-headline>strong{font-size:18px;font-weight:700;line-height:1.4;font-variant-numeric:tabular-nums}
+.transcript-summary-label{font-size:13px;font-weight:600;color:#475569}
+.transcript-summary-ratio{font-size:13px;color:#475569;white-space:nowrap}
+.transcript-summary-row{display:grid;grid-template-columns:76px minmax(0,1fr);align-items:baseline;gap:8px;padding:7px 12px;border-top:1px solid #e7edf2}
+.transcript-summary-items{display:flex;flex-wrap:wrap;align-items:baseline;gap:5px 20px;min-width:0}
+.transcript-summary-item{display:inline-flex;flex-wrap:wrap;gap:5px 8px;font-size:13px;color:#64748b}
+.transcript-summary-value{color:#1f2937;font-variant-numeric:tabular-nums;white-space:nowrap}
+.transcript-summary-count{font-size:12px;color:#64748b;white-space:nowrap}
+@media(max-width:550px){.transcript-summary-row{grid-template-columns:1fr;gap:4px}.transcript-summary-items{gap:5px 14px}.transcript-summary-headline{gap:6px 10px}}
+
+.transcript-summary-equation{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px}
+.transcript-summary-equation>strong{font-size:18px;font-weight:700;color:#173756;white-space:nowrap;font-variant-numeric:tabular-nums;line-height:1.4}
+.transcript-summary-equation>.transcript-summary-grand-total{color:#036986}
+.transcript-summary-operator{font-size:16px;color:#64748b}
+
+/* All transcript summary rows share the same label column. */
+.transcript-summary-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;column-gap:12px}
+.transcript-summary-headline{display:grid;grid-template-columns:76px minmax(0,1fr);align-items:baseline;gap:8px;min-width:0}
+@media(max-width:550px){.transcript-summary-head{grid-template-columns:minmax(0,1fr)}.transcript-summary-headline{grid-template-columns:minmax(0,1fr);gap:4px}.transcript-summary-ratio{justify-self:start}}

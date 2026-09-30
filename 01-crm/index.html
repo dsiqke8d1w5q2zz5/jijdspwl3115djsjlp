@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20260930audit115">
+    <link rel="stylesheet" href="area-editor.css?v=20260930audit120">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit115">
-    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit115">
+    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit120">
+    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit120">
 </head>
 <body>
 
@@ -6082,7 +6082,7 @@ function showSpFieldHistory(btn, field) {
     html += '<div style="padding:6px 0;font-size:13px;font-weight:700;color:var(--deep)">現行'+labels[field]+'：'+esc(curVal)+(curVal?suffix[field]:'')+'</div>';
     html += '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">' +
         '<button type="button" class="sp-fh-del-btn" style="padding:8px 16px;border:none;border-radius:8px;background:#DC2626;color:white;cursor:pointer;font-size:14px;display:none">刪除勾選</button>' +
-        '<button type="button" onclick="closeOverlay(this.closest(\'.fill-overlay\'))" style="padding:8px 16px;border:1px solid var(--border);border-radius:8px;background:white;cursor:pointer;font-size:14px">關閉</button></div>';
+        '<button type="button" class="ui-close-icon" aria-label="關閉" title="關閉" onclick="closeOverlay(this.closest(\'.fill-overlay\'))">×</button></div>';
     box.innerHTML = html;
     box.addEventListener('change', function() {
         var checked = box.querySelectorAll('input[data-sp-fh-idx]:checked').length;
@@ -6107,6 +6107,8 @@ function showSpFieldHistory(btn, field) {
         overlay.remove();
         if (block[histKey].length) showSpFieldHistory(btn, field);
     };
+    box.firstElementChild.classList.add('ui-close-heading');
+    box.firstElementChild.appendChild(box.querySelector('.ui-close-icon'));
     overlay.appendChild(box);
     overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
     document.body.appendChild(overlay);
@@ -6131,7 +6133,7 @@ function showSpRenewalHistory(btn) {
     html += '<div style="padding:6px 0;font-size:13px;font-weight:700;color:var(--deep)">現行到期日：'+esc(curEnd)+'</div>';
     html += '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">' +
         '<button type="button" class="sp-rn-del-btn" style="padding:8px 16px;border:none;border-radius:8px;background:#DC2626;color:white;cursor:pointer;font-size:14px;display:none">刪除勾選</button>' +
-        '<button type="button" onclick="closeOverlay(this.closest(\'.fill-overlay\'))" style="padding:8px 16px;border:1px solid var(--border);border-radius:8px;background:white;cursor:pointer;font-size:14px">關閉</button></div>';
+        '<button type="button" class="ui-close-icon" aria-label="關閉" title="關閉" onclick="closeOverlay(this.closest(\'.fill-overlay\'))">×</button></div>';
     box.innerHTML = html;
     box.addEventListener('change', function() {
         var checked = box.querySelectorAll('input[data-sp-rn-idx]:checked').length;
@@ -6156,6 +6158,8 @@ function showSpRenewalHistory(btn) {
         overlay.remove();
         if (block._spRenewals.length) showSpRenewalHistory(btn);
     };
+    box.firstElementChild.classList.add('ui-close-heading');
+    box.firstElementChild.appendChild(box.querySelector('.ui-close-icon'));
     overlay.appendChild(box);
     overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
     document.body.appendChild(overlay);
@@ -6193,7 +6197,7 @@ function showPriceHistory(field) {
     }).join('');
     html += '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">' +
         '<button type="button" class="ph-del-btn" style="padding:8px 16px;border:none;border-radius:8px;background:#DC2626;color:white;cursor:pointer;font-size:14px;display:none">刪除勾選</button>' +
-        '<button type="button" onclick="closeOverlay(this.closest(\'.fill-overlay\'))" style="padding:8px 16px;border:1px solid var(--border);border-radius:8px;background:white;cursor:pointer;font-size:14px">關閉</button></div>';
+        '<button type="button" class="ui-close-icon" aria-label="關閉" title="關閉" onclick="closeOverlay(this.closest(\'.fill-overlay\'))">×</button></div>';
     box.innerHTML = html;
     // 勾選時顯示/隱藏刪除按鈕
     box.addEventListener('change', function() {
@@ -6217,6 +6221,8 @@ function showPriceHistory(field) {
         overlay.remove();
         if (_priceHistories[field].length) showPriceHistory(field);
     };
+    box.firstElementChild.classList.add('ui-close-heading');
+    box.firstElementChild.appendChild(box.querySelector('.ui-close-icon'));
     overlay.appendChild(box);
     overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
     document.body.appendChild(overlay);
@@ -6340,7 +6346,9 @@ function showDetailSzView(id) {
             '<span>公設比 <span style="color:#6366F1">'+ratio+'%</span></span>' +
             '<span>合計 <span style="color:#059669">'+(total+pk).toFixed(2)+' 坪</span></span>' +
         '</div>' +
-        '<div style="text-align:center;margin-top:12px"><button type="button" onclick="closeOverlay(this.closest(\'.fill-overlay\'))" style="padding:8px 24px;border:1px solid var(--border);border-radius:8px;background:white;cursor:pointer;font-size:14px">關閉</button></div>';
+        '<div style="text-align:center;margin-top:12px"><button type="button" class="ui-close-icon" aria-label="關閉" title="關閉" onclick="closeOverlay(this.closest(\'.fill-overlay\'))">×</button></div>';
+    box.firstElementChild.classList.add('ui-close-heading');
+    box.firstElementChild.appendChild(box.querySelector('.ui-close-icon'));
     overlay.appendChild(box);
     overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
     document.body.appendChild(overlay);
@@ -6456,7 +6464,7 @@ function showRenewalHistory() {
     html += '<div style="padding:6px 0;font-size:13px;font-weight:700;color:var(--deep)">現行到期日：'+esc(curEnd)+'</div>';
     html += '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">' +
         '<button type="button" class="rn-del-btn" style="padding:8px 16px;border:none;border-radius:8px;background:#DC2626;color:white;cursor:pointer;font-size:14px;display:none">刪除勾選</button>' +
-        '<button type="button" onclick="closeOverlay(this.closest(\'.fill-overlay\'))" style="padding:8px 16px;border:1px solid var(--border);border-radius:8px;background:white;cursor:pointer;font-size:14px">關閉</button></div>';
+        '<button type="button" class="ui-close-icon" aria-label="關閉" title="關閉" onclick="closeOverlay(this.closest(\'.fill-overlay\'))">×</button></div>';
     box.innerHTML = html;
     box.addEventListener('change', function() {
         var checked = box.querySelectorAll('input[data-rn-idx]:checked').length;
@@ -6490,6 +6498,8 @@ function showRenewalHistory() {
         var remaining = (editId ? (DB.find(function(x){return x.id===editId;})||{}).sRenewals || [] : []).concat(sRenewals);
         if (remaining.length) showRenewalHistory();
     };
+    box.firstElementChild.classList.add('ui-close-heading');
+    box.firstElementChild.appendChild(box.querySelector('.ui-close-icon'));
     overlay.appendChild(box);
     overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
     document.body.appendChild(overlay);
@@ -7104,7 +7114,7 @@ function showRpRenewalHistory(btn) {
     html += '<div style="padding:6px 0;font-size:13px;font-weight:700;color:var(--deep)">現行到期日：'+esc(curEnd)+'</div>';
     html += '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">' +
         '<button type="button" class="rp-rn-del-btn" style="padding:8px 16px;border:none;border-radius:8px;background:#DC2626;color:white;cursor:pointer;font-size:14px;display:none">刪除勾選</button>' +
-        '<button type="button" onclick="closeOverlay(this.closest(\'.fill-overlay\'))" style="padding:8px 16px;border:1px solid var(--border);border-radius:8px;background:white;cursor:pointer;font-size:14px">關閉</button></div>';
+        '<button type="button" class="ui-close-icon" aria-label="關閉" title="關閉" onclick="closeOverlay(this.closest(\'.fill-overlay\'))">×</button></div>';
     box.innerHTML = html;
     box.addEventListener('change', function() {
         var checked = box.querySelectorAll('input[data-rp-rn-idx]:checked').length;
@@ -7118,6 +7128,8 @@ function showRpRenewalHistory(btn) {
         overlay.remove();
         if (block._rpRenewals.length) showRpRenewalHistory(btn);
     };
+    box.firstElementChild.classList.add('ui-close-heading');
+    box.firstElementChild.appendChild(box.querySelector('.ui-close-icon'));
     overlay.appendChild(box);
     overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
     document.body.appendChild(overlay);
@@ -8897,8 +8909,10 @@ function openDriveFolder(clientId, viewAs) {
             html += '<button type="button" style="display:block;width:100%;text-align:left;padding:10px 12px;margin-bottom:6px;border:1px dashed var(--border);border-radius:8px;background:var(--bg);cursor:pointer;font-size:13px;color:var(--muted);word-break:break-word" onclick="cardSetDriveFolder(\''+esc(clientId)+'\',\''+esc(a.src)+'\','+(parseInt(a.idx)||0)+')"><i class="ti ti-folder" style="color:#A8A29E"></i> '+tag+esc(a.label)+' — 點擊設定</button>';
         }
     });
-    html += '<button type="button" onclick="closeOverlay(this.closest(\'.fill-overlay\'))" style="display:block;width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;background:white;cursor:pointer;font-size:13px;margin-top:4px">關閉</button>';
+    html += '<button type="button" class="ui-close-icon" aria-label="關閉" title="關閉" onclick="closeOverlay(this.closest(\'.fill-overlay\'))">×</button>';
     box.innerHTML = html;
+    box.firstElementChild.classList.add('ui-close-heading');
+    box.firstElementChild.appendChild(box.querySelector('.ui-close-icon'));
     overlay.appendChild(box);
     overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
     document.body.appendChild(overlay);
@@ -9034,8 +9048,10 @@ function showSameLandlord(llName, llPhone, currentId) {
             (c.rent?'<span style="color:#B45309;font-weight:600;font-size:12px">'+esc(c.rent)+'元</span>':'') +
         '</div>';
     });
-    html += '<button type="button" onclick="closeOverlay(this.closest(\'.fill-overlay\'))" style="display:block;width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;background:white;cursor:pointer;font-size:13px;margin-top:4px">關閉</button>';
+    html += '<button type="button" class="ui-close-icon" aria-label="關閉" title="關閉" onclick="closeOverlay(this.closest(\'.fill-overlay\'))">×</button>';
     box.innerHTML = html;
+    box.firstElementChild.classList.add('ui-close-heading');
+    box.firstElementChild.appendChild(box.querySelector('.ui-close-icon'));
     overlay.appendChild(box);
     overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
     document.body.appendChild(overlay);
@@ -12394,7 +12410,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260930audit115';
+var APP_VERSION = '20260930audit120';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13560,12 +13576,12 @@ function deleteMktTemplate(idx) {
 <script src="brand-banner.js?v=20260928sync1"></script>
 <script src="image-storage.js?v=20260928sync1"></script>
 <script src="image-redaction.js?v=20260928sync1"></script>
-<script src="image-studio.js?v=20260930audit115"></script>
+<script src="image-studio.js?v=20260930audit120"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
-<script src="image-composer.js?v=20260930audit115"></script>
-<script src="area-editor.js?v=20260930audit115"></script>
-<script src="sync-notice.js?v=20260930audit115"></script>
-<script src="detail-properties.js?v=20260930audit115"></script>
-<script src="edit-layout.js?v=20260930audit115"></script>
+<script src="image-composer.js?v=20260930audit120"></script>
+<script src="area-editor.js?v=20260930audit120"></script>
+<script src="sync-notice.js?v=20260930audit120"></script>
+<script src="detail-properties.js?v=20260930audit120"></script>
+<script src="edit-layout.js?v=20260930audit120"></script>
 </body>
 </html>

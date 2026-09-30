@@ -1,0 +1,2 @@
+Synthetic PDF fixtures generated with ReportLab and an embedded Microsoft JhengHei font subset. No customer data. Building: main 100 m², ancillary 10 m², common gross 1000 m² at 5/100 including parking 1/100. Land: 1000 m² at 5/10000. locked.pdf uses password test. blank.pdf contains an empty page.
+Run transcript-import.browser.cjs from the repository root with PLAYWRIGHT_MODULE and CHROME_PATH set. All external HTTPS requests are blocked and records are synthetic; no customer data is persisted.

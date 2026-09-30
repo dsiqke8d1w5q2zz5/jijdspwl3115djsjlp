@@ -107,3 +107,17 @@ test('verified floor areas are independent rows without duplicating the total',(
  assert.equal(mismatch.length,1);assert.equal(mismatch[0].area,'100');assert(mismatch[0].notes.length);
  const dup=P.parse([{file:'a',page:1,text},{file:'b',page:1,text}]).rows.filter(r=>r.category==='main');assert.equal(dup.length,2);
 });
+
+test('import replaces extra buildings only in selected categories and preview includes retained extras',()=>{
+ const fs=require('node:fs'),vm=require('node:vm'),window={TranscriptParser:P};
+ vm.runInNewContext(fs.readFileSync(require.resolve('../transcript-import.js'),'utf8'),{window,document:{currentScript:{src:'https://example.test/a.js'}},URL});
+ const api=window.TranscriptImport,before=api.emptyState();
+ before.extraBuildings=[{kind:'main',area:'50',unit:'sqm',mode:'direct'},{kind:'ancillary',area:'20',unit:'sqm',mode:'direct'}];
+ assert.equal(api.totals(before).main,15.125);assert.equal(api.totals(before).ancillary,6.05);
+ const rows=parse(building()).rows;
+ const mainOnly=api.mergeState(before,rows.filter(r=>r.category==='main'));
+ assert.equal(mainOnly.extraBuildings.length,1);assert.equal(mainOnly.extraBuildings[0].kind,'ancillary');
+ assert.equal(api.totals(mainOnly).main,30.25);assert.equal(api.totals(mainOnly).ancillary,6.05);
+ const all=api.mergeState(before,rows);assert.equal(all.extraBuildings.length,0);
+ assert.equal(before.extraBuildings.length,2,'original data stays untouched for cancellation and undo');
+});

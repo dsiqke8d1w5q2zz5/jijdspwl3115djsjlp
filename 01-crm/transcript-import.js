@@ -63,7 +63,10 @@
         for(const category of ['main','ancillary','land','common']) {
             const selected=rows.filter(r=>r.category===category);
             if(!selected.length)continue;
-            if(category==='main'||category==='ancillary')state[category]=P.sumBuildingRows(selected);
+            if(category==='main'||category==='ancillary'){
+                state[category]=P.sumBuildingRows(selected);
+                if(state.extraBuildings)state.extraBuildings=state.extraBuildings.filter(r=>(r.kind==='ancillary'?'ancillary':'main')!==category);
+            }
             else {const available=before[category].slice();state[category]=selected.map(r=>areaRow(r,available));}
         }
         if(rows.some(r=>r.category==='common'))state.parkingIncluded=false;
@@ -74,7 +77,8 @@
         const separate=state.common.filter(r=>r.kind==='parking').reduce((s,r)=>s+measure(r),0);
         const included=state.common.filter(r=>r.kind==='commonParking').reduce((s,r)=>s+(+r.area||0)*(r.unit==='sqm'?0.3025:1)*+r.parkingNumerator/+r.parkingDenominator,0);
         const common=state.common.filter(r=>r.kind!=='parking').reduce((s,r)=>s+measure(r),0)-included-(state.parkingIncluded?separate:0);
-        const main=measure(state.main),ancillary=measure(state.ancillary),building=main+ancillary+common,parking=separate+included;
+        const extra=state.extraBuildings||[];
+        const main=measure(state.main)+extra.filter(r=>r.kind!=='ancillary').reduce((s,r)=>s+measure(r),0),ancillary=measure(state.ancillary)+extra.filter(r=>r.kind==='ancillary').reduce((s,r)=>s+measure(r),0),building=main+ancillary+common,parking=separate+included;
         const land=(state.land||[]).reduce((sum,row)=>sum+measure(row),0);
         const landTotal=(state.land||[]).some(row=>row.pendingLegacy||row.area==='')?null:(state.land||[]).reduce((sum,row)=>sum+(+row.area||0)*(row.unit==='sqm'?0.3025:1),0);
         return {main,ancillary,common,building,parking,land,landTotal,total:building+parking,ratio:building>0?common/building*100:0};
@@ -91,17 +95,21 @@
     function open(root,target={}) {
         if(document.querySelector('.transcript-dialog'))return;
         const readState=target.readState||(()=>window.areaEditorData(root));
-        const before=readState();if(!before)return;
+        const initial=readState();if(!initial)return;
+        const before=clone(initial);
         const notify=target.notify||(text=>showToast(text));
         const previousFocus=document.activeElement,dialog=node('dialog','','transcript-dialog');
         dialog.setAttribute('aria-labelledby','transcript-title');
         const title=node('h2','匯入謄本');title.id='transcript-title';
-        const head=node('div','','transcript-head');head.append(title,button('關閉',()=>dialog.close()));
+        const head=node('div','','transcript-head'),close=button('×',()=>dialog.close(),'ui-close-icon');
+        close.title='關閉';close.setAttribute('aria-label','關閉匯入謄本');head.append(title,close);
         const intro=node('p','選取謄本 PDF → 核對結果 → 套入表單。可一次選多份。','transcript-muted');
         const fileInput=node('input');fileInput.type='file';fileInput.accept='.pdf,application/pdf';fileInput.multiple=true;fileInput.setAttribute('aria-label','選取謄本 PDF');
         const status=node('p','','transcript-status');status.setAttribute('role','status');
         const review=node('div'),footer=node('div','','transcript-footer');
-        dialog.append(head,intro,fileInput,node('p','電子謄本 · 最多 20 檔／100 頁 · 僅在此裝置分析','transcript-muted'),status,review,footer);
+        const scroll=node('div','','transcript-scroll');
+        scroll.append(intro,fileInput,node('p','電子謄本 · 最多 20 檔／100 頁 · 僅在此裝置分析','transcript-muted'),status,review);
+        dialog.append(head,scroll,footer);
         let cancelled=false,files=[],urls=[],run=0;
         dialog.addEventListener('keydown',e=>e.stopPropagation());
         dialog.addEventListener('close',()=>{cancelled=true;run++;urls.forEach(URL.revokeObjectURL);dialog.remove();previousFocus?.focus();});
@@ -136,7 +144,7 @@
             if(result.issues.length||result.buildings.length>1)review.append(issues);
             const list=node('div','','transcript-list');review.append(list);
             const preview=node('div','','transcript-preview');preview.setAttribute('aria-live','polite');review.prepend(preview);
-            const changed=node('p','','transcript-muted'),confirmed=node('input');confirmed.type='checkbox';
+            const changed=node('div','','transcript-selection-summary'),confirmed=node('input');confirmed.type='checkbox';
             const consent=labeled('已核對，取代勾選類別的原資料',confirmed);consent.prepend(confirmed);consent.className='transcript-confirm';
             const detailState=new Map(),detailExpanded=new Set();
             for(const b of result.buildings)detailState.set(b.id,Object.fromEntries(Object.entries(b.details||{}).filter(([key,value])=>value&&(!target.detailKeys||target.detailKeys.includes(key))).map(([key,value])=>[key,{value,selected:!!target.details&&result.buildings.length===1}])));
@@ -161,23 +169,35 @@
                 const categories=[...new Set(selected.map(r=>names[r.category]))];
                 const selectionSummary='已選 '+new Set(selected.filter(r=>r.category==='main'||r.floor).map(r=>r.group)).size+' 個主建號、'+selected.filter(r=>r.category==='land').length+' 個地號。';
                 if(Object.keys(selectedDetails()).length)categories.push('勾選的建物資料');
-                changed.textContent=selectionSummary+(categories.length?'將取代：'+categories.join('、')+'。其他類別保留；重新分類時請核對是否仍含原有面積。':'請勾選要套用的資料。');
+                changed.replaceChildren(node('div',selectionSummary),node('div',categories.length?'將取代：'+categories.join('、')+'。其他類別保留。':'請勾選要套用的資料。','transcript-muted'));
+                if(categories.length)changed.append(node('div','重新分類時，請核對是否仍含原有面積。','transcript-muted'));
                 if(valid){
                     const next=mergedState(before,selected),n=totals(next);preview.replaceChildren();
                     if(Object.entries(n).every(([key,value])=>key==='landTotal'&&value===null||Number.isFinite(value))){
-                        preview.append(node('div','套用後試算','transcript-preview-title'));
-                        const breakdown=node('div','','transcript-breakdown');
-                        for(const [label,value] of [['主建物',n.main],['附屬建物',n.ancillary],['公設（不含車位）',n.common],['車位',n.parking]]){
-                            const item=node('div');item.append(node('span',label),node('strong',fmt(value)+' 坪'));breakdown.append(item);
+                        const summaryHead=node('div','','transcript-summary-head');
+                        const headline=node('div','','transcript-summary-headline');
+                        headline.append(node('span','套用後試算','transcript-summary-label'));
+                        const headlineValues=node('div','','transcript-summary-equation');
+                        headlineValues.append(node('strong','建坪 '+fmt(n.building)+' 坪'));
+                        if(n.parking>0)headlineValues.append(node('span','＋','transcript-summary-operator'),node('strong','車位 '+fmt(n.parking)+' 坪'),node('span','＝','transcript-summary-operator'),node('strong','總坪 '+fmt(n.total)+' 坪','transcript-summary-grand-total'));
+                        headline.append(headlineValues);
+                        summaryHead.append(headline,node('span','公設比 '+fmt(n.ratio)+'%','transcript-summary-ratio'));
+                        preview.append(summaryHead);
+                        const buildingRow=node('div','','transcript-summary-row');
+                        buildingRow.append(node('span','建物明細','transcript-summary-label'));
+                        const buildingItems=node('div','','transcript-summary-items');
+                        for(const [label,value] of [['主建物',n.main],['附屬建物',n.ancillary],['公設（不含車位）',n.common]]){
+                            const item=node('span','','transcript-summary-item');item.append(node('span',label),node('span',fmt(value)+' 坪','transcript-summary-value'));buildingItems.append(item);
                         }
-                        preview.append(breakdown,node('div','建坪 '+fmt(n.building)+(n.parking>0?' ＋ 車坪 '+fmt(n.parking):'')+' ＝ 總坪 '+fmt(n.total)+'　公設比 '+fmt(n.ratio)+'%','transcript-preview-total'));
+                        buildingRow.append(buildingItems);preview.append(buildingRow);
                         if(next.land.length){
-                            const landSummary=node('div','','transcript-preview-total');
-                            const landBreakdown=node('div','','transcript-breakdown');
-                            for(const [label,value] of [['土地總坪數',n.landTotal],['土地持分坪數',n.land]]){
-                                const item=node('div');item.append(node('span',label),node('strong',value===null?'待補總面積':fmt(value)+' 坪'));landBreakdown.append(item);
+                            const landRow=node('div','','transcript-summary-row');
+                            landRow.append(node('span','土地資訊','transcript-summary-label'));
+                            const landItems=node('div','','transcript-summary-items');
+                            for(const [label,value] of [['總坪數',n.landTotal],['持分坪數',n.land]]){
+                                const item=node('span','','transcript-summary-item');item.append(node('span',label),node('span',value===null?'待補總面積':fmt(value)+' 坪','transcript-summary-value'));landItems.append(item);
                             }
-                            landSummary.append(landBreakdown,node('span','共 '+next.land.length+' 個地號','transcript-muted'));preview.append(landSummary);
+                            landItems.append(node('span','共 '+next.land.length+' 個地號','transcript-summary-count'));landRow.append(landItems);preview.append(landRow);
                         }
                     }else preview.textContent='已選資料可套用；原表單其他面積／持分尚未填完整，補齊後即可試算總坪。';
                 }
