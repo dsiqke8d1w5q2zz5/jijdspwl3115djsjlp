@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20260930audit123">
+    <link rel="stylesheet" href="area-editor.css?v=20260930audit124">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit123">
-    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit123">
+    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit124">
+    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit124">
 </head>
 <body>
 
@@ -8601,10 +8601,10 @@ function showAllSchedules() {
     overlay.className = 'fill-overlay';
     overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
     var box = document.createElement('div');
-    box.className = 'fill-menu';
+    box.className = 'fill-menu all-schedules-dialog';
     box.style.cssText = 'padding:16px;width:90vw;max-width:500px;max-height:80vh;display:flex;flex-direction:column';
     box.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">' +
-            '<span style="font-weight:700;font-size:15px"><i class="ti ti-list" style="color:#57534E"></i> 全部行程</span>' +
+            '<span style="font-weight:700;font-size:18px;color:#193b58"><i class="ti ti-list" style="color:inherit"></i> 全部行程</span>' +
             '<button onclick="closeOverlay(this.closest(\'.fill-overlay\'))" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted)">✕</button>' +
         '</div>' +
         '<input id="all-sched-search" type="text" placeholder="搜尋客戶名或事項…" oninput="filterAllSchedList()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;margin-bottom:12px">' +
@@ -8633,7 +8633,7 @@ function filterAllSchedList() {
         prevYear = sYear;
         var nameColor = s.personal ? '#3D2F1A' : '#1E40AF';
         var nameText = s.personal ? '個人行程' : s.clientName;
-        var memoText = s.memo ? ' <span style="color:#475569">/ '+esc(s.memo)+'</span>' : '';
+        var memoText = s.memo ? '<div class="all-sched-memo">'+esc(s.memo)+'</div>' : '';
         var editBtn = s.personal
             ? '<button class="btn-ic" onclick="closeOverlay(this.closest(\'.fill-overlay\'));editPersonalSchedule(\''+esc(s.psId||'')+'\')" title="編輯" style="font-size:14px;padding:4px 8px"><i class="ti ti-pencil" style="color:#57534E"></i></button>'
             : '<button class="btn-ic" onclick="closeOverlay(this.closest(\'.fill-overlay\'));editDashSchedule(\''+esc(s.clientId)+'\',\''+esc(s.date)+'\',\''+esc(s.time)+'\')" title="編輯" style="font-size:14px;padding:4px 8px"><i class="ti ti-pencil" style="color:#57534E"></i></button>';
@@ -8644,18 +8644,12 @@ function filterAllSchedList() {
             ? '<button class="btn-ic" onclick="closeOverlay(this.closest(\'.fill-overlay\'));deletePersonalSchedule(\''+esc(s.psId||'')+'\')" title="刪除" style="font-size:14px;padding:4px 8px"><i class="ti ti-trash" style="color:#DC2626"></i></button>'
             : '<button class="btn-ic" onclick="closeOverlay(this.closest(\'.fill-overlay\'));deleteSchedule(\''+esc(s.clientId)+'\',\''+esc(s.date)+'\',\''+esc(s.time)+'\')" title="刪除" style="font-size:14px;padding:4px 8px"><i class="ti ti-trash" style="color:#DC2626"></i></button>';
         var toTodoBtn2 = s.recurrence ? '' : '<button class="btn-ic" onclick="closeOverlay(this.closest(\'.fill-overlay\'));scheduleToTodo(\''+(s.personal?'_ps':esc(s.clientId))+'\',\''+esc(s.date)+'\',\''+esc(s.time)+'\')" title="轉待辦" aria-label="轉待辦" style="font-size:14px;padding:4px 8px"><span aria-hidden="true" style="color:#7C3AED;font-size:20px;line-height:1">⇄</span></button>';
-        return separator + '<div style="padding:8px 0;border-bottom:1px solid #F1F5F9">' +
-            '<div style="display:flex;align-items:center;gap:8px">' +
-                '<div style="flex:1">' +
-                    '<div style="font-size:14px;color:#334155;font-weight:600">'+esc(isoToMDW(s.date,true))+(s.time?' '+s.time:'')+(s.recurrence?' <i class="ti ti-repeat" style="font-size:12px;color:#0E7490" title="'+esc(recurLabel(s.recurrence))+'"></i>':'')+'</div>' +
-                    '<div style="font-size:15px"><span style="color:'+nameColor+';font-weight:600">'+esc(nameText)+'</span></div>' +
-                '</div>' +
-                '<span style="display:flex;gap:2px;flex-shrink:0">' + toTodoBtn2 + editBtn + delBtn2 + '</span>' +
-            '</div>' +
-            '<div style="display:flex;align-items:center;margin-top:2px">' +
-                (memoText ? '<div style="flex:1;font-size:14px;color:#475569">'+memoText+'</div>' : '<div style="flex:1"></div>') +
-                doneBtn +
-            '</div>' +
+        return separator + '<div class="all-sched-row">' +
+            '<div class="all-sched-content"><div class="all-sched-heading">' +
+                '<span class="all-sched-date">'+esc(isoToMDW(s.date,true))+(s.time?' '+esc(s.time):'')+(s.recurrence?' <i class="ti ti-repeat" style="font-size:12px;color:#0E7490" title="'+esc(recurLabel(s.recurrence))+'"></i>':'')+'</span>' +
+                '<span class="all-sched-name" style="color:'+nameColor+'">'+esc(nameText)+'</span>' +
+            '</div>'+memoText+'</div>' +
+            '<div class="all-sched-actions">'+toTodoBtn2+editBtn+delBtn2+doneBtn+'</div>' +
         '</div>';
     }).join('') : '<div style="text-align:center;color:var(--muted);padding:20px;font-size:14px">'+(q?'沒有符合的行程':'目前沒有未來行程')+'</div>';
 }
@@ -12409,7 +12403,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260930audit123';
+var APP_VERSION = '20260930audit124';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13584,12 +13578,12 @@ function deleteMktTemplate(idx) {
 <script src="brand-banner.js?v=20260928sync1"></script>
 <script src="image-storage.js?v=20260928sync1"></script>
 <script src="image-redaction.js?v=20260928sync1"></script>
-<script src="image-studio.js?v=20260930audit123"></script>
+<script src="image-studio.js?v=20260930audit124"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
-<script src="image-composer.js?v=20260930audit123"></script>
-<script src="area-editor.js?v=20260930audit123"></script>
-<script src="sync-notice.js?v=20260930audit123"></script>
-<script src="detail-properties.js?v=20260930audit123"></script>
-<script src="edit-layout.js?v=20260930audit123"></script>
+<script src="image-composer.js?v=20260930audit124"></script>
+<script src="area-editor.js?v=20260930audit124"></script>
+<script src="sync-notice.js?v=20260930audit124"></script>
+<script src="detail-properties.js?v=20260930audit124"></script>
+<script src="edit-layout.js?v=20260930audit124"></script>
 </body>
 </html>
