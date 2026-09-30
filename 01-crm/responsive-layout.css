@@ -583,3 +583,5 @@ body :is(#dModal,#fModal) :is(.det-property-tabs,.edit-object-tabs).is-dragging,
 #perfBody .perf-middleman-label{color:#64748b;font-weight:400}
 #perfBody .perf-middleman-name{color:#173756;font-weight:600}
 #perfBody .perf-record-intermediary>strong{background:transparent;border-radius:0;padding:0}
+
+#perfFixed .perf-intermediary-summary>strong{font-size:15px;font-weight:800}
