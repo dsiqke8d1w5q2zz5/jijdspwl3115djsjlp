@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20260930audit78">
+    <link rel="stylesheet" href="area-editor.css?v=20260930audit79">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit78">
-    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit78">
+    <link rel="stylesheet" href="ui-foundation.css?v=20260930audit79">
+    <link rel="stylesheet" href="responsive-layout.css?v=20260930audit79">
 </head>
 <body>
 
@@ -2398,12 +2398,47 @@ function persistAndSyncNow() {
     return true;
 }
 function persistPerf() {
+    _crmMarkMetadataPending('perfRecords');
     _perfLoaded = true;
     try { localStorage.setItem('perfRecords', JSON.stringify(_perfRecords)); } catch(e) { console.error('localStorage寫入失敗', e); }
     if (_syncTimer) clearTimeout(_syncTimer);
     _syncTimer = setTimeout(autoSync, 3000);
 }
 function _crmMarkPending() { try { localStorage.setItem('crm_pendingSync', '1'); } catch(e) {} }
+// Keep each locally edited metadata collection until that exact upload is verified.
+var _crmMetaMemory = {}, _uploadedMetaRevisions = {}, _crmMetaEpoch = {};
+var _crmMetaFields = {perfRecords:'__perfRecords', crmTemplates:'__templates', crmSigningTemplates:'__signingTemplates', crmOtherTemplates:'__otherTemplates'};
+function _crmMetaRevision(key) {
+    try { return localStorage.getItem('crm_metaPending_' + key) || _crmMetaMemory[key] || ''; }
+    catch(e) { return _crmMetaMemory[key] || ''; }
+}
+function _crmMarkMetadataPending(key) {
+    var revision = Date.now() + ':' + Math.random();
+    _crmMetaMemory[key] = revision;
+    _crmMetaEpoch[key] = (_crmMetaEpoch[key] || 0) + 1;
+    try { localStorage.setItem('crm_metaPending_' + key, revision); } catch(e) {}
+    _crmMarkPending();
+}
+function _crmMetadataValue(key) {
+    if (key === 'perfRecords') return _perfRecords;
+    if (key === 'crmTemplates') return _templates;
+    if (key === 'crmSigningTemplates') return _signingTemplates;
+    return _otherTemplates;
+}
+function _crmHasMetadataPending() {
+    return Object.keys(_crmMetaFields).some(function(key){ return !!_crmMetaRevision(key); });
+}
+function _crmAckMetadata() {
+    Object.keys(_uploadedMetaRevisions).forEach(function(key) {
+        var revision = _uploadedMetaRevisions[key];
+        if (!revision || _crmMetaRevision(key) !== revision) return;
+        var sent = (_expectedCloudData || []).find(function(row){ return row[_crmMetaFields[key]]; });
+        if (!sent || _crmCanonical(_crmMetadataValue(key)) !== _crmCanonical(key === 'perfRecords' ? sent.records : sent.items)) return;
+        _crmMetaEpoch[key] = (_crmMetaEpoch[key] || 0) + 1;
+        delete _crmMetaMemory[key];
+        try { localStorage.removeItem('crm_metaPending_' + key); } catch(e) { _crmMetaMemory[key] = revision; }
+    });
+}
 function _crmClearPending() { try { localStorage.removeItem('crm_pendingSync'); } catch(e) {} }
 function _crmHasPending() { try { return localStorage.getItem('crm_pendingSync') === '1'; } catch(e) { return false; } }
 var _syncInFlight = false;
@@ -2439,6 +2474,8 @@ function _autoSyncPush(status) {
     if (_otplLoaded || (_otherTemplates && _otherTemplates.length)) syncData = syncData.concat([{__otherTemplates: true, items: _otherTemplates}]);
     syncData = syncData.concat([{__checkIn: true, data: getCheckInData()}]);
     var payload = JSON.stringify(syncData);
+    _uploadedMetaRevisions = {};
+    Object.keys(_crmMetaFields).forEach(function(key){ _uploadedMetaRevisions[key] = _crmMetaRevision(key); });
     _expectedCloudData = JSON.parse(payload);
     _uploadedLocalJSON = JSON.stringify(DB);
     // 記下本次預期上傳完成後的雲端筆數（只算真實客戶，與 verifySyncResult 的 cnt 同口徑：
@@ -2491,7 +2528,8 @@ function verifySyncResult(status) {
                 var _dispCnt = data.filter(function(c){ return !c.__perfRecords && !c.__templates && !c.__signingTemplates && !c.__otherTemplates && !c._system; }).length;
                 if (status) status.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22C55E;margin-right:4px;vertical-align:middle"></span>已同步 ' + new Date().toLocaleTimeString('zh-TW') + '（' + _dispCnt + '筆）';
                 _syncInFlight = false;
-                if (JSON.stringify(DB) !== _uploadedLocalJSON) {
+                _crmAckMetadata();
+                if (JSON.stringify(DB) !== _uploadedLocalJSON || _crmHasMetadataPending()) {
                     _crmMarkPending();
                     if (_syncTimer) clearTimeout(_syncTimer);
                     _syncTimer = setTimeout(autoSync, 500);
@@ -2630,6 +2668,8 @@ function autoFetchCloud(force, onDone) {
     function _fireDone(ok) { if (_doneCalled) return; _doneCalled = true; if (typeof onDone === 'function') { try { onDone(ok === true); } catch(e){} } }
     // 本機有未上傳的變更時，跳過拉雲端，避免舊資料覆蓋新存的（force=true 強制拉）
     if (!force && Date.now() < _localDirtyUntil) { _fireDone(); return; }
+    var metadataReadEpoch = {};
+    Object.keys(_crmMetaFields).forEach(function(key){metadataReadEpoch[key]=_crmMetaEpoch[key]||0;});
     var cbName = 'checkCb_' + Date.now() + '_' + (++_cloudRequestSeq);
     var script = document.createElement('script');
     window[cbName] = function(data) {
@@ -2818,23 +2858,23 @@ function autoFetchCloud(force, onDone) {
             }
                 // Metadata can change even when customer records do not.
                 // 同步業績紀錄
-                if (cloudPerf) {
+                if (cloudPerf && !_crmMetaRevision('perfRecords') && metadataReadEpoch['perfRecords']===(_crmMetaEpoch['perfRecords']||0)) {
                     _perfRecords = cloudPerf;
                     _perfLoaded = true;
                     try { localStorage.setItem('perfRecords', JSON.stringify(_perfRecords)); } catch(e) { console.error('localStorage寫入失敗', e); }
                 }
                 // 同步範本
-                if (cloudTpl) {
+                if (cloudTpl && !_crmMetaRevision('crmTemplates') && metadataReadEpoch['crmTemplates']===(_crmMetaEpoch['crmTemplates']||0)) {
                     _templates = cloudTpl;
                     try { localStorage.setItem('crmTemplates', JSON.stringify(_templates)); } catch(e) { console.error('localStorage寫入失敗', e); }
                 }
                 // 同步簽約範本
-                if (cloudSTpl) {
+                if (cloudSTpl && !_crmMetaRevision('crmSigningTemplates') && metadataReadEpoch['crmSigningTemplates']===(_crmMetaEpoch['crmSigningTemplates']||0)) {
                     _signingTemplates = cloudSTpl;
                     try { localStorage.setItem('crmSigningTemplates', JSON.stringify(_signingTemplates)); } catch(e) { console.error('localStorage寫入失敗', e); }
                 }
                 // 同步其他範本
-                if (cloudOTpl) {
+                if (cloudOTpl && !_crmMetaRevision('crmOtherTemplates') && metadataReadEpoch['crmOtherTemplates']===(_crmMetaEpoch['crmOtherTemplates']||0)) {
                     _otherTemplates = cloudOTpl;
                     _otplLoaded = true;
                     try { localStorage.setItem('crmOtherTemplates', JSON.stringify(_otherTemplates)); } catch(e) { console.error('localStorage寫入失敗', e); }
@@ -12342,7 +12382,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20260930audit78';
+var APP_VERSION = '20260930audit79';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -12524,6 +12564,7 @@ try {
 } catch(e) { _templates = JSON.parse(JSON.stringify(_defaultTemplates)); }
 
 function persistTemplates() {
+    _crmMarkMetadataPending('crmTemplates');
     try { localStorage.setItem('crmTemplates', JSON.stringify(_templates)); } catch(e) { console.error('範本儲存失敗', e); }
     if (_syncTimer) clearTimeout(_syncTimer);
     _syncTimer = setTimeout(autoSync, 3000);
@@ -13155,6 +13196,7 @@ try {
 } catch(e) { _signingTemplates = JSON.parse(JSON.stringify(_defaultSigningTemplates)); }
 
 function persistSigningTemplates() {
+    _crmMarkMetadataPending('crmSigningTemplates');
     try { localStorage.setItem('crmSigningTemplates', JSON.stringify(_signingTemplates)); } catch(e) { console.error('簽約範本儲存失敗', e); }
     if (_syncTimer) clearTimeout(_syncTimer);
     _syncTimer = setTimeout(autoSync, 3000);
@@ -13261,6 +13303,8 @@ try {
 } catch(e) { _otherTemplates = []; _otplLoaded = false; }
 
 function persistOtherTemplates() {
+    _crmMarkMetadataPending('crmOtherTemplates');
+    _otplLoaded = true;
     try { localStorage.setItem('crmOtherTemplates', JSON.stringify(_otherTemplates)); } catch(e) { console.error('其他範本儲存失敗', e); }
     if (_syncTimer) clearTimeout(_syncTimer);
     _syncTimer = setTimeout(autoSync, 3000);
@@ -13504,12 +13548,12 @@ function deleteMktTemplate(idx) {
 <script src="brand-banner.js?v=20260928sync1"></script>
 <script src="image-storage.js?v=20260928sync1"></script>
 <script src="image-redaction.js?v=20260928sync1"></script>
-<script src="image-studio.js?v=20260930audit78"></script>
+<script src="image-studio.js?v=20260930audit79"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
-<script src="image-composer.js?v=20260930audit78"></script>
-<script src="area-editor.js?v=20260930audit78"></script>
-<script src="sync-notice.js?v=20260930audit78"></script>
-<script src="detail-properties.js?v=20260930audit78"></script>
-<script src="edit-layout.js?v=20260930audit78"></script>
+<script src="image-composer.js?v=20260930audit79"></script>
+<script src="area-editor.js?v=20260930audit79"></script>
+<script src="sync-notice.js?v=20260930audit79"></script>
+<script src="detail-properties.js?v=20260930audit79"></script>
+<script src="edit-layout.js?v=20260930audit79"></script>
 </body>
 </html>
