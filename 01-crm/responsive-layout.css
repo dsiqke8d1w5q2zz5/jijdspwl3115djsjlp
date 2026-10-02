@@ -1051,12 +1051,14 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 .fill-menu.schedule-compact-form{width:660px!important;container-type:inline-size}
 .fill-menu.schedule-compact-form:has(#qs-date){width:660px!important}
 .fill-menu.schedule-compact-form:has(#qs-date)>div:first-child{justify-content:flex-start;text-align:left}
-.schedule-compact-form .schedule-compact-settings{display:grid!important;grid-template-columns:minmax(0,1fr);gap:8px;margin-bottom:8px}
+.schedule-compact-form .schedule-compact-settings{display:grid!important;grid-template-columns:minmax(0,1fr);align-items:start;gap:8px;margin-bottom:8px}
 .schedule-compact-form .schedule-compact-settings>.schedule-association-line,
 .schedule-compact-form .schedule-compact-settings>.schedule-date-line{margin:0!important;min-width:0}
 .schedule-compact-form :is(input,select,button){box-sizing:border-box;min-width:0}
 .schedule-compact-form .schedule-date-line .roc-date-wrap>input{flex:1 1 0;width:0!important}
 .schedule-compact-form .schedule-date-line .cal-btn{flex:0 0 36px;width:36px;min-height:40px}
+.schedule-compact-form .schedule-date-line{align-items:flex-start;align-self:start}
+.schedule-compact-form .schedule-date-line>[data-quick-field="qs-time"]{height:40px;align-self:flex-start}
 .schedule-compact-form .schedule-property-picker>summary{box-sizing:border-box;min-height:40px;line-height:20px}
 .schedule-compact-form .schedule-association-line>[data-quick-field="qs-type"]{flex:0 0 74px!important;width:74px!important;height:40px}
 .schedule-compact-form .schedule-property-options{overflow-wrap:anywhere}
@@ -1067,5 +1069,6 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 .schedule-compact-form .schedule-compact-repeat>select{width:100%;max-width:160px;min-width:0;font-size:13px!important;padding:8px 4px!important;overflow:hidden;text-overflow:ellipsis}
 .fill-menu.schedule-compact-form .schedule-compact-footer>button{flex:0 0 auto!important;padding:8px 14px!important;min-height:40px;font-size:14px!important;white-space:nowrap}
 #dModal .det-inline-overlay>.schedule-compact-form>.schedule-compact-settings{display:grid!important}
+#dModal .det-inline-overlay>.schedule-compact-form:has(#det-qs-save)>.schedule-compact-settings:first-child{display:grid!important}
 @container(min-width:560px){.schedule-compact-form .schedule-compact-settings{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
 @container(max-width:300px){.schedule-compact-form .schedule-compact-footer>.schedule-compact-repeat{flex-basis:100%}.schedule-compact-form .schedule-compact-footer>.schedule-compact-repeat>select{max-width:none}}

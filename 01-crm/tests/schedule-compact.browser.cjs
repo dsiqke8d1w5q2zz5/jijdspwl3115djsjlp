@@ -20,6 +20,12 @@ const path=require('node:path');
     if(box.left<0||box.right>innerWidth+1)bad.push('dialog outside viewport');
     if(form.scrollWidth>form.clientWidth+1)bad.push('horizontal form overflow');
     const controls=[...form.querySelectorAll('input,select,button,summary')].filter(el=>el.checkVisibility());
+    const time=form.querySelector('[data-quick-field="qs-time"]').getBoundingClientRect();
+    const date=form.querySelector('[data-quick-field="qs-date"]').getBoundingClientRect();
+    if(time.height>52)bad.push('time field stretched');
+    if(Math.abs(time.top-date.top)>6)bad.push('date/time top alignment');
+    const settings=form.querySelector('.schedule-compact-settings');
+    if(getComputedStyle(settings).gridTemplateColumns.split(' ').length===2&&Math.abs(time.top-settings.getBoundingClientRect().top)>6)bad.push('date/time dropped below top row');
     controls.forEach(el=>{const r=el.getBoundingClientRect();if(r.left<box.left-1||r.right>box.right+1)bad.push('outside: '+(el.dataset.quickField||el.className));});
     for(let i=0;i<controls.length;i++)for(let j=i+1;j<controls.length;j++){
      const a=controls[i].getBoundingClientRect(),b=controls[j].getBoundingClientRect();
@@ -30,6 +36,9 @@ const path=require('node:path');
   }
   await check();
   await page.locator('.schedule-property-picker summary').click();await check();
+  assert.equal(await page.locator('.schedule-property-choices option').nth(1).textContent(),'新北市板橋區文化帝王超長社區名稱與物件地址測試'.repeat(3),'option uses simple name only');
+  assert.equal(await page.evaluate(()=>schedulePropertyRef(DB[0],{rAddr:'新北市新莊區民安西路75巷12號4樓'},'房東').label),'新莊區民安西路4樓');
+  await page.locator('.schedule-compact-form').screenshot({path:path.join(require('node:os').tmpdir(),'crm-schedule-expanded-'+width+'.png')});
   await page.locator('.schedule-property-options input').fill('不存在');await check();
   await page.locator('.schedule-property-options input').fill('文化');
   await page.locator('.schedule-property-choices').selectOption('0');
