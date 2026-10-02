@@ -1075,5 +1075,6 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 .schedule-overdue-days{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;min-width:20px;height:20px;padding:0 3px;box-sizing:border-box;border:1.5px solid currentColor;border-radius:999px;color:#dc2626;font:600 12px/1 var(--ui-font);white-space:nowrap}
 .dash-sched-row1>.schedule-property-tag,.all-sched-heading>.schedule-property-tag{flex:0 1 auto;margin:0;max-width:190px}
 .dash-sched-row1{flex-wrap:wrap;min-width:0}
+.dash-sched-row1:has(>.schedule-property-tag)>.dash-item-name{flex:0 1 auto}
 #dModal #detContent .det-schedule-row:has(.schedule-property-tag){grid-template-columns:minmax(0,1fr);gap:3px}
 #dModal .det-schedule-row:has(.schedule-property-tag) .det-key{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0;white-space:normal!important}
