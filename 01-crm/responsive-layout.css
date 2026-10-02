@@ -1081,8 +1081,8 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 .dash-sched-row1 .schedule-date-text{display:inline-block;min-width:6.7em;font-variant-numeric:tabular-nums}
 .schedule-overdue-days{font-variant-numeric:tabular-nums}
 .dash-sched-row1>.dash-item-info{display:inline-flex;align-items:center;gap:4px;font-size:16px}
-.dash-sched-item.dash-sched-today{background:#fff7e6}
-.dash-sched-item.dash-sched-today:hover{background:#ffefcc}
+.dash-sched-item.dash-sched-today{background:#ffedc2}
+.dash-sched-item.dash-sched-today:hover{background:#ffe4a6}
 .schedule-overdue-alert{display:inline-block;width:16px;flex:0 0 16px;font-size:16px;color:#dc2626;text-align:center}
 .dash-todo-heading{flex-wrap:wrap;min-width:0}
 .dash-todo-heading>.dash-item-name{flex:0 1 auto}
