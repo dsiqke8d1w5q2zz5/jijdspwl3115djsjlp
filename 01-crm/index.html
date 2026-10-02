@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20261002audit144">
+    <link rel="stylesheet" href="area-editor.css?v=20261002audit145">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20261002audit144">
-    <link rel="stylesheet" href="responsive-layout.css?v=20261002audit144">
+    <link rel="stylesheet" href="ui-foundation.css?v=20261002audit145">
+    <link rel="stylesheet" href="responsive-layout.css?v=20261002audit145">
 </head>
 <body>
 
@@ -4233,7 +4233,7 @@ function renderDashboard() {
             : '<button class="btn-ic dash-done-btn" onclick="event.stopPropagation();completeSchedule(\''+esc(s.id)+'\',\''+esc(s.date)+'\',\''+esc(s.time)+'\',\''+esc(s.scheduleId||'')+'\')" title="完成" style="font-size:13px;padding:2px 4px"><i class="ti ti-circle-check" style="color:#059669"></i><span class="dash-done-txt"> 完成</span></button>';
         var recurIcon = s.recurrence ? '<span title="'+esc(recurLabel(s.recurrence))+'" style="color:#0E7490;font-size:12px;font-weight:600;margin-left:4px"><i class="ti ti-repeat" style="font-size:13px"></i> '+esc(recurLabel(s.recurrence))+'</span>' : '';
         var memoHtml = (s.memo||recurIcon) ? '<div class="dash-sched-memo">'+esc(s.memo)+recurIcon+'</div>' : '';
-        var dateColor = s.expired ? '#DC2626' : (s.days===0 ? '#1C1917' : '#7B8490');
+        var dateColor = s.expired ? '#DC2626' : (s.days===0 ? '#B45309' : '');
         var delBtn = s.personal
             ? '<button class="btn-ic" onclick="event.stopPropagation();deletePersonalSchedule(\''+esc(s.psId||'')+'\')" title="刪除" style="font-size:13px;padding:2px 4px"><i class="ti ti-trash" style="color:#DC2626"></i></button>'
             : '<button class="btn-ic" onclick="event.stopPropagation();deleteSchedule(\''+esc(s.id)+'\',\''+esc(s.date)+'\',\''+esc(s.time)+'\',\''+esc(s.scheduleId||'')+'\')" title="刪除" style="font-size:13px;padding:2px 4px"><i class="ti ti-trash" style="color:#DC2626"></i></button>';
@@ -4241,7 +4241,7 @@ function renderDashboard() {
         var rowEdit = s.personal
             ? 'editPersonalSchedule(\''+esc(s.psId||'')+'\')'
             : 'editDashSchedule(\''+esc(s.id)+'\',\''+esc(s.date)+'\',\''+esc(s.time)+'\',\''+esc(s.scheduleId||'')+'\')';
-        return '<div class="dash-item dash-sched-item dash-clickedit" style="flex-direction:column;align-items:stretch" onclick="'+rowEdit+'">' +
+        return '<div class="dash-item dash-sched-item dash-clickedit'+(s.days===0?' dash-sched-today':'')+'" style="flex-direction:column;align-items:stretch" onclick="'+rowEdit+'">' +
             '<div class="dash-sched-row1">' +
                 '<span class="dash-item-info" style="color:'+dateColor+'">'+(s.expired?'<i class="ti ti-alert-triangle schedule-overdue-alert" aria-hidden="true"></i><span class="schedule-overdue-days" title="已逾期 '+Math.abs(s.days)+' 天" aria-label="已逾期 '+Math.abs(s.days)+' 天">'+Math.abs(s.days)+'</span>':'')+'<span class="schedule-date-text">'+esc(isoToMDW(s.date))+'</span>'+(s.time?' '+s.time:'')+'</span>' +
                 nameHtml + schedulePropertyBadge(s.propertyRef,s.schedType) +
@@ -12456,7 +12456,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20261002audit144';
+var APP_VERSION = '20261002audit145';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13631,14 +13631,14 @@ function deleteMktTemplate(idx) {
 <script src="brand-banner.js?v=20260928sync1"></script>
 <script src="image-storage.js?v=20260928sync1"></script>
 <script src="image-redaction.js?v=20260928sync1"></script>
-<script src="image-studio.js?v=20261002audit144"></script>
+<script src="image-studio.js?v=20261002audit145"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
-<script src="image-composer.js?v=20261002audit144"></script>
-<script src="area-editor.js?v=20261002audit144"></script>
-<script src="sync-notice.js?v=20261002audit144"></script>
-<script src="detail-properties.js?v=20261002audit144"></script>
-<script src="edit-layout.js?v=20261002audit144"></script>
-<script src="property-purpose.js?v=20261002audit144"></script>
-<script src="schedule-property.js?v=20261002audit144"></script>
+<script src="image-composer.js?v=20261002audit145"></script>
+<script src="area-editor.js?v=20261002audit145"></script>
+<script src="sync-notice.js?v=20261002audit145"></script>
+<script src="detail-properties.js?v=20261002audit145"></script>
+<script src="edit-layout.js?v=20261002audit145"></script>
+<script src="property-purpose.js?v=20261002audit145"></script>
+<script src="schedule-property.js?v=20261002audit145"></script>
 </body>
 </html>
