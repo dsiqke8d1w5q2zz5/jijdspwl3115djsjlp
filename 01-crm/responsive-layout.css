@@ -1036,7 +1036,7 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 .schedule-property-options :is(input,select){width:100%;max-width:100%;box-sizing:border-box;font:inherit;margin-bottom:6px;padding:7px;border:1px solid #dce5ec;border-radius:6px;background:white}
 .schedule-property-options select[size]{height:136px!important;white-space:normal}
 .schedule-property-options small{color:#64748b;font-size:12px}
-.schedule-property-tag{display:inline-block;max-width:190px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 6px 2px 0;padding:2px 6px;border:1px solid #d7e4ed;border-radius:5px;background:#edf4f8;color:#173756;font:600 13px/1.5 var(--ui-font);cursor:pointer}
+.schedule-property-tag{display:inline-block;max-width:190px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 6px 2px 0;padding:2px 6px;border:1px solid #d7e4ed;border-radius:5px;background:#edf4f8;color:#173756;font:600 10px/1.5 var(--ui-font);cursor:pointer}
 @media(max-width:600px){.schedule-property-options input{font-size:16px}.schedule-property-tag{max-width:150px}}
 .fill-menu .schedule-date-line{display:flex;flex-wrap:nowrap;gap:8px;min-width:0}
 .fill-menu .schedule-date-line>.roc-date-wrap{flex:1 1 0!important;min-width:0}
@@ -1076,5 +1076,9 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 .dash-sched-row1>.schedule-property-tag,.all-sched-heading>.schedule-property-tag{flex:0 1 auto;margin:0;max-width:190px}
 .dash-sched-row1{flex-wrap:wrap;min-width:0}
 .dash-sched-row1:has(>.schedule-property-tag)>.dash-item-name{flex:0 1 auto}
+.dash-sched-row1 .schedule-date-text{display:inline-block;min-width:6.7em;font-variant-numeric:tabular-nums}
+.schedule-overdue-days{font-variant-numeric:tabular-nums}
+.dash-sched-row1>.dash-item-info{display:inline-flex;align-items:center;gap:4px}
+.schedule-overdue-alert{display:inline-block;width:14px;flex:0 0 14px;font-size:12px;color:#dc2626;text-align:center}
 #dModal #detContent .det-schedule-row:has(.schedule-property-tag){grid-template-columns:minmax(0,1fr);gap:3px}
 #dModal .det-schedule-row:has(.schedule-property-tag) .det-key{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0;white-space:normal!important}

@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20261002audit134">
+    <link rel="stylesheet" href="area-editor.css?v=20261002audit135">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20261002audit134">
-    <link rel="stylesheet" href="responsive-layout.css?v=20261002audit134">
+    <link rel="stylesheet" href="ui-foundation.css?v=20261002audit135">
+    <link rel="stylesheet" href="responsive-layout.css?v=20261002audit135">
 </head>
 <body>
 
@@ -4244,7 +4244,7 @@ function renderDashboard() {
             : 'editDashSchedule(\''+esc(s.id)+'\',\''+esc(s.date)+'\',\''+esc(s.time)+'\',\''+esc(s.scheduleId||'')+'\')';
         return '<div class="dash-item dash-sched-item dash-clickedit" style="flex-direction:column;align-items:stretch" onclick="'+rowEdit+'">' +
             '<div class="dash-sched-row1">' +
-                '<span class="dash-item-info" style="color:'+dateColor+'">'+esc(isoToMDW(s.date))+(s.time?' '+s.time:'')+(s.expired?' <span class="schedule-overdue-days" title="已逾期 '+Math.abs(s.days)+' 天" aria-label="已逾期 '+Math.abs(s.days)+' 天">'+Math.abs(s.days)+'</span>':'')+'</span>' +
+                '<span class="dash-item-info" style="color:'+dateColor+'">'+(s.expired?'<i class="ti ti-alert-triangle schedule-overdue-alert" aria-hidden="true"></i><span class="schedule-overdue-days" title="已逾期 '+Math.abs(s.days)+' 天" aria-label="已逾期 '+Math.abs(s.days)+' 天">'+Math.abs(s.days)+'</span>':'')+'<span class="schedule-date-text">'+esc(isoToMDW(s.date))+'</span>'+(s.time?' '+s.time:'')+'</span>' +
                 nameHtml + schedulePropertyBadge(s.propertyRef,s.schedType) +
                 '<span style="display:flex;gap:2px;flex-shrink:0;margin-left:auto">' + editBtn + delBtn + '</span>' +
             '</div>' +
@@ -12430,7 +12430,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20261002audit134';
+var APP_VERSION = '20261002audit135';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13605,14 +13605,14 @@ function deleteMktTemplate(idx) {
 <script src="brand-banner.js?v=20260928sync1"></script>
 <script src="image-storage.js?v=20260928sync1"></script>
 <script src="image-redaction.js?v=20260928sync1"></script>
-<script src="image-studio.js?v=20261002audit134"></script>
+<script src="image-studio.js?v=20261002audit135"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
-<script src="image-composer.js?v=20261002audit134"></script>
-<script src="area-editor.js?v=20261002audit134"></script>
-<script src="sync-notice.js?v=20261002audit134"></script>
-<script src="detail-properties.js?v=20261002audit134"></script>
-<script src="edit-layout.js?v=20261002audit134"></script>
-<script src="property-purpose.js?v=20261002audit134"></script>
-<script src="schedule-property.js?v=20261002audit134"></script>
+<script src="image-composer.js?v=20261002audit135"></script>
+<script src="area-editor.js?v=20261002audit135"></script>
+<script src="sync-notice.js?v=20261002audit135"></script>
+<script src="detail-properties.js?v=20261002audit135"></script>
+<script src="edit-layout.js?v=20261002audit135"></script>
+<script src="property-purpose.js?v=20261002audit135"></script>
+<script src="schedule-property.js?v=20261002audit135"></script>
 </body>
 </html>
