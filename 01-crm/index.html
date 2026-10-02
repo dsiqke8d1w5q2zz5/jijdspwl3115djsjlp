@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20261002audit126">
+    <link rel="stylesheet" href="area-editor.css?v=20261002audit127">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20261002audit126">
-    <link rel="stylesheet" href="responsive-layout.css?v=20261002audit126">
+    <link rel="stylesheet" href="ui-foundation.css?v=20261002audit127">
+    <link rel="stylesheet" href="responsive-layout.css?v=20261002audit127">
 </head>
 <body>
 
@@ -5587,7 +5587,7 @@ function switchBdTab(btn, idx) {
 // Esc closes only the foremost visible dialog, using its existing cancel/close path.
 document.addEventListener('keydown', function(e) {
     if (e.key !== 'Escape' || e.isComposing || e.repeat) return;
-    if (document.querySelector('dialog.transcript-dialog[open], dialog.edit-folder-dialog[open], #imageComposer[open]')) return;
+    if (document.querySelector('dialog.transcript-dialog[open], dialog.edit-folder-dialog[open], dialog.purpose-dialog[open], #imageComposer[open]')) return;
     var layers = Array.from(document.querySelectorAll('.overlay, .fill-overlay, #calPopup')).filter(function(el) {
         var style = getComputedStyle(el);
         return el.getClientRects().length && style.display !== 'none' && style.visibility !== 'hidden';
@@ -6169,7 +6169,7 @@ function getSellerProperties() {
     document.querySelectorAll('#sPropertyList .person-block').forEach(function(block) {
         var get = function(f) { var el = block.querySelector('[data-f="'+f+'"]'); return el ? el.value.trim() : ''; };
         if (get('community') || get('addr') || get('price') || block._spDriveUrl) {
-            var _spArch = get('spArchived'); var _reasonEl = block.querySelector('.sp-pause-reason'); var _reason = _reasonEl ? _reasonEl.textContent.replace('暫停原因：','') : ''; var _passEl = block.querySelector('[data-f="spPass"]'); r.push({ grade:get('grade'), contractType:get('contractType'), spPass: (_passEl && _passEl.checked) ? '1' : '', community:get('community'), addr:get('addr'), price:get('price'), floorPrice:get('floorPrice'), serviceFee:get('serviceFee'), baseLand:get('baseLand'), landShare:get('landShare'), mainBldg:get('mainBldg'), ancBldg:get('ancBldg'), common:get('common'), parkingSz:get('parkingSz'), parking:get('parking'), parkingPrice:get('parkingPrice'), parkingNo:get('parkingNo'), areaInput:areaEditorData(block), mgmtBuilding:get('mgmtBuilding'), mgmtCar:get('mgmtCar'), mgmtMoto:get('mgmtMoto'), mgmtOther:get('mgmtOther'), mgmtPeriod:get('mgmtPeriod'), contractStart:rocToISO(get('contractStart')), contractEnd:rocToISO(get('contractEnd')), spRenewals: block._spRenewals || [], spPriceHistory: block._spPriceHistory || [], spFloorPriceHistory: block._spFloorPriceHistory || [], spDriveUrl: block._spDriveUrl || '', spArchived: _spArch ? '1' : '', spArchiveReason: _reason, spPauseHistory: block._spPauseHistory || [] });
+            var _spArch = get('spArchived'); var _reasonEl = block.querySelector('.sp-pause-reason'); var _reason = _reasonEl ? _reasonEl.textContent.replace('暫停原因：','') : ''; var _passEl = block.querySelector('[data-f="spPass"]'); r.push({ ...propertyPurposeData(block), grade:get('grade'), contractType:get('contractType'), spPass: (_passEl && _passEl.checked) ? '1' : '', community:get('community'), addr:get('addr'), price:get('price'), floorPrice:get('floorPrice'), serviceFee:get('serviceFee'), baseLand:get('baseLand'), landShare:get('landShare'), mainBldg:get('mainBldg'), ancBldg:get('ancBldg'), common:get('common'), parkingSz:get('parkingSz'), parking:get('parking'), parkingPrice:get('parkingPrice'), parkingNo:get('parkingNo'), areaInput:areaEditorData(block), mgmtBuilding:get('mgmtBuilding'), mgmtCar:get('mgmtCar'), mgmtMoto:get('mgmtMoto'), mgmtOther:get('mgmtOther'), mgmtPeriod:get('mgmtPeriod'), contractStart:rocToISO(get('contractStart')), contractEnd:rocToISO(get('contractEnd')), spRenewals: block._spRenewals || [], spPriceHistory: block._spPriceHistory || [], spFloorPriceHistory: block._spFloorPriceHistory || [], spDriveUrl: block._spDriveUrl || '', spArchived: _spArch ? '1' : '', spArchiveReason: _reason, spPauseHistory: block._spPauseHistory || [] });
         }
     });
     return r;
@@ -7151,8 +7151,8 @@ function getRentalProperties() {
     var r = [];
     document.querySelectorAll('#rPropertyList .person-block').forEach(function(block) {
         var get = function(f){ var el=block.querySelector('[data-f="'+f+'"]'); return el?el.value.trim():''; };
-        if (get('community') || get('addr') || get('rent') || block._rpDriveUrl || block.querySelector('[data-condition].on')) {
-            r.push({ rCommunity:get('community'), rAddr:get('addr'), rent:get('rent'), rRentPeriod:get('rentPeriod'), rSz:get('sz'), rParking:get('parking'), rParkingNo:get('parkingNo'), rMgmtType:get('mgmtType'), rMgmtBuilding:get('mgmtBuilding'), rMgmtCar:get('mgmtCar'), rMgmtMoto:get('mgmtMoto'), rMgmtOther:get('mgmtOther'), rMeterElec:get('meterElec'), rMeterWater:get('meterWater'), rMeterGas:get('meterGas'), rTrashSpot:get('trashSpot'), rTrashBag:get('trashBag'), rStartDate:rocToISO(get('startDate')), rEndDate:rocToISO(get('endDate')), rpRenewals: block._rpRenewals || [], rEquipment: getRpEquipData(block), rpDriveUrl: block._rpDriveUrl || '', rConditions:Object.fromEntries(Array.from(block.querySelectorAll('[data-condition]')).map(function(btn){return [btn.dataset.condition,btn.classList.contains('on')];})) });
+        if (get('community') || get('addr') || get('rent') || block._rpDriveUrl || block.querySelector('[data-condition].on') || hasPurposeArea(block)) {
+            r.push({ ...propertyPurposeData(block), rCommunity:get('community'), rAddr:get('addr'), rent:get('rent'), rRentPeriod:get('rentPeriod'), rSz:get('sz'), rParking:get('parking'), rParkingNo:get('parkingNo'), rMgmtType:get('mgmtType'), rMgmtBuilding:get('mgmtBuilding'), rMgmtCar:get('mgmtCar'), rMgmtMoto:get('mgmtMoto'), rMgmtOther:get('mgmtOther'), rMeterElec:get('meterElec'), rMeterWater:get('meterWater'), rMeterGas:get('meterGas'), rTrashSpot:get('trashSpot'), rTrashBag:get('trashBag'), rStartDate:rocToISO(get('startDate')), rEndDate:rocToISO(get('endDate')), rpRenewals: block._rpRenewals || [], rEquipment: getRpEquipData(block), rpDriveUrl: block._rpDriveUrl || '', rConditions:Object.fromEntries(Array.from(block.querySelectorAll('[data-condition]')).map(function(btn){return [btn.dataset.condition,btn.classList.contains('on')];})) });
         }
     });
     return r;
@@ -7665,7 +7665,7 @@ function getDAddrs() {
     document.querySelectorAll('#dAddrList .person-block').forEach(function(row) {
         var get = function(f){ var el=row.querySelector('[data-f="'+f+'"]'); return el?el.value.trim():''; };
         var devType = get('devType'), community = get('community'), addr = get('addr');
-        if (devType || community || addr || row._dAddrDriveUrl) r.push({ devType:devType, community:community, addr:addr, houseType:get('houseType'), landSz:get('landSz'), bldgSz:get('bldgSz'), hasParking:get('hasParking'), parking:get('parking'), dAddrDriveUrl: row._dAddrDriveUrl || '' });
+        if (devType || community || addr || row._dAddrDriveUrl) r.push({ ...propertyPurposeData(row), devType:devType, community:community, addr:addr, houseType:get('houseType'), landSz:get('landSz'), bldgSz:get('bldgSz'), hasParking:get('hasParking'), parking:get('parking'), dAddrDriveUrl: row._dAddrDriveUrl || '' });
     });
     return r;
 }
@@ -12417,7 +12417,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20261002audit126';
+var APP_VERSION = '20261002audit127';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13592,12 +13592,13 @@ function deleteMktTemplate(idx) {
 <script src="brand-banner.js?v=20260928sync1"></script>
 <script src="image-storage.js?v=20260928sync1"></script>
 <script src="image-redaction.js?v=20260928sync1"></script>
-<script src="image-studio.js?v=20261002audit126"></script>
+<script src="image-studio.js?v=20261002audit127"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
-<script src="image-composer.js?v=20261002audit126"></script>
-<script src="area-editor.js?v=20261002audit126"></script>
-<script src="sync-notice.js?v=20261002audit126"></script>
-<script src="detail-properties.js?v=20261002audit126"></script>
-<script src="edit-layout.js?v=20261002audit126"></script>
+<script src="image-composer.js?v=20261002audit127"></script>
+<script src="area-editor.js?v=20261002audit127"></script>
+<script src="sync-notice.js?v=20261002audit127"></script>
+<script src="detail-properties.js?v=20261002audit127"></script>
+<script src="edit-layout.js?v=20261002audit127"></script>
+<script src="property-purpose.js?v=20261002audit127"></script>
 </body>
 </html>

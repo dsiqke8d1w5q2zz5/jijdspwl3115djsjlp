@@ -1003,3 +1003,21 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 #fModal .rp-conditions .cond-btn{font-size:13px;padding:4px 10px}
 #fModal .edit-folder-heading.edit-add-heading>.add-row-btn{margin-left:0!important}
 #fModal .rp-conditions{padding-right:28px}
+#fModal .purpose-button{font:inherit;font-weight:600;font-size:13px;padding:4px 9px;color:#173756;background:#f0f6fb;border:1px solid #cbd9e6;border-radius:7px;margin-left:auto;margin-right:6px;white-space:nowrap}
+#fModal .purpose-area{margin-top:10px;border-top:1px solid #dce5ec;padding-top:8px}
+#fModal .purpose-area>summary{color:#0e7490;font-size:14px;font-weight:700;cursor:pointer}
+#fModal .purpose-area-root{padding-top:8px}
+#fModal .purpose-note{font-size:13px;color:#92400e;margin:6px 0}
+.purpose-dialog{width:440px;max-width:calc(100vw - 32px);max-height:85dvh;box-sizing:border-box;padding:22px;border:1px solid #dce5ec;border-radius:14px;color:#173756;background:white}
+.purpose-dialog::backdrop{background:#0006}
+.purpose-dialog h2{font-size:18px;margin:0 0 12px}
+.purpose-dialog label{display:block;margin:12px 0;font-size:14px}
+.purpose-dialog select{display:block;width:100%;padding:8px;margin-top:5px;font:inherit}
+.purpose-dialog .purpose-keep{display:flex;align-items:center;gap:8px}
+.purpose-dialog .purpose-hint,.purpose-dialog .purpose-warning{font-size:13px;line-height:1.6}
+.purpose-dialog .purpose-warning{color:#92400e}
+.purpose-dialog footer{display:flex;justify-content:flex-end;gap:8px}
+.purpose-dialog button{padding:8px 16px;border:1px solid #cbd9e6;border-radius:8px;font:inherit;background:white;color:#173756}
+.purpose-dialog .purpose-confirm{background:#173756;color:white}
+#fModal #rPropertyList>.edit-object-page>.edit-object-actions{position:static;margin:0 0 6px!important;min-height:28px}
+#fModal #rPropertyList .rp-conditions{padding-right:0}

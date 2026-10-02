@@ -230,6 +230,13 @@
     }).join('');}
     function extras(kind,p){
         let html='';
+        if((kind==='r'||kind==='d')&&p.registeredArea){
+            const a=p.registeredArea;
+            for(const [key,label] of Object.entries({mainBldg:'主建物',ancBldg:'附屬建物',common:'共有部分',parkingSz:'車位坪數',baseLand:'基地面積',landShare:'土地持分面積'}))if(a[key])html+=row(label,formatAreaPing(a[key])+' 坪');
+            const building=['mainBldg','ancBldg','common'].reduce((sum,key)=>sum+(Number(a[key])||0),0);
+            if(building)html+=row('公設比',((Number(a.common)||0)/building*100).toFixed(2)+' %');
+        }
+        if(p.conversionEstimate)html+=row('面積待核對',p.conversionEstimate);
         if(kind==='r'){
             const fields={rRentPeriod:'租金週期',rMgmtType:'管理費方式',rMgmtBuilding:'建物管理費',rMgmtCar:'汽車位管理費',rMgmtMoto:'機車位管理費',rMgmtOther:'其他管理費',rMeterElec:'電錶',rMeterWater:'水錶',rMeterGas:'瓦斯錶',rTrashSpot:'垃圾集中處',rTrashBag:'專用垃圾袋',rParkingNo:'車位編號'};
             for(const [key,label] of Object.entries(fields))html+=row(label,p[key]);
