@@ -17,6 +17,8 @@ const path=require('node:path');
   async function check(){
    const problems=await page.locator('.schedule-compact-form').evaluateAll(forms=>forms.flatMap(form=>{
     const box=form.getBoundingClientRect(),bad=[];
+    const section=form.closest('.det-quick-section');
+    if(section){const title=section.querySelector('h3').getBoundingClientRect(),fields=form.querySelector('.schedule-compact-settings').getBoundingClientRect(),footer=form.querySelector('.schedule-compact-footer').getBoundingClientRect();if(title.bottom>fields.top)bad.push('section heading overlaps fields');if(footer.width<box.width-2)bad.push('inline footer constrained by legacy grid');}
     if(box.left<0||box.right>innerWidth+1)bad.push('dialog outside viewport');
     if(form.scrollWidth>form.clientWidth+1)bad.push('horizontal form overflow');
     const controls=[...form.querySelectorAll('input,select,button,summary')].filter(el=>el.checkVisibility());
@@ -47,7 +49,7 @@ const path=require('node:path');
   await page.locator('.schedule-compact-form').screenshot({path:path.join(require('node:os').tmpdir(),'crm-schedule-compact-'+width+'.png')});
   await page.locator('#qs-save').click();
   assert.equal(await page.evaluate(()=>DB[0].schedules[0].propertyRef.propertyKey),'long');
-  if(width>=1100){await page.evaluate(()=>showDet('compact-test'));await check();await page.locator('#dModal .schedule-property-picker summary').click();await check();}
+  if(width>=1100){await page.evaluate(()=>showDet('compact-test'));await check();await page.locator('.det-quick-section[data-kind="schedule"]').screenshot({path:path.join(require('node:os').tmpdir(),'crm-inline-fixed-'+width+'.png')});await page.locator('#dModal .schedule-property-picker summary').click();await check();}
   assert.deepEqual(errors,[]);await page.close();console.log('PASS '+width+' long labels, open/search picker, control overlap, save and detail form');
  }}finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

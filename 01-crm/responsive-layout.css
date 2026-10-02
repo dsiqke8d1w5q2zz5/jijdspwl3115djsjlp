@@ -1091,5 +1091,10 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 .todo-edit-form .schedule-property-picker>summary{box-sizing:border-box;min-height:40px;line-height:20px}
 .todo-edit-form .schedule-property-options{overflow-wrap:anywhere}
 .todo-edit-form .schedule-property-options select[size]{overflow-x:hidden}
+/* Inline schedule forms no longer use the old heading and footer grid slots. */
+#dModal .det-quick-section[data-kind="schedule"]>h3{position:static;width:auto;margin:0 0 5px;line-height:18px}
+#dModal .det-inline-overlay>.schedule-compact-form:has(#det-qs-save)>.schedule-compact-footer:last-child{width:100%!important;max-width:none;justify-content:flex-end;box-sizing:border-box}
+#dModal .schedule-compact-form .schedule-property-picker>summary{min-height:30px;padding:4px 26px 4px 7px;line-height:20px}
+#dModal .schedule-compact-form .schedule-compact-footer>.schedule-compact-repeat{margin-right:auto!important}
 #dModal #detContent .det-schedule-row:has(.schedule-property-tag){grid-template-columns:minmax(0,1fr);gap:3px}
 #dModal .det-schedule-row:has(.schedule-property-tag) .det-key{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0;white-space:normal!important}
