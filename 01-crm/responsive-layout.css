@@ -1008,7 +1008,7 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 #fModal .purpose-area>summary{color:#0e7490;font-size:14px;font-weight:700;cursor:pointer}
 #fModal .purpose-area-root{padding-top:8px}
 #fModal .purpose-note{font-size:13px;color:#92400e;margin:6px 0}
-.purpose-dialog{width:440px;max-width:calc(100vw - 32px);max-height:85dvh;box-sizing:border-box;padding:22px;border:1px solid #dce5ec;border-radius:14px;color:#173756;background:white}
+.purpose-dialog{position:fixed;inset:0;margin:auto;overflow:auto;width:440px;max-width:calc(100vw - 32px);max-height:85dvh;box-sizing:border-box;padding:22px;border:1px solid #dce5ec;border-radius:14px;color:#173756;background:white}
 .purpose-dialog::backdrop{background:#0006}
 .purpose-dialog h2{font-size:18px;margin:0 0 12px}
 .purpose-dialog label{display:block;margin:12px 0;font-size:14px}
@@ -1021,3 +1021,6 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 .purpose-dialog .purpose-confirm{background:#173756;color:white}
 #fModal #rPropertyList>.edit-object-page>.edit-object-actions{position:static;margin:0 0 6px!important;min-height:28px}
 #fModal #rPropertyList .rp-conditions{padding-right:0}
+#fModal :is(#sPropertyList,#rPropertyList,#dAddrList)>.person-block{position:relative}
+#fModal :is(#sPropertyList,#rPropertyList,#dAddrList)>.person-block>div:first-child{padding-right:32px;box-sizing:border-box}
+#fModal :is(#sPropertyList,#rPropertyList,#dAddrList)>.person-block>div:first-child>.c-del{position:absolute;right:8px;top:8px;width:24px;height:24px;margin:0;padding:0;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}

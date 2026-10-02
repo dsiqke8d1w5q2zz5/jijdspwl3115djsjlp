@@ -28,7 +28,7 @@ for(const [kind,c] of Object.entries(cfg)){
   const d=data||{};block._propertyKey=d.propertyKey||crypto.randomUUID();block._purposeHistory=clone(d.purposeHistory||{});block._conversionEstimate=d.conversionEstimate||'';
   block.querySelectorAll('[onclick^="moveSpToDev"],[onclick^="moveDevToSp"],[onclick^="moveDevToRental"]').forEach(el=>el.remove());
   const button=document.createElement('button');button.type='button';button.className='purpose-button';button.textContent='轉換用途';button.onclick=()=>choose(block,kind);
-  const heading=block.firstElementChild;heading.insertBefore(button,heading.querySelector(':scope>.c-del')||null);
+  const heading=block.firstElementChild,remove=heading.querySelector('.c-del');heading.append(button);if(remove)heading.append(remove);
   if(kind!=='s')addArea(block,d);
   if(block._conversionEstimate){const note=document.createElement('p');note.className='purpose-note';note.textContent=block._conversionEstimate;heading.after(note);}
   return result;
