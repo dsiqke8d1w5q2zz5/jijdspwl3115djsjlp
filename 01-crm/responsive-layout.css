@@ -1077,16 +1077,17 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 .dash-sched-row1>.schedule-property-tag,.all-sched-heading>.schedule-property-tag{flex:0 1 auto;margin:0;max-width:190px}
 .dash-sched-row1>.schedule-property-tag,.all-sched-heading>.schedule-property-tag{align-self:flex-end;text-align:left}
 .dash-sched-row1{flex-wrap:wrap;min-width:0;align-items:center;gap:5px}
-.dash-sched-row1>.dash-item-name{flex:0 1 auto;font-size:16px;line-height:24px}
+.dash-sched-row1>.dash-item-name{flex:0 1 auto;font-size:15px;line-height:22px}
 .dash-sched-row1 .schedule-date-text{display:inline-block;font-variant-numeric:tabular-nums}
 .dash-sched-row1 .schedule-time-text{font-variant-numeric:tabular-nums;min-width:5ch}
 .schedule-overdue-days{font-variant-numeric:tabular-nums}
-.dash-sched-row1>.dash-item-info{display:inline-flex;align-items:center;gap:4px;font-size:16px;line-height:24px}
-.dash-sched-item.dash-sched-today{background:#ffedc2}
-.dash-sched-item.dash-sched-today:hover{background:#ffe4a6}
+.dash-sched-row1>.dash-item-info{display:inline-flex;align-items:center;gap:4px;font-size:15px;line-height:22px}
+.dash-sched-item.dash-sched-today{background:#f7f2e8}
+.dash-sched-item.dash-sched-today:hover{background:#eee5d6}
 .schedule-overdue-alert{display:inline-block;width:16px;flex:0 0 16px;font-size:16px;color:#dc2626;text-align:center}
 .dash-todo-heading{flex-wrap:wrap;min-width:0}
-.dash-todo-heading>.dash-item-name{flex:0 1 auto}
+.dash-todo-heading>.dash-item-name{flex:0 1 auto;font-size:15px;line-height:22px}
+.dash-sched-item .dash-sched-memo,.dash-todo-item .dash-todo-memo{font-size:14px;line-height:1.5}
 .dash-todo-heading>.schedule-property-tag{flex:0 1 auto;align-self:flex-end;text-align:left;margin:0;max-width:190px}
 .dash-todo-item{overflow-wrap:anywhere}
 .fill-menu.todo-edit-form{width:520px;min-width:0!important;max-width:calc(100vw - 32px)!important;box-sizing:border-box;max-height:calc(100dvh - 32px);overflow-y:auto}
