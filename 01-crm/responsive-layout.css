@@ -1072,3 +1072,8 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 #dModal .det-inline-overlay>.schedule-compact-form:has(#det-qs-save)>.schedule-compact-settings:first-child{display:grid!important}
 @container(min-width:560px){.schedule-compact-form .schedule-compact-settings{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
 @container(max-width:300px){.schedule-compact-form .schedule-compact-footer>.schedule-compact-repeat{flex-basis:100%}.schedule-compact-form .schedule-compact-footer>.schedule-compact-repeat>select{max-width:none}}
+.schedule-overdue-days{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;min-width:20px;height:20px;padding:0 3px;box-sizing:border-box;border:1.5px solid currentColor;border-radius:999px;color:#dc2626;font:600 12px/1 var(--ui-font);white-space:nowrap}
+.dash-sched-row1>.schedule-property-tag,.all-sched-heading>.schedule-property-tag{flex:0 1 auto;margin:0;max-width:190px}
+.dash-sched-row1{flex-wrap:wrap;min-width:0}
+#dModal #detContent .det-schedule-row:has(.schedule-property-tag){grid-template-columns:minmax(0,1fr);gap:3px}
+#dModal .det-schedule-row:has(.schedule-property-tag) .det-key{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0;white-space:normal!important}

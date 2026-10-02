@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20261002audit132">
+    <link rel="stylesheet" href="area-editor.css?v=20261002audit133">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20261002audit132">
-    <link rel="stylesheet" href="responsive-layout.css?v=20261002audit132">
+    <link rel="stylesheet" href="ui-foundation.css?v=20261002audit133">
+    <link rel="stylesheet" href="responsive-layout.css?v=20261002audit133">
 </head>
 <body>
 
@@ -4089,7 +4089,7 @@ function daysUntilExpire(dateStr) {
     return Math.ceil((end - now) / 86400000);
 }
 
-function schedulePropertyBadge(r){return r?'<button type="button" class="schedule-property-tag" data-schedule-property="'+esc(JSON.stringify(r))+'" title="'+esc([r.label,r.address].filter(Boolean).join(' · '))+'">'+esc(r.label)+'</button> ':'';}
+function schedulePropertyBadge(r,type){return r?'<button type="button" class="schedule-property-tag" data-schedule-property="'+esc(JSON.stringify(r))+'" title="'+esc([r.label,r.address].filter(Boolean).join(' · '))+'">'+esc(({'經營買方':'買方','庫存屋主':'庫存','房東':'房東','租客':'租客','成交客戶':'成交','商機募集':'商機'}[type||r.type]||'物件')+'・'+r.label)+'</button> ':'';}
 function renderDashboard() {
     var now = new Date(); now.setHours(0,0,0,0);
     var today = localDateISO(now);
@@ -4204,7 +4204,7 @@ function renderDashboard() {
             var dedupKey = c.id + '|' + s.date + '|' + (s.time||'') + '|' + (s.memo||'')+'|'+JSON.stringify(s.propertyRef||null);
             if (_schedDedup[dedupKey]) return;
             _schedDedup[dedupKey] = true;
-            schedList.push({ id:c.id, name:c.name, date:s.date, time:s.time||'', memo:s.memo||'', propertyRef:s.propertyRef, scheduleId:s.id||'', days:diff, community:c.dCommunity||'', expired: diff < 0, recurrence:s.recurrence||'' });
+            schedList.push({ id:c.id, name:c.name, date:s.date, time:s.time||'', memo:s.memo||'', propertyRef:s.propertyRef, schedType:s.schedType, scheduleId:s.id||'', days:diff, community:c.dCommunity||'', expired: diff < 0, recurrence:s.recurrence||'' });
         });
     });
     // 合併個人行程
@@ -4233,7 +4233,7 @@ function renderDashboard() {
             ? '<button class="btn-ic dash-done-btn" onclick="event.stopPropagation();completePersonalSchedule(\''+esc(s.psId||'')+'\')" title="完成" style="font-size:13px;padding:2px 4px"><i class="ti ti-circle-check" style="color:#059669"></i><span class="dash-done-txt"> 完成</span></button>'
             : '<button class="btn-ic dash-done-btn" onclick="event.stopPropagation();completeSchedule(\''+esc(s.id)+'\',\''+esc(s.date)+'\',\''+esc(s.time)+'\',\''+esc(s.scheduleId||'')+'\')" title="完成" style="font-size:13px;padding:2px 4px"><i class="ti ti-circle-check" style="color:#059669"></i><span class="dash-done-txt"> 完成</span></button>';
         var recurIcon = s.recurrence ? '<span title="'+esc(recurLabel(s.recurrence))+'" style="color:#0E7490;font-size:12px;font-weight:600;margin-left:4px"><i class="ti ti-repeat" style="font-size:13px"></i> '+esc(recurLabel(s.recurrence))+'</span>' : '';
-        var memoHtml = (s.memo||s.propertyRef||recurIcon) ? '<div class="dash-sched-memo">'+schedulePropertyBadge(s.propertyRef)+esc(s.memo)+recurIcon+'</div>' : '';
+        var memoHtml = (s.memo||recurIcon) ? '<div class="dash-sched-memo">'+esc(s.memo)+recurIcon+'</div>' : '';
         var dateColor = s.expired ? '#DC2626' : (s.days===0 ? '#B45309' : '');
         var delBtn = s.personal
             ? '<button class="btn-ic" onclick="event.stopPropagation();deletePersonalSchedule(\''+esc(s.psId||'')+'\')" title="刪除" style="font-size:13px;padding:2px 4px"><i class="ti ti-trash" style="color:#DC2626"></i></button>'
@@ -4244,8 +4244,8 @@ function renderDashboard() {
             : 'editDashSchedule(\''+esc(s.id)+'\',\''+esc(s.date)+'\',\''+esc(s.time)+'\',\''+esc(s.scheduleId||'')+'\')';
         return '<div class="dash-item dash-sched-item dash-clickedit" style="flex-direction:column;align-items:stretch" onclick="'+rowEdit+'">' +
             '<div class="dash-sched-row1">' +
-                '<span class="dash-item-info" style="color:'+dateColor+'">'+(s.expired?'<i class="ti ti-alert-triangle" style="color:#DC2626;font-size:12px"></i> ':'')+esc(isoToMDW(s.date))+(s.time?' '+s.time:'')+(s.expired?' <span style="font-size:12px">已過期'+Math.abs(s.days)+'天</span>':'')+'</span>' +
-                nameHtml +
+                '<span class="dash-item-info" style="color:'+dateColor+'">'+esc(isoToMDW(s.date))+(s.time?' '+s.time:'')+(s.expired?' <span class="schedule-overdue-days" title="已逾期 '+Math.abs(s.days)+' 天" aria-label="已逾期 '+Math.abs(s.days)+' 天">'+Math.abs(s.days)+'</span>':'')+'</span>' +
+                nameHtml + schedulePropertyBadge(s.propertyRef,s.schedType) +
                 '<span style="display:flex;gap:2px;flex-shrink:0;margin-left:auto">' + editBtn + delBtn + '</span>' +
             '</div>' +
             '<div style="display:flex;align-items:flex-start;gap:6px">' +
@@ -5466,7 +5466,7 @@ function showDet(id, viewAs) {
                 var sorted = _liveItems(c.schedules).slice().sort(function(a,b){ return (a.date+(a.time||'')).localeCompare(b.date+(b.time||'')); });
                 if (!sorted.length) return '';
                 return '<div style="font-weight:700;font-size:12px;color:#1E40AF;margin-top:8px;margin-bottom:4px">預排行程</div>' +
-                    sorted.map(function(s){ return '<div class="det-row det-schedule-row'+(s.time?'':' det-schedule-no-time')+'"><span class="det-key" style="color:#292524;font-weight:700;width:auto;white-space:nowrap;margin-right:12px">'+esc(isoToROC(s.date)+(s.time?' '+s.time:''))+'</span><span class="det-val" style="color:#1E40AF">'+schedulePropertyBadge(s.propertyRef)+esc(s.memo||'')+'</span></div>'; }).join('');
+                    sorted.map(function(s){ return '<div class="det-row det-schedule-row'+(s.time?'':' det-schedule-no-time')+'"><span class="det-key" style="color:#292524;font-weight:700;width:auto;white-space:nowrap;margin-right:12px">'+esc(isoToROC(s.date)+(s.time?' '+s.time:''))+schedulePropertyBadge(s.propertyRef,s.schedType)+'</span><span class="det-val" style="color:#1E40AF">'+esc(s.memo||'')+'</span></div>'; }).join('');
             })()}
             ${(function(){
                 var _nLabels={'經營買方':'買方備註','庫存屋主':'庫存備註','房東':'房東備註','租客':'租客備註','成交客戶':'成交備註','商機募集':'商機備註'};
@@ -8610,7 +8610,7 @@ function _getAllFutureSchedules() {
         _liveItems(c.schedules).forEach(function(s) {
             if (!s.date || s.date < todayISO) return;
             if (s.hideBeforeDate && todayISO < s.hideBeforeDate) return;
-            all.push({ clientId:c.id, clientName:c.name, date:s.date, time:s.time||'', memo:s.memo||'', propertyRef:s.propertyRef, scheduleId:s.id||'', personal:false, recurrence:s.recurrence||'' });
+            all.push({ clientId:c.id, clientName:c.name, date:s.date, time:s.time||'', memo:s.memo||'', propertyRef:s.propertyRef, schedType:s.schedType, scheduleId:s.id||'', personal:false, recurrence:s.recurrence||'' });
         });
     });
     _liveItems(_getPS()).forEach(function(s) {
@@ -8659,7 +8659,7 @@ function filterAllSchedList() {
         prevYear = sYear;
         var nameColor = s.personal ? '#3D2F1A' : '#1E40AF';
         var nameText = s.personal ? '個人行程' : s.clientName;
-        var memoText = (s.memo||s.propertyRef) ? '<div class="all-sched-memo">'+schedulePropertyBadge(s.propertyRef)+esc(s.memo)+'</div>' : '';
+        var memoText = s.memo ? '<div class="all-sched-memo">'+esc(s.memo)+'</div>' : '';
         var editBtn = s.personal
             ? '<button class="btn-ic" onclick="closeOverlay(this.closest(\'.fill-overlay\'));editPersonalSchedule(\''+esc(s.psId||'')+'\')" title="編輯" style="font-size:14px;padding:4px 8px"><i class="ti ti-pencil" style="color:#57534E"></i></button>'
             : '<button class="btn-ic" onclick="closeOverlay(this.closest(\'.fill-overlay\'));editDashSchedule(\''+esc(s.clientId)+'\',\''+esc(s.date)+'\',\''+esc(s.time)+'\',\''+esc(s.scheduleId||'')+'\')" title="編輯" style="font-size:14px;padding:4px 8px"><i class="ti ti-pencil" style="color:#57534E"></i></button>';
@@ -8673,7 +8673,7 @@ function filterAllSchedList() {
         return separator + '<div class="all-sched-row">' +
             '<div class="all-sched-content"><div class="all-sched-heading">' +
                 '<span class="all-sched-date">'+esc(isoToMDW(s.date,true))+(s.time?' '+esc(s.time):'')+(s.recurrence?' <i class="ti ti-repeat" style="font-size:12px;color:#0E7490" title="'+esc(recurLabel(s.recurrence))+'"></i>':'')+'</span>' +
-                '<span class="all-sched-name" style="color:'+nameColor+'">'+esc(nameText)+'</span>' +
+                '<span class="all-sched-name" style="color:'+nameColor+'">'+esc(nameText)+'</span>' + schedulePropertyBadge(s.propertyRef,s.schedType) +
             '</div>'+memoText+'</div>' +
             '<div class="all-sched-actions">'+toTodoBtn2+editBtn+delBtn2+doneBtn+'</div>' +
         '</div>';
@@ -12430,7 +12430,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20261002audit132';
+var APP_VERSION = '20261002audit133';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13605,14 +13605,14 @@ function deleteMktTemplate(idx) {
 <script src="brand-banner.js?v=20260928sync1"></script>
 <script src="image-storage.js?v=20260928sync1"></script>
 <script src="image-redaction.js?v=20260928sync1"></script>
-<script src="image-studio.js?v=20261002audit132"></script>
+<script src="image-studio.js?v=20261002audit133"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
-<script src="image-composer.js?v=20261002audit132"></script>
-<script src="area-editor.js?v=20261002audit132"></script>
-<script src="sync-notice.js?v=20261002audit132"></script>
-<script src="detail-properties.js?v=20261002audit132"></script>
-<script src="edit-layout.js?v=20261002audit132"></script>
-<script src="property-purpose.js?v=20261002audit132"></script>
-<script src="schedule-property.js?v=20261002audit132"></script>
+<script src="image-composer.js?v=20261002audit133"></script>
+<script src="area-editor.js?v=20261002audit133"></script>
+<script src="sync-notice.js?v=20261002audit133"></script>
+<script src="detail-properties.js?v=20261002audit133"></script>
+<script src="edit-layout.js?v=20261002audit133"></script>
+<script src="property-purpose.js?v=20261002audit133"></script>
+<script src="schedule-property.js?v=20261002audit133"></script>
 </body>
 </html>
