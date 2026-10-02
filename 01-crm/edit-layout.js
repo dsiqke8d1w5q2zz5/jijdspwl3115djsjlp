@@ -157,6 +157,67 @@ function moveAddButtons(){
   if(sibling){sibling.classList.add('edit-add-heading');sibling.append(button);}
  }
 }
+// Folder links belong to the form row until the outer customer form is saved.
+const folderFields={sPropertyList:['_spDriveUrl','庫存'],rPropertyList:['_rpDriveUrl','租案'],dealList:['_dealDriveUrl','成交'],dAddrList:['_dAddrDriveUrl','商機']};
+function folderUrl(value){
+ try{const u=new URL(value),h=u.hostname.toLowerCase();return u.protocol==='https:'&&!u.username&&!u.password&&(h==='drive.google.com'||h==='docs.google.com'||h==='onedrive.live.com'||h==='1drv.ms'||h==='onedrive.com'||h.endsWith('.onedrive.com')||h==='sharepoint.com'||h.endsWith('.sharepoint.com'))?u.href:null;}catch(_){return null;}
+}
+function refreshFolder(state){
+ if(!state.folderButton)return;
+ const row=state.active,key=folderFields[state.list.id][0];
+ state.folderButton.disabled=!row;
+ state.folderButton.classList.toggle('has-folder',!!row?.[key]);
+ state.folderButton.title=!row?'請先新增物件':row[key]?'已設定此物件的資料夾，可開啟或修改':'設定此物件的雲端資料夾';
+}
+function editFolder(state){
+ const row=state.active;if(!row)return;
+ const [key,type]=folderFields[state.list.id];
+ const value=(selector)=>row.querySelector(selector)?.value.trim()||'';
+ const prop={community:value('[data-f="community"],.deal-community'),addr:value('[data-f="addr"],.deal-addr'),date:rocToISO(value('.deal-date')),role:value('.deal-role'),contractStart:rocToISO(value('[data-f="contractStart"]')),rStartDate:rocToISO(value('[data-f="startDate"]'))};
+ prop.rAddr=prop.addr;
+ const name=modal.querySelector('#namePhoneIdRow input')?.value.trim()||'';
+ const client={name,llName:name};
+ const dialog=document.createElement('dialog');dialog.className='edit-folder-dialog';dialog.setAttribute('aria-labelledby','edit-folder-title');
+ dialog.innerHTML='<h2 id="edit-folder-title">雲端資料夾設定</h2><p class="edit-folder-property"></p><label>建議資料夾名稱<div class="edit-folder-name-row"><input id="edit-folder-name" readonly><button type="button" id="edit-folder-copy">複製</button></div></label><p class="edit-folder-hint">先到雲端建立資料夾，再將連結貼到下方。</p><label for="edit-folder-url">資料夾連結</label><input id="edit-folder-url" type="url" placeholder="貼上 Google Drive、OneDrive 或 SharePoint 連結"><p class="edit-folder-error" role="alert"></p><div class="edit-folder-links"><button type="button" id="edit-folder-open">開啟資料夾</button><button type="button" id="edit-folder-clear">清除連結</button></div><p class="edit-folder-hint">按確定後，請在客戶表單按「儲存」才會存入。</p><div class="edit-folder-footer"><button type="button" id="edit-folder-cancel">取消</button><button type="button" class="btn-save" id="edit-folder-confirm">確定</button></div>';
+ dialog.querySelector('.edit-folder-property').textContent=type+' · '+(prop.community||prop.addr||'物件 '+([...state.list.children].indexOf(row)+1));
+ dialog.querySelector('#edit-folder-name').value=buildDriveFolderName(type,prop,client,0);
+ const input=dialog.querySelector('#edit-folder-url'),error=dialog.querySelector('.edit-folder-error');input.value=row[key]||'';
+ const open=dialog.querySelector('#edit-folder-open'),clear=dialog.querySelector('#edit-folder-clear');
+ function update(){open.disabled=!folderUrl(input.value.trim());clear.disabled=!input.value;error.textContent='';}
+ input.oninput=update;update();
+ open.onclick=()=>{const url=folderUrl(input.value.trim());if(url)window.open(url,'_blank','noopener,noreferrer');};
+ clear.onclick=()=>{input.value='';update();input.focus();};
+ dialog.querySelector('#edit-folder-copy').onclick=async()=>{try{await navigator.clipboard.writeText(dialog.querySelector('#edit-folder-name').value);showToast('已複製資料夾名稱');}catch(_){dialog.querySelector('#edit-folder-name').select();showToast('請手動複製資料夾名稱');}};
+ dialog.querySelector('#edit-folder-cancel').onclick=()=>dialog.close();
+ dialog.querySelector('#edit-folder-confirm').onclick=()=>{
+  const url=input.value.trim();if(url&&!folderUrl(url)){error.textContent='請貼上有效的 Google Drive、OneDrive 或 SharePoint HTTPS 連結。';input.focus();return;}
+  if(!row.isConnected||modal.style.display==='none'){dialog.close();return;}
+  row[key]=url;refreshFolder(state);dialog.close();
+ };
+ dialog.addEventListener('keydown',e=>e.stopPropagation());
+ dialog.addEventListener('close',()=>{dialog.remove();state.folderButton.focus();},{once:true});
+ document.body.append(dialog);dialog.showModal();input.focus();
+}
+function setupFolderButtons(){
+ for(const state of tabStates.values()){
+  if(!folderFields[state.list.id])continue;
+  const heading=state.list.closest('.type-sec').querySelector('.edit-section-toolbar>.sec-title');if(!heading)continue;
+  if(!state.folderButton){const button=document.createElement('button');button.type='button';button.className='edit-folder-button';button.innerHTML='<i class="ti ti-folder" aria-hidden="true"></i> 雲端資料夾';button.onclick=()=>editFolder(state);heading.classList.add('edit-folder-heading');heading.insertBefore(button,heading.querySelector('.add-row-btn'));state.folderButton=button;}
+  refreshFolder(state);
+ }
+ const heading=document.querySelector('#s-租客 .tenant-section-toolbar>.sec-title');
+ if(heading&&!heading.querySelector('.edit-folder-button')){
+  const button=document.createElement('button');button.type='button';button.className='edit-folder-button';button.textContent='房東資料夾';heading.classList.add('edit-folder-heading');heading.append(button);
+  button.onclick=()=>{
+   const id=document.getElementById('f-linkedLandlordId').value,index=Number(document.getElementById('f-linkedPropertyIdx').value)||0;
+   const landlord=DB.find(c=>c.id===id&&!c._deleted);
+   if(!landlord){showToast('請先連結房東與租案物件','warn');return;}
+   const prop=landlord.rProperties?.[index],url=folderUrl(prop?.rpDriveUrl||'');
+   if(!url){showToast('此租案尚未設定有效的雲端資料夾，請到房東物件設定','warn');return;}
+   window.open(url,'_blank','noopener,noreferrer');
+  };
+ }
+}
 function setupObjectTabs(){moveAddButtons();
  for(const id of ['bDemandList','sPropertyList','rPropertyList','dealList','dAddrList']){
   const list=document.getElementById(id);if(!list||tabStates.has(id))continue;
@@ -173,6 +234,7 @@ function setupObjectTabs(){moveAddButtons();
    const names=items.map((row,i)=>row.querySelector('[data-f="community"],.deal-community')?.value.trim()||compactPropertyAddress(row.querySelector('[data-f="addr"],.deal-addr')?.value)||(id==='bDemandList'?'需求 ':'物件 ')+(i+1));
    nav.replaceChildren();nav.hidden=!items.length;
    items.forEach((row,i)=>{row.classList.add('edit-object-page');row.hidden=row!==state.active;const button=document.createElement('button');button.type='button';button.textContent=names[i]+(names.filter(name=>name===names[i]).length>1?'（'+(i+1)+'）':'');button.setAttribute('role','tab');button.setAttribute('aria-selected',String(row===state.active));button.tabIndex=row===state.active?0:-1;button.setAttribute('aria-controls',row.id);row.setAttribute('role','tabpanel');button.onclick=()=>{const changed=state.active!==row;state.active=row;refresh();if(changed)resetPropertyScroll(nav);};button.onkeydown=event=>{let n=i;if(event.key==='ArrowRight')n=(i+1)%items.length;else if(event.key==='ArrowLeft')n=(i+items.length-1)%items.length;else if(event.key==='Home')n=0;else if(event.key==='End')n=items.length-1;else return;event.preventDefault();event.stopPropagation();state.active=items[n];refresh();resetPropertyScroll(nav);nav.children[n].focus({preventScroll:true});};nav.append(button);});
+   refreshFolder(state);
   }
   state.refresh=refresh;
   new MutationObserver(refresh).observe(list,{childList:true});
@@ -184,6 +246,7 @@ function setupObjectTabs(){moveAddButtons();
   const section=state.list.closest('.type-sec');let toolbar=section.querySelector(':scope>.edit-section-toolbar');
   if(!toolbar){toolbar=document.createElement('div');toolbar.className='edit-section-toolbar';const action={bDemandList:'addBuyerDemand',sPropertyList:'addSellerProperty',rPropertyList:'addRentalProperty',dealList:'addDealRow',dAddrList:'addDAddrRow'}[state.list.id];const heading=section.querySelector('.add-row-btn[onclick="'+action+'()"]')?.closest('.sec-title');if(heading)toolbar.append(heading);toolbar.append(state.nav);section.prepend(toolbar);}
  }
+ setupFolderButtons();
 }
 const validate=window.validateAreaEditors;
 window.validateAreaEditors=function(){const bad=modal.querySelector('.area-editor[data-invalid="1"]'),row=bad?.closest('.edit-object-page');if(row)for(const state of tabStates.values())if(row.parentElement===state.list){state.active=row;state.refresh();}return validate.apply(this,arguments);};

@@ -973,3 +973,33 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 #all-sched-list .all-sched-actions .btn-ic:hover{background:#f1f5f9;border-color:#dce3ea}
 #all-sched-list .all-sched-actions .btn-ic[title="完成"]{border-color:#dce3ea;color:#475569;background:#fff}
 @media(max-width:600px){.all-sched-row{grid-template-columns:minmax(0,1fr);gap:4px}.all-sched-actions{justify-content:flex-end}#all-sched-list .all-sched-actions .btn-ic{min-width:40px;min-height:40px}}
+
+/* Cloud folders follow the active property and stay in the unsaved form. */
+#fModal .edit-folder-heading{display:flex;align-items:center;gap:6px}
+#fModal .edit-folder-button{margin-left:auto;flex:none;display:inline-flex;align-items:center;gap:4px;border:1px solid #cbd9e6;border-radius:7px;background:#f0f6fb;color:#173756;padding:5px 9px;font:600 13px/1.4 var(--ui-font);cursor:pointer;white-space:nowrap;height:30px;box-sizing:border-box}
+#fModal .edit-folder-heading>.add-row-btn{margin-left:0}
+#fModal .edit-folder-button.has-folder{color:#036986;border-color:#a5d0dc;background:#eef9fb}
+#fModal .edit-folder-button:disabled{opacity:.5;cursor:default}
+.edit-folder-dialog{width:440px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);overflow:auto;border:1px solid #dce3ea;border-radius:14px;padding:20px;color:#173756;background:white;font:14px/1.5 var(--ui-font);box-sizing:border-box}
+.edit-folder-dialog::backdrop{background:rgba(15,23,42,.35)}
+.edit-folder-dialog h2{font-size:18px;margin:0 0 8px}
+.edit-folder-dialog label{display:block;font-size:13px;font-weight:600;margin:10px 0 5px}
+.edit-folder-dialog input{width:100%;min-width:0;border:1px solid #dce3ea;border-radius:8px;padding:9px 10px;box-sizing:border-box;font:inherit}
+.edit-folder-dialog button{font:600 13px/1.4 var(--ui-font);min-height:36px;border:1px solid #dce3ea;border-radius:8px;background:#fff;color:#173756;padding:7px 12px;cursor:pointer;white-space:nowrap}
+.edit-folder-dialog button:disabled{opacity:.45;cursor:default}
+.edit-folder-dialog :is(button,input):focus-visible{outline:2px solid #1486a4;outline-offset:2px}
+.edit-folder-property{margin:0 0 12px;color:#64748b;overflow-wrap:anywhere}
+.edit-folder-name-row{display:flex;gap:6px;margin-top:5px}
+.edit-folder-hint{font-size:12px;color:#64748b;margin:8px 0}
+.edit-folder-error{font-size:13px;color:#b42318;margin:6px 0}
+.edit-folder-error:empty{display:none}
+.edit-folder-links,.edit-folder-footer{display:flex;gap:8px;margin-top:12px}
+.edit-folder-footer{justify-content:flex-end}
+@media(max-width:600px){.edit-folder-dialog input{font-size:16px}.edit-folder-dialog button{min-height:40px}#fModal .edit-folder-button{padding-left:6px;padding-right:6px}}
+
+#fModal .rp-conditions{display:flex;align-items:flex-start;gap:4px;margin:0 0 8px;font-size:13px}
+#fModal .rp-conditions>span{flex:none;display:inline-flex;align-items:center;height:30px}
+#fModal .rp-conditions>div{display:flex;flex-wrap:wrap;gap:4px}
+#fModal .rp-conditions .cond-btn{font-size:13px;padding:4px 10px}
+#fModal .edit-folder-heading.edit-add-heading>.add-row-btn{margin-left:0!important}
+#fModal .rp-conditions{padding-right:28px}
