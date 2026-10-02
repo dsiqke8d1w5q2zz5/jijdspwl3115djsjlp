@@ -1028,3 +1028,44 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 #fModal .property-folder-actions>.purpose-button{margin-left:0;margin-right:0}
 #fModal #dealList>.edit-object-page>.edit-object-actions.property-folder-actions{position:static;margin:0 0 6px!important}
 #fModal #dealList>.edit-object-page>.edit-object-actions.property-folder-actions+div{max-width:100%}
+.schedule-association-line{display:flex;gap:8px;align-items:flex-start;width:100%;margin-bottom:8px;min-width:0}
+.schedule-property-picker{flex:1;min-width:0;position:relative;font-size:13px;color:#173756}
+.schedule-property-picker>summary{list-style:none;cursor:pointer;border:1px solid #cbd9e6;border-radius:8px;padding:9px 26px 9px 10px;background:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative}
+.schedule-property-picker>summary::after{content:'▾';position:absolute;right:10px}
+.schedule-property-options{position:relative;padding:8px;border:1px solid #cbd9e6;border-radius:8px;background:#f8fafc;margin-top:4px}
+.schedule-property-options :is(input,select){width:100%;max-width:100%;box-sizing:border-box;font:inherit;margin-bottom:6px;padding:7px;border:1px solid #dce5ec;border-radius:6px;background:white}
+.schedule-property-options select[size]{height:136px!important;white-space:normal}
+.schedule-property-options small{color:#64748b;font-size:12px}
+.schedule-property-tag{display:inline-block;max-width:190px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 6px 2px 0;padding:2px 6px;border:1px solid #d7e4ed;border-radius:5px;background:#edf4f8;color:#173756;font:600 13px/1.5 var(--ui-font);cursor:pointer}
+@media(max-width:600px){.schedule-property-options input{font-size:16px}.schedule-property-tag{max-width:150px}}
+.fill-menu .schedule-date-line{display:flex;flex-wrap:nowrap;gap:8px;min-width:0}
+.fill-menu .schedule-date-line>.roc-date-wrap{flex:1 1 0!important;min-width:0}
+.fill-menu .schedule-date-line>[data-quick-field="qs-time"]{width:90px!important;flex:0 0 90px!important}
+#dModal .det-inline-overlay>.fill-menu:has(.schedule-property-picker){display:flex!important;flex-direction:column}
+#dModal .det-inline-overlay>.fill-menu:has(.schedule-property-picker)::before{display:none}
+#dModal .det-inline-overlay>.fill-menu:has(.schedule-property-picker)>div{display:flex!important;width:100%;grid-column:auto!important;grid-row:auto!important}
+#dModal .det-inline-overlay>.fill-menu:has(.schedule-property-picker)>div:last-child{width:100%;justify-content:flex-end}
+#dModal .schedule-property-options select[size]{height:136px!important}
+
+/* Compact schedule settings adapt to the actual dialog or detail-column width. */
+.fill-menu.schedule-compact-form{width:660px!important;container-type:inline-size}
+.fill-menu.schedule-compact-form:has(#qs-date){width:660px!important}
+.fill-menu.schedule-compact-form:has(#qs-date)>div:first-child{justify-content:flex-start;text-align:left}
+.schedule-compact-form .schedule-compact-settings{display:grid!important;grid-template-columns:minmax(0,1fr);gap:8px;margin-bottom:8px}
+.schedule-compact-form .schedule-compact-settings>.schedule-association-line,
+.schedule-compact-form .schedule-compact-settings>.schedule-date-line{margin:0!important;min-width:0}
+.schedule-compact-form :is(input,select,button){box-sizing:border-box;min-width:0}
+.schedule-compact-form .schedule-date-line .roc-date-wrap>input{flex:1 1 0;width:0!important}
+.schedule-compact-form .schedule-date-line .cal-btn{flex:0 0 36px;width:36px;min-height:40px}
+.schedule-compact-form .schedule-property-picker>summary{box-sizing:border-box;min-height:40px;line-height:20px}
+.schedule-compact-form .schedule-association-line>[data-quick-field="qs-type"]{flex:0 0 74px!important;width:74px!important;height:40px}
+.schedule-compact-form .schedule-property-options{overflow-wrap:anywhere}
+.schedule-compact-form .schedule-property-options select[size]{overflow-x:hidden}
+.schedule-compact-form .schedule-compact-footer{flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px!important}
+.schedule-compact-form .schedule-compact-footer>.schedule-compact-repeat{display:flex;align-items:center;flex:1 1 110px;min-width:0;margin:0!important;gap:4px!important}
+.schedule-compact-form .schedule-compact-repeat>i{display:none}
+.schedule-compact-form .schedule-compact-repeat>select{width:100%;max-width:160px;min-width:0;font-size:13px!important;padding:8px 4px!important;overflow:hidden;text-overflow:ellipsis}
+.fill-menu.schedule-compact-form .schedule-compact-footer>button{flex:0 0 auto!important;padding:8px 14px!important;min-height:40px;font-size:14px!important;white-space:nowrap}
+#dModal .det-inline-overlay>.schedule-compact-form>.schedule-compact-settings{display:grid!important}
+@container(min-width:560px){.schedule-compact-form .schedule-compact-settings{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+@container(max-width:300px){.schedule-compact-form .schedule-compact-footer>.schedule-compact-repeat{flex-basis:100%}.schedule-compact-form .schedule-compact-footer>.schedule-compact-repeat>select{max-width:none}}

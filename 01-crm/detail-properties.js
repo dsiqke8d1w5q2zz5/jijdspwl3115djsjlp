@@ -166,7 +166,7 @@
             const section=document.createElement('section');section.className='det-quick-section';section.dataset.kind=kind;
             const title=document.createElement('h3');title.textContent=kind==='contact'?'新增聯繫':'預排行程';
             const mount=document.createElement('div');mount.className='det-activity-mount';section.append(title,mount);forms.append(section);
-            const snapshot=()=>{const values={};mount.querySelectorAll('input[data-quick-field],select[data-quick-field]').forEach(el=>values[el.dataset.quickField]=el.value);activityDraft.values[kind]=values;};
+            const snapshot=()=>{const values={};mount.querySelectorAll('input[data-quick-field],select[data-quick-field]').forEach(el=>values[el.dataset.quickField]=el.value);if(kind==='schedule')values._propertyRef=mount.querySelector('.fill-menu')?._scheduleProperty||null;activityDraft.values[kind]=values;};
 
             const overlay=kind==='schedule'?window.quickSchedule(id,undefined,undefined,undefined,undefined,undefined,undefined,mount):window.quickContactLog(id,undefined,mount);
             if(!overlay)return;
@@ -176,6 +176,7 @@
             cancel.textContent='清空';cancel.type='button';cancel.onclick=()=>{delete activityDraft.values[kind];const next=section.nextSibling;section.remove();displayForm(kind);if(next)forms.insertBefore(forms.lastElementChild,next);};
             save.textContent=kind==='schedule'?'儲存行程':'儲存聯繫';
             for(const [key,value] of Object.entries(activityDraft.values[kind]||{})){const el=box.querySelector('[data-quick-field="'+key+'"]');if(el)el.value=value;}
+            if(kind==='schedule'&&Object.prototype.hasOwnProperty.call(activityDraft.values[kind]||{},'_propertyRef'))box._setScheduleProperty?.(activityDraft.values[kind]._propertyRef);
             mount.oninput=snapshot;mount.onchange=snapshot;
             const originalSave=save.onclick;
             save.onclick=function(event){
@@ -464,7 +465,7 @@
             // Render linked tenants using the original property index, not the single-item clone index.
             if(c.type==='房東'){copy.id='detail-only-'+group;copy.linkedTenantIds=[];}
             const body=original(copy,viewAs)+(c.type==='房東'?tenants(c,index):'');
-            return '<section class="det-property-page" id="'+group+'-page-'+i+'" '+(entries.length>1?'role="tabpanel" aria-labelledby="'+group+'-tab-'+i+'"':'aria-label="'+esc(labels[i])+'"')+(i?' hidden':'')+'>'+compact(body,extras(kind,p),kind,p)+'</section>';
+            return '<section class="det-property-page" data-schedule-property-ref="'+esc(JSON.stringify(schedulePropertyRef(c,p,c.type)))+'" id="'+group+'-page-'+i+'" '+(entries.length>1?'role="tabpanel" aria-labelledby="'+group+'-tab-'+i+'"':'aria-label="'+esc(labels[i])+'"')+(i?' hidden':'')+'>'+compact(body,extras(kind,p),kind,p)+'</section>';
         }).join('')+unlinked+'</div>';
     };
     function resetDetails(scope){scope.querySelectorAll('.det-property-more[open]').forEach(detail=>detail.open=false);resetPropertyScroll(scope);}
