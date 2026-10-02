@@ -1096,5 +1096,18 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 #dModal .det-inline-overlay>.schedule-compact-form:has(#det-qs-save)>.schedule-compact-footer:last-child{width:100%!important;max-width:none;justify-content:flex-end;box-sizing:border-box}
 #dModal .schedule-compact-form .schedule-property-picker>summary{min-height:30px;padding:4px 26px 4px 7px;line-height:20px}
 #dModal .schedule-compact-form .schedule-compact-footer>.schedule-compact-repeat{margin-right:auto!important}
+/* Two compact rows in the detail pane; wrap only when the pane is too narrow. */
+#dModal .schedule-inline-two-rows .schedule-inline-memo{flex:1 1 100%;min-width:0;margin:0!important}
+#dModal .schedule-inline-two-rows .schedule-inline-memo>input{width:100%}
+@container(min-width:380px){
+ #dModal .det-inline-overlay>.schedule-inline-two-rows:has(#det-qs-save)>.schedule-compact-settings:first-child{grid-template-columns:62px minmax(70px,1fr) 140px 70px;gap:5px!important}
+ #dModal .schedule-inline-two-rows .schedule-compact-settings>.schedule-association-line,
+ #dModal .schedule-inline-two-rows .schedule-compact-settings>.schedule-date-line{display:contents!important}
+ #dModal .schedule-inline-two-rows .schedule-association-line>[data-quick-field="qs-type"],
+ #dModal .schedule-inline-two-rows .schedule-date-line>[data-quick-field="qs-time"]{width:100%!important}
+ #dModal .det-inline-overlay>.schedule-inline-two-rows:has(#det-qs-save)>.schedule-compact-footer:last-child{display:grid!important;grid-template-columns:minmax(80px,1fr) 82px auto auto;gap:5px!important;align-items:center}
+ #dModal .schedule-inline-two-rows .schedule-compact-repeat{width:100%;margin:0!important}
+ #dModal .schedule-inline-two-rows .schedule-compact-footer>button{padding:4px 8px!important;min-height:30px!important}
+}
 #dModal #detContent .det-schedule-row:has(.schedule-property-tag){grid-template-columns:minmax(0,1fr);gap:3px}
 #dModal .det-schedule-row:has(.schedule-property-tag) .det-key{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0;white-space:normal!important}
