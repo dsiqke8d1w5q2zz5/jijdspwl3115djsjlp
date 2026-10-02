@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20261002audit141">
+    <link rel="stylesheet" href="area-editor.css?v=20261002audit142">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20261002audit141">
-    <link rel="stylesheet" href="responsive-layout.css?v=20261002audit141">
+    <link rel="stylesheet" href="ui-foundation.css?v=20261002audit142">
+    <link rel="stylesheet" href="responsive-layout.css?v=20261002audit142">
 </head>
 <body>
 
@@ -4215,10 +4215,9 @@ function renderDashboard() {
         var diff = daysUntilExpire(s.date);
         if (diff >= -30 && diff <= 15) schedList.push({ id:'_ps', psId:s.id, name:'個人行程', date:s.date, time:s.time||'', memo:s.memo||'', days:diff, community:'', personal:true, expired: diff < 0, recurrence:s.recurrence||'' });
     });
-    // 已過期的排前面（由近到遠），未過期的排後面（由近到遠）
+    // 已過期的排前面，逾期越久越優先；未過期的依日期、時間由近到遠。
     schedList.sort(function(a,b) {
         if (a.expired !== b.expired) return a.expired ? -1 : 1;
-        if (a.expired) return (b.date+b.time).localeCompare(a.date+a.time);
         return (a.date+a.time).localeCompare(b.date+b.time);
     });
     document.getElementById('dashSchedule').innerHTML = schedList.length ? schedList.map(function(s) {
@@ -12457,7 +12456,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20261002audit141';
+var APP_VERSION = '20261002audit142';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13632,14 +13631,14 @@ function deleteMktTemplate(idx) {
 <script src="brand-banner.js?v=20260928sync1"></script>
 <script src="image-storage.js?v=20260928sync1"></script>
 <script src="image-redaction.js?v=20260928sync1"></script>
-<script src="image-studio.js?v=20261002audit141"></script>
+<script src="image-studio.js?v=20261002audit142"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
-<script src="image-composer.js?v=20261002audit141"></script>
-<script src="area-editor.js?v=20261002audit141"></script>
-<script src="sync-notice.js?v=20261002audit141"></script>
-<script src="detail-properties.js?v=20261002audit141"></script>
-<script src="edit-layout.js?v=20261002audit141"></script>
-<script src="property-purpose.js?v=20261002audit141"></script>
-<script src="schedule-property.js?v=20261002audit141"></script>
+<script src="image-composer.js?v=20261002audit142"></script>
+<script src="area-editor.js?v=20261002audit142"></script>
+<script src="sync-notice.js?v=20261002audit142"></script>
+<script src="detail-properties.js?v=20261002audit142"></script>
+<script src="edit-layout.js?v=20261002audit142"></script>
+<script src="property-purpose.js?v=20261002audit142"></script>
+<script src="schedule-property.js?v=20261002audit142"></script>
 </body>
 </html>
