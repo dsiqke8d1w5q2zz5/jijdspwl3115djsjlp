@@ -980,7 +980,7 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 #fModal .edit-folder-heading>.add-row-btn{margin-left:0}
 #fModal .edit-folder-button.has-folder{color:#036986;border-color:#a5d0dc;background:#eef9fb}
 #fModal .edit-folder-button:disabled{opacity:.5;cursor:default}
-.edit-folder-dialog{width:440px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);overflow:auto;border:1px solid #dce3ea;border-radius:14px;padding:20px;color:#173756;background:white;font:14px/1.5 var(--ui-font);box-sizing:border-box}
+.edit-folder-dialog{position:fixed;inset:0;margin:auto;width:440px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);overflow:auto;border:1px solid #dce3ea;border-radius:14px;padding:20px;color:#173756;background:white;font:14px/1.5 var(--ui-font);box-sizing:border-box}
 .edit-folder-dialog::backdrop{background:rgba(15,23,42,.35)}
 .edit-folder-dialog h2{font-size:18px;margin:0 0 8px}
 .edit-folder-dialog label{display:block;font-size:13px;font-weight:600;margin:10px 0 5px}
@@ -1024,3 +1024,7 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 #fModal :is(#sPropertyList,#rPropertyList,#dAddrList)>.person-block{position:relative}
 #fModal :is(#sPropertyList,#rPropertyList,#dAddrList)>.person-block>div:first-child{padding-right:32px;box-sizing:border-box}
 #fModal :is(#sPropertyList,#rPropertyList,#dAddrList)>.person-block>div:first-child>.c-del{position:absolute;right:8px;top:8px;width:24px;height:24px;margin:0;padding:0;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+#fModal .property-folder-actions{gap:6px}
+#fModal .property-folder-actions>.purpose-button{margin-left:0;margin-right:0}
+#fModal #dealList>.edit-object-page>.edit-object-actions.property-folder-actions{position:static;margin:0 0 6px!important}
+#fModal #dealList>.edit-object-page>.edit-object-actions.property-folder-actions+div{max-width:100%}

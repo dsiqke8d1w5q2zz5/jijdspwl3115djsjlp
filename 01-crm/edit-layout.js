@@ -166,6 +166,7 @@ function refreshFolder(state){
  if(!state.folderButton)return;
  const row=state.active,key=folderFields[state.list.id][0];
  state.folderButton.disabled=!row;
+ if(row){const heading=row.firstElementChild;heading.classList.add('property-folder-actions');heading.insertBefore(state.folderButton,heading.querySelector('.purpose-button')||heading.querySelector(':scope>.c-del'));}else state.folderButton.remove();
  state.folderButton.classList.toggle('has-folder',!!row?.[key]);
  state.folderButton.title=!row?'請先新增物件':row[key]?'已設定此物件的資料夾，可開啟或修改':'設定此物件的雲端資料夾';
 }
@@ -202,7 +203,7 @@ function setupFolderButtons(){
  for(const state of tabStates.values()){
   if(!folderFields[state.list.id])continue;
   const heading=state.list.closest('.type-sec').querySelector('.edit-section-toolbar>.sec-title');if(!heading)continue;
-  if(!state.folderButton){const button=document.createElement('button');button.type='button';button.className='edit-folder-button';button.innerHTML='<i class="ti ti-folder" aria-hidden="true"></i> 雲端資料夾';button.onclick=()=>editFolder(state);heading.classList.add('edit-folder-heading');heading.insertBefore(button,heading.querySelector('.add-row-btn'));state.folderButton=button;}
+  if(!state.folderButton){const button=document.createElement('button');button.type='button';button.className='edit-folder-button';button.innerHTML='<i class="ti ti-folder" aria-hidden="true"></i> 雲端資料夾';button.onclick=()=>editFolder(state);state.folderButton=button;}
   refreshFolder(state);
  }
  const heading=document.querySelector('#s-租客 .tenant-section-toolbar>.sec-title');
