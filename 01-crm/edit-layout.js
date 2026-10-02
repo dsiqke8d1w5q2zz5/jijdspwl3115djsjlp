@@ -167,7 +167,12 @@ function refreshFolder(state){
  const row=state.active,key=folderFields[state.list.id][0];
  state.folderButton.disabled=!row;
  if(row){const heading=row.firstElementChild;heading.classList.add('property-folder-actions');heading.insertBefore(state.folderButton,heading.querySelector('.purpose-button')||heading.querySelector(':scope>.c-del'));}else state.folderButton.remove();
- state.folderButton.classList.toggle('has-folder',!!row?.[key]);
+ const configured=!!row?.[key];
+ state.folderButton.classList.toggle('has-folder',configured);
+ const mark=configured?'<path d="m8 14 3 3 5-5"/>':'<path d="M12 11v6m-3-3h6"/>';
+ state.folderButton.innerHTML='<svg class="folder-state-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/>'+mark+'</svg> 雲端資料夾';
+ state.folderButton.setAttribute('aria-label','雲端資料夾，'+(configured?'已設定':'尚未設定'));
+
  state.folderButton.title=!row?'請先新增物件':row[key]?'已設定此物件的資料夾，可開啟或修改':'設定此物件的雲端資料夾';
 }
 function editFolder(state){
