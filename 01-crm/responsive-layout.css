@@ -1075,7 +1075,7 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 @container(max-width:300px){.schedule-compact-form .schedule-compact-footer>.schedule-compact-repeat{flex-basis:100%}.schedule-compact-form .schedule-compact-footer>.schedule-compact-repeat>select{max-width:none}}
 .schedule-overdue-days{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;min-width:24px;height:24px;padding:0 3px;box-sizing:border-box;border:1.5px solid currentColor;border-radius:999px;color:#dc2626;font:600 16px/1 var(--ui-font);white-space:nowrap}
 .dash-sched-row1>.schedule-property-tag,.all-sched-heading>.schedule-property-tag{flex:0 1 auto;margin:0;max-width:190px}
-.dash-sched-row1>.schedule-property-tag,.all-sched-heading>.schedule-property-tag{align-self:flex-end;text-align:left}
+.dash-sched-row1>.schedule-property-tag,.all-sched-heading>.schedule-property-tag{align-self:center;text-align:left}
 .dash-sched-row1{flex-wrap:wrap;min-width:0;align-items:center;gap:5px}
 .dash-sched-row1>.dash-item-name{flex:0 1 auto;font-size:15px;line-height:22px}
 .dash-sched-row1 .schedule-date-text{display:inline-block;font-variant-numeric:tabular-nums}
@@ -1088,7 +1088,7 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 .dash-todo-heading{flex-wrap:wrap;min-width:0}
 .dash-todo-heading>.dash-item-name{flex:0 1 auto;font-size:15px;line-height:22px}
 .dash-sched-item .dash-sched-memo,.dash-todo-item .dash-todo-memo{font-size:14px;line-height:1.5}
-.dash-todo-heading>.schedule-property-tag{flex:0 1 auto;align-self:flex-end;text-align:left;margin:0;max-width:190px}
+.dash-todo-heading>.schedule-property-tag{flex:0 1 auto;align-self:center;text-align:left;margin:0;max-width:190px}
 .dash-todo-item{overflow-wrap:anywhere}
 .fill-menu.todo-edit-form{width:520px;min-width:0!important;max-width:calc(100vw - 32px)!important;box-sizing:border-box;max-height:calc(100dvh - 32px);overflow-y:auto}
 .todo-edit-form :is(input,select){box-sizing:border-box;min-width:0}
