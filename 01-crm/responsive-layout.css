@@ -1088,6 +1088,8 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 .dash-todo-heading{flex-wrap:wrap;min-width:0}
 .dash-todo-heading>.dash-item-name{flex:0 1 auto;font-size:15px;line-height:22px}
 .dash-sched-item .dash-sched-memo,.dash-todo-item .dash-todo-memo{font-size:14px;line-height:1.5}
+:is(#dashExpiringSeller,#dashExpiringRental,#dashBirthday) :is(.dash-item-info,.dash-item-name){font-size:15px;line-height:22px}
+:is(#dashExpiringSeller,#dashExpiringRental,#dashBirthday) .dash-empty{font-size:14px;line-height:1.5}
 .dash-todo-heading>.schedule-property-tag{flex:0 1 auto;align-self:center;text-align:left;margin:0;max-width:190px}
 .dash-todo-item{overflow-wrap:anywhere}
 .fill-menu.todo-edit-form{width:520px;min-width:0!important;max-width:calc(100vw - 32px)!important;box-sizing:border-box;max-height:calc(100dvh - 32px);overflow-y:auto}

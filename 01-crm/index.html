@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20261003audit150">
+    <link rel="stylesheet" href="area-editor.css?v=20261003audit151">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20261003audit150">
-    <link rel="stylesheet" href="responsive-layout.css?v=20261003audit150">
+    <link rel="stylesheet" href="ui-foundation.css?v=20261003audit151">
+    <link rel="stylesheet" href="responsive-layout.css?v=20261003audit151">
 </head>
 <body>
 
@@ -4089,7 +4089,7 @@ function daysUntilExpire(dateStr) {
     return Math.ceil((end - now) / 86400000);
 }
 
-function schedulePropertyBadge(r,type){return r?'<button type="button" class="schedule-property-tag" data-schedule-property="'+esc(JSON.stringify(r))+'" title="'+esc([r.label,r.address].filter(Boolean).join(' · '))+'">'+esc(({'經營買方':'買方','庫存屋主':'庫存','房東':'房東','租客':'租客','成交客戶':'成交','商機募集':'商機'}[type||r.type]||'物件')+'・'+r.label)+'</button> ':'';}
+function schedulePropertyBadge(r,type){return r?'<button type="button" class="schedule-property-tag" data-schedule-property="'+esc(JSON.stringify(r))+'" title="'+esc([r.label,r.address].filter(Boolean).join(' · '))+'">'+esc(({'經營買方':'買方','庫存屋主':'庫存','房東':'房東','租客':'租客','成交客戶':'成交','商機募集':'商機'}[type||r.type]||'物件')+'・'+(window.schedulePropertyDisplayLabel?window.schedulePropertyDisplayLabel(r):r.label))+'</button> ':'';}
 function renderDashboard() {
     var now = new Date(); now.setHours(0,0,0,0);
     var today = localDateISO(now);
@@ -12456,7 +12456,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20261003audit150';
+var APP_VERSION = '20261003audit151';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13631,14 +13631,14 @@ function deleteMktTemplate(idx) {
 <script src="brand-banner.js?v=20260928sync1"></script>
 <script src="image-storage.js?v=20260928sync1"></script>
 <script src="image-redaction.js?v=20260928sync1"></script>
-<script src="image-studio.js?v=20261003audit150"></script>
+<script src="image-studio.js?v=20261003audit151"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
-<script src="image-composer.js?v=20261003audit150"></script>
-<script src="area-editor.js?v=20261003audit150"></script>
-<script src="sync-notice.js?v=20261003audit150"></script>
-<script src="detail-properties.js?v=20261003audit150"></script>
-<script src="edit-layout.js?v=20261003audit150"></script>
-<script src="property-purpose.js?v=20261003audit150"></script>
-<script src="schedule-property.js?v=20261003audit150"></script>
+<script src="image-composer.js?v=20261003audit151"></script>
+<script src="area-editor.js?v=20261003audit151"></script>
+<script src="sync-notice.js?v=20261003audit151"></script>
+<script src="detail-properties.js?v=20261003audit151"></script>
+<script src="edit-layout.js?v=20261003audit151"></script>
+<script src="property-purpose.js?v=20261003audit151"></script>
+<script src="schedule-property.js?v=20261003audit151"></script>
 </body>
 </html>
