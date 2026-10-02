@@ -3,10 +3,16 @@ const {spawnSync}=require('node:child_process');
 const path=require('node:path');
 const root=path.resolve(__dirname,'../..');
 const tests=[
+ 'cloud-sync.test.cjs','schedule-sync.test.cjs','customer-storage.browser.cjs',
+ 'property-purpose.browser.cjs','property-purpose-edge.browser.cjs',
+ 'schedule-property.browser.cjs','schedule-property-edge.browser.cjs','todo-property.browser.cjs',
+ 'buyer-picker.browser.cjs','buyer-legacy-badge.browser.cjs','property-reselect.browser.cjs',
+ 'schedule-compact.browser.cjs','schedule-click-target.browser.cjs','schedule-horizontal.browser.cjs','schedule-order.browser.cjs',
  'responsive-layout.browser.cjs','responsive-content.browser.cjs','schedule-spacing.browser.cjs','renewal-fold.browser.cjs',
  'detail-columns.browser.cjs','edit-property-tabs.browser.cjs',
  'quick-dialog-layout.browser.cjs','optional-notes.browser.cjs',
- 'area-building-add.browser.cjs','area-summary-layout.browser.cjs','landlord-visible.browser.cjs','image-composer.browser.cjs'
+ 'area-building-add.browser.cjs','area-summary-layout.browser.cjs','landlord-visible.browser.cjs','image-composer.browser.cjs',
+ 'detail-accordion.browser.cjs','image-layouts.browser.cjs'
 ];
 for(const test of tests){
  const result=spawnSync(process.execPath,[path.join(__dirname,test)],{cwd:root,env:process.env,stdio:'inherit'});

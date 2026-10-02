@@ -14,7 +14,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
   await page.waitForFunction(()=>!document.getElementById('icDownload').disabled);
   await page.locator('#icSize').fill('35');await page.locator('#icFlip').click();await page.locator('#icCanvas').focus();await page.keyboard.press('ArrowRight');
   await page.locator('#icTab_caption').click();await page.locator('#itUseCap').check();await page.locator('#itCapText').fill('版面保存測試');await page.locator('#itCapColor').fill('#ff0000');
-  await page.locator('#icTab_brand').click();await page.locator('#icUseBrand').check();await page.locator('[data-theme="arc"]').click();await page.locator('#icBrand_name').fill('測試姓名');await page.locator('#icBrand_phone').fill('0900-000-000');await page.locator('#icBrand_width').fill('70');await page.locator('#icBrand_position').selectOption('left');
+  await page.locator('#icTab_brand').click();await page.locator('#icUseBrand').check();await page.locator('[data-theme="arc"]').click();await page.locator('#icBrand_name').fill('測試姓名');await page.locator('#icBrand_phone').fill('0900-000-000');await page.locator('.ic-brand-advanced>summary').click();await page.locator('#icBrand_width').fill('70');await page.locator('#icBrand_position').selectOption('left');
   const signature=()=>page.locator('#icCanvas').evaluate(c=>c.toDataURL());const expected=await signature();
   await page.locator('#icTab_layouts').click();assert(await page.locator('#icLayoutApply').isDisabled());
   await page.locator('#icLayoutName').fill('測試 <b>版面</b>');await page.locator('#icLayoutSave').click();assert.match(await page.locator('#icLayoutStatus').innerText(),/已儲存/);

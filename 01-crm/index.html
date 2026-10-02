@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20261003audit151">
+    <link rel="stylesheet" href="area-editor.css?v=20261003audit152">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20261003audit151">
-    <link rel="stylesheet" href="responsive-layout.css?v=20261003audit151">
+    <link rel="stylesheet" href="ui-foundation.css?v=20261003audit152">
+    <link rel="stylesheet" href="responsive-layout.css?v=20261003audit152">
 </head>
 <body>
 
@@ -10766,12 +10766,29 @@ function saveClient() {
 }
 
 var _undoTimer = null, _undoBar = null;
+function _saveCustomerTrashState(id, deleted) {
+    var c = DB.find(function(x) { return x.id === id; });
+    if (!c) return false;
+    var snapshot = JSON.parse(JSON.stringify(DB));
+    if (deleted) {
+        c._deleted = true;
+        c._deletedAt = new Date().toISOString();
+    } else {
+        delete c._deleted;
+        delete c._deletedAt;
+    }
+    if (!persist()) {
+        DB = snapshot;
+        showToast((deleted ? '刪除' : '復原') + '失敗，資料尚未寫入，已保留原狀態。請排除儲存問題後重試。', 'error', 6000);
+        return false;
+    }
+    return true;
+}
 function del(id) {
     const c=DB.find(x=>x.id===id); if(!c) return;
     confirmAction('確定要將「'+c.name+'」移至資源回收桶？', function() {
-        c._deleted = true;
-        c._deletedAt = new Date().toISOString();
-        persist(); render(); closeDet();
+        if (!_saveCustomerTrashState(id, true)) return;
+        render(); closeDet();
         // 顯示 undo 列（5 秒內可復原）
         _showUndoBar(id, c.name);
     });
@@ -10791,15 +10808,17 @@ function _showUndoBar(id, name) {
 }
 function _undoDel(id) {
     var c = DB.find(function(x){return x.id===id;});
-    if (c) { delete c._deleted; delete c._deletedAt; persist(); render(); showToast('已復原'); }
+    if (c) {
+        if (!_saveCustomerTrashState(id, false)) return;
+        render(); showToast('已復原');
+    }
     if (_undoBar) _undoBar.remove(); _undoBar=null; clearTimeout(_undoTimer); if(_undoInterval) clearInterval(_undoInterval);
 }
 function restoreFromTrash(id) {
     var c = DB.find(function(x){ return x.id===id; });
     if (!c) return;
-    delete c._deleted;
-    delete c._deletedAt;
-    persist(); renderTrash();
+    if (!_saveCustomerTrashState(id, false)) return;
+    renderTrash();
 }
 function permanentDel(id) {
     var c = DB.find(function(x){ return x.id===id; });
@@ -12456,7 +12475,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20261003audit151';
+var APP_VERSION = '20261003audit152';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13631,14 +13650,14 @@ function deleteMktTemplate(idx) {
 <script src="brand-banner.js?v=20260928sync1"></script>
 <script src="image-storage.js?v=20260928sync1"></script>
 <script src="image-redaction.js?v=20260928sync1"></script>
-<script src="image-studio.js?v=20261003audit151"></script>
+<script src="image-studio.js?v=20261003audit152"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
-<script src="image-composer.js?v=20261003audit151"></script>
-<script src="area-editor.js?v=20261003audit151"></script>
-<script src="sync-notice.js?v=20261003audit151"></script>
-<script src="detail-properties.js?v=20261003audit151"></script>
-<script src="edit-layout.js?v=20261003audit151"></script>
-<script src="property-purpose.js?v=20261003audit151"></script>
-<script src="schedule-property.js?v=20261003audit151"></script>
+<script src="image-composer.js?v=20261003audit152"></script>
+<script src="area-editor.js?v=20261003audit152"></script>
+<script src="sync-notice.js?v=20261003audit152"></script>
+<script src="detail-properties.js?v=20261003audit152"></script>
+<script src="edit-layout.js?v=20261003audit152"></script>
+<script src="property-purpose.js?v=20261003audit152"></script>
+<script src="schedule-property.js?v=20261003audit152"></script>
 </body>
 </html>
