@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20261002audit137">
+    <link rel="stylesheet" href="area-editor.css?v=20261002audit138">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20261002audit137">
-    <link rel="stylesheet" href="responsive-layout.css?v=20261002audit137">
+    <link rel="stylesheet" href="ui-foundation.css?v=20261002audit138">
+    <link rel="stylesheet" href="responsive-layout.css?v=20261002audit138">
 </head>
 <body>
 
@@ -4316,9 +4316,9 @@ function renderDashboard() {
         var delBtn = '<button class="btn-ic" onclick="event.stopPropagation();deleteTodo(\''+esc(t.id)+'\')" title="刪除" style="font-size:13px;padding:2px 4px"><i class="ti ti-trash" style="color:#DC2626"></i></button>';
         var toSchedBtn = '<button class="btn-ic" onclick="event.stopPropagation();todoToSchedule(\''+esc(t.id)+'\')" title="轉行程" aria-label="轉行程" style="font-size:13px;padding:2px 4px"><span aria-hidden="true" style="color:#2563EB;font-size:20px;line-height:1">⇄</span></button>';
         var doneBtn = '<button class="btn-ic dash-done-btn" onclick="event.stopPropagation();completeTodo(\''+esc(t.id)+'\')" title="完成" style="font-size:13px;padding:2px 4px"><i class="ti ti-circle-check" style="color:#059669"></i><span class="dash-done-txt"> 完成</span></button>';
-        return '<div class="dash-item dash-clickedit" style="flex-direction:column;align-items:stretch;gap:2px" onclick="editTodo(\''+esc(t.id)+'\')">' +
-            '<div style="display:flex;align-items:center;gap:8px;width:100%">' +
-                nameHtml +
+        return '<div class="dash-item dash-clickedit dash-todo-item" style="flex-direction:column;align-items:stretch;gap:2px" onclick="editTodo(\''+esc(t.id)+'\')">' +
+            '<div class="dash-todo-heading" style="display:flex;align-items:center;gap:8px;width:100%">' +
+                nameHtml + schedulePropertyBadge(t.propertyRef,t.schedType) +
                 '<span style="display:flex;gap:2px;flex-shrink:0;margin-left:auto">' + editBtn + delBtn + '</span>' +
             '</div>' +
             '<div style="display:flex;align-items:flex-start;gap:6px">' +
@@ -8081,7 +8081,7 @@ function _getAllTodos() {
     DB.forEach(function(c) {
         if (c._deleted || c._system || c.archived || !c.todos) return;
         _liveItems(c.todos).forEach(function(t) {
-            list.push({ id:t.id, memo:t.memo||'', addedAt:t.addedAt||'', clientId:c.id, clientName:c.name, personal:false });
+            list.push({ id:t.id, memo:t.memo||'', addedAt:t.addedAt||'', propertyRef:t.propertyRef, schedType:t.schedType, clientId:c.id, clientName:c.name, personal:false });
         });
     });
     _liveItems(_getPT()).forEach(function(t) {
@@ -8120,7 +8120,28 @@ function addTodo(prefill) {
     var idEl = document.getElementById('td-client-id');
     var listEl = document.getElementById('td-client-list');
     var hintEl = document.getElementById('td-client-hint');
+    var propertyHost=document.createElement('div');propertyHost.className='todo-property-fields';
+    document.getElementById('td-memo').parentElement.before(propertyHost);
+    box.classList.add('todo-edit-form');
+    var propertyClientId=null;
+    function refreshTodoProperty(){
+        if(propertyClientId===idEl.value)return;
+        var initial=propertyClientId===null;propertyClientId=idEl.value;
+        propertyHost.replaceChildren();propertyHost._scheduleProperty=null;
+        var owner=DB.find(function(x){return x.id===idEl.value&&!x._deleted;});
+        propertyHost.hidden=!owner;if(!owner)return;
+        var typeSelect=document.createElement('select');typeSelect.className='todo-property-type';typeSelect.setAttribute('aria-label','待辦分類');
+        var labels={'經營買方':'買方','庫存屋主':'庫存','房東':'房東','租客':'租客','成交客戶':'成交','商機募集':'商機'};
+        var types=owner.types&&owner.types.length?owner.types:[owner.type];
+        Object.keys(labels).filter(function(t){return types.indexOf(t)>=0;}).forEach(function(t){typeSelect.add(new Option(labels[t],t));});
+        if(!typeSelect.options.length)Object.keys(labels).forEach(function(t){typeSelect.add(new Option(labels[t],t));});
+        var preferredType=initial?(pre.schedType||pre.propertyRef?.type||owner.type):owner.type;
+        if(Array.from(typeSelect.options).some(function(o){return o.value===preferredType;}))typeSelect.value=preferredType;
+        propertyHost.append(typeSelect);
+        mountScheduleProperty(propertyHost,typeSelect,owner,initial?pre.propertyRef:null,initial&&!!pre.editing,false);
+    }
     function updateHint() {
+        refreshTodoProperty();
         if (idEl.value) {
             var c = DB.find(function(x){ return x.id === idEl.value; });
             hintEl.innerHTML = c ? '✓ 已選取：'+esc(c.name) : '';
@@ -8168,6 +8189,7 @@ function addTodo(prefill) {
         });
         updateHint();
     };
+    updateHint();
     document.getElementById('td-save').onclick = function() {
         var memo = document.getElementById('td-memo').value.trim();
         var clientId = idEl.value;
@@ -8180,7 +8202,7 @@ function addTodo(prefill) {
             var c = DB.find(function(x){ return x.id === clientId; });
             if (!c) { showToast('客戶不存在', 'error'); return; }
             if (!c.todos) c.todos = [];
-            c.todos.push({ id:_newTodoId(), memo:memo, addedAt:now, updatedAt:now });
+            c.todos.push({ id:_newTodoId(), memo:memo, propertyRef:readScheduleProperty(propertyHost), schedType:propertyHost.querySelector('.todo-property-type')?.value||'', addedAt:now, updatedAt:now });
             persistAndSyncNow();
         } else {
             var arr = _getPT();
@@ -8198,7 +8220,7 @@ function editTodo(todoId) {
     var all = _getAllTodos();
     var t = all.find(function(x){ return x.id === todoId; });
     if (!t) return;
-    addTodo({ editing: todoId, memo: t.memo, clientId: t.clientId });
+    addTodo({ editing: todoId, memo: t.memo, clientId: t.clientId, propertyRef:t.propertyRef, schedType:t.schedType });
 }
 
 function _removeTodoById(todoId) {
@@ -8226,7 +8248,7 @@ function completeTodo(todoId) {
         if (!t) return;
         var memo = (typeof editedMemo === 'string') ? editedMemo : (t.memo || '');
         _removeTodoById(todoId);
-        _addDoneTodo({ clientId:t.clientId, clientName:t.clientName, memo:memo, personal:t.personal, addedAt:t.addedAt, doneAt:new Date().toISOString() });
+        _addDoneTodo({ clientId:t.clientId, clientName:t.clientName, memo:memo, propertyRef:t.propertyRef, schedType:t.schedType, personal:t.personal, addedAt:t.addedAt, doneAt:new Date().toISOString() });
         persistAndSyncNow();
         render();
     }, { editPrefill: _t0.memo || '', editLabel: '待辦內容（可修改）' });
@@ -8363,7 +8385,7 @@ function _restoreDoneTodo(idx) {
         var c = DB.find(function(x){ return x.id === t.clientId; });
         if (c) {
             if (!c.todos) c.todos = [];
-            c.todos.push({ id:_newTodoId(), memo:t.memo||'', addedAt:t.addedAt||now, updatedAt:now });
+            c.todos.push({ id:_newTodoId(), memo:t.memo||'', propertyRef:t.propertyRef, schedType:t.schedType, addedAt:t.addedAt||now, updatedAt:now });
         }
     }
     persistAndSyncNow();
@@ -12430,7 +12452,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20261002audit137';
+var APP_VERSION = '20261002audit138';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13605,14 +13627,14 @@ function deleteMktTemplate(idx) {
 <script src="brand-banner.js?v=20260928sync1"></script>
 <script src="image-storage.js?v=20260928sync1"></script>
 <script src="image-redaction.js?v=20260928sync1"></script>
-<script src="image-studio.js?v=20261002audit137"></script>
+<script src="image-studio.js?v=20261002audit138"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
-<script src="image-composer.js?v=20261002audit137"></script>
-<script src="area-editor.js?v=20261002audit137"></script>
-<script src="sync-notice.js?v=20261002audit137"></script>
-<script src="detail-properties.js?v=20261002audit137"></script>
-<script src="edit-layout.js?v=20261002audit137"></script>
-<script src="property-purpose.js?v=20261002audit137"></script>
-<script src="schedule-property.js?v=20261002audit137"></script>
+<script src="image-composer.js?v=20261002audit138"></script>
+<script src="area-editor.js?v=20261002audit138"></script>
+<script src="sync-notice.js?v=20261002audit138"></script>
+<script src="detail-properties.js?v=20261002audit138"></script>
+<script src="edit-layout.js?v=20261002audit138"></script>
+<script src="property-purpose.js?v=20261002audit138"></script>
+<script src="schedule-property.js?v=20261002audit138"></script>
 </body>
 </html>
