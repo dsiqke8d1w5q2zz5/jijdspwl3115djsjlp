@@ -1076,7 +1076,7 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 .dash-sched-row1>.schedule-property-tag,.all-sched-heading>.schedule-property-tag{flex:0 1 auto;margin:0;max-width:190px}
 .dash-sched-row1>.schedule-property-tag,.all-sched-heading>.schedule-property-tag{align-self:flex-end;text-align:left}
 .dash-sched-row1{flex-wrap:wrap;min-width:0}
-.dash-sched-row1:has(>.schedule-property-tag)>.dash-item-name{flex:0 1 auto}
+.dash-sched-row1>.dash-item-name{flex:0 1 auto}
 .dash-sched-row1 .schedule-date-text{display:inline-block;min-width:6.7em;font-variant-numeric:tabular-nums}
 .schedule-overdue-days{font-variant-numeric:tabular-nums}
 .dash-sched-row1>.dash-item-info{display:inline-flex;align-items:center;gap:4px;font-size:16px}

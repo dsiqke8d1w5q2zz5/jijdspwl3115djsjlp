@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict'),{chromium}=require(process.env.PLAYWRIGHT_MODULE),{pathToFileURL}=require('node:url'),path=require('node:path');
+(async()=>{const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});try{for(const width of [1707,390]){const p=await browser.newPage({viewport:{width,height:900}});await p.route('https://**/*',r=>r.abort());await p.goto(pathToFileURL(path.resolve('01-crm/index.html')).href);
+await p.evaluate(()=>{DB=[{id:'click-test',name:'江小姐',type:'房東',schedules:[{id:'a',date:localDateISO(),memo:'確認行程',schedType:'房東'}]}];render();window.clickCalls=[];window.showDet=()=>clickCalls.push('detail');window.editDashSchedule=()=>clickCalls.push('schedule');});
+const row=p.locator('#dashSchedule .dash-sched-item'),name=row.locator('.dash-item-name');
+await name.click();assert.deepEqual(await p.evaluate(()=>clickCalls.splice(0)),['detail']);
+await row.locator('.schedule-date-text').click();assert.deepEqual(await p.evaluate(()=>clickCalls.splice(0)),['schedule']);
+await row.locator('.dash-sched-memo').click();assert.deepEqual(await p.evaluate(()=>clickCalls.splice(0)),['schedule']);
+const n=await name.boundingBox();await p.mouse.click(n.x+n.width+4,n.y+n.height/2);assert.deepEqual(await p.evaluate(()=>clickCalls.splice(0)),['schedule'],'blank after name edits schedule');
+await p.evaluate(()=>{DB[0].schedules[0].propertyRef={clientId:'click-test',type:'房東',label:'測試物件',propertyKey:'a'};renderDashboard();});await row.locator('.schedule-property-tag').click();assert.deepEqual(await p.evaluate(()=>clickCalls.splice(0)),['schedule'],'property tag edits schedule');
+await p.close();console.log('PASS '+width+' name-only detail; date, memo, blank and property tag edit schedule');}}finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
