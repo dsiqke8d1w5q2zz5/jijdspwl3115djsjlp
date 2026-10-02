@@ -1076,9 +1076,10 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 .schedule-overdue-days{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;min-width:24px;height:24px;padding:0 3px;box-sizing:border-box;border:1.5px solid currentColor;border-radius:999px;color:#dc2626;font:600 16px/1 var(--ui-font);white-space:nowrap}
 .dash-sched-row1>.schedule-property-tag,.all-sched-heading>.schedule-property-tag{flex:0 1 auto;margin:0;max-width:190px}
 .dash-sched-row1>.schedule-property-tag,.all-sched-heading>.schedule-property-tag{align-self:flex-end;text-align:left}
-.dash-sched-row1{flex-wrap:wrap;min-width:0}
+.dash-sched-row1{flex-wrap:wrap;min-width:0;align-items:baseline;gap:5px}
 .dash-sched-row1>.dash-item-name{flex:0 1 auto}
-.dash-sched-row1 .schedule-date-text{display:inline-block;min-width:6.7em;font-variant-numeric:tabular-nums}
+.dash-sched-row1 .schedule-date-text{display:inline-block;font-variant-numeric:tabular-nums}
+.dash-sched-row1 .schedule-time-text{font-variant-numeric:tabular-nums;min-width:5ch}
 .schedule-overdue-days{font-variant-numeric:tabular-nums}
 .dash-sched-row1>.dash-item-info{display:inline-flex;align-items:center;gap:4px;font-size:16px}
 .dash-sched-item.dash-sched-today{background:#ffedc2}
