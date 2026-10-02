@@ -810,10 +810,10 @@
         .ac-item b { color:var(--deep); }
     </style>
     <link rel="stylesheet" href="image-composer.css?v=20260928sync1">
-    <link rel="stylesheet" href="area-editor.css?v=20261002audit143">
+    <link rel="stylesheet" href="area-editor.css?v=20261002audit144">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20261002audit143">
-    <link rel="stylesheet" href="responsive-layout.css?v=20261002audit143">
+    <link rel="stylesheet" href="ui-foundation.css?v=20261002audit144">
+    <link rel="stylesheet" href="responsive-layout.css?v=20261002audit144">
 </head>
 <body>
 
@@ -4233,7 +4233,7 @@ function renderDashboard() {
             : '<button class="btn-ic dash-done-btn" onclick="event.stopPropagation();completeSchedule(\''+esc(s.id)+'\',\''+esc(s.date)+'\',\''+esc(s.time)+'\',\''+esc(s.scheduleId||'')+'\')" title="完成" style="font-size:13px;padding:2px 4px"><i class="ti ti-circle-check" style="color:#059669"></i><span class="dash-done-txt"> 完成</span></button>';
         var recurIcon = s.recurrence ? '<span title="'+esc(recurLabel(s.recurrence))+'" style="color:#0E7490;font-size:12px;font-weight:600;margin-left:4px"><i class="ti ti-repeat" style="font-size:13px"></i> '+esc(recurLabel(s.recurrence))+'</span>' : '';
         var memoHtml = (s.memo||recurIcon) ? '<div class="dash-sched-memo">'+esc(s.memo)+recurIcon+'</div>' : '';
-        var dateColor = s.expired ? '#DC2626' : (s.days===0 ? '#1C1917' : '#64748B');
+        var dateColor = s.expired ? '#DC2626' : (s.days===0 ? '#1C1917' : '#7B8490');
         var delBtn = s.personal
             ? '<button class="btn-ic" onclick="event.stopPropagation();deletePersonalSchedule(\''+esc(s.psId||'')+'\')" title="刪除" style="font-size:13px;padding:2px 4px"><i class="ti ti-trash" style="color:#DC2626"></i></button>'
             : '<button class="btn-ic" onclick="event.stopPropagation();deleteSchedule(\''+esc(s.id)+'\',\''+esc(s.date)+'\',\''+esc(s.time)+'\',\''+esc(s.scheduleId||'')+'\')" title="刪除" style="font-size:13px;padding:2px 4px"><i class="ti ti-trash" style="color:#DC2626"></i></button>';
@@ -12456,7 +12456,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20261002audit143';
+var APP_VERSION = '20261002audit144';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13631,14 +13631,14 @@ function deleteMktTemplate(idx) {
 <script src="brand-banner.js?v=20260928sync1"></script>
 <script src="image-storage.js?v=20260928sync1"></script>
 <script src="image-redaction.js?v=20260928sync1"></script>
-<script src="image-studio.js?v=20261002audit143"></script>
+<script src="image-studio.js?v=20261002audit144"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
-<script src="image-composer.js?v=20261002audit143"></script>
-<script src="area-editor.js?v=20261002audit143"></script>
-<script src="sync-notice.js?v=20261002audit143"></script>
-<script src="detail-properties.js?v=20261002audit143"></script>
-<script src="edit-layout.js?v=20261002audit143"></script>
-<script src="property-purpose.js?v=20261002audit143"></script>
-<script src="schedule-property.js?v=20261002audit143"></script>
+<script src="image-composer.js?v=20261002audit144"></script>
+<script src="area-editor.js?v=20261002audit144"></script>
+<script src="sync-notice.js?v=20261002audit144"></script>
+<script src="detail-properties.js?v=20261002audit144"></script>
+<script src="edit-layout.js?v=20261002audit144"></script>
+<script src="property-purpose.js?v=20261002audit144"></script>
+<script src="schedule-property.js?v=20261002audit144"></script>
 </body>
 </html>
