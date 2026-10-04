@@ -10,7 +10,7 @@ console.log('PASS tolerance boundaries, missing data, location and house number 
 const {sortGroups,sortValue}=require('../buyer-grouping');
 const items=[{price:2000,area:20,age:30},{price:1500,area:30,age:0},{price:1000,area:10,age:10},{price:null,area:null,age:null}].map((p,i)=>[{p:{...p,id:String(i)}}]);
 for(const [order,expected] of Object.entries({'price:asc':'2103','price:desc':'0123','area:asc':'2013','area:desc':'1023','unit:asc':'1023','unit:desc':'0213','age:asc':'1203','age:desc':'0213'}))assert.equal(sortGroups(items,order).map(g=>g[0].p.id).join(''),expected,order);
-assert.equal(sortValue({price:1988,area:23.23},'unit'),1988/23.23);assert.equal(sortValue({price:2000,area:0},'unit'),null);assert.equal(sortValue({price:'',area:20},'unit'),null);assert.equal(sortGroups(items,'recommended'),items);assert.equal(items[0][0].p.id,'0');console.log('PASS numeric sort, stable ties, missing values last both directions, zero area, new construction and recommended order');
+assert.equal(sortValue({price:1988,area:23.23},'unit'),1988/23.23);assert.equal(sortValue({price:2000,area:0},'unit'),null);assert.equal(sortValue({price:'',area:20},'unit'),null);assert.deepEqual(sortGroups(items,'recommended'),items);assert.equal(items[0][0].p.id,'0');console.log('PASS numeric sort, stable ties, missing values last both directions, zero area, new construction and recommended order');
 
 const {warnings}=require('../buyer-grouping');
 assert(same(p,{...p,address:'新北市板橋區民權路',floor:null,area:23.53,age:53}));
@@ -20,3 +20,6 @@ const examples=[{...p,address:'新北市板橋區民權路260巷',price:2188,are
 assert.equal(group(examples).length,1);assert.deepEqual(warnings(examples),['樓層待確認','房數不一致','地址待確認']);assert.equal(group([...examples,{p:{...examples[0].p,price:2189}}]).length,2);
 assert.equal(group([{p:{...p,floor:null}},{p},{p:{...p,floor:2}}]).length,2,'unknown floor must not bridge conflicting floors');
 console.log('PASS screenshot examples, missing address/floor, warnings, exact prices and no conflict bridging');
+
+const priority=[[{p:{price:1000}}],[{p:{price:3000,firstMatchedAt:'2026-10-05'}}],[{p:{price:2000}},{p:{price:2000,priceBeforeDrop:2100,priceDroppedAt:'2026-10-05'}}]];
+assert.deepEqual(sortGroups(priority,'price:asc',Date.parse('2026-10-04')).map(g=>g[0].p.price),[2000,3000,1000]);assert.deepEqual(sortGroups(priority,'price:desc',Date.parse('2026-10-04')).map(g=>g[0].p.price),[3000,2000,1000]);assert.deepEqual(sortGroups(priority,'price:asc',Date.parse('2026-10-06')).map(g=>g[0].p.price),[1000,2000,3000]);console.log('PASS New/Down group priority in both directions and after acknowledgment');
