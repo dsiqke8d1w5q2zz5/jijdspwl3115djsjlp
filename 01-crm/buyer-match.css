@@ -10,3 +10,7 @@
 #dModal .det-category-toolbar>.det-category-tabs{width:auto;margin-left:0;max-width:100%}
 
 .bm-more{grid-column:1/-1;justify-self:center;margin:10px}
+
+.bm-track{clear:both;display:grid;grid-template-columns:125px minmax(0,1fr);gap:10px;margin-top:10px}.bm-track label{display:flex;flex-direction:column;gap:4px;min-width:0}.bm-track textarea{width:100%;min-height:65px;font:inherit;color:inherit;border:1px solid #cbd5e1;border-radius:7px;padding:7px;resize:vertical;overflow-wrap:anywhere}.bm-history{font-size:12px;color:#65788a}@media(max-width:650px){.bm-track{grid-template-columns:1fr}}
+
+.bm-body>.bm-status{padding:5px 9px;margin:7px 0}.bm-body>#bmTimeline{background:transparent;padding:0;font-size:12px;color:#526880}.bm-auto{padding:7px 10px;margin:8px 0;gap:3px 12px}.bm-summary{margin:8px 0;padding:8px 10px}.bm-details{margin:6px 0}.bm-body>.bd-hint{margin:5px 0}.bm-count{margin:8px 0}.bm-filters+.bm-filters{margin-top:8px}

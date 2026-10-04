@@ -1,5 +1,6 @@
 // Pagination is based on each site's visible controls; absence is not proof of completion.
 globalThis.crmReadPage=function(source,city){
+ if(/驗證您是否|verify you are human|checking your browser|access denied|just a moment/i.test(document.title+' '+document.body.innerText.slice(0,1600)))return {rows:[],blocked:true,complete:false};
  const rows=crmReadListings(source,city),n=x=>Number(String(x||'').replace(/[^0-9]/g,'')),url=new URL(location.href);let page=0,total=0,next=null;
  if(source==='yungching'){page=n(document.querySelector('.paginationPageListItem.actived')?.textContent);total=Math.max(0,...[...document.querySelectorAll('.paginationPageListItem')].map(e=>n(e.textContent)));if(page&&total>page){url.pathname=url.pathname.replace('/region/','/list/');url.searchParams.set('pg',page+1);next=url.href;}}
  if(source==='rakuya'){const p=document.querySelector('#app_pagination');page=n(p?.querySelector('input')?.value);total=n(p?.textContent.match(/共\s*([\d,]+)\s*頁/)?.[1]);if(page&&total>page){url.searchParams.set('page',page+1);next=url.href;}}
