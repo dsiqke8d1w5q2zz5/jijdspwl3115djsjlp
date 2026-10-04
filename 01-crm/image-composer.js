@@ -2,7 +2,7 @@
 (function () {
     'use strict';
     const state = { bg:null, original:null, matte:null, person:null, x:.22, y:.72, size:.5, flip:false, busy:false, sequence:0, bgSequence:0, active:null, placements:new Map(), exporting:false };
-    let dialog, previousFocus, segmenterPromise, drag, studio, redaction, externalBusy=false, restoring=false;
+    let dialog, previousFocus, segmenterPromise, drag, studio, enhancement, redaction, externalBusy=false, restoring=false;
     const photoSettings=new Map(),photoAux=new Map();let defaultAux={second:null,logo:null};let defaultSettings=null,history=[],historyIndex=-1,historyTimer,historyDirty=true;
     const busy=()=>state.busy||state.exporting||externalBusy;
     let defaultPlacement={x:.22,y:.72,size:.5,flip:false};
@@ -10,7 +10,7 @@
     function status(message, error) { $('icStatus').textContent=message; $('icStatus').dataset.error=!!error; }
     function enabled(){return $('icUsePerson').checked;}
     function controls() {
-        const working=busy();
+        const working=busy();enhancement?.sync();
         if(dialog){dialog.querySelectorAll('.ic-controls input,.ic-controls select,.ic-controls textarea,.ic-controls button,.ic-photos button,#icEditScope').forEach(el=>el.inert=working&&el.id!=='icCancel');}
         $('icDownload').disabled=!state.bg||working||(enabled()&&!state.person);
         $('icAll').disabled=$('icDownload').disabled||_itFiles.length<2;
@@ -102,7 +102,7 @@
     function geometry(w,h,pos=state,person=state.person){const ph=h*pos.size,pw=person?ph*person.width/person.height:0;return{x:w*pos.x-pw/2,y:h*pos.y-ph/2,w:pw,h:ph};}
     const whiteSilhouettes=new WeakMap(),artworkIds=new WeakMap();let artworkSequence=0;
     function frameKey(o=photoOptions(),aux=studio.aux()){const ids=['second','third','fourth'].map(k=>{const img=aux?.[k];if(img&&!artworkIds.has(img))artworkIds.set(img,++artworkSequence);return img?artworkIds.get(img):null;});return JSON.stringify([o.studio.frame,...ids]);}
-    function photoOptions(){return {...itOpts(),brand:BrandBanner.options(),personStyle:$('icStyle').value,outlineWidth:Number($('icOutline').value),studio:studio?.options(),usePerson:enabled()};}
+    function photoOptions(){return {...itOpts(),enhancement:enhancement?.options(),brand:BrandBanner.options(),personStyle:$('icStyle').value,outlineWidth:Number($('icOutline').value),studio:studio?.options(),usePerson:enabled()};}
     function drawPerson(ctx,w,h,pos,options,person){
         if(!person)return;const r=geometry(w,h,pos,person);ctx.save();ctx.translate(r.x+(pos.flip?r.w:0),r.y);ctx.scale(pos.flip?-1:1,1);
         if(options.personStyle==='sticker'){
@@ -113,6 +113,7 @@
     function draw(target,photo=state.bg,pos=state,options=photoOptions(),person=enabled()?state.person:null,aux=studio?.aux(),photoId=state.active){
         if(!photo)return;const base=canvas(target.width,target.height),ctx=base.getContext('2d'),w=base.width,h=base.height;
         if(studio)studio.background(ctx,photo,w,h,options.studio,aux.second,aux);else ctx.drawImage(photo,0,0,w,h);
+        ImageEnhance.apply(base,target===$('icCanvas')&&enhancement?.isComparing()?null:options.enhancement);
         if(!options.studio?.front)drawPerson(ctx,w,h,pos,options,person);
         itDraw(target,base,{...options,useCap:options.useCap&&options.capPos!=='free',brandInset:options.brand?.enabled?BrandBanner.height(h,options.brand):0},w,h);
         const final=target.getContext('2d');if(options.brand?.enabled)BrandBanner.draw(final,w,h,options.brand);
@@ -195,7 +196,7 @@
     const layoutControls=['icUsePerson','icStyle','icOutline','itUseCap','itUseWm','itCapText','itCapFont','itCapColor','itCapPos','itCapSz','itCapBg','itWmText','itWmOp','itWmSz','itWmGap','itWmAg','itQ','itMax'];
     function layoutSnapshot(){
         const values={};for(const id of layoutControls){const el=$(id);values[id]=el.type==='checkbox'?el.checked:el.value;}
-        return {version:1,values,brand:BrandBanner.options(),wmColor:document.querySelector('input[name="itWmCol"]:checked')?.value||'auto',person:{x:state.x,y:state.y,size:state.size,flip:state.flip},studio:studio?.options()};
+        return {version:1,values,enhancement:enhancement?.options(),brand:BrandBanner.options(),wmColor:document.querySelector('input[name="itWmCol"]:checked')?.value||'auto',person:{x:state.x,y:state.y,size:state.size,flip:state.flip},studio:studio?.options()};
     }
     function restoreControls(saved){
         for(const id of layoutControls){
@@ -206,11 +207,11 @@
             if(el.type==='color'&&!/^#[0-9a-f]{6}$/i.test(value))continue;
             el.value=String(value);
         }
-        BrandBanner.apply(saved.brand);
+        enhancement?.set(saved.enhancement);BrandBanner.apply(saved.brand);
         document.querySelectorAll('input[name="itWmCol"]').forEach(el=>el.checked=el.value===saved.wmColor);
         studio?.set(saved.studio);itToggleSec();
     }
-    function optionsFrom(saved){const v=saved.values||{};return {usePerson:v.icUsePerson===true,useCap:v.itUseCap===true,useWm:v.itUseWm===true,capText:v.itCapText||'',capFont:v.itCapFont||'sans',capColor:v.itCapColor||'#ffffff',capPos:v.itCapPos||'bottom',capSz:Number(v.itCapSz)||34,capBg:Number(v.itCapBg)/100||0,wmText:v.itWmText||'',wmOp:Number(v.itWmOp)/100||.18,wmSz:Number(v.itWmSz)||28,wmGap:Number(v.itWmGap)/10||1.6,wmAg:Number(v.itWmAg)||0,wmCol:saved.wmColor||'auto',q:Number(v.itQ)/100||.92,max:Number(v.itMax)||0,personStyle:v.icStyle||'natural',outlineWidth:Number(v.icOutline)||2,brand:saved.brand||BrandBanner.options(),studio:ImageStudio.clean(saved.studio)};}
+    function optionsFrom(saved){const v=saved.values||{};return {enhancement:ImageEnhance.clean(saved.enhancement),usePerson:v.icUsePerson===true,useCap:v.itUseCap===true,useWm:v.itUseWm===true,capText:v.itCapText||'',capFont:v.itCapFont||'sans',capColor:v.itCapColor||'#ffffff',capPos:v.itCapPos||'bottom',capSz:Number(v.itCapSz)||34,capBg:Number(v.itCapBg)/100||0,wmText:v.itWmText||'',wmOp:Number(v.itWmOp)/100||.18,wmSz:Number(v.itWmSz)||28,wmGap:Number(v.itWmGap)/10||1.6,wmAg:Number(v.itWmAg)||0,wmCol:saved.wmColor||'auto',q:Number(v.itQ)/100||.92,max:Number(v.itMax)||0,personStyle:v.icStyle||'natural',outlineWidth:Number(v.icOutline)||2,brand:saved.brand||BrandBanner.options(),studio:ImageStudio.clean(saved.studio)};}
     function applyLayout(saved,{scope='all',keepPerson=false}={}){
         flushHistory();restoring=true;restoreControls(saved);
         const p=saved.person||{},clamp=(v,lo,hi,fallback)=>Number.isFinite(v)?Math.max(lo,Math.min(hi,v)):fallback;
@@ -234,7 +235,7 @@
         const nav=document.createElement('div');nav.className='ic-tabs';nav.setAttribute('role','tablist');nav.setAttribute('aria-label','圖片編輯功能');toolbar.prepend(nav);
         const person=$('icUsePerson').closest('section'),output=dialog.querySelector('.ic-output');person.id='icPersonSection';output.id='icOutputSection';
         const note=side.querySelector(':scope > .ic-note');if(note)output.append(note);output.open=true;output.querySelector('summary').hidden=true;
-        const panels=[['crop','裁切拼版',$('icCropSection')],['person','人物合成',person],['brand','品牌底條',$('icBrandSection')],['caption','文字',$('icCaptionSection')],['watermark','浮水印',$('icWatermarkSection')],['redact','局部遮蔽',$('icRedactSection')],['output','輸出設定',output],['layouts','我的版面',$('icLayoutsSection')]];
+        const panels=[['enhance','圖片優化',$('icEnhanceSection')],['crop','裁切拼版',$('icCropSection')],['person','人物合成',person],['brand','品牌底條',$('icBrandSection')],['caption','文字',$('icCaptionSection')],['watermark','浮水印',$('icWatermarkSection')],['redact','局部遮蔽',$('icRedactSection')],['output','輸出設定',output],['layouts','我的版面',$('icLayoutsSection')]];
         function select(key){redaction?.cancel();for(const [id,,panel] of panels){const active=id===key;panel.hidden=!active;const button=$('icTab_'+id);button.setAttribute(id==='layouts'?'aria-pressed':'aria-selected',String(active));button.tabIndex=id==='layouts'||active||key==='layouts'&&id==='crop'?0:-1;}side.scrollTop=0;redaction?.sync();draw($('icCanvas'));}
         for(const [id,label,panel] of panels){const b=document.createElement('button');b.type='button';b.id='icTab_'+id;b.textContent=label;b.setAttribute('aria-controls',panel.id);panel.setAttribute('aria-labelledby',b.id);b.onclick=()=>select(id);
             if(id==='layouts'){panel.setAttribute('role','region');b.className='ic-layout-entry';uploads.append(b);continue;}
@@ -243,7 +244,7 @@
     }
     function build(){
         dialog=document.createElement('dialog');dialog.className='ic-dialog';dialog.id='imageComposer';dialog.setAttribute('aria-labelledby','icTitle');
-        dialog.innerHTML=`<div class="ic-shell"><header class="ic-head"><div><h2 id="icTitle">圖片工具</h2><p>人物・文字・浮水印，一次完成</p></div><button type="button" id="icClose" class="ui-close-icon" title="關閉" aria-label="關閉圖片工具">×</button></header>
+        dialog.innerHTML=`<div class="ic-shell"><header class="ic-head"><div><h2 id="icTitle">圖片工具</h2><p>照片優化・人物・文字・浮水印</p></div><button type="button" id="icClose" class="ui-close-icon" title="關閉" aria-label="關閉圖片工具">×</button></header>
         <div class="ic-toolbar"><label class="ic-file">＋ 選擇照片<input id="icBackground" type="file" accept="image/*" multiple></label><button type="button" id="icClear">清空照片</button><div class="ic-history"><button type="button" id="icUndo" title="復原編輯設定與去背修補；不含新增、移除或排序照片" disabled>復原</button><button type="button" id="icRedo" disabled>重做</button></div><div class="ic-downloads"><button type="button" id="icDownload" class="ic-primary" disabled>下載這張</button><button type="button" id="icAll" disabled>全部下載</button><button type="button" id="icZip" disabled>打包 ZIP</button></div></div>
         <div class="ic-body"><aside class="ic-controls">
         <section class="ic-section"><label class="ic-section-title"><input id="icUsePerson" type="checkbox">人物合成</label><div id="icPersonBody" hidden>
@@ -261,6 +262,7 @@
         output.lastElementChild.textContent='下載檔名會加上「_編輯」，不會覆蓋原圖。';
         studio=ImageStudio.mount({render,flush:flushHistory,status,decode,busy,lock:value=>{externalBusy=value;controls();if(!value){studio?.afterRender();scheduleHistory();}},getPerson:()=>state.person,getOriginal:()=>state.original,getFullPerson:()=>state.fullPerson,hasPhoto:()=>!!state.bg,setPerson:(full,original)=>{flushHistory();const person=trim(full);state.person=person;state.original=original;state.fullPerson=full;$('icPersonName').textContent='已載入人物素材';const thumb=$('icThumb');thumb.width=person.width;thumb.height=person.height;thumb.getContext('2d').drawImage(person,0,0);thumb.hidden=false;}});
         redaction=ImageRedaction.mount({id:()=>state.active,frameKey:()=>frameKey(),busy,flush:flushHistory,changed:()=>{render();flushHistory();},preview:()=>draw($('icCanvas')),status});
+        enhancement=ImageEnhance.mount({render,flush:flushHistory,busy,hasPhoto:()=>!!state.bg,preview:()=>{draw($('icCanvas'));studio.afterRender();}});
         buildTabs();
         const naming=document.createElement('div');naming.innerHTML='<label class="it-lb" for="icDownloadName">下載名稱</label><input id="icDownloadName" class="it-in" maxlength="80" placeholder="例如：帝王別墅"><p class="ic-note">填寫後依照片順序命名為「帝王別墅_01」；留空保留原檔名。</p>';$('icOutput').append(naming);
         $('icUndo').onclick=()=>undoRedo(-1);$('icRedo').onclick=()=>undoRedo(1);

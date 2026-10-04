@@ -8,7 +8,7 @@ flows.push(...[
  ['perf-add',()=>{openPerformance();addPerfRecord();togglePerfOther('perf')}],['perf-history',()=>{openPerformance();setPerfRange('history');_perfHistMode='range';renderPerformance()}],['perf-analysis',()=>{openPerformance();setPerfRange('dealAnalysis')}],
  ...['stock','rental','signing','other'].map(tab=>['templates-'+tab,new Function('openTemplates();setTplTab('+JSON.stringify(tab)+');')]),
  ['template-editor',()=>showTemplateEditor(-1,'測試長標題'.repeat(8),'測試長內容\n'.repeat(40))],['signing-editor',()=>showSigningTemplateEditor(-1,'測試','測試內容\n'.repeat(40))],['other-editor',()=>showOtherTemplateEditor(-1,'測試','測試內容\n'.repeat(40))],
- ...['crop','person','brand','caption','watermark','redact','output','layouts'].map(tab=>['image-'+tab,new Function('openImgTool();document.getElementById("icTab_'+tab+'").click();')]),
+ ...['enhance','crop','person','brand','caption','watermark','redact','output','layouts'].map(tab=>['image-'+tab,new Function('openImgTool();document.getElementById("icTab_'+tab+'").click();')]),
  ['repeat',()=>{openEdit('audit');openCustomRecur(document.querySelector('.sched-recur'),'')}],['time',()=>{openEdit('audit');openTimePicker(document.querySelector('#scheduleList input'))}]
 ]);
 

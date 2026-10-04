@@ -52,3 +52,5 @@
 .ic-preview .ic-photos .ic-photo-remove:hover{background:#fee2e2;border-color:#b91c1c}
 .ic-preview .ic-photos .ic-photo-remove:focus-visible{outline:3px solid #0891b2;outline-offset:1px}
 @media(max-width:650px){.ic-photo-item>button[data-id]{min-width:86px;height:70px}.ic-photo-item img{width:76px;height:60px}.ic-preview .ic-photos .ic-photo-remove{width:24px;height:24px;min-width:24px;min-height:24px}}
+
+.ic-dialog #icEnhanceSection h3{font-size:16px;margin:0 0 8px}.ic-enhance-slider{display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 8px;margin:12px 0;font-size:13px}.ic-enhance-slider input{grid-column:1/-1}.ic-enhance-slider output{font-variant-numeric:tabular-nums;color:#036986}.ic-dialog #icEnhanceCompare[aria-pressed=true]{background:#173756;color:white}.ic-dialog #icEnhanceCompare{font-size:13px;padding:5px 10px;min-height:32px}

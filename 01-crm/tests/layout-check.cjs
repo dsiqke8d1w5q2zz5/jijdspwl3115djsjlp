@@ -11,7 +11,7 @@ const tests=[
  'responsive-layout.browser.cjs','responsive-content.browser.cjs','schedule-spacing.browser.cjs','renewal-fold.browser.cjs',
  'detail-columns.browser.cjs','edit-property-tabs.browser.cjs',
  'quick-dialog-layout.browser.cjs','optional-notes.browser.cjs',
- 'area-building-add.browser.cjs','area-summary-layout.browser.cjs','landlord-visible.browser.cjs','image-composer.browser.cjs',
+ 'area-building-add.browser.cjs','area-summary-layout.browser.cjs','landlord-visible.browser.cjs','image-composer.browser.cjs','image-enhance.browser.cjs',
  'detail-accordion.browser.cjs','image-layouts.browser.cjs'
 ];
 for(const test of tests){
