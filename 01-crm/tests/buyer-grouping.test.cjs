@@ -7,3 +7,7 @@ assert(same({...p,community:'同一社區'},{...p,address:'新北市板橋區文
 assert.equal(group([0,.09,.18].map((d,i)=>({p:{...p,id:String(i),area:23+d}}))).length,2,'no transitive chain');
 assert.equal(group([p,{...p,id:'sinyi:2'}, {...p,id:'591:3',floor:null}].map(p=>({p}))).length,2);
 console.log('PASS tolerance boundaries, missing data, location and house number conflicts, cross-source grouping, complete-link clusters');
+const {sortGroups,sortValue}=require('../buyer-grouping');
+const items=[{price:2000,area:20,age:30},{price:1500,area:30,age:0},{price:1000,area:10,age:10},{price:null,area:null,age:null}].map((p,i)=>[{p:{...p,id:String(i)}}]);
+for(const [order,expected] of Object.entries({'price:asc':'2103','price:desc':'0123','area:asc':'2013','area:desc':'1023','unit:asc':'1023','unit:desc':'0213','age:asc':'1203','age:desc':'0213'}))assert.equal(sortGroups(items,order).map(g=>g[0].p.id).join(''),expected,order);
+assert.equal(sortValue({price:1988,area:23.23},'unit'),1988/23.23);assert.equal(sortValue({price:2000,area:0},'unit'),null);assert.equal(sortValue({price:'',area:20},'unit'),null);assert.equal(sortGroups(items,'recommended'),items);assert.equal(items[0][0].p.id,'0');console.log('PASS numeric sort, stable ties, missing values last both directions, zero area, new construction and recommended order');
