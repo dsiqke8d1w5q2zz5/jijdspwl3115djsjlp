@@ -38,12 +38,12 @@ const path=require('node:path');
   }
   await check();
   await page.locator('.schedule-property-picker summary').click();await check();
-  assert.equal(await page.locator('.schedule-property-choices option').nth(1).textContent(),'新北市板橋區文化帝王超長社區名稱與物件地址測試'.repeat(3),'option uses simple name only');
+  assert.equal(await page.locator('.schedule-property-choices [role=option]').nth(1).textContent(),'新北市板橋區文化帝王超長社區名稱與物件地址測試'.repeat(3),'option uses simple name only');
   assert.equal(await page.evaluate(()=>schedulePropertyRef(DB[0],{rAddr:'新北市新莊區民安西路75巷12號4樓'},'房東').label),'新莊區民安西路4樓');
   await page.locator('.schedule-compact-form').screenshot({path:path.join(require('node:os').tmpdir(),'crm-schedule-expanded-'+width+'.png')});
   assert.equal(await page.locator('.schedule-property-options input').count(),0);await check();
   
-  await page.locator('.schedule-property-choices').selectOption('0');
+  await page.locator('.schedule-property-choices').locator('[data-value=\"0\"]').click();
   await page.locator('#qs-memo').fill('帶看物件與確認租屋條件'.repeat(20));
   await check();
   await page.locator('.schedule-compact-form').screenshot({path:path.join(require('node:os').tmpdir(),'crm-schedule-compact-'+width+'.png')});

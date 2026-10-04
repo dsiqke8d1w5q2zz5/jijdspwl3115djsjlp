@@ -1034,7 +1034,13 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 .schedule-property-picker>summary::after{content:'▾';position:absolute;right:10px}
 .schedule-property-options{position:relative;padding:8px;border:1px solid #cbd9e6;border-radius:8px;background:#f8fafc;margin-top:4px}
 .schedule-property-options :is(input,select){width:100%;max-width:100%;box-sizing:border-box;font:inherit;margin-bottom:6px;padding:7px;border:1px solid #dce5ec;border-radius:6px;background:white}
-.schedule-property-options select[size]{height:136px!important;white-space:normal}
+.schedule-property-picker .schedule-property-choices{display:block;box-sizing:border-box;width:100%;min-width:0;overflow-y:auto;overflow-x:hidden;border:1px solid #dce5ec;border-radius:6px;background:#fff;margin:0 0 6px;padding:0}
+.schedule-property-picker .schedule-property-choice{display:block;position:relative;box-sizing:border-box;width:100%;min-width:0;min-height:32px;height:auto;margin:0;padding:6px 25px 6px 8px;border:0;border-radius:0;background:#fff;color:#173756;font:400 13px/20px var(--ui-font);text-align:left;white-space:normal;overflow-wrap:anywhere;cursor:pointer}
+.schedule-property-picker .schedule-property-choice[aria-selected="true"]{background:#e7f1f7}
+.schedule-property-picker .schedule-property-choice[aria-selected="true"]::after{content:'✓';position:absolute;right:7px;top:6px}
+.schedule-property-picker .schedule-property-choice:hover{background:#edf4f8}
+.schedule-property-picker .schedule-property-choice:focus-visible{outline:2px solid #0787a7;outline-offset:-2px}
+.schedule-property-empty{margin:4px 0 8px;color:#64748b;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
 .schedule-property-options small{color:#64748b;font-size:12px}
 .schedule-buyer-detail{white-space:normal;overflow-wrap:anywhere;font-size:13px;line-height:1.5;margin:0 0 6px;color:#173756}
 .schedule-property-tag{display:inline-block;max-width:190px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 6px 2px 0;padding:2px 6px;border:1px solid #d7e4ed;border-radius:5px;background:#edf4f8;color:#173756;font:600 10px/1.5 var(--ui-font);cursor:pointer}
@@ -1046,7 +1052,7 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 #dModal .det-inline-overlay>.fill-menu:has(.schedule-property-picker)::before{display:none}
 #dModal .det-inline-overlay>.fill-menu:has(.schedule-property-picker)>div{display:flex!important;width:100%;grid-column:auto!important;grid-row:auto!important}
 #dModal .det-inline-overlay>.fill-menu:has(.schedule-property-picker)>div:last-child{width:100%;justify-content:flex-end}
-#dModal .schedule-property-options select[size]{height:136px!important}
+
 
 /* Compact schedule settings adapt to the actual dialog or detail-column width. */
 .fill-menu.schedule-compact-form{width:660px!important;container-type:inline-size}
@@ -1063,7 +1069,7 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 .schedule-compact-form .schedule-property-picker>summary{box-sizing:border-box;min-height:40px;line-height:20px}
 .schedule-compact-form .schedule-association-line>[data-quick-field="qs-type"]{flex:0 0 74px!important;width:74px!important;height:40px}
 .schedule-compact-form .schedule-property-options{overflow-wrap:anywhere}
-.schedule-compact-form .schedule-property-options select[size]{overflow-x:hidden}
+
 .schedule-compact-form .schedule-compact-footer{flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px!important}
 .schedule-compact-form .schedule-compact-footer>.schedule-compact-repeat{display:flex;align-items:center;flex:1 1 110px;min-width:0;margin:0!important;gap:4px!important}
 .schedule-compact-form .schedule-compact-repeat>i{display:none}
@@ -1097,7 +1103,7 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 .todo-property-type{flex:0 0 74px;width:74px;height:40px;padding:8px 4px;border:1px solid #cbd9e6;border-radius:8px;background:white;font:13px var(--ui-font)}
 .todo-edit-form .schedule-property-picker>summary{box-sizing:border-box;min-height:40px;line-height:20px}
 .todo-edit-form .schedule-property-options{overflow-wrap:anywhere}
-.todo-edit-form .schedule-property-options select[size]{overflow-x:hidden}
+
 /* Inline schedule forms no longer use the old heading and footer grid slots. */
 #dModal .det-quick-section[data-kind="schedule"]>h3{position:static;width:auto;margin:0 0 5px;line-height:18px}
 #dModal .det-inline-overlay>.schedule-compact-form:has(#det-qs-save)>.schedule-compact-footer:last-child{width:100%!important;max-width:none;justify-content:flex-end;box-sizing:border-box}

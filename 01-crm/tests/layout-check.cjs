@@ -6,7 +6,7 @@ const tests=[
  'cloud-sync.test.cjs','schedule-sync.test.cjs','customer-storage.browser.cjs',
  'property-purpose.browser.cjs','property-purpose-edge.browser.cjs',
  'schedule-property.browser.cjs','schedule-property-edge.browser.cjs','todo-property.browser.cjs',
- 'buyer-picker.browser.cjs','buyer-legacy-badge.browser.cjs','property-reselect.browser.cjs',
+ 'buyer-picker.browser.cjs','buyer-legacy-badge.browser.cjs','property-reselect.browser.cjs','property-picker-visible.browser.cjs',
  'schedule-compact.browser.cjs','schedule-click-target.browser.cjs','schedule-horizontal.browser.cjs','schedule-order.browser.cjs',
  'responsive-layout.browser.cjs','responsive-content.browser.cjs','schedule-spacing.browser.cjs','renewal-fold.browser.cjs',
  'detail-columns.browser.cjs','edit-property-tabs.browser.cjs',
