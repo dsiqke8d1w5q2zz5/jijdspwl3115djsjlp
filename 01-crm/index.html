@@ -809,12 +809,12 @@
         .ac-item:hover, .ac-item.active { background:var(--bg); }
         .ac-item b { color:var(--deep); }
     </style>
-    <link rel="stylesheet" href="image-composer.css?v=20261005audit166">
-    <link rel="stylesheet" href="area-editor.css?v=20261005audit166">
+    <link rel="stylesheet" href="image-composer.css?v=20261005audit167">
+    <link rel="stylesheet" href="area-editor.css?v=20261005audit167">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20261005audit166">
-    <link rel="stylesheet" href="responsive-layout.css?v=20261005audit166">
-<link rel="stylesheet" href="buyer-match.css?v=20261005audit166">
+    <link rel="stylesheet" href="ui-foundation.css?v=20261005audit167">
+    <link rel="stylesheet" href="responsive-layout.css?v=20261005audit167">
+<link rel="stylesheet" href="buyer-match.css?v=20261005audit167">
 </head>
 <body>
 
@@ -4965,7 +4965,7 @@ function typeDetail(origC, viewAs) {
             if (bd.downPayment) h += dRow('自備款', bd.downPayment + (bd.downPayment.includes('萬')?'':'萬'));
             if (bd.want) h += dRow('想要',bd.want);
             if (bd.noWant) h += dRow('不想要',bd.noWant);
-            if (bd.matchCriteria && window.BuyerMatchEngine) h += dRow('配對條件', BuyerMatchEngine.summary(bd));
+            if (bd.matchCriteria && window.BuyerMatchEngine) { const extra = BuyerMatchEngine.summary(bd, {advancedOnly:true}); if (extra) h += dRow('配對條件', extra); }
             return h;
         }
         if (demands && demands.length > 1) {
@@ -12479,7 +12479,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20261005audit166';
+var APP_VERSION = '20261005audit167';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13654,21 +13654,21 @@ function deleteMktTemplate(idx) {
 <script src="brand-banner.js?v=20260928sync1"></script>
 <script src="image-storage.js?v=20260928sync1"></script>
 <script src="image-redaction.js?v=20260928sync1"></script>
-<script src="image-studio.js?v=20261005audit166"></script>
+<script src="image-studio.js?v=20261005audit167"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
-<script src="image-ai.js?v=20261005audit166"></script>
-<script src="image-ai-editor.js?v=20261005audit166"></script>
-<script src="image-enhance.js?v=20261005audit166"></script>
-<script src="image-composer.js?v=20261005audit166"></script>
-<script src="area-editor.js?v=20261005audit166"></script>
-<script src="sync-notice.js?v=20261005audit166"></script>
-<script src="detail-properties.js?v=20261005audit166"></script>
-<script src="edit-layout.js?v=20261005audit166"></script>
-<script src="property-purpose.js?v=20261005audit166"></script>
-<script src="schedule-property.js?v=20261005audit166"></script>
-<script src="buyer-match-engine.js?v=20261005audit166"></script>
-<script src="buyer-demands.js?v=20261005audit166"></script>
-<script src="buyer-results.js?v=20261005audit166"></script>
-<script src="buyer-match.js?v=20261005audit166"></script>
+<script src="image-ai.js?v=20261005audit167"></script>
+<script src="image-ai-editor.js?v=20261005audit167"></script>
+<script src="image-enhance.js?v=20261005audit167"></script>
+<script src="image-composer.js?v=20261005audit167"></script>
+<script src="area-editor.js?v=20261005audit167"></script>
+<script src="sync-notice.js?v=20261005audit167"></script>
+<script src="detail-properties.js?v=20261005audit167"></script>
+<script src="edit-layout.js?v=20261005audit167"></script>
+<script src="property-purpose.js?v=20261005audit167"></script>
+<script src="schedule-property.js?v=20261005audit167"></script>
+<script src="buyer-match-engine.js?v=20261005audit167"></script>
+<script src="buyer-demands.js?v=20261005audit167"></script>
+<script src="buyer-results.js?v=20261005audit167"></script>
+<script src="buyer-match.js?v=20261005audit167"></script>
 </body>
 </html>

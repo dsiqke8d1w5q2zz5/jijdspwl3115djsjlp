@@ -22,3 +22,10 @@
 .card-name-line{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start}.card-name-line .card-name{display:block}.card-name-line .deal-count{display:inline-flex;vertical-align:middle;margin-left:5px}.card-name-line .card-auto-match{margin-top:3px}
 
 @media(max-width:768px){.card:has(.card-auto-match) .card-bottom-right{position:static;flex-basis:100%;margin-left:auto;align-items:flex-end}}
+
+/* Compact result cards: facts first, exceptions visible, detail on demand. */
+.bm-grid{align-items:start}.bm-card-top{display:flex;align-items:flex-start;gap:12px}.bm-card-info{flex:1;min-width:0}.bm-card h3{margin:0 0 3px}.bm-card p{margin:3px 0}.bm-card-top img{float:none;flex:0 0 110px;width:110px;height:84px;margin:0;object-fit:cover}.bm-card .bm-price{margin:5px 0 2px;overflow-wrap:anywhere}.bm-card-meta{display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 12px;margin-top:5px}.bm-history{margin:0}.bm-history summary,.bm-matched summary{cursor:pointer}.bm-history div{padding-top:4px;overflow-wrap:anywhere}.bm-conditions{display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 6px;margin:7px 0}.bm-conditions .bm-tag{margin:0}.bm-matched{font-size:12px;color:#526880}.bm-matched[open]{flex-basis:100%}.bm-matched>div{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}.bm-track{margin-top:8px;gap:10px;grid-template-columns:110px minmax(0,1fr)}.bm-track textarea{min-height:37px;line-height:1.5;resize:vertical}.bm-track select{min-height:37px}.bm-card footer{justify-content:flex-end;gap:7px;margin-top:9px;flex-wrap:wrap}.bm-image-missing{flex:0 0 110px;padding:12px 5px;background:#f0f4f8;border-radius:7px;font-size:12px;color:#64748b;text-align:center}
+@media(max-width:650px){.bm-card-top{gap:9px}.bm-card-top img{width:95px;height:76px;flex-basis:95px}.bm-track{grid-template-columns:100px minmax(0,1fr)}}
+@media(max-width:360px){.bm-track{grid-template-columns:1fr}.bm-card-top img{width:80px;height:70px;flex-basis:80px}.bm-image-missing{flex-basis:80px}}
+
+.bd-advanced-title{font-size:14px;font-weight:600;color:#173756}.bd-advanced-title span{font-size:12px;font-weight:400;color:#64748b;margin-left:8px}
