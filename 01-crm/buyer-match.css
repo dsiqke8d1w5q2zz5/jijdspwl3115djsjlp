@@ -16,3 +16,9 @@
 .bm-body>.bm-status{padding:5px 9px;margin:7px 0}.bm-body>#bmTimeline{background:transparent;padding:0;font-size:12px;color:#526880}.bm-auto{padding:7px 10px;margin:8px 0;gap:3px 12px}.bm-summary{margin:8px 0;padding:8px 10px}.bm-details{margin:6px 0}.bm-body>.bd-hint{margin:5px 0}.bm-count{margin:8px 0}.bm-filters+.bm-filters{margin-top:8px}
 
 .bm-heading{display:flex;align-items:center;flex-wrap:wrap;gap:4px 12px;flex:1;min-width:0}.bm-heading h2{flex:0 1 auto}.bm-heading #bmVersion{font-size:12px;font-weight:400;line-height:1.5;color:#526880;background:#eef4f8;border:1px solid #dce5ed;border-radius:6px;padding:3px 8px;overflow-wrap:anywhere;max-width:100%}.bm-dialog #bmClose{flex-shrink:0}
+
+.card-name-line{display:flex;align-items:center;flex-wrap:wrap;gap:5px 8px;min-width:0;width:100%}.card-name-line .card-name{white-space:normal;overflow-wrap:anywhere;min-width:0;flex:0 1 auto;flex-wrap:wrap;overflow:visible}.card-name-line .deal-count{flex-shrink:0}.card-auto-match{margin-left:auto;flex:0 0 auto;border:1px solid #bed3e5;border-radius:6px;background:#edf5fc;color:#285778;padding:3px 6px;font:400 12px/1.5 "Microsoft JhengHei",sans-serif;cursor:pointer}.card-auto-match:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
+
+.card-name-line{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start}.card-name-line .card-name{display:block}.card-name-line .deal-count{display:inline-flex;vertical-align:middle;margin-left:5px}.card-name-line .card-auto-match{margin-top:3px}
+
+@media(max-width:768px){.card:has(.card-auto-match) .card-bottom-right{position:static;flex-basis:100%;margin-left:auto;align-items:flex-end}}
