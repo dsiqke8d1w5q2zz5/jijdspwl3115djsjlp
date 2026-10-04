@@ -3,7 +3,7 @@ const {spawnSync}=require('node:child_process');
 const path=require('node:path');
 const root=path.resolve(__dirname,'../..');
 const tests=[
- 'cloud-sync.test.cjs','schedule-sync.test.cjs','customer-storage.browser.cjs',
+ 'buyer-match.test.cjs','buyer-match.browser.cjs','cloud-sync.test.cjs','schedule-sync.test.cjs','customer-storage.browser.cjs',
  'property-purpose.browser.cjs','property-purpose-edge.browser.cjs',
  'schedule-property.browser.cjs','schedule-property-edge.browser.cjs','todo-property.browser.cjs',
  'buyer-picker.browser.cjs','buyer-legacy-badge.browser.cjs','property-reselect.browser.cjs','property-picker-visible.browser.cjs',

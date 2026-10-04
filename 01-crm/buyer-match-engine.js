@@ -1,0 +1,20 @@
+(function(root){
+'use strict';
+const num=v=>v===null||v===undefined||String(v).trim()===''?null:Number.isFinite(Number(String(v).replace(/,/g,'')))?Number(String(v).replace(/,/g,'')):null;
+function evaluate(d,p){const m=d.matchCriteria||{},yes=[],pending=[],no=[];function check(label,known,pass){(known?(pass?yes:no):pending).push(label);}
+ const cities=(d.areaCities||[d.areaCity]).filter(x=>x&&x!=='其他縣市'),districts=Array.isArray(d.areaDists)?d.areaDists:String(d.areaDists||'').split(',').filter(Boolean);
+ if(cities.length)check('縣市',!!p.city,cities.some(x=>x.replaceAll('臺','台')===p.city));if(districts.length)check('行政區',!!p.district,districts.includes(p.district));if(d.areaOther)pending.push('其他區域：'+d.areaOther);
+ const legacy=String(d.roomTypes||'').split(',');const rooms=m.rooms||legacy.flatMap(x=>x==='套房'?['1']:x==='二房'?['2']:x==='三房+'?['3+']:[]),types=m.types||legacy.filter(x=>['公寓','透天'].includes(x));
+ let budgetMax=d.budgetMax,budgetMin=d.budgetMin;if(!budgetMax&&!budgetMin&&d.budget){const parts=String(d.budget).replace(/萬/g,'').split(/[-~～]/);if(parts.length===2){budgetMin=parts[0];budgetMax=parts[1];}else pending.push('舊預算未指定上下限');}
+ for(const [key,min,max,label] of [['price',budgetMin,budgetMax,'總價'],[m.areaBasis==='main'?'mainArea':'area',m.areaMin,m.areaMax,m.areaBasis==='main'?'主建物坪數':'建坪'],['age',null,m.ageMax,'屋齡'],['floor',m.floorMin,m.floorMax,'樓層']]){const lo=num(min),hi=num(max);if(lo!==null||hi!==null)check(label,num(p[key])!==null,(lo===null||num(p[key])>=lo)&&(hi===null||num(p[key])<=hi));}
+ if(rooms.length)check('房間數',num(p.rooms)!==null,rooms.some(x=>x.endsWith('+')?p.rooms>=Number(x.slice(0,-1)):p.rooms===Number(x)));
+ if(types.length)check('房屋類型',!!p.type,types.some(x=>p.type.includes(x)||(x==='電梯大樓'&&p.type==='大樓')||(x==='透天'&&p.type.includes('透天'))));
+ if(m.legacyTypes)pending.push('舊房型待細分');if(m.parking)check('車位',typeof p.parking==='boolean',p.parking===true);if(m.parking==='flat')check('平面車位',!!p.parkingType,/平面/.test(p.parkingType));
+ if(m.elevator)check('電梯',typeof p.elevator==='boolean',p.elevator===(m.elevator==='yes'));
+ if(m.exclude?.includes('first'))check('非1樓',num(p.floor)!==null,p.floor!==1);if(m.exclude?.includes('top'))check('非頂樓',num(p.floor)!==null&&num(p.totalFloors)!==null,p.floor!==p.totalFloors);if(m.exclude?.includes('basement'))check('非地下室',num(p.floor)!==null,p.floor>0);
+ if(m.keywords){const words=m.keywords.split(/[,，、\n]/).map(x=>x.trim()).filter(Boolean);check('社區／路段',!!(p.address||p.community),words.some(w=>(p.address+' '+p.community+' '+p.title).includes(w)));}
+ if(d.want)pending.push('偏好需核對：'+d.want);if(d.noWant)pending.push('排除事項需核對：'+d.noWant);if(!yes.length&&!no.length)pending.push('尚未設定可比對條件');if(p.stale)pending.push('來源更新失敗，待確認現況');return {yes,pending,no,status:no.length?'excluded':pending.length?'pending':'matched'};
+}
+function summary(d){const m=d.matchCriteria||{},out=[d.areaDisplay||[...(d.areaCities||[]),...(d.areaDists||[])].join('、'),d.roomTypes,(d.budgetMin||d.budgetMax)?(d.budgetMin||'不限')+'～'+(d.budgetMax||'不限')+'萬':d.budget?d.budget+'萬':'預算不限'];if(m.areaMin||m.areaMax)out.push((m.areaBasis==='main'?'主建物':'建坪')+' '+(m.areaMin||'不限')+'～'+(m.areaMax||'不限')+'坪');if(m.ageMax)out.push(m.ageMax+'年內');if(m.floorMin||m.floorMax)out.push((m.floorMin||'不限')+'～'+(m.floorMax||'不限')+'樓');if(m.parking)out.push(m.parking==='flat'?'平面車位':'需車位');if(m.elevator)out.push(m.elevator==='yes'?'需電梯':'不需電梯');if(m.exclude?.length)out.push(m.exclude.map(x=>({first:'排除1樓',top:'排除頂樓',basement:'排除地下室'}[x])).join('、'));if(m.keywords)out.push(m.keywords);return out.filter(Boolean).join('｜');}
+const api={evaluate,summary};if(typeof module!=='undefined')module.exports=api;root.BuyerMatchEngine=api;
+})(typeof window==='undefined'?globalThis:window);
