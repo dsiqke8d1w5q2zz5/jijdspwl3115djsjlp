@@ -1,0 +1,10 @@
+(function(root){
+'use strict';
+const norm=v=>String(v||'').normalize('NFKC').replaceAll('臺','台').replace(/[\s,，]/g,'');
+const num=v=>v==null||String(v).trim()===''?null:Number.isFinite(Number(v))?Number(v):null;
+function facts(p){const address=norm(p.address),city=norm(p.city)||address.match(/^(.*?[市縣])/)?.[1],district=norm(p.district)||address.match(/^[^市縣]+[市縣]([^市縣]+?[區鄉鎮市])/)?.[1];const local=address.replace(city||'','').replace(district||'','');const road=local.match(/^(.+?(?:路|街|大道)(?:[一二三四五六七八九十\d]+段)?(?:\d+巷)?(?:\d+弄)?)/)?.[1]||'';const number=local.match(/(\d+(?:之\d+)?號)/)?.[1]||'';return {city,district,road,number,community:norm(p.community),area:num(p.area),floor:num(p.floor),age:num(p.age),price:num(p.price)};}
+function same(a,b){const x=facts(a),y=facts(b);if(!x.city||!x.district||x.city!==y.city||x.district!==y.district)return false;if(!((x.road&&x.road===y.road)||(x.community&&x.community===y.community)))return false;if(x.number&&y.number&&x.number!==y.number)return false;return ['area','floor','age','price'].every(k=>x[k]!==null&&y[k]!==null)&&x.area>0&&x.price>0&&x.floor===y.floor&&x.price===y.price&&Math.abs(x.area-y.area)<=0.10000001&&Math.abs(x.age-y.age)<=1;}
+// Complete-link comparison prevents chained near-matches from merging distant endpoints.
+function group(rows){const groups=[],buckets=new Map();for(const row of rows){const f=facts(row.p),key=[f.city,f.district,f.floor,f.price].join('|'),candidates=buckets.get(key)||[];const g=candidates.find(g=>g.every(other=>same(row.p,other.p)));if(g)g.push(row);else{const fresh=[row];groups.push(fresh);candidates.push(fresh);buckets.set(key,candidates);}}return groups;}
+const api={same,group};if(typeof module!=='undefined')module.exports=api;root.BuyerGrouping=api;
+})(typeof window==='undefined'?globalThis:window);
