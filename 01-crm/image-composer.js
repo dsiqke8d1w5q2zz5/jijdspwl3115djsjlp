@@ -2,7 +2,7 @@
 (function () {
     'use strict';
     const state = { bg:null, original:null, matte:null, person:null, x:.22, y:.72, size:.5, flip:false, busy:false, sequence:0, bgSequence:0, active:null, placements:new Map(), exporting:false };
-    let dialog, previousFocus, segmenterPromise, drag, studio, enhancement, redaction, externalBusy=false, restoring=false;
+    let dialog, previousFocus, segmenterPromise, drag, studio, enhancement, aiEditor, redaction, externalBusy=false, restoring=false;
     const photoSettings=new Map(),photoAux=new Map();let defaultAux={second:null,logo:null};let defaultSettings=null,history=[],historyIndex=-1,historyTimer,historyDirty=true;
     const busy=()=>state.busy||state.exporting||externalBusy;
     let defaultPlacement={x:.22,y:.72,size:.5,flip:false};
@@ -10,7 +10,7 @@
     function status(message, error) { $('icStatus').textContent=message; $('icStatus').dataset.error=!!error; }
     function enabled(){return $('icUsePerson').checked;}
     function controls() {
-        const working=busy();enhancement?.sync();
+        const working=busy();enhancement?.sync();aiEditor?.sync();
         if(dialog){dialog.querySelectorAll('.ic-controls input,.ic-controls select,.ic-controls textarea,.ic-controls button,.ic-photos button,#icEditScope').forEach(el=>el.inert=working&&el.id!=='icCancel');}
         $('icDownload').disabled=!state.bg||working||(enabled()&&!state.person);
         $('icAll').disabled=$('icDownload').disabled||_itFiles.length<2;
@@ -263,6 +263,15 @@
         studio=ImageStudio.mount({render,flush:flushHistory,status,decode,busy,lock:value=>{externalBusy=value;controls();if(!value){studio?.afterRender();scheduleHistory();}},getPerson:()=>state.person,getOriginal:()=>state.original,getFullPerson:()=>state.fullPerson,hasPhoto:()=>!!state.bg,setPerson:(full,original)=>{flushHistory();const person=trim(full);state.person=person;state.original=original;state.fullPerson=full;$('icPersonName').textContent='已載入人物素材';const thumb=$('icThumb');thumb.width=person.width;thumb.height=person.height;thumb.getContext('2d').drawImage(person,0,0);thumb.hidden=false;}});
         redaction=ImageRedaction.mount({id:()=>state.active,frameKey:()=>frameKey(),busy,flush:flushHistory,changed:()=>{render();flushHistory();},preview:()=>draw($('icCanvas')),status});
         enhancement=ImageEnhance.mount({render,flush:flushHistory,busy,hasPhoto:()=>!!state.bg,preview:()=>{draw($('icCanvas'));studio.afterRender();}});
+        aiEditor=ImageAIEditor.mount({source:()=>state.bg,name:()=>_itFiles.find(f=>f.id===state.active)?.name||'房屋照片',busy,lock:value=>{externalBusy=value;controls();},adopt:async(output,mode)=>{
+            const original=_itFiles.find(f=>f.id===state.active);if(!original)throw Error('原照片已移除');
+            const blob=await ImageStorage.blob(output),url=URL.createObjectURL(blob),img=new Image();try{img.src=url;await img.decode();}catch(error){URL.revokeObjectURL(url);throw error;}
+            flushHistory();remember();const id='it'+(++_itSeq),saved=layoutSnapshot();saved.values.itMax='0';
+            _itFiles.push({id,name:original.name.replace(/\.[^.]+$/,'')+(mode==='remove'?'_AI去雜物':'_AI修復')+'.png',url,w:img.width,h:img.height,img});
+            photoSettings.set(id,saved);photoAux.set(id,studio.aux());state.placements.set(id,{x:state.x,y:state.y,size:state.size,flip:state.flip});
+            const masks=redaction.snapshot(),originalMask=masks.find(row=>row[0]===original.id);if(originalMask){masks.push([id,JSON.parse(JSON.stringify(originalMask[1])),originalMask[2]]);redaction.restore(masks);}
+            $('icEditScope').value='current';state.active=id;state.bg=img;restoreControls(saved);refresh();resetHistory();status('AI 成品已加入，原圖仍保留在照片清單。');
+        }});
         buildTabs();
         const naming=document.createElement('div');naming.innerHTML='<label class="it-lb" for="icDownloadName">下載名稱</label><input id="icDownloadName" class="it-in" maxlength="80" placeholder="例如：帝王別墅"><p class="ic-note">填寫後依照片順序命名為「帝王別墅_01」；留空保留原檔名。</p>';$('icOutput').append(naming);
         $('icUndo').onclick=()=>undoRedo(-1);$('icRedo').onclick=()=>undoRedo(1);

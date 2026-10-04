@@ -1,25 +1,28 @@
-var CACHE_NAME = 'crm-v20261004audit154';
+var CACHE_NAME = 'crm-v20261004audit155';
 var URLS_TO_CACHE = [
   './',
   './index.html',
-  './ui-foundation.css?v=20261004audit154',
-  './responsive-layout.css?v=20261004audit154',
-  './detail-properties.js?v=20261004audit154',
-  './edit-layout.js?v=20261004audit154',
-  './property-purpose.js?v=20261004audit154',
-  './schedule-property.js?v=20261004audit154',
-  './sync-notice.js?v=20261004audit154',
+  './ui-foundation.css?v=20261004audit155',
+  './responsive-layout.css?v=20261004audit155',
+  './detail-properties.js?v=20261004audit155',
+  './edit-layout.js?v=20261004audit155',
+  './property-purpose.js?v=20261004audit155',
+  './schedule-property.js?v=20261004audit155',
+  './sync-notice.js?v=20261004audit155',
   './image-storage.js?v=20260928sync1',
   './image-redaction.js?v=20260928sync1',
-  './image-studio.js?v=20261004audit154',
+  './image-studio.js?v=20261004audit155',
   './image-layouts.js?v=20260928sync1',
   './brand-banner.js?v=20260928sync1',
   './portrait-matting.js?v=20260928sync1',
-  './image-enhance.js?v=20261004audit154',
-  './image-composer.js?v=20261004audit154',
-  './image-composer.css?v=20261004audit154',
-  './area-editor.js?v=20261004audit154',
-  './area-editor.css?v=20261004audit154',
+  './image-ai.js?v=20261004audit155',
+  './image-ai-editor.js?v=20261004audit155',
+  './image-ai-licenses.txt',
+  './image-enhance.js?v=20261004audit155',
+  './image-composer.js?v=20261004audit155',
+  './image-composer.css?v=20261004audit155',
+  './area-editor.js?v=20261004audit155',
+  './area-editor.css?v=20261004audit155',
   './transcript-parser.js?v=20260917audit1',
   './transcript-import.js?v=20260927center1',
   './transcript-import.css?v=20260927center1'
@@ -38,7 +41,7 @@ self.addEventListener('activate', function(e) {
   e.waitUntil(
     caches.keys().then(function(names) {
       return Promise.all(
-        names.filter(function(n) { return n !== CACHE_NAME && n !== 'crm-model-matting-v1'; })
+        names.filter(function(n) { return n !== CACHE_NAME && n !== 'crm-model-matting-v1' && n !== 'crm-model-photo-ai-v1'; })
              .map(function(n) { return caches.delete(n); })
       );
     })
