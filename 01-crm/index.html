@@ -809,12 +809,12 @@
         .ac-item:hover, .ac-item.active { background:var(--bg); }
         .ac-item b { color:var(--deep); }
     </style>
-    <link rel="stylesheet" href="image-composer.css?v=20261004audit160">
-    <link rel="stylesheet" href="area-editor.css?v=20261004audit160">
+    <link rel="stylesheet" href="image-composer.css?v=20261005audit161">
+    <link rel="stylesheet" href="area-editor.css?v=20261005audit161">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20261004audit160">
-    <link rel="stylesheet" href="responsive-layout.css?v=20261004audit160">
-<link rel="stylesheet" href="buyer-match.css?v=20261004audit160">
+    <link rel="stylesheet" href="ui-foundation.css?v=20261005audit161">
+    <link rel="stylesheet" href="responsive-layout.css?v=20261005audit161">
+<link rel="stylesheet" href="buyer-match.css?v=20261005audit161">
 </head>
 <body>
 
@@ -847,7 +847,6 @@
         <div style="position:relative">
             <button class="header-btn" onclick="toggleHeaderMore()" id="headerMoreBtn" data-hover-color="#57534E" aria-label="更多選項" title="更多選項"><i class="ti ti-dots" style="font-size:18px"></i></button>
             <div id="headerMoreMenu" style="display:none;position:absolute;top:100%;right:0;margin-top:6px;background:white;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,0.15);border-top:3px solid #8B7355;min-width:180px;padding:6px 0;z-index:200">
-                <button onclick="BuyerMatching.open();closeHeaderMore()" style="width:100%;padding:10px 16px;border:0;background:none;text-align:left;font:inherit;color:#173756">買方需求配對</button>
                 <button onclick="openTrash();closeHeaderMore()" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 16px;border:none;background:none;cursor:pointer;font-size:14px;color:#1C1917;font-family:inherit;text-align:left"><i class="ti ti-trash" style="font-size:18px;color:#DC2626"></i> 資源回收桶<span id="trashCount" style="font-size:11px;margin-left:2px"></span></button>
                 <button onclick="cloudRestore();closeHeaderMore()" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 16px;border:none;background:none;cursor:pointer;font-size:14px;color:#1C1917;font-family:inherit;text-align:left"><i class="ti ti-cloud-download" style="font-size:18px;color:#2563EB"></i> 雲端還原</button>
                 <div style="height:1px;background:#E7E5E4;margin:4px 12px"></div>
@@ -865,7 +864,6 @@
         <div id="importTime"></div>
     </div>
     <div class="mobile-setting-menu" id="mobileSettingMenu">
-        <button onclick="closeMobileSetting();BuyerMatching.open()">買方需求配對</button>
         <button onclick="closeMobileSetting();openImgTool()">圖片工具</button>
         <button onclick="closeMobileSetting();TranscriptImport.openStandalone()">謄本分析工具</button>
         <button onclick="openTrash();closeMobileSetting()"><i class="ti ti-trash" style="font-size:16px;color:#DC2626"></i> 資源回收桶</button>
@@ -939,6 +937,7 @@
             <div class="main-bar">
                 <h2 id="filterTitle" style="display:none">全部客戶</h2>
                 <span class="archive-toggle" id="archiveToggle" style="display:none" onclick="toggleShowArchived()">顯示封存</span>
+                <button id="buyerMatchEntry" class="sort-sel" type="button" onclick="BuyerMatching.open()" hidden>買方需求配對</button>
                 <select class="sort-sel" id="sortSel" onchange="render()" style="margin-left:auto">
                     <option value="newest">最新加入</option>
                     <option value="oldest">最早加入</option>
@@ -3719,6 +3718,7 @@ function setFilter(type, btn) {
         if (si) { si.value = ''; }
     }
     curFilter = type;
+    document.getElementById('buyerMatchEntry').hidden = type !== '經營買方';
     showThisMonthMode = false;
     var _ms = document.querySelector('.main-scroll'); if (_ms) _ms.scrollTop = 0;
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -12479,7 +12479,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20261004audit160';
+var APP_VERSION = '20261005audit161';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13654,20 +13654,20 @@ function deleteMktTemplate(idx) {
 <script src="brand-banner.js?v=20260928sync1"></script>
 <script src="image-storage.js?v=20260928sync1"></script>
 <script src="image-redaction.js?v=20260928sync1"></script>
-<script src="image-studio.js?v=20261004audit160"></script>
+<script src="image-studio.js?v=20261005audit161"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
-<script src="image-ai.js?v=20261004audit160"></script>
-<script src="image-ai-editor.js?v=20261004audit160"></script>
-<script src="image-enhance.js?v=20261004audit160"></script>
-<script src="image-composer.js?v=20261004audit160"></script>
-<script src="area-editor.js?v=20261004audit160"></script>
-<script src="sync-notice.js?v=20261004audit160"></script>
-<script src="detail-properties.js?v=20261004audit160"></script>
-<script src="edit-layout.js?v=20261004audit160"></script>
-<script src="property-purpose.js?v=20261004audit160"></script>
-<script src="schedule-property.js?v=20261004audit160"></script>
-<script src="buyer-match-engine.js?v=20261004audit160"></script>
-<script src="buyer-demands.js?v=20261004audit160"></script>
-<script src="buyer-match.js?v=20261004audit160"></script>
+<script src="image-ai.js?v=20261005audit161"></script>
+<script src="image-ai-editor.js?v=20261005audit161"></script>
+<script src="image-enhance.js?v=20261005audit161"></script>
+<script src="image-composer.js?v=20261005audit161"></script>
+<script src="area-editor.js?v=20261005audit161"></script>
+<script src="sync-notice.js?v=20261005audit161"></script>
+<script src="detail-properties.js?v=20261005audit161"></script>
+<script src="edit-layout.js?v=20261005audit161"></script>
+<script src="property-purpose.js?v=20261005audit161"></script>
+<script src="schedule-property.js?v=20261005audit161"></script>
+<script src="buyer-match-engine.js?v=20261005audit161"></script>
+<script src="buyer-demands.js?v=20261005audit161"></script>
+<script src="buyer-match.js?v=20261005audit161"></script>
 </body>
 </html>
