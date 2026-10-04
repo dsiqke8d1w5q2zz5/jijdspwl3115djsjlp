@@ -112,7 +112,7 @@ function compactResultCards(){
   let photo=top.querySelector('img');if(!photo){photo=document.createElement('span');photo.className='bm-image-missing';photo.textContent='暫無照片';}photo.classList.add('bm-thumb');
   const head=document.createElement('div');head.className='bm-row-main';head.append(title,price,status,save);
   const sub=document.createElement('div');sub.className='bm-row-sub';const sourceLabel=meta.querySelector('span');sourceLabel.textContent=sourceLabel.textContent.replace(' · 新增配對','');sub.append(address,facts,sourceLabel);
-  const detail=document.createElement('details');detail.className='bm-row-details';const toggle=document.createElement('summary');toggle.textContent='詳情';const panel=document.createElement('div');panel.className='bm-row-panel';detail.append(toggle,panel);
+  const detail=document.createElement('details');detail.className='bm-row-details';const toggle=document.createElement('summary');toggle.textContent='詳情';toggle.hidden=true;const detailButton=document.createElement('button');detailButton.type='button';detailButton.className='bm-detail-button';detailButton.textContent='詳情';detailButton.setAttribute('aria-expanded','false');detailButton.onclick=()=>{detail.open=!detail.open;detailButton.setAttribute('aria-expanded',String(detail.open));};head.append(detailButton);const panel=document.createElement('div');panel.className='bm-row-panel';detail.append(toggle,panel);
   panel.append(card.querySelector('.bm-conditions'),meta.querySelector('.bm-history'),track,card.querySelector('footer'));track.firstElementChild.remove();
   top.remove();meta.remove();card.replaceChildren(photo,head,sub,detail);mark(card,[listings.get(card.dataset.id)||{}]);
  });
