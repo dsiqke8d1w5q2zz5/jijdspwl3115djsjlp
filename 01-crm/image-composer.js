@@ -267,7 +267,7 @@
             const original=_itFiles.find(f=>f.id===state.active);if(!original)throw Error('原照片已移除');
             const blob=await ImageStorage.blob(output),url=URL.createObjectURL(blob),img=new Image();try{img.src=url;await img.decode();}catch(error){URL.revokeObjectURL(url);throw error;}
             flushHistory();remember();const id='it'+(++_itSeq),saved=layoutSnapshot();saved.values.itMax='0';
-            _itFiles.push({id,name:original.name.replace(/\.[^.]+$/,'')+(mode==='remove'?'_AI去雜物':'_AI修復')+'.png',url,w:img.width,h:img.height,img});
+            _itFiles.push({id,name:original.name.replace(/\.[^.]+$/,'')+'_AI去雜物'+'.png',url,w:img.width,h:img.height,img});
             photoSettings.set(id,saved);photoAux.set(id,studio.aux());state.placements.set(id,{x:state.x,y:state.y,size:state.size,flip:state.flip});
             const masks=redaction.snapshot(),originalMask=masks.find(row=>row[0]===original.id);if(originalMask){masks.push([id,JSON.parse(JSON.stringify(originalMask[1])),originalMask[2]]);redaction.restore(masks);}
             $('icEditScope').value='current';state.active=id;state.bg=img;restoreControls(saved);refresh();resetHistory();status('AI 成品已加入，原圖仍保留在照片清單。');

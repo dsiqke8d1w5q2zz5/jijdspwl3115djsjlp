@@ -1,28 +1,28 @@
-var CACHE_NAME = 'crm-v20261004audit156';
+var CACHE_NAME = 'crm-v20261004audit157';
 var URLS_TO_CACHE = [
   './',
   './index.html',
-  './ui-foundation.css?v=20261004audit156',
-  './responsive-layout.css?v=20261004audit156',
-  './detail-properties.js?v=20261004audit156',
-  './edit-layout.js?v=20261004audit156',
-  './property-purpose.js?v=20261004audit156',
-  './schedule-property.js?v=20261004audit156',
-  './sync-notice.js?v=20261004audit156',
+  './ui-foundation.css?v=20261004audit157',
+  './responsive-layout.css?v=20261004audit157',
+  './detail-properties.js?v=20261004audit157',
+  './edit-layout.js?v=20261004audit157',
+  './property-purpose.js?v=20261004audit157',
+  './schedule-property.js?v=20261004audit157',
+  './sync-notice.js?v=20261004audit157',
   './image-storage.js?v=20260928sync1',
   './image-redaction.js?v=20260928sync1',
-  './image-studio.js?v=20261004audit156',
+  './image-studio.js?v=20261004audit157',
   './image-layouts.js?v=20260928sync1',
   './brand-banner.js?v=20260928sync1',
   './portrait-matting.js?v=20260928sync1',
-  './image-ai.js?v=20261004audit156',
-  './image-ai-editor.js?v=20261004audit156',
+  './image-ai.js?v=20261004audit157',
+  './image-ai-editor.js?v=20261004audit157',
   './image-ai-licenses.txt',
-  './image-enhance.js?v=20261004audit156',
-  './image-composer.js?v=20261004audit156',
-  './image-composer.css?v=20261004audit156',
-  './area-editor.js?v=20261004audit156',
-  './area-editor.css?v=20261004audit156',
+  './image-enhance.js?v=20261004audit157',
+  './image-composer.js?v=20261004audit157',
+  './image-composer.css?v=20261004audit157',
+  './area-editor.js?v=20261004audit157',
+  './area-editor.css?v=20261004audit157',
   './transcript-parser.js?v=20260917audit1',
   './transcript-import.js?v=20260927center1',
   './transcript-import.css?v=20260927center1'
@@ -44,6 +44,12 @@ self.addEventListener('activate', function(e) {
         names.filter(function(n) { return n !== CACHE_NAME && n !== 'crm-model-matting-v1' && n !== 'crm-model-photo-ai-v1'; })
              .map(function(n) { return caches.delete(n); })
       );
+    }).then(function() {
+      return caches.open('crm-model-photo-ai-v1').then(function(cache) {
+        return cache.keys().then(function(keys) {
+          return Promise.all(keys.filter(function(key) { return new URL(key.url).pathname.endsWith('/realesrgan-x4.onnx'); }).map(function(key) { return cache.delete(key); }));
+        });
+      });
     })
   );
   self.clients.claim();
