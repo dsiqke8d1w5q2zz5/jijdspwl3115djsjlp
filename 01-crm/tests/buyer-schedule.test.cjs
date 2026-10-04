@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict');
+global.BuyerMatchEngine={evaluate:(_,p)=>({status:p.excluded?'excluded':'matched'})};
+require('../buyer-schedule.js');
+const now=new Date(2026,9,5,10),stamp=now.toISOString();
+const c={id:'a',buyerMatching:{auto:true},bDemands:[{}]},p={id:'591:a',firstMatchedAt:stamp};
+let saves=0;const save=()=>{saves++;return true;};
+assert(BuyerSchedule.sync(c,[p],save,now));assert.equal(c.schedules[0].date,'2026-10-05');assert.equal(c.schedules[0].memo,'有 New 物件');
+assert(!BuyerSchedule.sync(c,[p],save,now));assert.equal(saves,1);
+c.schedules[0]._deleted=true;assert(!BuyerSchedule.sync(c,[p],save,now));assert(c.schedules[0]._deleted);
+const drop={...p,priceDroppedAt:new Date(+now+1000).toISOString()};assert(BuyerSchedule.sync(c,[drop],save,now));assert.equal(c.schedules.length,1);assert.equal(c.schedules[0].memo,'有 New、Down 物件');assert(!c.schedules[0]._deleted);
+assert(!BuyerSchedule.sync(c,[drop],save,new Date(2026,9,6,10)));
+const next={...drop,priceDroppedAt:new Date(2026,9,6,10).toISOString()};assert(BuyerSchedule.sync(c,[next],save,new Date(2026,9,6,10)));assert.equal(c.schedules[1].memo,'有 Down 物件');
+const manual={id:'b',buyerMatching:{auto:false}};assert(!BuyerSchedule.sync(manual,[p],save,now));
+const fail={id:'c',buyerMatching:{auto:true}};assert(!BuyerSchedule.sync(fail,[p],()=>false,now));assert.equal(fail.schedules,undefined);
+assert(!BuyerSchedule.sync(fail,[{...p,excluded:true}],save,now));
+console.log('PASS daily New/Down, deduplication, completion, fresh events, next day, manual isolation, save rollback, excluded rows');

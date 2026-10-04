@@ -53,3 +53,8 @@
 .bm-row-main>button.bm-save-heart{width:32px;padding:4px;background:transparent;border-color:transparent;color:#718398}.bm-save-heart svg{display:block;width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linejoin:round}.bm-row-main>button.bm-save-heart:hover{background:#fff0f0;color:#b42318}.bm-row-main>button.bm-save-heart[aria-pressed="true"]{color:#c62828}.bm-save-heart[aria-pressed="true"] svg{fill:currentColor}
 
 .bm-toolbar #bmFavorites{margin-left:auto;white-space:nowrap;color:#a82c2c;border-color:#e6c8c8}.bm-toolbar #bmFavorites[aria-pressed="true"]{background:#fee4e2;border-color:#d99595}
+
+/* Share the actions' right edge, reserving space only when a scrollbar exists. */
+.bm-body>#bmResults{scrollbar-gutter:auto;padding-right:0}
+.bm-toolbar,.bm-result-filters{padding-right:calc(var(--bm-scrollbar,0px) + 11px)}
+.bm-property-group>.bm-variants{margin-right:0}

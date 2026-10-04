@@ -6,7 +6,7 @@ const delay=ms=>new Promise(r=>setTimeout(r,ms));
 function cleanDemands(ds){if(!Array.isArray(ds)||!ds.length)throw Error('請先填寫買方需求');return ds.map(d=>Object.fromEntries(FIELDS.filter(k=>d[k]!==undefined).map(k=>[k,d[k]])));}
 // Only verified native filters are sent; preferences remain local ranking criteria.
 function tasksFor(ds){const tasks=new Map(),valid=v=>/^\d+(?:\.\d+)?$/.test(String(v??''))?String(v):'';
- for(const d of ds){const m=d.matchCriteria||{},required=label=>!m.optional?.includes(label),words=required('社區／路段')?[...new Set(String(m.keywords||'').split(/[,，、\n]/).map(x=>x.trim()).filter(Boolean))]:[],types=m.types||String(d.roomTypes||'').split(','),apartment=required('房屋類型')&&types.length===1&&types[0]==='公寓';
+ for(const d of ds){const m=d.matchCriteria||{},required=label=>!m.optional?.includes(label),words=required('社區／路段')?[...new Set(String(m.keywords||'').split(/[,，、\n]/).map(x=>x.trim()).filter(Boolean))]:[];
  const lo=valid(d.budgetMin),hi=valid(d.budgetMax),amin=required('建坪')&&m.areaBasis!=='main'?valid(m.areaMin):'',amax=required('建坪')&&m.areaBasis!=='main'?valid(m.areaMax):'',fmin=required('樓層')?valid(m.floorMin):'',fmax=required('樓層')?valid(m.floorMax):'',age=required('屋齡')?valid(m.ageMax):'';
  const areas=CRM_AREAS.filter(a=>(!d.areaCities?.length||d.areaCities.includes(a.city))&&(!d.areaDists?.length||d.areaDists.includes(a.district)));
  for(const a of areas)for(const word of words.length?words:['']){const yc=[encodeURIComponent(a.city+'-'+a.district)+'_c'],sy=[(a.city==='台北市'?'Taipei':'NewTaipei')+'-city',a.zip+'-zip'],u=new URL('https://sale.591.com.tw/?shType=list&regionid='+(a.city==='台北市'?'1':'3'));
@@ -14,7 +14,7 @@ function tasksFor(ds){const tasks=new Map(),valid=v=>/^\d+(?:\.\d+)?$/.test(Stri
  if(amin||amax){yc.push(amin+'-'+amax+'_pin');sy.push((amin||'min')+'-'+(amax||'up')+'-area');}
  if(fmin||fmax){yc.push(fmin+'-'+fmax+'_fr');sy.push((fmin||'min')+'-'+(fmax||'up')+'-floor');if(fmin&&fmax)u.searchParams.set('floor',fmin+'_'+fmax);}
  if(age){yc.push('-'+age+'_age');sy.push('0-'+age+'-year');}
- if(apartment){yc.push(encodeURIComponent('無電梯公寓')+'_type');sy.push('apartment-type');u.searchParams.set('shape','1');}
+ // Usage labels (shop/office/mixed use) may describe an apartment too. Check locally after retrieval.
  if(word){yc.push(encodeURIComponent(word)+'_kw');sy.push(encodeURIComponent(word)+'-keyword');u.searchParams.set('keywords',word);}
  const urls={yungching:'https://buy.yungching.com.tw/list/'+yc.join('/'),sinyi:'https://www.sinyi.com.tw/buy/list/'+sy.join('/')+'/default-desc/1','591':u.href};
  for(const [source,url]of Object.entries(urls)){const key=source+':'+a.zip+':'+url;tasks.set(key,{key,source,url,city:a.city,district:a.district,keyword:word,first:true,visited:[],lastIds:[]});}}

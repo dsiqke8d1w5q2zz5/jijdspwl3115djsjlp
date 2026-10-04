@@ -1,0 +1,21 @@
+const assert=require('node:assert/strict'),fs=require('fs'),path=require('path'),{chromium}=require(process.env.PLAYWRIGHT_MODULE);
+(async()=>{const b=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});try{
+ const p=await b.newPage({viewport:{width:1440,height:1000}}),errors=[];p.on('pageerror',e=>errors.push(e.message));
+ const feed={schema:1,generatedAt:new Date().toISOString(),sources:[{id:'591',status:'ok'}],listings:[{id:'591:test',source:'591',title:'板橋公寓一樓',city:'新北市',district:'板橋區',address:'新北市板橋區民權路202巷',price:1988,area:23.23,age:52,floor:1,url:'https://sale.591.com.tw/home/house/detail/2/test.html'}]};
+ await p.route('https://**/*',r=>r.abort());
+ await p.route('http://localhost:43123/**',async r=>{const name=new URL(r.request().url()).pathname;if(name.endsWith('buyer-feed.json')){await new Promise(resolve=>setTimeout(resolve,400));return r.fulfill({json:feed});}const f=path.resolve('01-crm','.'+name),ext=path.extname(f);return r.fulfill({contentType:ext==='.html'?'text/html':ext==='.js'?'text/javascript':ext==='.css'?'text/css':'application/octet-stream',body:fs.readFileSync(f)});});
+ await p.addInitScript(()=>{window.addEventListener('message',e=>{if(e.data?.channel!=='CRM_BUYER_REQUEST')return;const {id,type,payload}=e.data;const result=type==='hello'?{version:3,extensionVersion:'1.2.3'}:type==='sync'?{saved:payload.length}:{};window.postMessage({channel:'CRM_BUYER_RESPONSE',id,result},'*');});});
+ await p.goto('http://localhost:43123/index.html');
+ await p.evaluate(()=>{DB=[{id:'a',name:'示意買方',types:['經營買方'],type:'經營買方',bDemands:[{areaCities:['新北市'],areaDists:['板橋區']}],buyerMatching:{auto:true}},{id:'b',name:'未開啟自動配對',types:['經營買方'],type:'經營買方',buyerMatching:{auto:false}}];persist();render();});
+ await p.waitForFunction(()=>DB[0].schedules?.length===1);assert.equal(await p.evaluate(()=>DB[0].schedules[0].memo),'有 New 物件');assert.equal(await p.evaluate(()=>DB[1].schedules?.length||0),0);
+ assert.equal(await p.locator('#buyerMatchDialog').count(),0,'background ingest without opening dialog');
+ await p.evaluate(()=>{const c=DB[0],row=BuyerResults.rows(c)[0];BuyerResults.ingest(c,{schema:1,generatedAt:new Date(Date.now()+1000).toISOString(),sources:[{id:'591',status:'ok'}],listings:[{...row,seenAt:new Date(Date.now()+1000).toISOString(),price:1888}]});BuyerSchedule.sync(c,BuyerResults.rows(c),persist);render();});
+ assert.equal(await p.evaluate(()=>DB[0].schedules[0].memo),'有 New、Down 物件');
+ if(process.argv[2])await p.screenshot({path:path.join(process.argv[2],'automatic-schedule.png')});
+ await p.reload();await p.waitForFunction(()=>DB[0]?.schedules?.length===1);assert.equal(await p.evaluate(()=>DB[0].schedules[0].memo),'有 New、Down 物件');
+ await p.evaluate(()=>BuyerMatching.open('a'));
+ await p.waitForFunction(()=>document.querySelector('#bmStatus')?.textContent==='正在取得最新公開物件…');assert(await p.locator('#bmStatus').isHidden());assert(await p.locator('#bmHelper').isHidden());
+ await p.waitForFunction(()=>document.querySelector('#bmStatus')?.textContent.includes('最後取得'));assert.equal(await p.evaluate(()=>DB[0].schedules.length),1);
+ await p.locator('#bmClose').click();await p.evaluate(()=>{DB[0].schedules[0]._deleted=true;persist();});await p.reload();await p.waitForTimeout(2200);assert(await p.evaluate(()=>DB[0].schedules[0]._deleted));assert.deepEqual(errors,[]);
+ console.log('PASS background ingest, New/Down schedule, manual isolation, persistence, no duplicates or completed replay, silent opening');
+ }finally{await b.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
