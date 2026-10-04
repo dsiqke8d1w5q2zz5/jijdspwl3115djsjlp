@@ -1,0 +1,26 @@
+const assert=require('node:assert/strict'),fs=require('fs'),path=require('path'),{chromium}=require(process.env.PLAYWRIGHT_MODULE);
+(async()=>{const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});try{
+const p=await browser.newPage();const errors=[];p.on('pageerror',e=>errors.push(e.message));
+await p.route('https://**/*',r=>r.abort());
+await p.route('http://localhost:43123/**',r=>{const file=path.resolve('01-crm','.'+new URL(r.request().url()).pathname);return r.fulfill({contentType:file.endsWith('.html')?'text/html; charset=utf-8':file.endsWith('.js')?'text/javascript; charset=utf-8':'text/css',body:fs.readFileSync(file)});});
+await p.addInitScript(()=>{window.syncLog=[];window.rejectSync=false;window.syncDelay=0;window.addEventListener('message',e=>{if(e.data?.channel!=='CRM_BUYER_REQUEST')return;const {id,type,payload}=e.data;let result={version:2};if(type==='sync'){if(window.rejectSync)result={error:'測試離線'};else{window.syncLog.push(payload);result={saved:payload.length};}}setTimeout(()=>window.postMessage({channel:'CRM_BUYER_RESPONSE',id,result},'*'),type==='sync'?window.syncDelay:0);});});
+await p.goto('http://localhost:43123/index.html');
+await p.evaluate(()=>{DB=[{id:'a',name:'不應傳出姓名',phone:'不應傳出電話',type:'經營買方',buyerMatching:{auto:true},bDemands:[{areaCities:['新北市'],areaDists:['板橋區'],budgetMax:1200}]},{id:'b',type:'經營買方',buyerMatching:{auto:false},bDemands:[{areaCities:['台北市']}]}];persist();});
+await p.waitForFunction(()=>syncLog.at(-1)?.[0]?.demands[0].budgetMax===1200);
+assert.equal(await p.evaluate(()=>syncLog.at(-1).length),1);assert(!JSON.stringify(await p.evaluate(()=>syncLog)).includes('不應傳出'));
+await p.evaluate(()=>{DB[0].bDemands[0].budgetMax=99999999;DB[0].bDemands[0].want='長需求'.repeat(200);persistAndSyncNow();});
+await p.waitForFunction(()=>syncLog.at(-1)?.[0]?.demands[0].budgetMax===99999999);
+assert.equal(await p.evaluate(()=>syncLog.at(-1)[0].demands[0].want.length),600);
+await p.evaluate(()=>{syncDelay=600;DB[0].bDemands[0].budgetMax=1300;persist();});await p.waitForTimeout(400);await p.evaluate(()=>{DB[0].bDemands[0].budgetMax=99999999;persist();});await p.waitForFunction(()=>syncLog.at(-1)?.[0]?.demands[0].budgetMax===99999999);await p.waitForTimeout(700);await p.evaluate(()=>syncDelay=0);
+await p.evaluate(()=>{DB[0].archived=true;persist();});await p.waitForFunction(()=>syncLog.at(-1)?.length===0);
+await p.evaluate(()=>{DB[0].archived=false;persist();});await p.waitForFunction(()=>syncLog.at(-1)?.length===1);
+await p.evaluate(()=>{DB[0]._deleted=true;persist();});await p.waitForFunction(()=>syncLog.at(-1)?.length===0);
+await p.evaluate(()=>{DB[0]._deleted=false;rejectSync=true;persist();});await p.waitForTimeout(700);
+await p.evaluate(()=>{rejectSync=false;window.dispatchEvent(new Event('focus'));});await p.waitForFunction(()=>syncLog.at(-1)?.length===1);
+await p.evaluate(()=>{const saved=JSON.parse(localStorage.reCRM);saved[0].bDemands[0].budgetMax=888;localStorage.reCRM=JSON.stringify(saved);window.dispatchEvent(new StorageEvent('storage',{key:'reCRM'}));});
+await p.waitForFunction(()=>syncLog.at(-1)?.[0]?.demands[0].budgetMax===888);assert.equal(await p.evaluate(()=>DB[0].bDemands[0].budgetMax),99999999,'test old tab still has stale DB');
+await p.evaluate(()=>{DB=JSON.parse(localStorage.reCRM);DB[0].buyerMatching.auto=false;persist();});await p.waitForFunction(()=>syncLog.at(-1)?.length===0);
+await p.reload();await p.waitForFunction(()=>syncLog.length>0);assert.equal(await p.evaluate(()=>syncLog.at(-1).length),0);
+await p.setViewportSize({width:1440,height:1000});await p.evaluate(()=>{DB[0].name='範例買方';DB[0].phone='0900-000-000';DB[0].buyerMatching.auto=true;persist();showDet('a','經營買方');});await p.waitForFunction(()=>syncLog.at(-1)?.length===1);await p.waitForTimeout(1000);if(process.argv[2])await p.screenshot({path:path.join(process.argv[2],'sync-verified-1440.png')});
+assert.deepEqual(errors,[]);console.log('PASS saved edits, long criteria, manual exclusion, archive/restore/delete, disconnect recovery, stale tab protection, uncheck, reload, private-field exclusion');
+}finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1});
