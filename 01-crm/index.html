@@ -7909,10 +7909,13 @@ function completeSchedule(clientId, date, time, scheduleId) {
             if (!c.history) c.history = [];
             c.history.push({ type:'schedule_done', time:new Date().toISOString(), detail:'【已完成行程】' + isoToROC(date) + (time ? ' ' + time : '') + (memo ? ' ' + memo : '') });
             // 完成行程時自動寫入聯繫紀錄
-            if (!c.contactLog) c.contactLog = [];
-            var _logMemo = (time ? time + ' ' : '') + (memo || '行程完成');
-            c.contactLog.unshift({ date:date, memo:_logMemo, time:new Date().toISOString() });
-            c.lastContact = new Date().toISOString();
+            var automaticMarketReminder = /^(inventory-watch:|buyer-match:)/.test(found.id || '') || !!found.marketEvents;
+            if (!automaticMarketReminder) {
+                if (!c.contactLog) c.contactLog = [];
+                var _logMemo = (time ? time + ' ' : '') + (memo || '行程完成');
+                c.contactLog.unshift({ date:date, memo:_logMemo, time:new Date().toISOString() });
+                c.lastContact = new Date().toISOString();
+            }
             // _addDoneSchedule 會自己 persistAndSyncNow，不需在外層重推
             _addDoneSchedule({ propertyRef:found.propertyRef, schedType:found.schedType, id:_newSchedId(), clientId:clientId, clientName:c.name, date:date, time:time, memo:memo, doneAt:new Date().toISOString(), updatedAt:_nowISO() });
         } else {
