@@ -107,13 +107,13 @@
 
 /* Source labels are direct original-site links; only 591 duplicates expand. */
 .source-chip{display:inline-flex;align-items:center;gap:3px;border:1px solid transparent;border-radius:5px;padding:2px 7px;font-family:inherit;font-weight:600;font-size:13px;line-height:1.5;text-decoration:none;white-space:nowrap;cursor:pointer}
-.im-dialog .source-chip.source-yungching{background:#fff1b8;color:#6b4d00;border-color:#ead274}
-.im-dialog .source-chip.source-sinyi{background:#e0f3e7;color:#17623a;border-color:#b0d8be}
-.im-dialog .source-chip.source-591{background:#ffead6;color:#954500;border-color:#efc49e}
+.im-dialog .source-chip.source-yungching{background:#ffcc33;color:#302600;border-color:#ffcc33}
+.im-dialog .source-chip.source-sinyi{background:#01ab59;color:#07331e;border-color:#01ab59}
+.im-dialog .source-chip.source-591{background:#ff8000;color:#3b1a00;border-color:#ff8000}
 .source-chip:focus-visible{outline:2px solid #0891b2;outline-offset:2px}
 .source-chip:hover{filter:brightness(.96)}
 
-.im-owner{font-weight:600;overflow-wrap:anywhere}.im-primary{flex-wrap:wrap}.im-property-tabs{display:flex;flex:1 1 350px;flex-wrap:wrap;gap:5px;min-width:0}.im-property-tabs button{white-space:normal;overflow-wrap:anywhere;text-align:left;background:#edf5fc}.im-property-tabs [aria-selected=true]{background:#193c5b;color:white;border-color:#193c5b}.im-meta .source-chip{font-size:12px;min-height:24px;padding:1px 6px}.im-meta .source-591[aria-expanded=true]{background:#f7d3ae;color:#723300}
+.im-owner{font-weight:600;overflow-wrap:anywhere}.im-primary{flex-wrap:wrap}.im-property-tabs{display:flex;flex:1 1 350px;flex-wrap:wrap;gap:5px;min-width:0}.im-property-tabs button{white-space:normal;overflow-wrap:anywhere;text-align:left;background:#edf5fc}.im-property-tabs [aria-selected=true]{background:#193c5b;color:white;border-color:#193c5b}.im-meta .source-chip{font-size:12px;min-height:24px;padding:1px 6px}.im-meta .source-591[aria-expanded=true]{box-shadow:inset 0 0 0 1px currentColor}
 
 .im-sources{display:flex;gap:5px;flex-wrap:wrap;align-items:center;justify-content:flex-end;min-width:0}.im-actions{align-items:center;max-width:min(520px,44vw)}.im-actions .source-chip{font-size:12px;min-height:26px;padding:2px 6px}.im-actions>strong{font-variant-numeric:tabular-nums}@media(max-width:800px){.im-actions{max-width:230px}.im-sources{flex-basis:100%}.im-row .im-main>strong{align-self:start}}
 
