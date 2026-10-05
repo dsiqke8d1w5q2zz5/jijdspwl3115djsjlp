@@ -66,3 +66,8 @@
 .bm-card:has(>.bm-change-marker:empty){grid-template-columns:64px minmax(0,1fr) 42px}.bm-card>.bm-change-marker:empty{display:none}.bm-card:has(>.bm-change-marker:empty)>.bm-thumb{grid-column:1}.bm-card:has(>.bm-change-marker:empty)>.bm-row-main,.bm-card:has(>.bm-change-marker:empty)>.bm-row-sub{grid-column:2/4}.bm-row-main,.bm-row-main h3,.bm-row-sub{text-align:left;justify-content:flex-start}.bm-row-main h3{margin-left:0}.bm-row-sub{padding-left:0}
 /* Align toolbar actions with the result cards' outer right edge. */
 .bm-toolbar,.bm-result-filters{padding-right:var(--bm-scrollbar,0px)}
+
+.bm-info-tools>summary{display:list-item;width:fit-content;max-width:100%;box-sizing:border-box;background:#edf5fc;color:#195878;border:1px solid #c9ddec;border-radius:6px;padding:4px 9px;margin:1px 0;font-size:13px;font-weight:600;cursor:pointer}
+.bm-info-tools>summary:hover{background:#dcebf8}
+.bm-info-tools[open]>summary{background:#193c5b;color:#fff;border-color:#193c5b;padding:4px 9px;margin:1px 0 5px}
+.bm-info-tools>summary:focus-visible{outline:3px solid #0891b2;outline-offset:2px}

@@ -58,7 +58,7 @@ function acceptJobFeed(job){if(!job?.feed)return;if(job.buyerId){const c=DB.find
 async function searchNow(mode){
  if(launchBusy)return;if(!helper){textStatus('請先連接搜尋助手。');return;}
  if(!helperVersion||helperVersion.localeCompare('1.2.2',undefined,{numeric:true})<0){textStatus('請用原本的 EXE 更新助手至 1.2.2，再啟用三站搜尋與加速。');return;}
- if(mode==='retry'&&(!helperVersion||helperVersion.localeCompare('1.2.6',undefined,{numeric:true})<0)){textStatus('重試未完成搜尋需要助手 1.2.6，請先更新。');return;}const c=current(),owner=dialog,epoch=++searchEpoch;if(!c)return;launchBusy=true;searchBusy=true;clearTimeout(watchTimer);restoreBuyer(c);render();textStatus('已先依目前需求重比已收錄資料；正在搜尋原站更新物件…');
+ if(mode==='retry'&&(!helperVersion||helperVersion.localeCompare('1.2.6',undefined,{numeric:true})<0)){textStatus('重試未完成搜尋需要助手 1.2.6，請先更新。');return;}const c=current(),owner=dialog,epoch=++searchEpoch;if(!c)return;dialog.querySelectorAll('.bm-info-tools').forEach(el=>el.open=false);launchBusy=true;searchBusy=true;clearTimeout(watchTimer);restoreBuyer(c);render();textStatus('已先依目前需求重比已收錄資料；正在搜尋原站更新物件…');
  try{
   const {job:prior}=await helperRequest('progress',{});if(epoch!==searchEpoch||dialog!==owner||!owner.open)return;helperJob=prior;
   if(mode==='retry'&&prior?.status==='running')throw Error('請先停止搜尋再重試');if(prior?.status==='running'){textStatus('正在停止舊搜尋，接著依目前需求重新搜尋…');const stopped=await helperRequest('cancel',undefined,10000);acceptJobFeed(stopped.job);}

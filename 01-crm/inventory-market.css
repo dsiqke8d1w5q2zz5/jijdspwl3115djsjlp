@@ -99,3 +99,8 @@
 /* Compact vertical rhythm while retaining readable type and complete text. */
 .im-dialog header{padding-block:6px}.im-controls{padding-top:6px}.im-toolbar{margin-bottom:4px}.im-disclosures{margin:0;row-gap:2px}.im-disclosures summary{padding-block:2px}.im-dialog>.im-result-tools{padding-block:4px}.im-row{padding-block:5px;margin-block:4px;row-gap:1px}.im-row img{height:48px}.im-main>strong{line-height:1.4}.im-main>.im-meta{line-height:1.4;row-gap:1px}.im-actions button{min-height:28px;padding-block:3px}.im-group{margin-block:4px}.im-group>.im-row{margin:0}.im-group-list{margin-block:3px 5px}.im-group-list>.im-row{padding-block:5px}.im-dialog .im-view-tabs button{min-height:30px;padding-block:3px}
 .im-main>strong,.im-main>.im-meta{text-align:left}.im-main>.im-meta{justify-content:flex-start;padding-left:0}
+
+.im-disclosures>details>summary{display:list-item;width:fit-content;max-width:100%;box-sizing:border-box;background:#edf5fc;color:#195878;border:1px solid #c9ddec;border-radius:6px;padding:4px 9px;margin:1px 0;font-size:13px;font-weight:600;cursor:pointer}
+.im-disclosures>details>summary:hover{background:#dcebf8}
+.im-disclosures>details[open]>summary{background:#193c5b;color:#fff;border-color:#193c5b;padding:4px 9px;margin:1px 0 5px}
+.im-disclosures>details>summary:focus-visible{outline:3px solid #0891b2;outline-offset:2px}
