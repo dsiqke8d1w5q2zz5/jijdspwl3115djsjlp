@@ -3943,6 +3943,10 @@ function getData() {
             var bDate = b._nextSchedDate || '9999-12-31';
             var cmp = aDate.localeCompare(bDate);
             if (cmp !== 0) return cmp;
+            if (curFilter === '經營買方') {
+                var matchPriority = Number(b.buyerMatching?.auto === true) - Number(a.buyerMatching?.auto === true);
+                if (matchPriority !== 0) return matchPriority;
+            }
             if (curFilter === '庫存屋主') {
                 var aEnd = a.contractEnd || (a.sProperties && a.sProperties.length ? a.sProperties.filter(function(sp){return !sp.spArchived;}).reduce(function(min,sp){ var d=sp.contractEnd||'9999-12-31'; return d<min?d:min; },'9999-12-31') : '9999-12-31');
                 var bEnd = b.contractEnd || (b.sProperties && b.sProperties.length ? b.sProperties.filter(function(sp){return !sp.spArchived;}).reduce(function(min,sp){ var d=sp.contractEnd||'9999-12-31'; return d<min?d:min; },'9999-12-31') : '9999-12-31');
