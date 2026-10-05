@@ -814,7 +814,7 @@
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
     <link rel="stylesheet" href="ui-foundation.css?v=20261005audit210">
     <link rel="stylesheet" href="responsive-layout.css?v=20261005audit210">
-<link rel="stylesheet" href="inventory-market.css?v=20261005audit230">
+<link rel="stylesheet" href="inventory-market.css?v=20261005audit231">
 <link rel="stylesheet" href="buyer-match.css?v=20261005compact213">
 </head>
 <body>
@@ -5724,6 +5724,7 @@ function addSellerProperty(data) {
             '<button type="button" class="grade-btn grade-a'+(d.grade==='A'?' on':'')+'" style="font-size:11px;padding:1px 8px" onclick="pickSpGrade(this,\'A\')">A級</button>' +
             '<button type="button" class="grade-btn grade-b'+(d.grade==='B'?' on':'')+'" style="font-size:11px;padding:1px 8px" onclick="pickSpGrade(this,\'B\')">B級</button>' +
             '<button type="button" class="grade-btn grade-c'+(d.grade==='C'?' on':'')+'" style="font-size:11px;padding:1px 8px" onclick="pickSpGrade(this,\'C\')">C級</button>' +
+            '<input type="hidden" data-f="inventoryKey" value="'+esc(d.inventoryKey||((d.addr||d.community)?JSON.stringify([InventoryMarketEngine.norm(d.addr),InventoryMarketEngine.norm(d.community)]):uid()))+'">' +
             '<input type="hidden" data-f="grade" value="'+esc(d.grade||'')+'">' +
             '<input type="hidden" data-f="spArchived" value="'+(d.spArchived||'')+'">' +
             '<div style="flex:1"></div><button type="button" onclick="moveSpToDev(this)" title="把此物件複製到「商機」" style="font-size:12px;padding:3px 10px;border:1px solid #FCD9B6;border-radius:6px;background:#FFF7ED;color:#92400E;cursor:pointer;margin-right:6px">轉商機</button><button type="button" class="sp-archive-btn" onclick="toggleSpArchive(this)" style="font-size:12px;padding:3px 10px;border:1px solid #D6CFC7;border-radius:6px;background:'+(d.spArchived?'#059669':'#F5F0EB')+';color:'+(d.spArchived?'white':'#8B7355')+';cursor:pointer;margin-right:4px">'+(d.spArchived?'恢復銷售':'暫停銷售')+'</button><button type="button" class="c-del" onclick="this.parentElement.parentElement.remove()">✕</button></div>' +
@@ -6175,7 +6176,7 @@ function getSellerProperties() {
     document.querySelectorAll('#sPropertyList .person-block').forEach(function(block) {
         var get = function(f) { var el = block.querySelector('[data-f="'+f+'"]'); return el ? el.value.trim() : ''; };
         if (get('community') || get('addr') || get('price') || block._spDriveUrl) {
-            var _spArch = get('spArchived'); var _reasonEl = block.querySelector('.sp-pause-reason'); var _reason = _reasonEl ? _reasonEl.textContent.replace('暫停原因：','') : ''; var _passEl = block.querySelector('[data-f="spPass"]'); r.push({ ...propertyPurposeData(block), listingPurpose:get('listingPurpose'), grade:get('grade'), contractType:get('contractType'), spPass: (_passEl && _passEl.checked) ? '1' : '', community:get('community'), addr:get('addr'), price:get('price'), floorPrice:get('floorPrice'), serviceFee:get('serviceFee'), baseLand:get('baseLand'), landShare:get('landShare'), mainBldg:get('mainBldg'), ancBldg:get('ancBldg'), common:get('common'), parkingSz:get('parkingSz'), parking:get('parking'), parkingPrice:get('parkingPrice'), parkingNo:get('parkingNo'), areaInput:areaEditorData(block), mgmtBuilding:get('mgmtBuilding'), mgmtCar:get('mgmtCar'), mgmtMoto:get('mgmtMoto'), mgmtOther:get('mgmtOther'), mgmtPeriod:get('mgmtPeriod'), contractStart:rocToISO(get('contractStart')), contractEnd:rocToISO(get('contractEnd')), spRenewals: block._spRenewals || [], spPriceHistory: block._spPriceHistory || [], spFloorPriceHistory: block._spFloorPriceHistory || [], spDriveUrl: block._spDriveUrl || '', spArchived: _spArch ? '1' : '', spArchiveReason: _reason, spPauseHistory: block._spPauseHistory || [] });
+            var _spArch = get('spArchived'); var _reasonEl = block.querySelector('.sp-pause-reason'); var _reason = _reasonEl ? _reasonEl.textContent.replace('暫停原因：','') : ''; var _passEl = block.querySelector('[data-f="spPass"]'); r.push({ ...propertyPurposeData(block), inventoryKey:get('inventoryKey'), listingPurpose:get('listingPurpose'), grade:get('grade'), contractType:get('contractType'), spPass: (_passEl && _passEl.checked) ? '1' : '', community:get('community'), addr:get('addr'), price:get('price'), floorPrice:get('floorPrice'), serviceFee:get('serviceFee'), baseLand:get('baseLand'), landShare:get('landShare'), mainBldg:get('mainBldg'), ancBldg:get('ancBldg'), common:get('common'), parkingSz:get('parkingSz'), parking:get('parking'), parkingPrice:get('parkingPrice'), parkingNo:get('parkingNo'), areaInput:areaEditorData(block), mgmtBuilding:get('mgmtBuilding'), mgmtCar:get('mgmtCar'), mgmtMoto:get('mgmtMoto'), mgmtOther:get('mgmtOther'), mgmtPeriod:get('mgmtPeriod'), contractStart:rocToISO(get('contractStart')), contractEnd:rocToISO(get('contractEnd')), spRenewals: block._spRenewals || [], spPriceHistory: block._spPriceHistory || [], spFloorPriceHistory: block._spFloorPriceHistory || [], spDriveUrl: block._spDriveUrl || '', spArchived: _spArch ? '1' : '', spArchiveReason: _reason, spPauseHistory: block._spPauseHistory || [] });
         }
     });
     return r;
@@ -10675,7 +10676,7 @@ function saveClient() {
             if (data.sProperties && _oldSProps) {
                 var now = new Date().toISOString();
                 data.sProperties.forEach(function(sp, idx) {
-                    var oldSp = _oldSProps[idx];
+                    var oldSp = sp.inventoryKey ? _oldSProps.find(function(previous){return (previous.inventoryKey || JSON.stringify([InventoryMarketEngine.norm(previous.addr),InventoryMarketEngine.norm(previous.community)])) === sp.inventoryKey;}) : _oldSProps[idx];
                     if (!oldSp) return;
                     if (oldSp.price && sp.price && oldSp.price !== sp.price) {
                         sp.spPriceHistory = (sp.spPriceHistory || []).slice();
@@ -10687,6 +10688,7 @@ function saveClient() {
                     }
                 });
             }
+            if(window.InventoryMarket?.prepareSave)InventoryMarket.prepareSave(old,data);
             DB[i]={...old,...data, history: old.history};
         }
     } else {
@@ -13667,18 +13669,18 @@ function deleteMktTemplate(idx) {
 <script src="image-composer.js?v=20261005audit210"></script>
 <script src="area-editor.js?v=20261005audit210"></script>
 <script src="sync-notice.js?v=20261005audit210"></script>
-<script src="detail-properties.js?v=20261005audit230"></script>
+<script src="detail-properties.js?v=20261005audit231"></script>
 <script src="edit-layout.js?v=20261005audit210"></script>
 <script src="property-purpose.js?v=20261005audit210"></script>
 <script src="schedule-property.js?v=20261005audit210"></script>
-<script src="buyer-match-engine.js?v=20261005audit230"></script>
+<script src="buyer-match-engine.js?v=20261005audit231"></script>
 <script src="buyer-demands.js?v=20261005audit210"></script>
-<script src="buyer-results.js?v=20261005audit230"></script>
+<script src="buyer-results.js?v=20261005audit231"></script>
 <script src="buyer-grouping.js?v=20261005status220"></script>
-<script src="inventory-market-engine.js?v=20261005audit230"></script>
-<script src="inventory-market.js?v=20261005audit230"></script>
+<script src="inventory-market-engine.js?v=20261005audit231"></script>
+<script src="inventory-market.js?v=20261005audit231"></script>
 <script src="buyer-schedule.js?v=20261005audit210"></script>
-<script src="buyer-match.js?v=20261005audit230"></script>
-<script src="seller-layout.js?v=20261005audit230"></script>
+<script src="buyer-match.js?v=20261005audit231"></script>
+<script src="seller-layout.js?v=20261005audit231"></script>
 </body>
 </html>
