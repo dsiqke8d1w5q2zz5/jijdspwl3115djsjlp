@@ -5,7 +5,7 @@ assert.equal(await p.locator('.det-inventory-actions').count(),2);
 let checks=p.locator('.det-inventory-actions input');await checks.nth(0).check();await p.waitForFunction(()=>Object.values(DB[0].inventoryWatch||{}).some(x=>x.enabled));
 assert.equal(await checks.nth(1).isChecked(),false);await p.evaluate(()=>setFilter('庫存屋主',document.createElement('button')));assert.equal(await p.locator('.card-inventory-watch').innerText(),'自動追蹤');
 await p.waitForFunction(()=>invCalls.some(x=>x.type==='inventorySync'&&x.payload.length===1));
-await p.locator('.det-inventory-actions button').first().click();await p.waitForFunction(()=>invCalls.some(x=>x.type==='inventorySearch'));
+const beforeSearch=await p.evaluate(()=>invCalls.filter(x=>x.type==='inventorySearch').length);assert.equal(await p.locator('.det-inventory-actions button').first().innerText(),'追蹤行情');await p.locator('.det-inventory-actions button').first().click();await p.waitForTimeout(200);assert.equal(await p.evaluate(()=>invCalls.filter(x=>x.type==='inventorySearch').length),beforeSearch);await p.locator('#imSearch').click();await p.waitForFunction(()=>invCalls.some(x=>x.type==='inventorySearch'));
 assert((await p.locator('[name=address]').inputValue()).includes('文化路'));await p.locator('#imClose').click();
 await p.locator('.det-property-tabs button').nth(1).click();await checks.nth(1).check();await p.waitForFunction(()=>invCalls.some(x=>x.type==='inventorySync'&&x.payload.length===2));
 assert.equal(await p.locator('.card-inventory-watch').innerText(),'自動追蹤（2）');await checks.nth(1).uncheck();await p.waitForFunction(()=>!Object.values(DB[0].inventoryWatch)[1].enabled);
