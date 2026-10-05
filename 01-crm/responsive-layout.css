@@ -1133,3 +1133,11 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 #buyerMatchEntry:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
 @media(min-width:1200px){.main-fixed-top>#buyerFilter.on{padding-right:320px}}
 @media(max-width:768px){#buyerMatchEntry,.main-bar:has(#buyerMatchEntry:not([hidden])) #sortSel{min-height:40px}}
+
+/* Inventory monitoring shares the list actions beside sorting. */
+#inventoryMarketEntry{display:none;margin-left:auto;min-height:36px;padding:7px 12px;color:#173756;border-color:#bdd0e2;font-weight:600;flex:0 0 auto;white-space:nowrap}
+.main-fixed-top:has(#sellerFilter.on) #inventoryMarketEntry{display:block}
+.main-fixed-top:has(#sellerFilter.on) .main-bar{gap:10px}
+.main-fixed-top:has(#sellerFilter.on) #sortSel{margin-left:0!important}
+#inventoryMarketEntry:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
+@media(min-width:1200px){.main-fixed-top>#sellerFilter.on{padding-right:320px}}
