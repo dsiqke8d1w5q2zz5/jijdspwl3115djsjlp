@@ -1,11 +1,12 @@
 (function(root){
 'use strict';
-const norm=v=>String(v||'').normalize('NFKC').replaceAll('臺','台').replace(/[\s,，]/g,'');
-const num=v=>v==null||String(v).trim()===''?null:Number.isFinite(Number(v))?Number(v):null;
+const norm=v=>String(v||'').normalize('NFKC').replaceAll('臺','台').replace(/[\s,，]/g,'').replace(/[‐‑–—−]/g,'-');
+const num=v=>v==null||String(v).trim()===''?null:Number.isFinite(Number(String(v).replaceAll(',','')))?Number(String(v).replaceAll(',','')):null;
+function section(v){if(!v)return '';if(/^\d+$/.test(v))return String(Number(v));const digits='零一二三四五六七八九';if(v.includes('十')){const [a,b]=v.split('十');return String((a?digits.indexOf(a):1)*10+(b?digits.indexOf(b):0));}return digits.includes(v)?String(digits.indexOf(v)):v;}
 function facts(p){
  const address=norm(p.address),city=norm(p.city)||address.match(/^(.*?[市縣])/)?.[1],district=norm(p.district)||address.match(/^[^市縣]+[市縣]([^市縣]+?[區鄉鎮市])/)?.[1];
  const local=address.replace(city||'','').replace(district||'',''),road=local.match(/^(.+?(?:路|街|大道))/)?.[1]||'',tail=road?local.slice(road.length):local;
- return {city,district,road,section:tail.match(/^([一二三四五六七八九十\d]+)段/)?.[1]||'',lane:tail.match(/(\d+)巷/)?.[1]||'',alley:tail.match(/(\d+)弄/)?.[1]||'',number:tail.match(/(\d+(?:之\d+)?)號/)?.[1]||'',community:norm(p.community),area:num(p.area),floor:num(p.floor),age:num(p.age),price:num(p.price),rooms:num(p.rooms)};
+ return {city,district,road,section:section(tail.match(/^([一二三四五六七八九十\d]+)段/)?.[1]),lane:tail.match(/(\d+)巷/)?.[1]||'',alley:tail.match(/(\d+)弄/)?.[1]||'',number:(tail.match(/(\d+(?:(?:之|-)\d+)*)號(?:之(\d+))?/)?.slice(1).filter(Boolean).join('-')||'').replaceAll('之','-'),community:norm(p.community),area:num(p.area),floor:num(p.floor),age:num(p.age),price:num(p.price),rooms:num(p.rooms)};
 }
 function same(a,b){
  const x=facts(a),y=facts(b);if(!x.city||!x.district||x.city!==y.city||x.district!==y.district)return false;

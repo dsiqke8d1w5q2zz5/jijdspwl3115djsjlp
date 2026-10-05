@@ -10,3 +10,10 @@ assert.equal(evaluate({...d,matchCriteria:{...d.matchCriteria,types:['公寓','�
 assert.equal(evaluate(d,p).status,'matched');for(const delta of [{price:1201},{rooms:3},{district:'新莊區'},{floor:5},{parking:false},{area:40}])assert.equal(evaluate(d,{...p,...delta}).status,'excluded');for(const delta of [{age:null},{rooms:null},{parking:null},{totalFloors:null}])assert.equal(evaluate(d,{...p,...delta}).status,'pending');assert.equal(evaluate({...d,matchCriteria:{...d.matchCriteria,areaBasis:'main'}},p).status,'pending');assert.equal(evaluate({...d,want:'採光好'},p).status,'pending');assert.equal(evaluate({...d,matchCriteria:{rooms:['3+']}},{...p,rooms:5}).status,'matched');console.log('PASS exact conditions, missing fields, main-area distinction, ranges and textual review');
 
 const fourth={matchCriteria:{exclude:["fourth"]}};for(const floor of [4,"4"])assert.equal(evaluate(fourth,{floor}).status,"excluded");assert.equal(evaluate(fourth,{floor:3}).status,"matched");assert.equal(evaluate(fourth,{floor:null}).status,"pending");const {summary}=require("../buyer-match-engine.js");const extra=summary({...d,matchCriteria:{exclude:["fourth"],areaMin:"20"}},{advancedOnly:true});assert(!extra.includes("板橋"));assert(!extra.includes("1200"));assert(extra.includes("排除4樓"));console.log("PASS fourth-floor exclusion and supplemental summary");
+
+for(const floor of [1,'1'])assert.equal(evaluate({matchCriteria:{exclude:['first']}},{floor}).status,'excluded');
+for(const rooms of [3,'3'])assert.equal(evaluate({matchCriteria:{rooms:['3']}},{rooms}).status,'matched');
+assert.equal(evaluate({matchCriteria:{exclude:['top']}},{floor:'5',totalFloors:5}).status,'excluded');
+assert.equal(evaluate({budgetMax:'1500'},{price:'1,400'}).status,'matched');
+assert.equal(evaluate({matchCriteria:{rooms:[3]}},{rooms:'3'}).status,'matched');
+console.log('PASS numeric and string floors/rooms/prices have identical verdicts');

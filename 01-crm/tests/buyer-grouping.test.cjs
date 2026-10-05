@@ -23,3 +23,5 @@ console.log('PASS screenshot examples, missing address/floor, warnings, exact pr
 
 const priority=[[{p:{price:1000}}],[{p:{price:3000,firstMatchedAt:'2026-10-05'}}],[{p:{price:2000}},{p:{price:2000,priceBeforeDrop:2100,priceDroppedAt:'2026-10-05'}}]];
 assert.deepEqual(sortGroups(priority,'price:asc',Date.parse('2026-10-04')).map(g=>g[0].p.price),[2000,3000,1000]);assert.deepEqual(sortGroups(priority,'price:desc',Date.parse('2026-10-04')).map(g=>g[0].p.price),[3000,2000,1000]);assert.deepEqual(sortGroups(priority,'price:asc',Date.parse('2026-10-06')).map(g=>g[0].p.price),[1000,2000,3000]);console.log('PASS New/Down group priority in both directions and after acknowledgment');
+
+{const g=require('../buyer-grouping.js'),base={city:'新北市',district:'板橋區',price:1988,area:23.23,age:52,floor:1};const pair=(a,b)=>g.same({...base,address:'新北市板橋區文化路'+a},{...base,address:'新北市板橋區文化路'+b});assert(!pair('23-1號','99-1號'));assert(!pair('23-1號','1號'));assert(pair('23-1號','23之1號'));assert(pair('23號之1','23之1號'));assert(pair('一段23號','1段23號'));assert(!pair('一段23號','二段23號'));assert(pair('十段23號','10段23號'));console.log('PASS complete hyphen/subnumber and canonical section grouping');}
