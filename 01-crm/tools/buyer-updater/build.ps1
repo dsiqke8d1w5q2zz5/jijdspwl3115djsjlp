@@ -1,7 +1,7 @@
 $ErrorActionPreference='Stop'
 $crmRoot=Resolve-Path (Join-Path $PSScriptRoot '../..')
 $source=Join-Path $PSScriptRoot 'Program.cs'
-$output=Join-Path $crmRoot 'downloads/BuyerHelper-Setup.exe'
+$output=Join-Path $crmRoot 'downloads/房仲管家搜尋助手.exe'
 & "$env:WINDIR/Microsoft.NET/Framework64/v4.0.30319/csc.exe" /nologo /target:winexe "/out:$output" /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll /reference:System.IO.Compression.dll /reference:System.IO.Compression.FileSystem.dll $source
 if($LASTEXITCODE -ne 0){throw 'EXE compilation failed'}
 $helper=Join-Path $crmRoot 'tools/buyer-browser'
