@@ -139,3 +139,5 @@
 .im-primary #imState[data-enabled=true]{background:#e5f3ea;color:#17623a;border-color:#b0d8be}
 .im-primary #imState[data-enabled=false]::before{content:'!';display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#a33012;color:white;font-size:11px}
 .im-primary #imState[data-enabled=true]::before{content:'✓'}
+
+.im-candidates{border:1px solid #e8c78d;border-radius:8px;background:#fffaf0;padding:8px 10px;margin:4px 0 10px;min-width:0}.im-candidates>summary{font-weight:700;color:#805516;cursor:pointer}.im-candidates>p{font-size:13px;margin:6px 0;line-height:1.5}.im-candidates .im-decisions{margin-top:8px}.im-decisions>summary{cursor:pointer;font-size:13px}.im-candidates .im-actions{flex-wrap:wrap}.im-candidates .im-actions span{font-size:12px}.im-candidates .im-meta{overflow-wrap:anywhere}.im-confirm label{display:flex;gap:8px;align-items:flex-start;overflow-wrap:anywhere}.im-confirm input{flex:none;margin-top:6px}.im-empty{font-size:14px;line-height:1.6}
