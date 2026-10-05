@@ -6,7 +6,11 @@ const shop={mode:'road',searchPurpose:'店面',criteria:{floorMin:1,floorMax:1,f
 assert(E.assess(shop,{title:'金店面',type:'電梯大樓',floorText:'B1–1樓',price:3000}).match);
 assert(!E.assess(shop,{title:'金店面',floor:4,price:3000}).match);
 assert(!E.assess({...shop,criteria:{}},{title:'辦公室',type:'辦公',floor:6}).match);
-assert(!E.assess({...shop,criteria:{}},{title:'住宅',type:'住宅大樓',floor:5}).match);
+// Building category alone is not registered usage.
+assert(E.assess({...shop,criteria:{}},{title:'住宅',type:'住宅大樓',floor:5}).missing.includes('店面用途'));
+assert(!E.assess({...shop,criteria:{}},{usage:'住家用',type:'住宅大樓',floor:5}).match);
+assert(!E.assess({searchPurpose:'住宅',criteria:{}},{usage:'工業用',sourceCategory:'住宅'}).match);
+assert(E.assess({searchPurpose:'住宅',criteria:{}},{sourceCategory:'住宅'}).missing.includes('用途'));
 assert(E.assess({...shop,criteria:{}},{title:'待核對物件',type:'公寓',floor:1}).missing.includes('店面用途'));
 console.log('PASS condominium type alias and shop evidence, unknown usage, floor range');
 

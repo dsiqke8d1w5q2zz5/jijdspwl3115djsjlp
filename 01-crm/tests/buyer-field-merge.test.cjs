@@ -6,3 +6,9 @@ const corrected=B.mergeListingFields(old,{id:old.id,usage:'一般事務所',room
 const stale=B.mergeListingFields(old,{id:old.id,usage:'工業用',detailCheckedAt:'2026-10-04T10:00:00Z'});assert.equal(stale.usage,'住家用');
 for(const source of ['591','sinyi','yungching']){const row={...next,source,availability:'available'};assert.equal(B.evaluate({matchCriteria:{searchPurpose:'住宅',rooms:['2']}},row).status,'matched');assert.equal(B.evaluate({matchCriteria:{searchPurpose:'住宅',rooms:['4']}},row).status,'excluded');assert.equal(B.evaluate({matchCriteria:{searchPurpose:'住宅'}},{...row,usage:'工業用',sourceCategory:'住宅'}).status,'excluded');assert(B.evaluate({matchCriteria:{searchPurpose:'住宅'}},{source,sourceCategory:'住宅',type:'電梯大樓'}).pending.includes('用途'));}
 console.log('PASS sparse updates preserve evidence, zero/false and explicit corrections win, prices/off remain fresh, all three sources and per-buyer demand isolation');
+
+const apartment=B.mergeListingFields({...old,buildingType:'電梯大樓'},{type:'公寓',detailCheckedAt:'2026-10-06T10:00:00Z'});
+assert.equal(apartment.buildingType,'公寓');assert.equal(apartment.elevator,null);
+assert.equal(B.evaluate({matchCriteria:{types:['公寓'],elevator:'no'}},apartment).status,'matched');
+const outdated=B.mergeListingFields(apartment,{buildingType:'電梯大樓',detailCheckedAt:'2026-10-04T10:00:00Z'});assert.equal(outdated.buildingType,'公寓');
+const conflict=B.mergeListingFields(old,{type:'公寓',buildingType:'電梯大樓',detailCheckedAt:'2026-10-07T10:00:00Z'});assert(B.evaluate({matchCriteria:{types:['公寓'],elevator:'no'}},conflict).pending.includes('房屋類型衝突'));
