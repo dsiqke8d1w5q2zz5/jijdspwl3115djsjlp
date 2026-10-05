@@ -4826,7 +4826,7 @@ function renderCard(c) {
         var _eid = esc(c.id), _eva = esc(c._viewAs||'');
         return `<div class="card${c.archived?' archived':''}${cardClass}" onclick="showDetByView('${_eid}','${_eva}')">
             <div class="card-main">
-                <div class="card-name-line"><div class="card-name">${esc(cardName)}${c._viewAs!=='tenant'&&cTypes.includes('成交客戶')&&c.deals&&c.deals.length?`<span class="deal-count">${c.deals.length}</span>`:''}${(showType==='房東'&&_objCount>1)?`<span style="font-size:12px;padding:1px 7px;border-radius:10px;background:#CFFAFE;color:#0E7490;font-weight:700;margin-left:4px;white-space:nowrap">${_objCount}間</span>`:''}${nameSuffix}${sameLL}</div>${c.buyerMatching?.auto===true&&!c.archived&&c._viewAs!=='tenant'?`<button class="card-auto-match" data-buyer-id="${_eid}" onclick="event.stopPropagation();BuyerMatching.open(this.dataset.buyerId)" title="已開啟自動配對，查看配對結果">自動配對</button>`:''}${showType==='庫存屋主'?window.InventoryMarket?.cardBadge(c)||'':''}</div>
+                <div class="card-name-line"><div class="card-name">${esc(cardName)}${c._viewAs!=='tenant'&&cTypes.includes('成交客戶')&&c.deals&&c.deals.length?`<span class="deal-count">${c.deals.length}</span>`:''}${(showType==='房東'&&_objCount>1)?`<span style="font-size:12px;padding:1px 7px;border-radius:10px;background:#CFFAFE;color:#0E7490;font-weight:700;margin-left:4px;white-space:nowrap">${_objCount}間</span>`:''}${nameSuffix}${sameLL}</div>${c.buyerMatching?.auto===true&&!c.archived&&c._viewAs!=='tenant'?`<button class="card-auto-match" data-buyer-id="${_eid}" onclick="event.stopPropagation();BuyerMatching.open(this.dataset.buyerId)" title="查看買方配對結果">買方配對</button>`:''}${showType==='庫存屋主'?window.InventoryMarket?.cardBadge(c)||'':''}</div>
                 <div class="card-phone">${esc(cardPhone)}</div>
                 <div class="tags">
                     ${typeTags}
@@ -13680,7 +13680,7 @@ function deleteMktTemplate(idx) {
 <script src="inventory-market-engine.js?v=20261005audit231"></script>
 <script src="inventory-market.js?v=20261005audit231"></script>
 <script src="buyer-schedule.js?v=20261005audit210"></script>
-<script src="buyer-match.js?v=20261005return235"></script>
+<script src="buyer-match.js?v=20261005entry236"></script>
 <script src="seller-layout.js?v=20261005audit231"></script>
 </body>
 </html>
