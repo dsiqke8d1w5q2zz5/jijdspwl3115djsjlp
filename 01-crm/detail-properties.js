@@ -456,7 +456,7 @@
         const config={'庫存屋主':['sProperties','s'],'房東':['rProperties','r'],'租案管理':['rProperties','r'],'成交客戶':['deals','c'],'商機募集':['dAddrs','d']}[c.type];
         if(!config)return original(c,viewAs);
         const [key,kind]=config;let entries=(c[key]||[]).map((p,index)=>({p,index}));if(!entries.length){const e=kind==='s'?window.InventoryMarket?.entries().find(e=>e.c.id===c.id):null;return (e?'<div data-inventory-entry="'+esc(e.key)+'"></div>':'')+original(c,viewAs);}
-        if(kind==='s'&&bfSGrade)entries.sort((a,b)=>Number(b.p.grade===bfSGrade)-Number(a.p.grade===bfSGrade));
+        if(kind==='s'){const watched=new Set((window.InventoryMarket?.entries([c])||[]).filter(e=>e.config.enabled||e.config.transactionsEnabled).map(e=>e.p));entries.sort((a,b)=>Number(watched.has(b.p))-Number(watched.has(a.p))||a.index-b.index);}
         const group='property-detail-'+(++serial),names=entries.map(({p,index})=>title(p,index,kind));
         const labels=names.map((name,i)=>names.filter(n=>n===name).length>1?name+'（'+(i+1)+'）':name);
         const tabs='<div class="det-property-tabs" role="tablist" aria-label="切換物件">'+entries.map((_,i)=>'<button type="button" role="tab" id="'+group+'-tab-'+i+'" aria-controls="'+group+'-page-'+i+'" aria-selected="'+(i===0)+'" tabindex="'+(i===0?0:-1)+'" title="'+esc(labels[i])+'">'+esc(labels[i])+'</button>').join('')+'</div>';
