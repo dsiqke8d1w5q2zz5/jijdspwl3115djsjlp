@@ -15,7 +15,7 @@ await p.evaluate(()=>{window.oldPersist=persist;persist=()=>false;});await check
 await p.evaluate(()=>{DB.push({id:'legacy',name:'舊格式庫存',type:'庫存屋主',types:['庫存屋主'],community:'',sAddr:'台北市中正區重慶南路三段4巷9號3樓'});showDet('legacy');});assert.equal(await p.locator('.det-inventory-actions').count(),1);await p.locator('.det-inventory-actions input').check();await p.waitForFunction(()=>Object.values(DB.find(c=>c.id==='legacy').inventoryWatch||{}).some(x=>x.enabled));await p.evaluate(()=>{DB.push({id:'presale',name:'預售屋主',type:'庫存屋主',types:['庫存屋主'],sProperties:[{community:'允將大作',addr:'桃園市龜山區文化一路允將大作M棟29樓'}]});showDet('presale');});
 await p.locator('.det-inventory-actions input').check();await p.waitForFunction(()=>invCalls.some(c=>c.type==='inventorySync'&&c.payload.some(x=>x.demands[0].matchCriteria.keywords==='允將大作')));
 await p.locator('.det-inventory-actions button').click();assert.equal(await p.locator('[name=mode]').inputValue(),'project');
-await p.locator('[name=address]').fill('桃園市龜山區');await p.locator('[name=aliases]').fill('允將大作／允將-大作');await p.locator('#imSave').click();
+await p.locator('.im-config').evaluate(e=>e.open=true);await p.locator('[name=address]').fill('桃園市龜山區');await p.locator('.im-config').evaluate(e=>e.open=true);await p.locator('[name=aliases]').fill('允將大作／允將-大作');await p.locator('#imSave').click();
 await p.waitForFunction(()=>invCalls.some(c=>c.type==='inventorySync'&&c.payload.some(x=>x.demands[0].matchCriteria.keywords==='允將大作、允將-大作')));
 await p.screenshot({path:path.join(process.argv[2],'inventory-presale.png')});
 await p.locator('#imClose').click();await p.reload();await p.evaluate(()=>showDet('presale'));assert(await p.locator('.det-inventory-actions input').isChecked());

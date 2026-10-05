@@ -55,3 +55,21 @@
 .card-inventory-watch{margin:3px 0 0 auto;flex:0 0 auto;white-space:nowrap;border:1px solid #bed3e5;border-radius:6px;background:#edf5fc;color:#285778;padding:3px 6px;font:400 12px/1.5 "Microsoft JhengHei",sans-serif;cursor:pointer}
 .card-inventory-watch:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
 .card-name-line:has(.card-inventory-watch) .card-auto-match{display:none}
+/* Keep everyday browsing controls compact; expand configuration only when needed. */
+.im-dialog header{padding:8px 16px}
+.im-controls{padding-top:8px}
+.im-disclosures{display:flex;flex-wrap:wrap;gap:4px 18px;align-items:flex-start;margin:2px 0}
+.im-disclosures>.im-config,.im-disclosures>.im-source-info{border:0;background:transparent;margin:0;padding:0;font-size:13px}
+.im-disclosures>details[open]{flex-basis:100%}
+.im-disclosures>.im-config[open]{border:1px solid #dbe4ef;background:white;border-radius:8px;padding:0 10px}
+.im-disclosures summary{padding:3px 0}
+.im-dialog #imStatus{font-size:13px;margin:3px 0}
+.im-dialog #imStatus:empty{display:none}
+.im-dialog #imMeta{font-size:12px;color:#5d738b;margin:4px 0}
+.im-result-tools{padding:6px 0;margin-top:3px}
+.im-group{border:1px solid #d5e0ec;border-radius:9px;background:white;margin:6px 0}
+.im-group>.im-row{border:0;margin:0}
+.im-group>details>summary{padding:3px 10px 7px;color:#195878;font-size:13px}
+.im-group>details[open]>summary{background:#193c5b;color:white;padding:6px 10px}
+.im-group-list{margin:6px 10px 8px 32px;padding-left:10px;border-left:3px solid #c9ddec;background:#f7faff}
+.im-group-list>.im-row{background:transparent;border:0;border-bottom:1px solid #dbe5ef;border-radius:0;margin:0}
