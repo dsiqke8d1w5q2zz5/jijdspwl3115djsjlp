@@ -73,3 +73,7 @@
 .im-group>details[open]>summary{background:#193c5b;color:white;padding:6px 10px}
 .im-group-list{margin:6px 10px 8px 32px;padding-left:10px;border-left:3px solid #c9ddec;background:#f7faff}
 .im-group-list>.im-row{background:transparent;border:0;border-bottom:1px solid #dbe5ef;border-radius:0;margin:0}
+.im-view-tabs{display:inline-flex;flex-wrap:wrap;gap:3px;padding:3px;border:1px solid #d4e0ec;border-radius:8px;background:#edf2f7}
+.im-dialog .im-view-tabs button{border-color:transparent;background:transparent;padding:5px 11px;min-height:32px;font-weight:600;white-space:nowrap}
+.im-dialog .im-view-tabs button[aria-selected=true]{background:#193c5b;color:white;border-color:#193c5b}
+.im-dialog .im-view-tabs button:hover:not([aria-selected=true]){background:#dce8f2}
