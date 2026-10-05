@@ -809,13 +809,13 @@
         .ac-item:hover, .ac-item.active { background:var(--bg); }
         .ac-item b { color:var(--deep); }
     </style>
-    <link rel="stylesheet" href="image-composer.css?v=20261005audit190">
-    <link rel="stylesheet" href="area-editor.css?v=20261005audit190">
+    <link rel="stylesheet" href="image-composer.css?v=20261005audit191">
+    <link rel="stylesheet" href="area-editor.css?v=20261005audit191">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
-    <link rel="stylesheet" href="ui-foundation.css?v=20261005audit190">
-    <link rel="stylesheet" href="responsive-layout.css?v=20261005audit190">
-<link rel="stylesheet" href="inventory-market.css?v=20261005audit190">
-<link rel="stylesheet" href="buyer-match.css?v=20261005audit190">
+    <link rel="stylesheet" href="ui-foundation.css?v=20261005audit191">
+    <link rel="stylesheet" href="responsive-layout.css?v=20261005audit191">
+<link rel="stylesheet" href="inventory-market.css?v=20261005audit191">
+<link rel="stylesheet" href="buyer-match.css?v=20261005audit191">
 </head>
 <body>
 
@@ -4826,7 +4826,7 @@ function renderCard(c) {
         var _eid = esc(c.id), _eva = esc(c._viewAs||'');
         return `<div class="card${c.archived?' archived':''}${cardClass}" onclick="showDetByView('${_eid}','${_eva}')">
             <div class="card-main">
-                <div class="card-name-line"><div class="card-name">${esc(cardName)}${c._viewAs!=='tenant'&&cTypes.includes('成交客戶')&&c.deals&&c.deals.length?`<span class="deal-count">${c.deals.length}</span>`:''}${(showType==='房東'&&_objCount>1)?`<span style="font-size:12px;padding:1px 7px;border-radius:10px;background:#CFFAFE;color:#0E7490;font-weight:700;margin-left:4px;white-space:nowrap">${_objCount}間</span>`:''}${nameSuffix}${sameLL}</div>${c.buyerMatching?.auto===true&&!c.archived&&c._viewAs!=='tenant'?`<button class="card-auto-match" data-buyer-id="${_eid}" onclick="event.stopPropagation();BuyerMatching.open(this.dataset.buyerId)" title="已開啟自動配對，查看配對結果">自動配對</button>`:''}</div>
+                <div class="card-name-line"><div class="card-name">${esc(cardName)}${c._viewAs!=='tenant'&&cTypes.includes('成交客戶')&&c.deals&&c.deals.length?`<span class="deal-count">${c.deals.length}</span>`:''}${(showType==='房東'&&_objCount>1)?`<span style="font-size:12px;padding:1px 7px;border-radius:10px;background:#CFFAFE;color:#0E7490;font-weight:700;margin-left:4px;white-space:nowrap">${_objCount}間</span>`:''}${nameSuffix}${sameLL}</div>${c.buyerMatching?.auto===true&&!c.archived&&c._viewAs!=='tenant'?`<button class="card-auto-match" data-buyer-id="${_eid}" onclick="event.stopPropagation();BuyerMatching.open(this.dataset.buyerId)" title="已開啟自動配對，查看配對結果">自動配對</button>`:''}${showType==='庫存屋主'?window.InventoryMarket?.cardBadge(c)||'':''}</div>
                 <div class="card-phone">${esc(cardPhone)}</div>
                 <div class="tags">
                     ${typeTags}
@@ -12480,7 +12480,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-var APP_VERSION = '20261005audit190';
+var APP_VERSION = '20261005audit191';
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function(){});
 }
@@ -13655,25 +13655,25 @@ function deleteMktTemplate(idx) {
 <script src="brand-banner.js?v=20260928sync1"></script>
 <script src="image-storage.js?v=20260928sync1"></script>
 <script src="image-redaction.js?v=20260928sync1"></script>
-<script src="image-studio.js?v=20261005audit190"></script>
+<script src="image-studio.js?v=20261005audit191"></script>
 <script src="image-layouts.js?v=20260928sync1"></script>
-<script src="image-ai.js?v=20261005audit190"></script>
-<script src="image-ai-editor.js?v=20261005audit190"></script>
-<script src="image-enhance.js?v=20261005audit190"></script>
-<script src="image-composer.js?v=20261005audit190"></script>
-<script src="area-editor.js?v=20261005audit190"></script>
-<script src="sync-notice.js?v=20261005audit190"></script>
-<script src="detail-properties.js?v=20261005audit190"></script>
-<script src="edit-layout.js?v=20261005audit190"></script>
-<script src="property-purpose.js?v=20261005audit190"></script>
-<script src="schedule-property.js?v=20261005audit190"></script>
-<script src="buyer-match-engine.js?v=20261005audit190"></script>
-<script src="buyer-demands.js?v=20261005audit190"></script>
-<script src="buyer-results.js?v=20261005audit190"></script>
-<script src="buyer-grouping.js?v=20261005audit190"></script>
-<script src="inventory-market-engine.js?v=20261005audit190"></script>
-<script src="inventory-market.js?v=20261005audit190"></script>
-<script src="buyer-schedule.js?v=20261005audit190"></script>
-<script src="buyer-match.js?v=20261005audit190"></script>
+<script src="image-ai.js?v=20261005audit191"></script>
+<script src="image-ai-editor.js?v=20261005audit191"></script>
+<script src="image-enhance.js?v=20261005audit191"></script>
+<script src="image-composer.js?v=20261005audit191"></script>
+<script src="area-editor.js?v=20261005audit191"></script>
+<script src="sync-notice.js?v=20261005audit191"></script>
+<script src="detail-properties.js?v=20261005audit191"></script>
+<script src="edit-layout.js?v=20261005audit191"></script>
+<script src="property-purpose.js?v=20261005audit191"></script>
+<script src="schedule-property.js?v=20261005audit191"></script>
+<script src="buyer-match-engine.js?v=20261005audit191"></script>
+<script src="buyer-demands.js?v=20261005audit191"></script>
+<script src="buyer-results.js?v=20261005audit191"></script>
+<script src="buyer-grouping.js?v=20261005audit191"></script>
+<script src="inventory-market-engine.js?v=20261005audit191"></script>
+<script src="inventory-market.js?v=20261005audit191"></script>
+<script src="buyer-schedule.js?v=20261005audit191"></script>
+<script src="buyer-match.js?v=20261005audit191"></script>
 </body>
 </html>
