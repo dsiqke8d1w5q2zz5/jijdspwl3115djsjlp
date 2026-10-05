@@ -814,7 +814,7 @@
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
     <link rel="stylesheet" href="ui-foundation.css?v=20261005audit210">
     <link rel="stylesheet" href="responsive-layout.css?v=20261005audit210">
-<link rel="stylesheet" href="inventory-market.css?v=20261005building224">
+<link rel="stylesheet" href="inventory-market.css?v=20261005purpose225">
 <link rel="stylesheet" href="buyer-match.css?v=20261005compact213">
 </head>
 <body>
@@ -5741,6 +5741,7 @@ function addSellerProperty(data) {
             '<div class="fg" style="margin-bottom:0"><label style="font-size:12px">社區大樓</label><input data-f="community" value="'+esc(d.community||'')+'"></div>' +
             '<div class="fg" style="margin-bottom:0"><label style="font-size:12px">物件地址</label><input data-f="addr" value="'+esc(d.addr||'')+'"></div>' +
         '</div>' +
+        '<div class="fg sp-listing-purpose" style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><label style="margin:0;white-space:nowrap">物件用途</label><select data-f="listingPurpose" style="flex:1;min-width:0">'+["尚未確認","住宅","店面","辦公","廠房","倉庫","住商混合","土地","車位"].map(function(v){return '<option value="'+(v==='尚未確認'?'':v)+'" '+((d.listingPurpose||'')===(v==='尚未確認'?'':v)?'selected':'')+'>'+v+'</option>';}).join('')+'</select></div>' +
         // 開價+底價+服務費
         '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:6px">' +
             '<div class="fg" style="margin-bottom:0"><label style="font-size:12px;display:flex;align-items:center;gap:4px">開價<button type="button" onclick="showSpFieldHistory(this,\'price\')" style="font-size:10px;padding:1px 5px;border:1px solid #D6CFC7;border-radius:4px;background:#F5F0EB;color:#8B7355;cursor:pointer;line-height:1.2">歷程</button></label><div class="input-grp"><input data-f="price" value="'+esc(d.price||'')+'" style="min-width:0;flex:1"><span class="input-sfx">萬</span></div></div>' +
@@ -6174,7 +6175,7 @@ function getSellerProperties() {
     document.querySelectorAll('#sPropertyList .person-block').forEach(function(block) {
         var get = function(f) { var el = block.querySelector('[data-f="'+f+'"]'); return el ? el.value.trim() : ''; };
         if (get('community') || get('addr') || get('price') || block._spDriveUrl) {
-            var _spArch = get('spArchived'); var _reasonEl = block.querySelector('.sp-pause-reason'); var _reason = _reasonEl ? _reasonEl.textContent.replace('暫停原因：','') : ''; var _passEl = block.querySelector('[data-f="spPass"]'); r.push({ ...propertyPurposeData(block), grade:get('grade'), contractType:get('contractType'), spPass: (_passEl && _passEl.checked) ? '1' : '', community:get('community'), addr:get('addr'), price:get('price'), floorPrice:get('floorPrice'), serviceFee:get('serviceFee'), baseLand:get('baseLand'), landShare:get('landShare'), mainBldg:get('mainBldg'), ancBldg:get('ancBldg'), common:get('common'), parkingSz:get('parkingSz'), parking:get('parking'), parkingPrice:get('parkingPrice'), parkingNo:get('parkingNo'), areaInput:areaEditorData(block), mgmtBuilding:get('mgmtBuilding'), mgmtCar:get('mgmtCar'), mgmtMoto:get('mgmtMoto'), mgmtOther:get('mgmtOther'), mgmtPeriod:get('mgmtPeriod'), contractStart:rocToISO(get('contractStart')), contractEnd:rocToISO(get('contractEnd')), spRenewals: block._spRenewals || [], spPriceHistory: block._spPriceHistory || [], spFloorPriceHistory: block._spFloorPriceHistory || [], spDriveUrl: block._spDriveUrl || '', spArchived: _spArch ? '1' : '', spArchiveReason: _reason, spPauseHistory: block._spPauseHistory || [] });
+            var _spArch = get('spArchived'); var _reasonEl = block.querySelector('.sp-pause-reason'); var _reason = _reasonEl ? _reasonEl.textContent.replace('暫停原因：','') : ''; var _passEl = block.querySelector('[data-f="spPass"]'); r.push({ ...propertyPurposeData(block), listingPurpose:get('listingPurpose'), grade:get('grade'), contractType:get('contractType'), spPass: (_passEl && _passEl.checked) ? '1' : '', community:get('community'), addr:get('addr'), price:get('price'), floorPrice:get('floorPrice'), serviceFee:get('serviceFee'), baseLand:get('baseLand'), landShare:get('landShare'), mainBldg:get('mainBldg'), ancBldg:get('ancBldg'), common:get('common'), parkingSz:get('parkingSz'), parking:get('parking'), parkingPrice:get('parkingPrice'), parkingNo:get('parkingNo'), areaInput:areaEditorData(block), mgmtBuilding:get('mgmtBuilding'), mgmtCar:get('mgmtCar'), mgmtMoto:get('mgmtMoto'), mgmtOther:get('mgmtOther'), mgmtPeriod:get('mgmtPeriod'), contractStart:rocToISO(get('contractStart')), contractEnd:rocToISO(get('contractEnd')), spRenewals: block._spRenewals || [], spPriceHistory: block._spPriceHistory || [], spFloorPriceHistory: block._spFloorPriceHistory || [], spDriveUrl: block._spDriveUrl || '', spArchived: _spArch ? '1' : '', spArchiveReason: _reason, spPauseHistory: block._spPauseHistory || [] });
         }
     });
     return r;
@@ -13674,8 +13675,8 @@ function deleteMktTemplate(idx) {
 <script src="buyer-demands.js?v=20261005audit210"></script>
 <script src="buyer-results.js?v=20261005audit210"></script>
 <script src="buyer-grouping.js?v=20261005status220"></script>
-<script src="inventory-market-engine.js?v=20261005building224"></script>
-<script src="inventory-market.js?v=20261005building224"></script>
+<script src="inventory-market-engine.js?v=20261005purpose225"></script>
+<script src="inventory-market.js?v=20261005purpose225"></script>
 <script src="buyer-schedule.js?v=20261005audit210"></script>
 <script src="buyer-match.js?v=20261005floorrange216"></script>
 </body>

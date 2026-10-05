@@ -1,10 +1,10 @@
-var CACHE_NAME = 'crm-v20261005building224';
+var CACHE_NAME = 'crm-v20261005purpose225';
 var URLS_TO_CACHE = [
   './',
   './index.html',
-  './inventory-market.css?v=20261005building224',
-  './inventory-market-engine.js?v=20261005building224',
-  './inventory-market.js?v=20261005building224',
+  './inventory-market.css?v=20261005purpose225',
+  './inventory-market-engine.js?v=20261005purpose225',
+  './inventory-market.js?v=20261005purpose225',
   './buyer-match.css?v=20261005compact213',
   './buyer-match-engine.js?v=20261005floorrange216',
   './buyer-demands.js?v=20261005audit210',

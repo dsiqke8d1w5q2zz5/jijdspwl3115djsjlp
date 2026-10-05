@@ -6,3 +6,5 @@ const yes={...c,buildingDecisions:{[p.id]:{same:true}}},no={...c,buildingDecisio
 console.log('PASS candidate geography, criteria, source health, transaction isolation and per-listing decisions');
 
 assert(E.matches({...c,mode:'project',address:'桃園市蘆竹區濱海路一段',addresses:'桃園市蘆竹區濱海路一段12號'},{...p,id:'591:new',address:'桃園市蘆竹區濱海路一段12號'}));
+
+const mixed={...c,inventoryPurpose:'住商混合',criteria:{priceMax:2000,floorMax:2,buildingType:'電梯大樓'}};const same={...p,address:c.address,price:3980,floor:8,buildingType:'廠辦'};assert(E.matches(mixed,same));assert(E.assess(mixed,same).match);assert(!E.matches(mixed,{...same,address:'桃園市蘆竹區濱海路一段99號',community:'其他大樓'}));assert(!E.assess({...mixed,searchPurpose:'住宅'},same).match);
