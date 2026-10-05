@@ -60,3 +60,5 @@
 .bm-property-group>.bm-variants{margin-right:0}
 .bm-body>#bmStatus.bm-stalled{background:#fff2d5;color:#805c14}
 .bm-dialog button.bm-split-button,.bm-dialog button.bm-reset-group{font-size:11px;padding:1px 6px;color:#526880;background:#fff}
+/* Match the inventory list's tighter vertical spacing. */
+.bm-dialog>header{padding-block:6px}.bm-body{padding-top:6px;padding-bottom:6px}.bm-toolbar,.bm-result-filters{row-gap:4px}.bm-body>.bm-summary{padding-block:4px;margin-block:4px}.bm-info-tools{margin-block:1px 3px}.bm-body>.bm-count{margin-block:3px}.bm-card{padding-block:3px;row-gap:0}.bm-card>.bm-thumb{height:40px}.bm-row-main h3{line-height:1.4}.bm-row-sub{line-height:1.4;row-gap:1px}.bm-grid{gap:3px}.bm-property-group>.bm-variants{margin-bottom:5px}.bm-variants>summary{padding-block:2px}.bm-body>#bmStatus{margin-block:3px}
