@@ -87,3 +87,5 @@
 .bm-row-main h3{flex:1 1 220px}
 .bm-row-main>.bm-row-sources{margin-left:auto;align-items:center;justify-content:flex-end;max-width:100%}
 .bm-row-main .source-chip{min-height:29px;box-sizing:border-box}
+
+.bm-dialog .bm-row-main .source-chip{min-height:24px;padding:0 6px;line-height:22px;box-sizing:border-box}
