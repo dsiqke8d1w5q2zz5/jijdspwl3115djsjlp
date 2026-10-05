@@ -86,3 +86,7 @@
 #imSaveNotice:empty{display:none}#imSaveNotice{font-size:13px;line-height:1.5;overflow-wrap:anywhere}#imSaveNotice[data-state=success]{color:#146b43}#imSaveNotice[data-state=error]{color:#b42318}
 .im-disclosures>details[open]>summary{background:#e4effa;color:#173f65;border-radius:5px;font-weight:700;padding:5px 8px;margin:2px 0 5px}.im-disclosures>.im-source-info[open]{padding:0 10px;border:1px solid #c8daec;border-radius:8px;background:#fff}
 .im-group-warning{color:#8b6315;background:#fff3d9;border-radius:4px;padding:2px 5px;font-size:12px}
+
+/* Reserve status and scrollbar space before asynchronous data arrives. */
+.im-dialog #imStatus{min-height:1.4em}.im-dialog #imStatus:empty{display:block;visibility:hidden}.im-dialog #imResults,.im-controls{scrollbar-gutter:stable}.im-primary #imState{min-width:98px}.im-dialog{animation:none;transition:none}
+.im-meta small>b{color:#173756;font-weight:700}
