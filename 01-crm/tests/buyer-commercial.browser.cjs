@@ -1,0 +1,13 @@
+const fs=require('fs'),path=require('path'),assert=require('assert/strict'),{chromium}=require(process.env.PLAYWRIGHT_MODULE);
+(async()=>{const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});try{
+ const page=await browser.newPage(),fixture=process.argv[2];
+ const html=fs.readFileSync(fixture,'utf8').replace(/<script\b[^>]*>/gi,m=>m.replace(/\s+type\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi,'').replace('>',' type="application/x-inert">'));
+ await page.route('**/*',r=>r.request().isNavigationRequest()?r.fulfill({contentType:'text/html; charset=utf-8',body:html}):r.abort());
+ await page.goto('https://business.591.com.tw/list?type=2&region=1&section=10&kind=5&keywords=民權東路六段&page=1');
+ await page.evaluate(text=>{document.querySelectorAll('script').forEach(x=>x.remove());const s=document.createElement('script');s.type='application/x-inert';s.textContent=text;document.head.append(s);},fs.readFileSync(fixture+'.nuxt','utf8'));
+ for(const f of ['acorn.js','read591.js','read.js','pagination.js'])await page.addScriptTag({path:path.resolve('01-crm/tools/buyer-browser',f)});
+ const data=await page.evaluate(()=>crmReadPage('591','台北市')),own=data.rows.find(p=>p.id==='591:20694244');assert(own,'known shop must be found');assert.equal(own.price,3588);assert.equal(own.area,34.9);assert.equal(own.floor,1);assert.equal(own.totalFloors,5);assert.equal(own.district,'內湖區');assert.equal(own.url,'https://business.591.com.tw/sale/20694244');assert(own.image.startsWith('https://'));assert(data.rows.length>=20);assert(data.complete,'27 records fit one page');
+ await page.evaluate(()=>{document.querySelector('.paginator-container')?.remove();const d=document.createElement('div');d.className='paginator-container';d.innerHTML='<div class="paging"><a class="active">1</a><a>2</a></div><div class="navigator"><a href="/list?type=2&region=1&section=10&kind=5&keywords=民權東路六段&page=2">下一頁</a></div>';document.body.append(d);});
+ const next=await page.evaluate(()=>crmReadPage('591','台北市'));assert(!next.complete);const u=new URL(next.next);assert.equal(u.pathname,'/list');assert.equal(u.searchParams.get('section'),'10');assert.equal(u.searchParams.get('page'),'2');assert.equal(u.searchParams.get('keywords'),'民權東路六段');
+ console.log('PASS actual 591 commercial fixture '+data.rows.length+' rows, known listing price/area/floor/address/photo/URL, final page and continuation filters');
+}finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

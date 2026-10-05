@@ -71,3 +71,13 @@
 .bm-info-tools>summary:hover{background:#dcebf8}
 .bm-info-tools[open]>summary{background:#193c5b;color:#fff;border-color:#193c5b;padding:4px 9px;margin:1px 0 5px}
 .bm-info-tools>summary:focus-visible{outline:3px solid #0891b2;outline-offset:2px}
+
+/* Source labels are direct original-site links; only 591 duplicates expand. */
+.source-chip{display:inline-flex;align-items:center;gap:3px;border:1px solid transparent;border-radius:5px;padding:2px 7px;font-family:inherit;font-weight:600;font-size:13px;line-height:1.5;text-decoration:none;white-space:nowrap;cursor:pointer}
+.bm-dialog .source-chip.source-yungching{background:#fff1b8;color:#6b4d00;border-color:#ead274}
+.bm-dialog .source-chip.source-sinyi{background:#e0f3e7;color:#17623a;border-color:#b0d8be}
+.bm-dialog .source-chip.source-591{background:#ffead6;color:#954500;border-color:#efc49e}
+.source-chip:focus-visible{outline:2px solid #0891b2;outline-offset:2px}
+.source-chip:hover{filter:brightness(.96)}
+
+.bm-row-sources{display:inline-flex;flex-wrap:wrap;gap:5px}.bm-source-tracking{margin-top:8px}.bm-source-tracking>.bm-card{margin-top:5px}

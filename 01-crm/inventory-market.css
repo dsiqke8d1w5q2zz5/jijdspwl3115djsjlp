@@ -104,3 +104,13 @@
 .im-disclosures>details>summary:hover{background:#dcebf8}
 .im-disclosures>details[open]>summary{background:#193c5b;color:#fff;border-color:#193c5b;padding:4px 9px;margin:1px 0 5px}
 .im-disclosures>details>summary:focus-visible{outline:3px solid #0891b2;outline-offset:2px}
+
+/* Source labels are direct original-site links; only 591 duplicates expand. */
+.source-chip{display:inline-flex;align-items:center;gap:3px;border:1px solid transparent;border-radius:5px;padding:2px 7px;font-family:inherit;font-weight:600;font-size:13px;line-height:1.5;text-decoration:none;white-space:nowrap;cursor:pointer}
+.im-dialog .source-chip.source-yungching{background:#fff1b8;color:#6b4d00;border-color:#ead274}
+.im-dialog .source-chip.source-sinyi{background:#e0f3e7;color:#17623a;border-color:#b0d8be}
+.im-dialog .source-chip.source-591{background:#ffead6;color:#954500;border-color:#efc49e}
+.source-chip:focus-visible{outline:2px solid #0891b2;outline-offset:2px}
+.source-chip:hover{filter:brightness(.96)}
+
+.im-owner{font-weight:600;overflow-wrap:anywhere}.im-primary{flex-wrap:wrap}.im-property-tabs{display:flex;flex:1 1 350px;flex-wrap:wrap;gap:5px;min-width:0}.im-property-tabs button{white-space:normal;overflow-wrap:anywhere;text-align:left;background:#edf5fc}.im-property-tabs [aria-selected=true]{background:#193c5b;color:white;border-color:#193c5b}.im-meta .source-chip{font-size:12px;min-height:24px;padding:1px 6px}.im-meta .source-591[aria-expanded=true]{background:#f7d3ae;color:#723300}
