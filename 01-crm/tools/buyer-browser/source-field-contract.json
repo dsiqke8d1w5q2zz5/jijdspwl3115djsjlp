@@ -106,5 +106,12 @@
         ]
       }
     }
+  },
+  "updateRules": {
+    "version": "1.2.21",
+    "legalPurpose": "明確 usage/registeredUsage 優先；住宅搜尋分類與房型不能證明住家用",
+    "buildingType": "591 shape_name 對應房型，kind_name 僅對應來源分類",
+    "sparseUpdates": "用途、房型、房數、電梯與車位明確值不被 null/空字串覆蓋；0與false為有效值",
+    "freshness": "fieldCheckedAt保留各欄位原始讀取時間，較新明確值重新判斷；價格與上下架沿用各自更新機制"
   }
 }
