@@ -101,3 +101,5 @@
 .buyer-reminder-demand{display:block;max-width:100%;font-size:13px;line-height:1.5;color:#526880;white-space:normal;overflow-wrap:anywhere}
 
 .bm-view-tabs{display:flex;gap:6px;flex-wrap:wrap}.bm-view-tabs button{font-weight:600}.bm-view-tabs button[aria-pressed="true"]{background:#193c5b;color:#fff;border-color:#193c5b}.bm-view-tabs button[data-view="pending"]:not([aria-pressed="true"]){background:#fff5dc;color:#886010;border-color:#ead9a8}
+
+.bm-dialog .bm-row-main>button.bm-confirm-match{min-height:34px;height:auto;padding:5px 12px;border:1px solid #193e5c;background:#193e5c;color:#fff;font-size:14px;font-weight:700;line-height:22px;white-space:nowrap;border-radius:7px}.bm-dialog .bm-row-main>button.bm-confirm-match:hover{background:#285578;border-color:#285578}.bm-dialog .bm-row-main>button.bm-confirm-match:focus-visible{outline:3px solid #80b9e3;outline-offset:2px}.bm-dialog .bm-row-main>button.bm-confirm-revoke{background:#fff;color:#193e5c}.bm-dialog .bm-row-main>button.bm-confirm-revoke:hover{background:#eaf2f8}
