@@ -17,7 +17,7 @@ assert(same(p,{...p,address:'新北市板橋區民權路',floor:null,area:23.53,
 for(const address of ['民權路260巷','民權路202巷2弄']){const base={...p,address:'新北市板橋區民權路202巷1弄'};assert(!same(base,{...base,address:'新北市板橋區'+address}));}
 assert(!same({...p,address:'民權路一段'},{...p,address:'民權路二段'}));
 const examples=[{...p,address:'新北市板橋區民權路260巷',price:2188,area:38.85,age:36,rooms:7},{...p,address:'新北市板橋區民權路260巷',price:2188,area:38.87,age:36,floor:null,rooms:7},{...p,address:'新北市板橋區民權路',price:2188,area:38.86,age:36.5,floor:null,rooms:5}].map(p=>({p}));
-assert.equal(group(examples).length,1);assert.deepEqual(warnings(examples),['樓層待確認','房數不一致','地址待確認']);assert.equal(group([...examples,{p:{...examples[0].p,price:2189}}]).length,2);
+assert.equal(group(examples).length,1);assert.deepEqual(warnings(examples),['屋齡不一致','樓層待確認','房數不一致','地址待確認']);assert.equal(group([...examples,{p:{...examples[0].p,price:2189}}]).length,2);
 assert.equal(group([{p:{...p,floor:null}},{p},{p:{...p,floor:2}}]).length,2,'unknown floor must not bridge conflicting floors');
 console.log('PASS screenshot examples, missing address/floor, warnings, exact prices and no conflict bridging');
 
@@ -29,9 +29,11 @@ assert.deepEqual(sortGroups(priority,'price:asc',Date.parse('2026-10-04')).map(g
 {const base={city:'新北市',district:'土城區',address:'新北市土城區青和街',price:1598,area:29.26,floor:14,age:null,rooms:3};
 const duplicates=[{...base,id:'yc:1',area:29.36,age:.4},...Array.from({length:4},(_,i)=>({...base,id:'591:'+i}))];
 assert.equal(group(duplicates.map(p=>({p}))).length,1);
-assert.deepEqual(warnings(duplicates.map(p=>({p}))),['屋齡待確認']);
+assert.deepEqual(warnings(duplicates.map(p=>({p}))),['部分刊登缺屋齡']);
 for(const delta of [{floor:2},{floor:null},{price:1658},{area:29.58},{rooms:2},{address:'新北市土城區青仁街'}])assert(!same(base,{...base,...delta}),JSON.stringify(delta));
 assert(!same({...base,age:.4},{...base,age:20}));
 assert.equal(group([{...base},{...base,age:.4},{...base,age:20}].map(p=>({p}))).length,2,'missing age cannot bridge known age conflicts');
 assert.equal(group([...duplicates,{...base,price:1658,area:29.58,floor:2},{...base,price:1688,area:29.48,floor:7},{...base,price:1700,area:29.59,floor:10}].map(p=>({p}))).length,4);
 console.log('PASS missing-age screenshot fixture, known-floor requirement, room/price/location/area conflicts and no age bridging');}
+
+assert(warnings([{p:{age:28}},{p:{age:28}}]).every(x=>!x.includes('屋齡')));assert(warnings([{p:{age:null}},{p:{age:null}}]).includes('屋齡待確認'));assert(warnings([{p:{age:28}},{p:{age:28.5}}]).includes('屋齡不一致'));
