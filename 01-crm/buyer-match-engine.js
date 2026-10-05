@@ -23,7 +23,7 @@ function evaluate(d,p){d=normalizeDemand(d);p=normalizeListing(p);const m=d.matc
   if(apartmentOnly&&buildingEvidence)check('房屋類型',true,false);
   else if(mixed&&!pass&&!m.optional?.includes('房屋類型'))pending.push('類型／用途（原站：'+type+'）');else check('房屋類型',!!type,pass);}
  if(m.legacyTypes)pending.push('舊房型待細分');if(m.parking)check('車位',typeof p.parking==='boolean',p.parking===true);if(m.parking==='flat')check('平面車位',!!p.parkingType,/平面/.test(p.parkingType));
- if(m.elevator){const elevator=typeof p.elevator==='boolean'?p.elevator:/電梯大樓/.test(String(p.buildingType||p.type||''))?true:null;check('電梯',typeof elevator==='boolean',elevator===(m.elevator==='yes'));}
+ if(m.elevator){const elevator=typeof p.elevator==='boolean'?p.elevator:/^(電梯大樓|住宅大樓|電梯大廈)$/.test(String(p.buildingType||p.type||'').trim())?true:/^公寓$/.test(String(p.buildingType||p.type||'').trim())?false:null;check('電梯',typeof elevator==='boolean',elevator===(m.elevator==='yes'));}
  const fr=floorRange(p),contains=n=>fr&&fr.min<=n&&fr.max>=n;
  if(m.exclude?.includes('first'))check('非1樓',!!fr,!contains(1));if(m.exclude?.includes('fourth'))check('非4樓',!!fr,!contains(4));if(m.exclude?.includes('top'))check('非頂樓',!!fr&&num(p.totalFloors)!==null,!contains(num(p.totalFloors)));if(m.exclude?.includes('basement'))check('非地下室',!!fr,!!fr&&fr.min>0);
  if(m.keywords){const words=m.keywords.split(/[,，、\n]/).map(x=>x.trim()).filter(Boolean);check('社區／路段',!!(p.address||p.community),words.some(w=>(/路|街|大道/.test(w)?String(p.address||''):p.address+' '+p.community+' '+p.title).includes(w)));}

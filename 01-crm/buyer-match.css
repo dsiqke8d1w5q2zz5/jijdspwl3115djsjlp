@@ -99,3 +99,5 @@
 .bd-district-fold summary{cursor:pointer;font-size:14px;font-weight:600;color:#173756;padding:5px 0;overflow-wrap:anywhere}.bd-district-fold summary:focus-visible{outline:3px solid #0891b2}.bd-district-fold[open] .dist-grid{margin-top:6px}.bd-precise .bd-dist{padding-top:4px;padding-bottom:4px}.bd-precise .bd-group{margin:8px 0}.bd-precise .bd-options{margin:5px 0 8px;gap:6px}.bd-search-purpose{margin:8px 0}.bd-search-purpose>.bd-field{font-size:14px}.bd-search-purpose small{flex-basis:180px}
 
 .buyer-reminder-demand{display:block;max-width:100%;font-size:13px;line-height:1.5;color:#526880;white-space:normal;overflow-wrap:anywhere}
+
+.bm-view-tabs{display:flex;gap:6px;flex-wrap:wrap}.bm-view-tabs button{font-weight:600}.bm-view-tabs button[aria-pressed="true"]{background:#193c5b;color:#fff;border-color:#193c5b}.bm-view-tabs button[data-view="pending"]:not([aria-pressed="true"]){background:#fff5dc;color:#886010;border-color:#ead9a8}
