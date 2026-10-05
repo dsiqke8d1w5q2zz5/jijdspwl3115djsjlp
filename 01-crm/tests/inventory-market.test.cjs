@@ -13,3 +13,8 @@ assert.deepEqual(csv('a,b\n"x,y","z""w"\n'),[['a','b'],['x,y','z"w']]);const raw
 console.log('PASS aliases exclude 新巨蛋; punctuation, exact building, multiple addresses, district/road conflicts, baseline/partial/zero/error/stale feeds, dedup, own listings, price drop, official transaction corrections, daily reminders and rollback, CSV units/dates');
 
 for(const separator of ['/', '／', '\n']){const cfg={...config,aliases:'巨蛋'+separator+'巨蛋東京花園廣場'};assert.deepEqual(E.aliases(cfg),['巨蛋','巨蛋東京花園廣場']);assert(E.matches(cfg,base));assert(!E.matches(cfg,{...base,community:'新巨蛋'}));}
+const slash={...config,community:'巨蛋/巨蛋東京花園廣場',aliases:''};
+assert(E.matches(slash,base));assert(E.matches(slash,{...base,community:'巨蛋'}));assert(!E.matches(slash,{...base,community:'新巨蛋'}));
+assert(E.matches(slash,{...base,community:'',title:'巨蛋景觀套房'}));
+assert(!E.matches(slash,{...base,community:'',title:'新巨蛋景觀套房'}));
+assert(!E.matches(slash,{...base,address:'新北市板橋區文化路二段',community:'巨蛋'}));
