@@ -12,9 +12,14 @@ const conditionFields=[['price','總價',false],['area','建坪',false],['rooms'
 function criteria(value={}){const out={};for(const [field,label,integer] of conditionFields){for(const side of ['Min','Max']){const raw=value[field+side];if(raw==null||String(raw).trim()==='')continue;const n=Number(raw);if(!Number.isFinite(n)||(n<0&&field!=='floor')||(integer&&!Number.isInteger(n)))throw Error(label+'請填'+(integer?'非負整數':'非負數字'));out[field+side]=n;}if(out[field+'Min']!=null&&out[field+'Max']!=null&&out[field+'Min']>out[field+'Max'])throw Error(label+'下限不可大於上限');}return out;}
 function assess(config,p){if(p.kind==='transaction')return {match:true,missing:[]};const limits=config.criteria||{},missing=[];let match=true;for(const [field,label]of conditionFields){const lo=limits[field+'Min'],hi=limits[field+'Max'];if(lo==null&&hi==null)continue;const value=p[field];if(value==null||String(value).trim()===''||!Number.isFinite(Number(value))){missing.push(label);continue;}if((lo!=null&&Number(value)<lo)||(hi!=null&&Number(value)>hi))match=false;}return {match,missing};}
 
+
+function excluded(config,p){if(!p)return false;return p?.kind!=='transaction'&&((config.ownIds||[]).includes(p?.id)||(config.excludedGroups||[]).some(g=>(g.ids||[]).includes(p?.id)||(g.samples||[]).some(q=>root.BuyerGrouping?.same(p,q))));}
+function exclusionGroup(config,records,id){const rows=Object.values(records||{}).filter(p=>p.kind!=='transaction'&&!excluded(config,p)).sort((a,b)=>a.price-b.price);return (root.BuyerGrouping?.group(rows.map(p=>({p}))).find(g=>g.some(r=>r.p.id===id))||[]).map(r=>r.p);}
+function exclusion(rows){const fields=['id','source','title','address','city','district','community','price','area','floor','age','rooms'];return {id:rows[0]?.id,ids:rows.map(p=>p.id),samples:rows.map(p=>Object.fromEntries(fields.filter(k=>p[k]!=null).map(k=>[k,p[k]])))};}
+
 const time=v=>Date.parse(v)||0;
 function apply(previous,config,feed,now=new Date().toISOString()){
- const s=structuredClone(previous||{records:{},baselines:{},events:[],ack:0});s.records||={};s.baselines||={};s.events||=[];const own=new Set(config.ownIds||[]),incoming=(feed.listings||[]).filter(p=>p.id&&!own.has(p.id)&&matches(config,p)),sources=feed.sources||[];
+ const s=structuredClone(previous||{records:{},baselines:{},events:[],ack:0});s.records||={};s.baselines||={};s.events||=[];const own=new Set(config.ownIds||[]),incoming=(feed.listings||[]).filter(p=>p.id&&!excluded(config,p)&&matches(config,p)),sources=feed.sources||[];
  for(const source of sources){if(!['ok','partial'].includes(source.status)||(['moi','moi-presale'].includes(source.id)?config.transactionsEnabled===false:config.enabled===false))continue;const rows=incoming.filter(p=>p.source===source.id),initialized=!!s.baselines[source.id];
   for(const raw of rows){const p={...raw,...(config.mode!=='road'&&!raw.community?{matchNote:'建案名稱待確認'}:{}),seenAt:raw.seenAt||feed.generatedAt||now},old=s.records[p.id];if(old&&(time(p.seenAt)<time(old.seenAt)||(old.availability&&old.availability!=='active'&&time(p.seenAt)<=time(s.scans?.[source.id]?.at))))continue;
    const duplicate=!old&&p.kind!=='transaction'&&Object.values(s.records).some(q=>q.kind!=='transaction'&&root.BuyerGrouping?.same(p,q));
@@ -29,7 +34,7 @@ function apply(previous,config,feed,now=new Date().toISOString()){
    if(stamp>time(previousScan?.at)&&feed.scanId!==previousScan?.id){
     const present=new Set(rows.map(p=>p.id));
     for(const p of Object.values(s.records)){
-     if(p.source!==source.id||p.kind==='transaction'||own.has(p.id)||present.has(p.id)||time(p.seenAt)>stamp)continue;
+     if(p.source!==source.id||p.kind==='transaction'||excluded(config,p)||present.has(p.id)||time(p.seenAt)>stamp)continue;
      p.missingScans=(p.missingScans||0)+1;
      if(p.missingScans>=3&&(!p.availability||p.availability==='active')){
       p.availability='suspected';
@@ -48,7 +53,7 @@ function apply(previous,config,feed,now=new Date().toISOString()){
 }
 
 function verify(previous,config,checks,scanId,now=new Date().toISOString()){
- const s=structuredClone(previous);for(const check of checks||[]){const p=s.records?.[check.id];if(!p||p.kind==='transaction'||(config.ownIds||[]).includes(p.id)||!p.missingScans||s.scans?.[p.source]?.id!==scanId)continue;p.verifiedScan=scanId;
+ const s=structuredClone(previous);for(const check of checks||[]){const p=s.records?.[check.id];if(!p||p.kind==='transaction'||excluded(config,p)||!p.missingScans||s.scans?.[p.source]?.id!==scanId)continue;p.verifiedScan=scanId;
  if(check.status!=='off'||p.availability==='off')continue;p.availability='off';
  if(config.notifyDown!==false&&config.enabled!==false&&assess(config,p).match&&!assess(config,p).missing.length){const other=Object.values(s.records).some(q=>q.id!==p.id&&(!q.availability||q.availability==='active')&&root.BuyerGrouping?.same(p,q));s.events.push({id:[p.id,'已下架',scanId].join('|'),kind:other?'其中一筆已下架':'已下架',listingId:p.id,at:now});}
  }return s;
@@ -58,5 +63,5 @@ function day(at){const d=new Date(at);return d.getFullYear()+'-'+String(d.getMon
 function reminder(c,id,label,state,save,now=new Date()){
  const date=day(now),events=state.events.filter(e=>day(e.at)===date);if(!events.length||c.archived||c._deleted)return false;const key='inventory-watch:'+id+':'+date,old=c.schedules,items=structuredClone(old||[]),existing=items.find(x=>x.id===key),known=existing?.marketEvents||{};if(events.every(e=>known[e.id]))return false;const all={...known,...Object.fromEntries(events.map(e=>[e.id,e.kind]))},counts={};Object.values(all).forEach(k=>counts[k]=(counts[k]||0)+1);const memo='庫存行情｜'+label+'：'+Object.entries(counts).map(([k,n])=>({'New':'新發現刊登','Down':'降價','成交':'新公布成交','成交更正':'成交更正','疑似下架':'疑似下架','其中一筆疑似下架':'其中一筆疑似下架','已下架':'已下架','其中一筆已下架':'其中一筆已下架','重新上架':'重新上架'}[k])+n+'筆').join('、');const entry={...existing,id:key,date:existing?.date||date,time:existing?.time||'',memo,marketEvents:all,_deleted:false,updatedAt:now.toISOString()};if(existing)Object.assign(existing,entry);else items.push(entry);c.schedules=items;if(!save()){c.schedules=old;return false;}return true;
 }
-const api={verify,criteria,assess,conditionFields,norm,communityName,aliases,location,matches,apply,reminder};root.InventoryMarketEngine=api;if(typeof module!=='undefined')module.exports=api;
+const api={excluded,exclusionGroup,exclusion,verify,criteria,assess,conditionFields,norm,communityName,aliases,location,matches,apply,reminder};root.InventoryMarketEngine=api;if(typeof module!=='undefined')module.exports=api;
 })(globalThis);
