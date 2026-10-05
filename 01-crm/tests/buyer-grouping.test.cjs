@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),{same,group}=require('../buyer-grouping');
 const p={id:'591:1',city:'新北市',district:'板橋區',address:'新北市板橋區民權路202巷',area:23.23,floor:1,age:52,price:1988};
 assert(same(p,{...p,area:23.22,age:52.3}));
-for(const delta of [{area:23.54},{floor:2},{age:null},{age:53.1},{price:1989},{address:'新北市板橋區文化路202巷'},{district:'中和區'},{area:null,mainArea:23.23}])assert(!same(p,{...p,...delta}),JSON.stringify(delta));
+for(const delta of [{area:23.54},{floor:2},{age:53.1},{price:1989},{address:'新北市板橋區文化路202巷'},{district:'中和區'},{area:null,mainArea:23.23}])assert(!same(p,{...p,...delta}),JSON.stringify(delta));
 assert(!same({...p,address:p.address+'1號'},{...p,address:p.address+'2號'}));
 assert(!same({...p,community:'同一社區'},{...p,address:'新北市板橋區文化路',community:'同一社區'}));
 assert.equal(group([0,.2,.4].map((d,i)=>({p:{...p,id:String(i),area:23+d}}))).length,2,'no transitive chain');
@@ -25,3 +25,13 @@ const priority=[[{p:{price:1000}}],[{p:{price:3000,firstMatchedAt:'2026-10-05'}}
 assert.deepEqual(sortGroups(priority,'price:asc',Date.parse('2026-10-04')).map(g=>g[0].p.price),[2000,3000,1000]);assert.deepEqual(sortGroups(priority,'price:desc',Date.parse('2026-10-04')).map(g=>g[0].p.price),[3000,2000,1000]);assert.deepEqual(sortGroups(priority,'price:asc',Date.parse('2026-10-06')).map(g=>g[0].p.price),[1000,2000,3000]);console.log('PASS New/Down group priority in both directions and after acknowledgment');
 
 {const g=require('../buyer-grouping.js'),base={city:'新北市',district:'板橋區',price:1988,area:23.23,age:52,floor:1};const pair=(a,b)=>g.same({...base,address:'新北市板橋區文化路'+a},{...base,address:'新北市板橋區文化路'+b});assert(!pair('23-1號','99-1號'));assert(!pair('23-1號','1號'));assert(pair('23-1號','23之1號'));assert(pair('23號之1','23之1號'));assert(pair('一段23號','1段23號'));assert(!pair('一段23號','二段23號'));assert(pair('十段23號','10段23號'));console.log('PASS complete hyphen/subnumber and canonical section grouping');}
+
+{const base={city:'新北市',district:'土城區',address:'新北市土城區青和街',price:1598,area:29.26,floor:14,age:null,rooms:3};
+const duplicates=[{...base,id:'yc:1',area:29.36,age:.4},...Array.from({length:4},(_,i)=>({...base,id:'591:'+i}))];
+assert.equal(group(duplicates.map(p=>({p}))).length,1);
+assert.deepEqual(warnings(duplicates.map(p=>({p}))),['屋齡待確認']);
+for(const delta of [{floor:2},{floor:null},{price:1658},{area:29.58},{rooms:2},{address:'新北市土城區青仁街'}])assert(!same(base,{...base,...delta}),JSON.stringify(delta));
+assert(!same({...base,age:.4},{...base,age:20}));
+assert.equal(group([{...base},{...base,age:.4},{...base,age:20}].map(p=>({p}))).length,2,'missing age cannot bridge known age conflicts');
+assert.equal(group([...duplicates,{...base,price:1658,area:29.58,floor:2},{...base,price:1688,area:29.48,floor:7},{...base,price:1700,area:29.59,floor:10}].map(p=>({p}))).length,4);
+console.log('PASS missing-age screenshot fixture, known-floor requirement, room/price/location/area conflicts and no age bridging');}

@@ -14,9 +14,12 @@ function same(a,b){
  if(!((x.road&&x.road===y.road)||(x.community&&x.community===y.community)))return false;
  if(['section','lane','alley','number'].some(k=>x[k]&&y[k]&&x[k]!==y[k]))return false;
  if(x.floor!==null&&y.floor!==null&&x.floor!==y.floor)return false;
- return ['area','age','price'].every(k=>x[k]!==null&&y[k]!==null)&&x.area>0&&y.area>0&&x.price>0&&x.price===y.price&&Math.abs(x.area-y.area)<=0.30000001&&Math.abs(x.age-y.age)<=1;
+ if(!(['area','price'].every(k=>x[k]!==null&&y[k]!==null)&&x.area>0&&y.area>0&&x.price>0&&x.price===y.price&&Math.abs(x.area-y.area)<=0.30000001))return false;
+ if(x.age!==null&&y.age!==null)return Math.abs(x.age-y.age)<=1;
+ // Missing age needs a known, matching floor and no known room conflict.
+ return x.floor!==null&&y.floor!==null&&x.floor===y.floor&&!(x.rooms!==null&&y.rooms!==null&&x.rooms!==y.rooms);
 }
-function warnings(rows){const list=rows.map(r=>facts(r.p)),notes=[];if(list.some(x=>x.floor===null))notes.push('樓層待確認');if(new Set(list.filter(x=>x.rooms!==null).map(x=>x.rooms)).size>1)notes.push('房數不一致');if(['road','section','lane','alley','number'].some(k=>list.some(x=>x[k])&&list.some(x=>!x[k])))notes.push('地址待確認');return notes;}
+function warnings(rows){const list=rows.map(r=>facts(r.p)),notes=[];if(list.some(x=>x.age===null))notes.push('屋齡待確認');if(list.some(x=>x.floor===null))notes.push('樓層待確認');if(new Set(list.filter(x=>x.rooms!==null).map(x=>x.rooms)).size>1)notes.push('房數不一致');if(['road','section','lane','alley','number'].some(k=>list.some(x=>x[k])&&list.some(x=>!x[k])))notes.push('地址待確認');return notes;}
 // Complete-link comparison prevents chained near-matches from merging distant endpoints.
 function group(rows,separate=[]){const isolated=new Set(separate);const groups=[],buckets=new Map();for(const row of rows){if(isolated.has(row.p.id)){groups.push([row]);continue;}const f=facts(row.p),key=[f.city,f.district,f.price].join('|'),candidates=buckets.get(key)||[];const g=candidates.find(g=>g.every(other=>same(row.p,other.p)));if(g)g.push(row);else{const fresh=[row];groups.push(fresh);candidates.push(fresh);buckets.set(key,candidates);}}return groups;}
 function sortValue(p,field){const area=num(p.area),price=num(p.price);if(field==='unit')return area>0&&price>0?price/area:null;const value=num(p[field]);return value!==null&&(field==='age'?value>=0:value>0)?value:null;}
