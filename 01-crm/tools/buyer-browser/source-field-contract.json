@@ -1,0 +1,110 @@
+{
+  "updated": "2026-10-05",
+  "purpose": "三站公開資料欄位對照；只記錄程式實際使用或當次原頁核對的欄位。",
+  "rules": {
+    "usage": "用途只用原站謄本／法定用途或明確揭露；搜尋分類住宅不等於住家用。",
+    "buildingType": "房型與用途分開。公寓、大樓不直接決定住宅／商用用途。",
+    "elevator": "明確布林資料優先；無此資料時，公寓按無電梯，電梯大樓／住宅大樓／電梯大廈按有電梯。未確認數值代碼不推定。",
+    "missing": "資料缺失保留未知，不自動當成符合。",
+    "availability": "404／410為網址失效；連線失敗、驗證頁與搜尋未收錄不得直接當下架。",
+    "counts": "使用者看到的筆數按群組計算；原站刊登數另外顯示。",
+    "units": "價格：萬元；面積：坪；屋齡：年。保留多樓層原字串。"
+  },
+  "sources": {
+    "591": {
+      "list": {
+        "container": "Nuxt literal envelope; 不執行原站腳本",
+        "id": "houseid",
+        "title": "title",
+        "city": "region_name",
+        "district": "section_name",
+        "address": "address",
+        "price": "price",
+        "area": "area",
+        "mainArea": "mainarea",
+        "rooms": "room",
+        "age": "showhouseage",
+        "buildingType": "shape_name",
+        "sourceCategory": "kind_name",
+        "usage": "build_purpose（若提供）",
+        "floorText": "floor",
+        "parking": "has_carport 1/0",
+        "parkingType": "cartmodel",
+        "community": "community_name"
+      },
+      "detail": {
+        "endpoint": "https://bff-house.591.com.tw/v1/web/sale/detail?id={id}",
+        "identity": "ware.id 必須等於要求編號",
+        "usage": "info 群組中 name=法定用途 的 value",
+        "buildingType": "info 群組中 name=型態 的 value",
+        "rooms": "info 群組中 name=格局；開放式格局為0房",
+        "notTrusted": "ware.lift=0 在電梯大樓樣本也存在，不可當成無電梯",
+        "fallback": "初始HTML 法定用途／型態；介紹中明確用途揭露僅為備援",
+        "availability": "API status:0 空資料本身不等於下架；另讀物件頁確認 HTTP404/410"
+      },
+      "samples": [
+        "20859167",
+        "20697618",
+        "20972621",
+        "20707425",
+        "25139291",
+        "25217665",
+        "25194184"
+      ]
+    },
+    "yungching": {
+      "list": {
+        "id": "a[href*=house/] 數字編號",
+        "title": ".caseName",
+        "address": ".address",
+        "price": ".price",
+        "area": ".regArea",
+        "mainArea": ".mainArea",
+        "community": ".community",
+        "rooms": ".room",
+        "age": ".case-info 年數",
+        "buildingType": ".caseType",
+        "floorText": ".floor",
+        "parking": "卡片明確含車位／車位型式",
+        "parkingType": ".car"
+      },
+      "detail": {
+        "usage": "h4 謄本用途 → 同一 .item 的 .item-detail",
+        "buildingType": "h4 型態 → .item-detail；備援 .case-type"
+      },
+      "samples": [
+        "https://buy.yungching.com.tw/house/6434805"
+      ]
+    },
+    "sinyi": {
+      "list": {
+        "container": "__NEXT_DATA__.props.initialReduxState.buyReducer.list",
+        "id": "houseNo",
+        "title": "name",
+        "address": "address",
+        "price": "totalPrice",
+        "area": "areaBuilding",
+        "rooms": "layout",
+        "age": "age",
+        "buildingType": "對應物件連結下 type-badge",
+        "floor": "floor",
+        "totalFloors": "totalfloor（列表）",
+        "parking": "isParking 布林",
+        "community": "commName"
+      },
+      "detail": {
+        "container": "__NEXT_DATA__.props.initialReduxState.buyReducer",
+        "identity": "detailData.houseNo 必須等於要求的物件編號",
+        "usage": "detailData.detail.purpose",
+        "observedNotYetMapped": {
+          "totalFloors": "contentData.floors（不同於列表 totalfloor）",
+          "mainArea": "contentData.areaInfo 中 title=主建物",
+          "buildingTypeCode": "contentData.houselandtype／houselandtypeShow 是代碼，不直接推定"
+        },
+        "samples": [
+          "https://www.sinyi.com.tw/buy/house/2427JQ"
+        ]
+      }
+    }
+  }
+}
