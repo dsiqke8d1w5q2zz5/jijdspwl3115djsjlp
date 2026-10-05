@@ -90,3 +90,7 @@
 /* Reserve status and scrollbar space before asynchronous data arrives. */
 .im-dialog #imStatus{min-height:1.4em}.im-dialog #imStatus:empty{display:block;visibility:hidden}.im-dialog #imResults,.im-controls{scrollbar-gutter:stable}.im-primary #imState{min-width:98px}.im-dialog{animation:none;transition:none}
 .im-meta small>b{color:#173756;font-weight:700}
+
+.im-disclosures>#imStatus{flex:1 1 300px;align-self:center;margin:0;font-size:12px;color:#60758a}.im-save #imSaveNotice{flex-basis:auto;margin-left:auto}.im-save:has(#imSaveNotice:not(:empty)) #imSave{margin-left:0}.im-save #imSaveNotice{order:1}.im-save #imSave{order:2}.im-save #imRestoreOwn{order:3}.im-save #imSaveNotice[data-state=error]{flex-basis:100%;order:4;margin-left:0}.im-save #imSaveNotice:empty{display:none}
+
+.im-dialog>.im-result-tools{flex:none;margin:0 16px;padding:6px 0;font-size:14px;background:#f6f8fb;position:relative;z-index:1}.im-controls{max-height:60%}
