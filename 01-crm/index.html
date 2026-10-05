@@ -10351,7 +10351,7 @@ function openEdit(id, viewAs) {
 function closeForm(skipConfirm){
     function _hide() {
         try { var a = document.activeElement; if (a && a.blur && a !== document.body) a.blur(); } catch(e) {}
-        setTimeout(function(){ document.getElementById('fModal').style.display='none'; }, 50);
+        setTimeout(function(){ document.getElementById('fModal').style.display='none'; window.dispatchEvent(new Event('crm:formclosed')); }, 50);
     }
     if(!skipConfirm){ confirmAction('確定關閉？未儲存的資料將會遺失', _hide); return; }
     _hide();
@@ -13680,7 +13680,7 @@ function deleteMktTemplate(idx) {
 <script src="inventory-market-engine.js?v=20261005audit231"></script>
 <script src="inventory-market.js?v=20261005audit231"></script>
 <script src="buyer-schedule.js?v=20261005audit210"></script>
-<script src="buyer-match.js?v=20261005compact233"></script>
+<script src="buyer-match.js?v=20261005return235"></script>
 <script src="seller-layout.js?v=20261005audit231"></script>
 </body>
 </html>
