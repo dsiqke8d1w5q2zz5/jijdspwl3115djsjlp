@@ -81,3 +81,9 @@
 .source-chip:hover{filter:brightness(.96)}
 
 .bm-row-sources{display:inline-flex;flex-wrap:wrap;gap:5px}.bm-source-tracking{margin-top:8px}.bm-source-tracking>.bm-card{margin-top:5px}
+
+/* Keep original-site links beside the tracking actions, above the property facts. */
+.bm-row-main{flex-wrap:wrap;row-gap:4px}
+.bm-row-main h3{flex:1 1 220px}
+.bm-row-main>.bm-row-sources{margin-left:auto;align-items:center;justify-content:flex-end;max-width:100%}
+.bm-row-main .source-chip{min-height:29px;box-sizing:border-box}
