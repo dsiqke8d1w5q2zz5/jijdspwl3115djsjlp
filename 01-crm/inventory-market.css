@@ -132,3 +132,10 @@
 .im-disclosure-body{grid-column:1/-1;min-width:0;border:1px solid #c8daec;border-radius:8px;background:white;padding:8px 10px;overflow-wrap:anywhere}
 .im-disclosure-body[hidden]{display:none}
 @media(max-width:800px){.im-disclosures>#imStatus{grid-column:1/-1}.im-disclosures>details>summary,.im-disclosures>details[open]>summary{padding-inline:6px}}
+
+/* Tracking status is readable without relying on color alone. */
+.im-primary #imState{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:4px 8px;border:1px solid transparent;border-radius:6px;box-sizing:border-box;font-weight:700;line-height:1.5;white-space:nowrap}
+.im-primary #imState[data-enabled=false]{background:#fff0e8;color:#a33012;border-color:#edab91}
+.im-primary #imState[data-enabled=true]{background:#e5f3ea;color:#17623a;border-color:#b0d8be}
+.im-primary #imState[data-enabled=false]::before{content:'!';display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#a33012;color:white;font-size:11px}
+.im-primary #imState[data-enabled=true]::before{content:'✓'}
