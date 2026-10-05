@@ -815,7 +815,7 @@
     <link rel="stylesheet" href="ui-foundation.css?v=20261005audit210">
     <link rel="stylesheet" href="responsive-layout.css?v=20261005audit210">
 <link rel="stylesheet" href="inventory-market.css?v=20261005audit231">
-<link rel="stylesheet" href="buyer-match.css?v=20261005layout237">
+<link rel="stylesheet" href="buyer-match.css?v=20261005schedule238">
 </head>
 <body>
 
@@ -4248,7 +4248,7 @@ function renderDashboard() {
         return '<div class="dash-item dash-sched-item dash-clickedit'+(s.days===0?' dash-sched-today':'')+'" style="flex-direction:column;align-items:stretch" onclick="'+rowEdit+'">' +
             '<div class="dash-sched-row1">' +
                 '<span class="dash-item-info" style="color:'+dateColor+'">'+(s.expired?'<i class="ti ti-alert-triangle schedule-overdue-alert" aria-hidden="true"></i><span class="schedule-overdue-days" title="已逾期 '+Math.abs(s.days)+' 天" aria-label="已逾期 '+Math.abs(s.days)+' 天">'+Math.abs(s.days)+'</span>':'')+'<span class="schedule-date-text">'+esc(isoToMDW(s.date))+'</span>'+(s.time?'<span class="schedule-time-text">'+esc(s.time)+'</span>':'')+'</span>' +
-                nameHtml + schedulePropertyBadge(s.propertyRef,s.schedType) +
+                nameHtml + (schedulePropertyBadge(s.propertyRef,s.schedType)+(window.BuyerSchedule?.badges(s)||'')) +
                 '<span style="display:flex;gap:2px;flex-shrink:0;margin-left:auto">' + editBtn + delBtn + '</span>' +
             '</div>' +
             '<div style="display:flex;align-items:flex-start;gap:6px">' +
@@ -5470,7 +5470,7 @@ function showDet(id, viewAs) {
                 var sorted = _liveItems(c.schedules).slice().sort(function(a,b){ return (a.date+(a.time||'')).localeCompare(b.date+(b.time||'')); });
                 if (!sorted.length) return '';
                 return '<div style="font-weight:700;font-size:12px;color:#1E40AF;margin-top:8px;margin-bottom:4px">預排行程</div>' +
-                    sorted.map(function(s){ return '<div class="det-row det-schedule-row'+(s.time?'':' det-schedule-no-time')+'"><span class="det-key" style="color:#292524;font-weight:700;width:auto;white-space:nowrap;margin-right:12px">'+esc(isoToROC(s.date)+(s.time?' '+s.time:''))+schedulePropertyBadge(s.propertyRef,s.schedType)+'</span><span class="det-val" style="color:#1E40AF">'+esc(s.memo||'')+'</span></div>'; }).join('');
+                    sorted.map(function(s){ return '<div class="det-row det-schedule-row'+(s.time?'':' det-schedule-no-time')+'"><span class="det-key" style="color:#292524;font-weight:700;width:auto;white-space:nowrap;margin-right:12px">'+esc(isoToROC(s.date)+(s.time?' '+s.time:''))+(schedulePropertyBadge(s.propertyRef,s.schedType)+(window.BuyerSchedule?.badges(s)||''))+'</span><span class="det-val" style="color:#1E40AF">'+esc(s.memo||'')+'</span></div>'; }).join('');
             })()}
             ${(function(){
                 var _nLabels={'經營買方':'買方備註','庫存屋主':'庫存備註','房東':'房東備註','租客':'租客備註','成交客戶':'成交備註','商機募集':'商機備註'};
@@ -8709,7 +8709,7 @@ function filterAllSchedList() {
         return separator + '<div class="all-sched-row">' +
             '<div class="all-sched-content"><div class="all-sched-heading">' +
                 '<span class="all-sched-date">'+esc(isoToMDW(s.date,true))+(s.time?' '+esc(s.time):'')+(s.recurrence?' <i class="ti ti-repeat" style="font-size:12px;color:#0E7490" title="'+esc(recurLabel(s.recurrence))+'"></i>':'')+'</span>' +
-                '<span class="all-sched-name" style="color:'+nameColor+'">'+esc(nameText)+'</span>' + schedulePropertyBadge(s.propertyRef,s.schedType) +
+                '<span class="all-sched-name" style="color:'+nameColor+'">'+esc(nameText)+'</span>' + (schedulePropertyBadge(s.propertyRef,s.schedType)+(window.BuyerSchedule?.badges(s)||'')) +
             '</div>'+memoText+'</div>' +
             '<div class="all-sched-actions">'+toTodoBtn2+editBtn+delBtn2+doneBtn+'</div>' +
         '</div>';
@@ -13679,7 +13679,7 @@ function deleteMktTemplate(idx) {
 <script src="buyer-grouping.js?v=20261005status220"></script>
 <script src="inventory-market-engine.js?v=20261005audit231"></script>
 <script src="inventory-market.js?v=20261005layout237"></script>
-<script src="buyer-schedule.js?v=20261005audit210"></script>
+<script src="buyer-schedule.js?v=20261005schedule238"></script>
 <script src="buyer-match.js?v=20261005entry236"></script>
 <script src="seller-layout.js?v=20261005audit231"></script>
 </body>
