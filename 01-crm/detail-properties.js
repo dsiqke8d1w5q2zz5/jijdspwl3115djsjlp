@@ -147,6 +147,7 @@
                 const link=page.querySelector('.det-folder-row a');if(!link)continue;const row=link.closest('.det-row'),details=row.closest('details');const actions=document.createElement('div');actions.className='det-folder-actions';actions.append(link);page.prepend(actions);row.remove();if(details&&details.children.length===1)details.remove();
             }
         }
+        for(const mount of root.querySelectorAll('[data-inventory-entry]'))window.InventoryMarket?.mountDetail(mount,mount.dataset.inventoryEntry);
         for(const page of root.querySelectorAll('.det-property-page')){
             const details=[...page.querySelectorAll('.det-property-more')];
             details.forEach(detail=>detail.querySelector(':scope>summary').addEventListener('click',event=>{event.preventDefault();const opening=!detail.open;details.forEach(other=>{other.open=opening&&other===detail;});}));
@@ -454,7 +455,7 @@
     window.typeDetail=function(c,viewAs){
         const config={'庫存屋主':['sProperties','s'],'房東':['rProperties','r'],'租案管理':['rProperties','r'],'成交客戶':['deals','c'],'商機募集':['dAddrs','d']}[c.type];
         if(!config)return original(c,viewAs);
-        const [key,kind]=config;let entries=(c[key]||[]).map((p,index)=>({p,index}));if(!entries.length)return original(c,viewAs);
+        const [key,kind]=config;let entries=(c[key]||[]).map((p,index)=>({p,index}));if(!entries.length){const e=kind==='s'?window.InventoryMarket?.entries().find(e=>e.c.id===c.id):null;return (e?'<div data-inventory-entry="'+esc(e.key)+'"></div>':'')+original(c,viewAs);}
         if(kind==='s'&&bfSGrade)entries.sort((a,b)=>Number(b.p.grade===bfSGrade)-Number(a.p.grade===bfSGrade));
         const group='property-detail-'+(++serial),names=entries.map(({p,index})=>title(p,index,kind));
         const labels=names.map((name,i)=>names.filter(n=>n===name).length>1?name+'（'+(i+1)+'）':name);
@@ -465,7 +466,9 @@
             // Render linked tenants using the original property index, not the single-item clone index.
             if(c.type==='房東'){copy.id='detail-only-'+group;copy.linkedTenantIds=[];}
             const body=original(copy,viewAs)+(c.type==='房東'?tenants(c,index):'');
-            return '<section class="det-property-page" data-schedule-property-ref="'+esc(JSON.stringify(schedulePropertyRef(c,p,c.type)))+'" id="'+group+'-page-'+i+'" '+(entries.length>1?'role="tabpanel" aria-labelledby="'+group+'-tab-'+i+'"':'aria-label="'+esc(labels[i])+'"')+(i?' hidden':'')+'>'+compact(body,extras(kind,p),kind,p)+'</section>';
+            const inventoryEntry=kind==='s'?window.InventoryMarket?.entries().find(e=>e.c.id===c.id&&e.p===p):null;
+            const inventoryActions=inventoryEntry?'<div data-inventory-entry="'+esc(inventoryEntry.key)+'"></div>':'';
+            return '<section class="det-property-page" data-schedule-property-ref="'+esc(JSON.stringify(schedulePropertyRef(c,p,c.type)))+'" id="'+group+'-page-'+i+'" '+(entries.length>1?'role="tabpanel" aria-labelledby="'+group+'-tab-'+i+'"':'aria-label="'+esc(labels[i])+'"')+(i?' hidden':'')+'>'+inventoryActions+compact(body,extras(kind,p),kind,p)+'</section>';
         }).join('')+unlinked+'</div>';
     };
     function resetDetails(scope){scope.querySelectorAll('.det-property-more[open]').forEach(detail=>detail.open=false);resetPropertyScroll(scope);}
