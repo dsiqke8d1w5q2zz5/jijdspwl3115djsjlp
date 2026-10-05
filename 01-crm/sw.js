@@ -1,14 +1,14 @@
-var CACHE_NAME = 'crm-v20261005entry236';
+var CACHE_NAME = 'crm-v20261005layout237';
 var URLS_TO_CACHE = [
   './',
   './index.html',
   './seller-layout.js?v=20261005audit231',
   './inventory-market.css?v=20261005audit231',
   './inventory-market-engine.js?v=20261005audit231',
-  './inventory-market.js?v=20261005audit231',
-  './buyer-match.css?v=20261005purpose234',
+  './inventory-market.js?v=20261005layout237',
+  './buyer-match.css?v=20261005layout237',
   './buyer-match-engine.js?v=20261005purpose234',
-  './buyer-demands.js?v=20261005purpose234',
+  './buyer-demands.js?v=20261005layout237',
   './buyer-results.js?v=20261005audit231',
   './buyer-grouping.js?v=20261005status220',
   './buyer-schedule.js?v=20261005audit210',
