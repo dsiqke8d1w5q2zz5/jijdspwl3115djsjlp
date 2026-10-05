@@ -2,7 +2,7 @@ const assert=require('assert/strict');global.BuyerGrouping=require('../buyer-gro
 const config={mode:'building',address:'新北市板橋區文化路一段100號',community:'巨蛋',aliases:'巨蛋東京花園廣場',addresses:'新北市板橋區新站路200號'};
 const base={id:'591:1',source:'591',address:'新北市板橋區文化路一段',community:'巨蛋東京花園廣場',price:2000,area:30,age:20,floor:5,city:'新北市',district:'板橋區'};
 assert(E.matches(config,base));assert(!E.matches(config,{...base,community:'新巨蛋'}));assert(!E.matches(config,{...base,address:'新北市新莊區文化路一段'}));assert(!E.matches(config,{...base,address:'新北市板橋區民權路'}));assert(E.matches(config,{...base,address:'新北市板橋區新站路200號五樓',community:'',kind:'transaction'}));assert(!E.matches(config,{...base,address:'新北市板橋區新站路201號',community:'',kind:'transaction'}));assert(E.matches({...config,community:'金城舞5世界花園',aliases:''},{...base,community:'金城舞5-世界花園'}));assert(!E.matches({...config,community:'金城舞5世界花園',aliases:''},{...base,community:'金城舞6世界花園'}));
-assert(E.matches({...config,mode:'road',address:'新北市板橋區民權路202巷1號'},{...base,address:'新北市板橋區民權路202巷8號'}));assert(!E.matches({...config,mode:'road',address:'新北市板橋區民權路202巷1號'},{...base,address:'新北市板橋區民權路260巷8號'}));assert.equal(E.location('新北市板橋區文化路一段２３之１號五樓').building,E.location('新北市板橋區文化路1段23-1號').building);
+assert(E.matches({...config,mode:'road',address:'新北市板橋區民權路202巷1號'},{...base,address:'新北市板橋區民權路202巷8號'}));assert(E.matches({...config,mode:'road',address:'新北市板橋區民權路202巷1號'},{...base,address:'新北市板橋區民權路260巷8號'}));assert.equal(E.location('新北市板橋區文化路一段２３之１號五樓').building,E.location('新北市板橋區文化路1段23-1號').building);
 const at='2026-10-05T02:00:00Z',feed=(rows,status='ok',generatedAt=at,source='591')=>({generatedAt,sources:[{id:source,status}],listings:rows});let s=E.apply(null,config,feed([base]),at);assert.equal(s.events.length,0);s=E.apply(s,config,feed([{...base,price:1800}],'ok','2026-10-05T03:00:00Z'),'2026-10-05T03:00:00Z');assert.equal(s.events[0].kind,'Down');s=E.apply(s,config,feed([base]),at);assert.equal(s.records[base.id].price,1800);assert.equal(s.events.length,1);s=E.apply(s,config,feed([{...base,id:'591:2',price:2200}],'partial','2026-10-05T04:00:00Z'),'2026-10-05T04:00:00Z');assert.equal(s.events.at(-1).kind,'New');const n=s.events.length;s=E.apply(s,config,feed([],'error'));assert.equal(s.events.length,n);assert.equal(Object.keys(s.records).length,2);
 let partial=E.apply(null,config,feed([base],'partial'));assert(!partial.baselines['591']);partial=E.apply(partial,config,feed([base,{...base,id:'591:3'}]));assert.equal(partial.events.length,0);assert(partial.baselines['591']);
 let cross=E.apply(null,config,{generatedAt:at,sources:[{id:'591',status:'ok'},{id:'sinyi',status:'ok'}],listings:[base]});cross=E.apply(cross,config,feed([{...base,id:'sinyi:1',source:'sinyi'}],'ok',at,'sinyi'));assert.equal(cross.events.length,0);
@@ -18,3 +18,12 @@ assert(E.matches(slash,base));assert(E.matches(slash,{...base,community:'巨蛋'
 assert(E.matches(slash,{...base,community:'',title:'巨蛋景觀套房'}));
 assert(!E.matches(slash,{...base,community:'',title:'新巨蛋景觀套房'}));
 assert(!E.matches(slash,{...base,address:'新北市板橋區文化路二段',community:'巨蛋'}));
+
+{const c={mode:'road',address:'新北市土城區延和路41巷2弄11號5樓',criteria:{floorMin:4,floorMax:5}};
+assert.equal(E.location(c.address).searchStreet,'延和路');
+for(const address of ['新北市土城區延和路','新北市土城區延和路41巷','新北市土城區延和路41巷6弄8號','新北市土城區延和路99巷3號']){assert(E.matches(c,{address}));for(const floor of [4,5])assert(E.assess(c,{address,floor}).match);assert(!E.assess(c,{address,floor:3}).match);}
+for(const address of ['新北市土城區延吉路','新北市板橋區延和路'])assert(!E.matches(c,{address}));
+assert(!E.matches({...c,address:'新北市板橋區文化路一段3巷1號'},{address:'新北市板橋區文化路二段'}));
+assert(E.matches({...c,address:'新北市板橋區文化路一段3巷1號'},{address:'新北市板橋區文化路1段99巷'}));
+assert(!E.matches({...c,mode:'building'},{address:'新北市土城區延和路41巷6弄11號'}));
+console.log('PASS whole street ignores lanes/alleys, retains district/section/floor limits and exact building matching');}
