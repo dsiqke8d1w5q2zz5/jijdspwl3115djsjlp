@@ -17,12 +17,13 @@ function sync(c,rows,save,now=new Date()){
  const all={...existing?.matchEvents,...events},kinds=new Set(Object.values(all));
  const memo=kinds.has('New')&&kinds.has('Down')?'有 New、Down 物件':kinds.has('Down')?'有 Down 物件':'有 New 物件';
  // A genuinely new event reopens today's reminder; replaying a completed/deleted event never does.
- const entry={...existing,id,date:existing?.date||date,time:existing?.time||'',memo,matchDemandRefs:[...new Map([...(existing?.matchDemandRefs||[]),...matched.values()].map(r=>[r.propertyKey||r.fingerprint,r])).values()],matchEvents:all,_deleted:false,updatedAt:now.toISOString()};
+ const refs=[...new Map([...(existing?.matchDemandRefs||[]),...matched.values()].map(r=>[r.propertyKey||r.fingerprint,r])).values()];const entry={...existing,...(refs.length===1?{propertyRef:refs[0],schedType:'經營買方'}:{}),id,date:existing?.date||date,time:existing?.time||'',memo,matchDemandRefs:[...new Map([...(existing?.matchDemandRefs||[]),...matched.values()].map(r=>[r.propertyKey||r.fingerprint,r])).values()],matchEvents:all,_deleted:false,updatedAt:now.toISOString()};
  if(existing)Object.assign(existing,entry);else items.push(entry);
  c.schedules=items;
  if(!save()){c.schedules=old;return false;}
  return true;
 }
-function badges(s){const id=s.scheduleId||s.id;if(!String(id||'').startsWith('buyer-match:')||s.propertyRef)return '';const c=typeof DB!=='undefined'?DB.find(c=>(c.schedules||[]).some(x=>x.id===id)):null;if(!c)return '';const original=c.schedules.find(x=>x.id===id);if(original.matchDemandRefs?.length)return original.matchDemandRefs.map(r=>root.schedulePropertyBadge(r,'經營買方')).join('');const escape=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));return (c.bDemands||[]).map((d,i)=>'<span class="buyer-reminder-demand">目前需求 '+(i+1)+'：'+escape(root.BuyerMatchEngine.summary(d))+'</span>').join('');}
+function badges(s){const id=s.scheduleId||s.id;if(!String(id||'').startsWith('buyer-match:')||s.propertyRef)return '';const c=typeof DB!=='undefined'?DB.find(c=>(c.schedules||[]).some(x=>x.id===id)):null;if(!c)return '';const original=c.schedules.find(x=>x.id===id);if(original.matchDemandRefs?.length)return original.matchDemandRefs.map(r=>root.schedulePropertyBadge(r,'經營買方')).join('');return (c.bDemands||[]).map(d=>root.schedulePropertyBadge(root.schedulePropertyRef(c,d,'經營買方'),'經營買方')).join('');}
+function repair(){if(typeof DB==='undefined')return;let changed=false;for(const c of DB){if(c.bDemands?.length!==1)continue;for(const s of c.schedules||[]){if(String(s.id||'').startsWith('buyer-match:')&&!s.propertyRef){s.propertyRef=root.schedulePropertyRef(c,c.bDemands[0],'經營買方');s.schedType='經營買方';s.updatedAt=new Date().toISOString();changed=true;}}}if(changed){persist();if(typeof render==='function')render();}}setTimeout(repair,0);
 root.BuyerSchedule={sync,badges};
 })(globalThis);
