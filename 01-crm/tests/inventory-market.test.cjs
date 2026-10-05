@@ -27,3 +27,8 @@ assert(!E.matches({...c,address:'新北市板橋區文化路一段3巷1號'},{ad
 assert(E.matches({...c,address:'新北市板橋區文化路一段3巷1號'},{address:'新北市板橋區文化路1段99巷'}));
 assert(!E.matches({...c,mode:'building'},{address:'新北市土城區延和路41巷6弄11號'}));
 console.log('PASS whole street ignores lanes/alleys, retains district/section/floor limits and exact building matching');}
+
+{const c={criteria:E.criteria({buildingType:'公寓',floorMin:4,floorMax:5})};
+assert(E.assess(c,{buildingType:'公寓',floor:4}).match);
+for(const p of [{buildingType:'住宅大樓',floor:4},{buildingType:'華廈',floor:5},{buildingType:'店面',totalFloors:20,floor:4},{buildingType:'公寓',elevator:true,floor:4},{buildingType:'公寓',floor:3}])assert(!E.assess(c,p).match);
+assert.deepEqual(E.assess(c,{floor:4}),{match:true,missing:['房型']});assert.deepEqual(E.assess(c,{kind:'transaction',buildingType:'住宅大樓',floor:20}),{match:true,missing:[]});assert.throws(()=>E.criteria({buildingType:'invalid'}));console.log('PASS apartment criteria, elevator/high-rise evidence, missing type, floors and transaction isolation');}
