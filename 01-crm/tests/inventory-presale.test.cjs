@@ -1,0 +1,13 @@
+const assert=require('assert/strict'),fs=require('fs'),E=require('../inventory-market-engine.js'),M=require('../tools/market-feed/collect.cjs');
+const c={mode:'project',address:'桃園市龜山區文化一路允將大作M棟29樓',community:'允將大作',aliases:'允將大作／允將-大作'};
+const p={id:'sinyi:1',source:'sinyi',address:'桃園市龜山區文化一路',community:'允將大作',price:1020};
+assert(E.matches(c,p));assert(E.matches({...c,address:'桃園市龜山區'},p));assert(E.matches(c,{...p,address:'',city:'桃園市',district:'龜山區'}));
+for(const patch of [{community:'新允將大作'},{community:'允將大作2期'},{address:'新北市林口區文化一路'},{address:'桃園市龜山區文化二路'},{address:'',city:'桃園市',district:''}])assert(!E.matches(c,{...p,...patch}));
+assert(E.matches(c,{...p,community:'',title:'允將大作｜高樓景觀'}));assert(!E.matches(c,{...p,community:'',title:'新允將大作'}));
+const text=fs.readFileSync('01-crm/tests/presale-sample.csv','utf8'),rows=M.parse(text,'桃園市','b');
+assert(rows.length>0);assert(rows.every(x=>x.source==='moi-presale'&&x.community&&x.transactionType==='presale'));
+const r=rows[0],config={mode:'project',address:r.city+r.district,community:r.community};
+assert(E.matches(config,r));assert(!E.matches(config,{...r,community:''}));
+let state=E.apply(null,config,{generatedAt:'2026-10-05T01:00:00Z',sources:[{id:'moi-presale',status:'ok'}],listings:[r]});assert.equal(state.events.length,0);
+state=E.apply(state,config,{generatedAt:'2026-10-05T02:00:00Z',sources:[{id:'moi-presale',status:'ok'}],listings:[{...r,id:r.id+'new'}]});assert.equal(state.events[0].kind,'成交');
+console.log('PASS project geography/name/alias/conflict, missing address, title confirmation, official presale '+rows.length+' records, independent baseline');
