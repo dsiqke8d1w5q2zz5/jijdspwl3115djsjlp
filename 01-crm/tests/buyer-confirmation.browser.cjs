@@ -1,0 +1,15 @@
+const assert=require('node:assert/strict'),fs=require('fs'),path=require('path'),{chromium}=require(process.env.PLAYWRIGHT_MODULE);
+(async()=>{const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});try{
+for(const width of [1440,1024]){
+ const p=await browser.newPage({viewport:{width,height:1000}});const errors=[];p.on('pageerror',e=>errors.push(e.message));
+ await p.route('https://**/*',r=>r.abort());await p.route('http://localhost:43123/**',r=>{const name=new URL(r.request().url()).pathname;if(name.endsWith('buyer-feed.json'))return r.fulfill({json:{schema:1,sources:[],listings:[]}});const f=path.resolve('01-crm','.'+name);return r.fulfill({contentType:f.endsWith('.html')?'text/html':f.endsWith('.js')?'text/javascript':'text/css',body:fs.readFileSync(f)});});
+ await p.goto('http://localhost:43123/index.html');await p.evaluate(()=>{DB=[{id:'confirmation',name:'買方長姓名測試',types:['經營買方'],bDemands:[{areaCities:['新北市'],matchCriteria:{searchPurpose:'住宅'}}],buyerMatching:{auto:true}}];persist();BuyerMatching.open('confirmation');});
+ await p.waitForFunction(()=>document.querySelector('#bmStatus').textContent.includes('最後取得'));
+ await p.evaluate(()=>{const base={source:'591',city:'新北市',district:'板橋區',price:99999999,area:9999,age:20,floor:10,rooms:4,type:'電梯大樓',address:'新北市板橋區文化路一段很長的社區門牌地址'.repeat(5),title:'具有很長名稱的物件與車位說明'.repeat(6)};BuyerResults.ingest(DB[0],{schema:1,includeExcluded:true,generatedAt:new Date().toISOString(),sources:[{id:'591',status:'ok'}],listings:[{...base,id:'591:1',usage:'住家用'},{...base,id:'591:2',price:3000},{...base,id:'591:3',usage:'工業用'}]});document.querySelector('#bmSource').dispatchEvent(new Event('change'));});
+ assert.equal(await p.locator('#bmView').inputValue(),'matched');assert.equal(await p.locator('.bm-card').count(),1);assert.equal(await p.locator('.bm-card').getAttribute('data-id'),'591:1');assert((await p.locator('#bmView option[value=pending]').innerText()).includes('1 筆'));
+ await p.locator('#bmView').selectOption('pending');assert.equal(await p.locator('.bm-card').count(),1);assert.equal(await p.locator('.bm-card').getAttribute('data-id'),'591:2');assert((await p.locator('.bm-row-sub').innerText()).includes('待確認：用途'));
+ for(const el of await p.locator('#buyerMatchDialog,.bm-card').all())assert(await el.evaluate(e=>e.scrollWidth<=e.clientWidth+1));
+ if(process.argv[2])await p.screenshot({path:path.join(process.argv[2],'buyer-pending-'+width+'.png')});
+ await p.locator('#bmView').selectOption('all');assert.equal(await p.locator('.bm-card').count(),2);await p.locator('#bmView').selectOption('excluded');assert.equal(await p.locator('.bm-card').getAttribute('data-id'),'591:3');
+ await p.locator('#bmClose').click();await p.evaluate(()=>BuyerMatching.open('confirmation'));assert.equal(await p.locator('#bmView').inputValue(),'matched');assert.deepEqual(errors,[]);await p.close();console.log('PASS '+width+' default confirmed, pending reasons, excluded isolation, long content and reopen');
+}}finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
