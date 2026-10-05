@@ -1,8 +1,7 @@
-var CACHE_NAME = 'crm-v20261005compact213';
+var CACHE_NAME = 'crm-v20261005revertcopy214';
 var URLS_TO_CACHE = [
   './',
   './index.html',
-  './address-copy.js?v=20261005labels212',
   './inventory-market.css?v=20261005compact213',
   './inventory-market-engine.js?v=20261005labels212',
   './inventory-market.js?v=20261005labels212',
