@@ -124,3 +124,11 @@
 .im-dialog .im-actions .source-chip{min-height:24px;padding:0 6px;line-height:22px;box-sizing:border-box}
 
 .im-dialog header{display:grid;grid-template-columns:1fr auto 1fr;gap:10px}.im-dialog #imClose{justify-self:end}.im-owner-nav{display:flex;align-items:center;gap:8px;white-space:nowrap}.im-owner-nav button{padding:3px 9px;min-height:30px}.im-owner-nav button:disabled{opacity:.4;cursor:default}.im-owner-nav span{font-size:13px;font-variant-numeric:tabular-nums}@media(max-width:850px){.im-dialog header{grid-template-columns:1fr auto}.im-owner-nav{grid-row:2;grid-column:1/-1;justify-content:center}.im-dialog #imClose{grid-column:2;grid-row:1}}
+/* Disclosure controls stay in place; only their content expands below. */
+.im-disclosures{display:grid;grid-template-columns:max-content max-content minmax(0,1fr);gap:6px 10px;align-items:start}
+.im-disclosures>.im-config[open],.im-disclosures>.im-source-info[open]{border:0;background:transparent;padding:0;margin:0}
+.im-disclosures>details>summary,.im-disclosures>details[open]>summary{margin:0;padding:4px 9px;white-space:nowrap}
+.im-disclosures>#imStatus{min-width:0;overflow-wrap:anywhere}
+.im-disclosure-body{grid-column:1/-1;min-width:0;border:1px solid #c8daec;border-radius:8px;background:white;padding:8px 10px;overflow-wrap:anywhere}
+.im-disclosure-body[hidden]{display:none}
+@media(max-width:800px){.im-disclosures>#imStatus{grid-column:1/-1}.im-disclosures>details>summary,.im-disclosures>details[open]>summary{padding-inline:6px}}
