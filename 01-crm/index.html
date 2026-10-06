@@ -12956,6 +12956,7 @@ function itProcessAll() {
 }
 
 function openTemplates() {
+    _tplArchiveView = false;
     setTplTab(_tplTab);
     document.getElementById('tplModal').style.display = 'flex';
 }
@@ -12980,6 +12981,7 @@ function tplAddByTab() {
 var _tplSelectedPages = {};
 function arrangeTemplatePages() {
     var body = document.getElementById('tplBody');
+    prepareTemplateArchive(body, false);
     var cards = Array.from(body.children).filter(function(el){return el.querySelector(':scope > pre');});
     var toolbar = document.createElement('div');
     toolbar.className = 'tpl-list-toolbar';
@@ -12988,7 +12990,8 @@ function arrangeTemplatePages() {
     add.type = 'button';
     add.textContent = '＋ 新增範本';
     add.onclick = tplAddByTab;
-    toolbar.append(add);
+    add.hidden = _tplArchiveView;
+    toolbar.append(add, templateArchiveToggle(false));
     body.prepend(toolbar);
     if (!cards.length) return;
     var nav = document.createElement('div');
@@ -13459,6 +13462,7 @@ function deleteOtherTemplate(idx) {
 // ── 庫存行銷範本 ──
 var _mktClientId = '';
 function openMktTemplates(clientId) {
+    _mktArchiveView = false;
     _mktClientId = clientId;
     var c = DB.find(function(x){ return x.id === clientId; });
     if (!c) return;
@@ -13507,6 +13511,8 @@ function renderMktList() {
         });
     }
     body.innerHTML = html;
+    prepareTemplateArchive(body, true);
+    body.prepend(templateArchiveToggle(true));
 }
 function copyMktTemplate(idx) {
     var c = DB.find(function(x){ return x.id === _mktClientId; });
@@ -13626,5 +13632,7 @@ function deleteMktTemplate(idx) {
 <script src="buyer-match.js?v=20261006report274"></script>
 <script src="bulk-search.js?v=20261006nav261"></script>
 <script src="seller-layout.js?v=20261005audit231"></script>
+<script src="template-archive.js?v=20261006archive278"></script>
+<link rel="stylesheet" href="template-archive.css?v=20261006archive278">
 </body>
 </html>
