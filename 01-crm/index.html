@@ -815,7 +815,8 @@
     <link rel="stylesheet" href="ui-foundation.css?v=20261005audit210">
     <link rel="stylesheet" href="responsive-layout.css?v=20261005audit210">
 <link rel="stylesheet" href="inventory-market.css?v=20261005brand244">
-<link rel="stylesheet" href="daily-search-report.css?v=20261006daily254">
+<link rel="stylesheet" href="bulk-search.css?v=20261006bulk255">
+<link rel="stylesheet" href="daily-search-report.css?v=20261006bulk255">
 <link rel="stylesheet" href="buyer-match.css?v=20261005center249">
 </head>
 <body>
@@ -824,7 +825,7 @@
 
 <header class="header">
     <div class="header-title">房仲管家</div>
-    <div style="flex:1"></div>
+    <div class="header-search-spacer"></div>
     <div class="search-wrap" id="searchWrap">
         <span class="search-icon"><i class="ti ti-search" style="font-size:16px"></i></span>
         <input type="text" id="searchInput" placeholder="搜尋姓名、電話、社區、地址、備註…" oninput="onSearchInput()" onkeydown="if(event.key==='Escape'){clearSearch();event.preventDefault();}">
@@ -838,7 +839,8 @@
         <span style="flex:1"></span>
         <button onclick="toggleMobileSetting()" id="mobileSettingBtn" aria-label="更多選項" title="更多選項"><i class="ti ti-dots" style="font-size:18px"></i></button>
     </div>
-    <div style="flex:1"></div>
+    <div class="header-bulk"><button type="button" data-bulk="buyers">一鍵配案</button><button type="button" data-bulk="inventory">一鍵追蹤</button></div>
+    <div class="header-tool-spacer"></div>
     <div class="header-tools" style="display:flex;gap:8px;align-items:center">
         <button onclick="doCheckIn()" class="header-btn mc-checkin" data-hover-color="#57534E"><i class="ti ti-map-pin-check" style="font-size:18px;color:#10B981"></i> 打卡<span class="mc-checkin-cnt" id="checkInCountDesktop">0</span></button>
         <button onclick="TranscriptImport.openStandalone()" class="header-btn" data-hover-color="#57534E"><i class="ti ti-file-search" style="font-size:18px;color:#B45309"></i> 謄本分析工具</button>
@@ -13678,15 +13680,16 @@ function deleteMktTemplate(idx) {
 <script src="edit-layout.js?v=20261005audit210"></script>
 <script src="property-purpose.js?v=20261005audit210"></script>
 <script src="schedule-property.js?v=20261005audit210"></script>
-<script src="buyer-match-engine.js?v=20261006daily254"></script>
+<script src="buyer-match-engine.js?v=20261006bulk255"></script>
 <script src="buyer-demands.js?v=20261005center249"></script>
-<script src="buyer-results.js?v=20261006daily254"></script>
+<script src="buyer-results.js?v=20261006bulk255"></script>
 <script src="buyer-grouping.js?v=20261005status220"></script>
-<script src="inventory-market-engine.js?v=20261006daily254"></script>
-<script src="inventory-market.js?v=20261006daily254"></script>
+<script src="inventory-market-engine.js?v=20261006bulk255"></script>
+<script src="inventory-market.js?v=20261006bulk255"></script>
 <script src="buyer-schedule.js?v=20261005sources243"></script>
-<script src="daily-search-report.js?v=20261006daily254"></script>
-<script src="buyer-match.js?v=20261006daily254"></script>
+<script src="daily-search-report.js?v=20261006bulk255"></script>
+<script src="buyer-match.js?v=20261006bulk255"></script>
+<script src="bulk-search.js?v=20261006bulk255"></script>
 <script src="seller-layout.js?v=20261005audit231"></script>
 </body>
 </html>

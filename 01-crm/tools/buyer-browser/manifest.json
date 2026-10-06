@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "房仲管家・物件搜尋助手",
-  "version": "1.2.23",
+  "version": "1.2.24",
   "description": "從正常開啟的房產搜尋頁讀取公開物件，供房仲管家手動搜尋與本機每日配對。",
   "permissions": [
     "storage",
