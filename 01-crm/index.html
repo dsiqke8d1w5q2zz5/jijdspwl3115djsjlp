@@ -818,6 +818,8 @@
 <link rel="stylesheet" href="bulk-search.css?v=20261006nav261">
 <link rel="stylesheet" href="daily-search-report.css?v=20261006bulk255">
 <link rel="stylesheet" href="buyer-match.css?v=20261006nav261">
+<script src="./customer-search.js?v=20261006search263"></script>
+<style>.card-search-hit{font-size:13px;line-height:1.5;color:#526880;overflow-wrap:anywhere;white-space:normal;margin:4px 0 0}</style>
 </head>
 <body>
 
@@ -828,7 +830,7 @@
     <div class="header-search-spacer"></div>
     <div class="search-wrap" id="searchWrap">
         <span class="search-icon"><i class="ti ti-search" style="font-size:16px"></i></span>
-        <input type="text" id="searchInput" placeholder="搜尋姓名、電話、社區、地址、備註…" oninput="onSearchInput()" onkeydown="if(event.key==='Escape'){clearSearch();event.preventDefault();}">
+        <input type="text" id="searchInput" placeholder="搜尋姓名、電話、社區、需求、聯繫紀錄…" oninput="onSearchInput()" onkeydown="if(event.key==='Escape'){clearSearch();event.preventDefault();}">
         <button type="button" class="search-clear" onclick="clearSearch()" aria-label="清除搜尋" title="清除搜尋（Esc）"><i class="ti ti-x"></i></button>
     </div>
     <button class="btn-add" onclick="openAdd()">＋ 新增客戶</button>
@@ -3792,16 +3794,15 @@ function showThisMonth() {
 }
 
 // ── Render ──
+function customerSearchReasons(c,q){return CustomerSearch.reasons(c,q,{completed:DB.find(r=>r.id==='_personalSchedules'&&!r._deleted),filter:curFilter,rental:hasType(c,'租案管理'),landlordTypes:getMergedLandlordTypes(c),landlord:c.linkedLandlordId?dbById(c.linkedLandlordId):null});}
 function getData() {
     const q = document.getElementById('searchInput').value.trim().toLowerCase();
-    var qPhone = normalizePhone(q); // 電話正規化搜尋用
     // 排除已刪除的資料、系統紀錄、以及範本/業績等特殊容器紀錄
     var activeDB = DB.filter(function(c){ return !c._deleted && !c._system && !c.__perfRecords && !c.__templates && !c.__signingTemplates && !c.__otherTemplates; });
     // 本月新增模式
     if (showThisMonthMode) {
         var tm = localDateISO().slice(0,7);
-        return activeDB.filter(function(c){ return (c.created||'').slice(0,7) === tm; })
-            .sort(function(a,b){ return (b.created||'').localeCompare(a.created||''); });
+        activeDB = activeDB.filter(function(c){ return (c.created||'').slice(0,7) === tm; });
     }
     // 總覽搜全部，其他分類只搜該分類
     let list;
@@ -3812,75 +3813,7 @@ function getData() {
         else list = activeDB.filter(function(c) { return hasType(c, curFilter); });
         if (!showArchived) list = list.filter(c => !c.archived);
     }
-    if (q) list = list.filter(function(c) {
-        // 共用欄位
-        var common = (getAllNotes(c)||'').toLowerCase().includes(q) ||
-            (c.areaDisplay||'').toLowerCase().includes(q) ||
-            (c.community||'').toLowerCase().includes(q) ||
-            (c.sAddr||'').toLowerCase().includes(q) ||
-            (c.rCommunity||'').toLowerCase().includes(q) ||
-            (c.rAddr||'').toLowerCase().includes(q);
-        if (common) return true;
-        // 庫存物件的社區和地址
-        if (c.sProperties && c.sProperties.length) {
-            if (c.sProperties.some(function(sp){ return (sp.community||'').toLowerCase().includes(q) || (sp.addr||'').toLowerCase().includes(q); })) return true;
-        }
-        // 房東物件的社區和地址
-        if (c.rProperties && c.rProperties.length) {
-            if (c.rProperties.some(function(rp){ return (rp.rCommunity||'').toLowerCase().includes(q) || (rp.rAddr||'').toLowerCase().includes(q); })) return true;
-        }
-        // 租客連結的房東物件（只搜對應的那間）
-        if (c.linkedLandlordId) {
-            var _llS = dbById(c.linkedLandlordId); if(_llS&&_llS._deleted) _llS=null;
-            if (_llS && _llS.rProperties && _llS.rProperties.length) {
-                var _lpS = _llS.rProperties[c.linkedPropertyIdx||0];
-                if (_lpS && (((_lpS.rCommunity||'').toLowerCase().includes(q)) || ((_lpS.rAddr||'').toLowerCase().includes(q)))) return true;
-            }
-        }
-        // 成交物件的社區和地址
-        if (c.deals && c.deals.length) {
-            if (c.deals.some(function(d){ return (d.community||'').toLowerCase().includes(q) || (d.addr||'').toLowerCase().includes(q); })) return true;
-        }
-        // 商機物件的社區和地址
-        if (c.dAddrs && c.dAddrs.length) {
-            if (c.dAddrs.some(function(da){ return (da.community||'').toLowerCase().includes(q) || (da.addr||'').toLowerCase().includes(q); })) return true;
-        }
-        // 租案房東/租客頁籤：只搜對應角色（含額外聯絡人）
-        if (curFilter === '租案_房東') {
-            if ((c.llName||'').toLowerCase().includes(q) || (c.llPhone||'').includes(q)) return true;
-            return (c.rLandlords||[]).slice(1).some(function(p){ return (p.name||'').toLowerCase().includes(q) || (p.phone||'').includes(q); });
-        }
-        if (curFilter === '租案_租客') {
-            if ((c.ttName||'').toLowerCase().includes(q) || (c.ttPhone||'').includes(q)) return true;
-            return (c.rTenants||[]).slice(1).some(function(p){ return (p.name||'').toLowerCase().includes(q) || (p.phone||'').includes(q); });
-        }
-        // 非租案的四大功能：租案客戶只搜對應角色的名字（含額外聯絡人）
-        if (curFilter !== 'all' && curFilter !== '租案管理' && hasType(c, '租案管理')) {
-            var llHas = getMergedLandlordTypes(c).includes(curFilter);
-            var ttHas = c.rTenantTypes && c.rTenantTypes.includes(curFilter);
-            // 舊資料fallback
-            if (!llHas && !ttHas) { llHas = true; }
-            var matched = false;
-            if (llHas) { matched = matched || (c.llName||'').toLowerCase().includes(q) || (c.llPhone||'').includes(q) || (c.rLandlords||[]).slice(1).some(function(p){ return (p.name||'').toLowerCase().includes(q) || (p.phone||'').includes(q); }); }
-            if (ttHas) { matched = matched || (c.ttName||'').toLowerCase().includes(q) || (c.ttPhone||'').includes(q) || (c.rTenants||[]).slice(1).some(function(p){ return (p.name||'').toLowerCase().includes(q) || (p.phone||'').includes(q); }); }
-            return matched;
-        }
-        // 總覽或其他：搜全部（含新增聯絡人，電話正規化比對）
-        function _phoneMatch(p) { return qPhone && normalizePhone(p).includes(qPhone); }
-        if ((c.name||'').toLowerCase().includes(q) ||
-            _phoneMatch(c.phone) ||
-            (c.llName||'').toLowerCase().includes(q) ||
-            (c.ttName||'').toLowerCase().includes(q) ||
-            _phoneMatch(c.llPhone) ||
-            _phoneMatch(c.ttPhone) ||
-            (c.sName||'').toLowerCase().includes(q) ||
-            (c.bName||'').toLowerCase().includes(q) ||
-            (c.cName||'').toLowerCase().includes(q) ||
-            (c.dName||'').toLowerCase().includes(q)) return true;
-        // 搜尋聯絡人的姓名和電話（統一 contacts + 向下相容舊欄位）
-        var _persons = (c.contacts||[]).concat(c.bPersons||[], c.sPersons||[], c.cContacts||[], c.dPersons||[], (c.rLandlords||[]).slice(1), (c.rTenants||[]).slice(1));
-        return _persons.some(function(p){ return (p.name||'').toLowerCase().includes(q) || _phoneMatch(p.phone); });
-    });
+    if (q) list = list.filter(c => customerSearchReasons(c,q).length>0);
     // Buyer filters
     if (curFilter === '經營買方') {
         if (bfRooms.length) list = list.filter(function(c) {
@@ -4062,6 +3995,7 @@ function getData() {
             return _idx.get(a) - _idx.get(b);
         });
     }
+    if(showThisMonthMode) list.sort((a,b)=>(b.created||'').localeCompare(a.created||''));
     return list;
 }
 
@@ -4835,6 +4769,7 @@ function renderCard(c) {
             <div class="card-main">
                 <div class="card-name-line"><div class="card-name">${esc(cardName)}${c._viewAs!=='tenant'&&cTypes.includes('成交客戶')&&c.deals&&c.deals.length?`<span class="deal-count">${c.deals.length}</span>`:''}${(showType==='房東'&&_objCount>1)?`<span style="font-size:12px;padding:1px 7px;border-radius:10px;background:#CFFAFE;color:#0E7490;font-weight:700;margin-left:4px;white-space:nowrap">${_objCount}間</span>`:''}${nameSuffix}${sameLL}</div>${c.buyerMatching?.auto===true&&!c.archived&&c._viewAs!=='tenant'?`<button class="card-auto-match" data-buyer-id="${_eid}" onclick="event.stopPropagation();BuyerMatching.open(this.dataset.buyerId)" title="查看買方配對結果">買方配對</button>`:''}${showType==='庫存屋主'?window.InventoryMarket?.cardBadge(c)||'':''}</div>
                 <div class="card-phone">${esc(cardPhone)}</div>
+                ${(()=>{const hits=customerSearchReasons(c,document.getElementById("searchInput").value);return hits.length?'<div class="card-search-hit">符合：'+esc(hits.join("、"))+'</div>':'';})()}
                 <div class="tags">
                     ${typeTags}
                     ${statusTag}

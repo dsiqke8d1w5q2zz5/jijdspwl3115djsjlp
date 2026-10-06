@@ -1,0 +1,7 @@
+const assert=require('assert/strict'),S=require('../customer-search.js');
+const c={bDemands:[{areaCities:['台北市'],areaDists:['中正區'],matchCriteria:{keywords:'中正國中'},want:'採光好',noWant:'不要西曬'}],inventoryWatch:{one:{aliases:'家泰家悅／家泰家悦'}},contactLog:[{memo:'週末討論貸款'},{memo:'已刪除紀錄',_deleted:true}],schedules:[{memo:'陪同看屋'}],todos:[{memo:'索取謄本'}],doneSchedules:[{memo:'完成交屋'}],doneTodos:[{memo:'寄出合約'}],contacts:[{name:'家人',phones:['0912-345-678']}],llPhone:'(02) 2345-6789',ttPhone:'0911-111-111'};
+for(const [q,label] of [['中正區','需求區域'],['中正國中','需求社區／路段'],['不要西曬','需求備註'],['家泰家悦','社區別名'],['貸款','聯繫紀錄'],['看屋','行程'],['謄本','待辦'],['交屋','已完成行程'],['合約','已完成待辦'],['0912345678','電話']])assert(S.reasons(c,q).includes(label),q);
+assert.deepEqual(S.reasons(c,'已刪除紀錄'),[]);assert(S.reasons(c,'0223456789',{filter:'租案_房東'}).includes('電話'));assert.deepEqual(S.reasons(c,'0911111111',{filter:'租案_房東'}),[]);assert.deepEqual(S.reasons({budget:'9999',history:[{value:'秘密'}]},'秘密'),[]);console.log('PASS new search fields, completed/deleted items, phone formats and rental role isolation');
+
+const completed={doneSchedules:[{clientId:'a',memo:'歷史行程'},{clientId:'b',memo:'他人行程'},{clientId:'a',memo:'刪除行程',_deleted:true}],doneTodos:[{clientId:'a',memo:'歷史待辦'},{clientId:'a',memo:'私人待辦',personal:true}]};
+assert.deepEqual(S.reasons({id:'a'},'歷史行程',{completed}),['已完成行程']);assert.deepEqual(S.reasons({id:'a'},'歷史待辦',{completed}),['已完成待辦']);for(const q of ['他人行程','刪除行程','私人待辦'])assert.deepEqual(S.reasons({id:'a'},q,{completed}),[]);
