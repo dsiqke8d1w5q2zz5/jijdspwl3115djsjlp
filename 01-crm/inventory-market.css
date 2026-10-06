@@ -173,3 +173,11 @@
 .im-dialog .im-listing-row:not(:has(>img)) .im-meta{grid-column:2/4}
 .im-dialog .im-listing-row:not(:has(>img)) .im-actions{grid-column:3}
 @media(max-width:700px){.im-dialog .im-listing-row{grid-template-columns:34px 60px minmax(0,1fr) auto}}
+
+.im-subtabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 18px 8px}
+.im-subtabs button{font:inherit;font-size:14px;padding:6px 12px;border:1px solid #cbd9e8;border-radius:7px;color:#193b56;background:white;cursor:pointer}
+.im-subtabs button[aria-selected=true]{background:#193b56;color:white;font-weight:700}
+.im-subtabs[hidden],#imResults>[hidden]{display:none!important}
+.im-subtabs button:focus-visible{outline:2px solid #0891b2;outline-offset:2px}
+
+#imResults>.im-purpose-panel>summary,#imResults>.im-expired-panel>summary,#imResults>.im-building-panel>summary{display:none}

@@ -15,3 +15,7 @@ console.log('PASS manual purpose scope, explicit conflicts, collective housing, 
 const off={...state,records:{[p.id]:{...p,availability:'off',linkCheckedAt:'2026-10-06T03:00:00Z'}}};
 assert.equal(E.apply(off,c,{generatedAt:'2026-10-06T02:00:00Z',sources:[{id:'yungching',status:'ok'}],listings:[p]}).records[p.id].availability,'off');
 console.log('PASS old feed cannot reactivate verified broken listing');
+
+const removed={...c,deletedListings:{[p.id]:'2026-10-06'}};
+assert(E.excluded(removed,p));assert(!E.apply({records:{},events:[],baselines:{}},removed,{generatedAt:'2026-10-07T01:00:00Z',sources:[{id:'yungching',status:'ok'}],listings:[p]}).records[p.id]);
+console.log('PASS deleted listing cannot return through feed refresh');

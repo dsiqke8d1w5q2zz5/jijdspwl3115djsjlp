@@ -9,11 +9,19 @@ await p.evaluate(async()=>{DB=[{id:'purpose',name:'測試',types:['庫存屋主'
 await p.waitForFunction(async()=>{const s=await InventoryMarket.loadState('pw');return s.records['yungching:7417941'].usage==='住家用';});
 await p.evaluate(async()=>{await InventoryMarket.updateState('pw',s=>{s.records['591:20687135']={...s.records['yungching:999'],id:'591:20687135',source:'591',title:'失效刊登',availability:'off'};return s;});});await p.locator('#imRefresh').click();await p.waitForTimeout(300);
 assert.equal(await p.locator('details.im-candidates').filter({hasText:'已下架／連結失效'}).count(),1);
-const pending=p.locator('details.im-candidates').filter({hasText:'待確認用途'});await pending.locator('summary').first().click();
+const pending=p.locator('details.im-candidates').filter({hasText:'待確認用途'});await p.locator('[data-inventory-view=purpose]').click();
 await p.locator('[data-purpose="yungching:999"]').click();await p.locator('.im-confirm [data-cancel]').click();assert(await p.locator('[data-purpose="yungching:999"]').isVisible());
 await p.locator('[data-purpose="yungching:999"]').click();await p.locator('.im-confirm [data-confirm]').click();await p.waitForFunction(()=>document.querySelector('[data-purpose="yungching:999"]')?.textContent.includes('撤回'));
 assert.equal(await p.locator('details.im-candidates').filter({hasText:'待確認用途'}).count(),0);
 for(const width of [1440,1024,780]){await p.setViewportSize({width,height:1000});await p.screenshot({path:require('path').join(process.env.TEMP,'inventory-purpose-'+width+'.png'),fullPage:true});assert(await p.locator('#imResults').evaluate(e=>e.scrollWidth<=e.clientWidth+2));}
 await p.reload();await p.evaluate(()=>InventoryMarket.open());await p.waitForFunction(()=>document.querySelector('[data-purpose="yungching:999"]')?.textContent.includes('撤回'));await p.locator('[data-purpose="yungching:999"]').click();await p.waitForFunction(()=>document.querySelector('#imResults').textContent.includes('待確認用途'));
+
+const sections=await p.locator('#imResults>details.im-candidates>summary').allTextContents();assert(sections.findIndex(x=>x.includes('待確認用途'))<sections.findIndex(x=>x.includes('已下架')));
+await p.locator('[data-inventory-view=expired]').click();
+await p.locator('[data-delete-expired]').click();await p.locator('.im-confirm [data-cancel]').click();assert.equal(await p.locator('[data-delete-expired]').count(),1);
+await p.locator('[data-delete-expired]').click();await p.locator('.im-confirm [data-confirm]').click();await p.waitForFunction(()=>!document.querySelector('[data-delete-expired]'));
+assert(await p.evaluate(async()=>!(await InventoryMarket.loadState('pw')).records['591:20687135']));
+await p.reload();await p.evaluate(()=>InventoryMarket.open());await p.waitForTimeout(150);assert.equal(await p.locator('[data-delete-expired]').count(),0);
+assert(await p.evaluate(()=>InventoryMarket.entries()[0].config.deletedListings['591:20687135']));
 assert.deepEqual(errors,[]);console.log('PASS automatic usage, manual cancel/confirm/reload/undo and 3 widths');
 }finally{await b.close();}})().catch(e=>{console.error(e);process.exitCode=1});
