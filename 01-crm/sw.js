@@ -1,4 +1,4 @@
-var CACHE_NAME = 'crm-v20261006nav261';
+var CACHE_NAME = 'crm-v20261006header262';
 var URLS_TO_CACHE = [
   './bulk-search.js?v=20261006nav261',
   './bulk-search.css?v=20261006nav261',
