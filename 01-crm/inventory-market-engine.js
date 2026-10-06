@@ -32,9 +32,9 @@ function apply(previous,config,feed,now=new Date().toISOString()){
    const duplicate=!old&&p.kind!=='transaction'&&Object.values(s.records).some(q=>q.kind!=='transaction'&&root.BuyerGrouping?.same(p,q));
    let kind='';if(initialized){if(!old&&!duplicate)kind=p.kind==='transaction'?'成交':'New';else if(old&&p.kind==='transaction'&&['price','area','address','tradeDate','floorText','type','community','unit','termination','notes','parkingPrice','parkingArea'].some(field=>JSON.stringify(p[field]??null)!==JSON.stringify(old[field]??null)))kind='成交更正';else if(old&&Number.isFinite(p.price)&&Number.isFinite(old.price)&&p.price!==old.price)kind=p.kind==='transaction'?'成交更正':p.price<old.price?'Down':'';}
    if(old?.availability&&old.availability!=='active'&&p.kind!=='transaction')kind='重新上架';
-   p.availability='active';p.missingScans=0;
+   p.availability=raw.availability==='unavailable'?'off':old?.availability==='off'&&time(p.seenAt)<=time(old.linkCheckedAt)?'off':'active';p.missingScans=0;
    if(kind&&assess(config,p).match&&!assess(config,p).missing.length){const id=[source.id,p.id,kind,p.seenAt,p.price].join('|');if(!s.events.some(e=>e.id===id))s.events.push({id,kind,listingId:p.id,at:now,before:old?.price,price:p.price});}
-   for(const k of ['purposeAttemptedAt','purposeCheckedAt'])if(old?.[k]&&!p[k])p[k]=old[k];
+   for(const k of ['purposeAttemptedAt','purposeCheckedAt','linkCheckedAt'])if(old?.[k]&&!p[k])p[k]=old[k];
    s.records[p.id]=p;
   }
   if(source.status==='ok'&&!feed.incremental&&!['moi','moi-presale'].includes(source.id)&&feed.scanId){

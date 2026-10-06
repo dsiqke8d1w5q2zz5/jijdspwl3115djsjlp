@@ -11,3 +11,7 @@ const next=E.apply(state,c,{generatedAt:'2026-10-06T02:00:00Z',sources:[{id:'yun
 assert.equal(next.records[p.id].usage,'住家用');assert.equal(next.records[p.id].purposeAttemptedAt,state.records[p.id].purposeAttemptedAt);
 assert(!E.assess(c,{...p,usage:'集合住宅'}).missing.length);
 console.log('PASS manual purpose scope, explicit conflicts, collective housing, enrichment survives new feeds');
+
+const off={...state,records:{[p.id]:{...p,availability:'off',linkCheckedAt:'2026-10-06T03:00:00Z'}}};
+assert.equal(E.apply(off,c,{generatedAt:'2026-10-06T02:00:00Z',sources:[{id:'yungching',status:'ok'}],listings:[p]}).records[p.id].availability,'off');
+console.log('PASS old feed cannot reactivate verified broken listing');

@@ -7,7 +7,8 @@ const assert=require('assert/strict'),fs=require('fs'),path=require('path'),{chr
 
 await p.evaluate(async()=>{DB=[{id:'purpose',name:'測試',types:['庫存屋主'],sProperties:[{addr:'台北市中正區重慶南路三段4巷9號',listingPurpose:'住宅'}]}];const e=InventoryMarket.entries()[0];e.c.inventoryWatch={[e.slot]:{...e.config,id:'pw',enabled:true}};persist();InventoryMarket.open();const x=InventoryMarket.entries()[0];await InventoryMarket.ingest(x,{generatedAt:new Date().toISOString(),sources:[{id:'yungching',status:'ok'}],listings:[{id:'yungching:7417941',source:'yungching',url:'https://buy.yungching.com.tw/house/7417941',title:'用途自動補查',address:x.config.address,price:2288,area:28.51,floor:3,age:43},{id:'yungching:999',source:'yungching',url:'https://buy.yungching.com.tw/house/999',title:'待人工確認長名稱'.repeat(15),address:x.config.address,price:99999999,area:99999.99,floor:3,age:43}]});});
 await p.waitForFunction(async()=>{const s=await InventoryMarket.loadState('pw');return s.records['yungching:7417941'].usage==='住家用';});
-await p.locator('#imRefresh').click();await p.waitForTimeout(300);
+await p.evaluate(async()=>{await InventoryMarket.updateState('pw',s=>{s.records['591:20687135']={...s.records['yungching:999'],id:'591:20687135',source:'591',title:'失效刊登',availability:'off'};return s;});});await p.locator('#imRefresh').click();await p.waitForTimeout(300);
+assert.equal(await p.locator('details.im-candidates').filter({hasText:'已下架／連結失效'}).count(),1);
 const pending=p.locator('details.im-candidates').filter({hasText:'待確認用途'});await pending.locator('summary').first().click();
 await p.locator('[data-purpose="yungching:999"]').click();await p.locator('.im-confirm [data-cancel]').click();assert(await p.locator('[data-purpose="yungching:999"]').isVisible());
 await p.locator('[data-purpose="yungching:999"]').click();await p.locator('.im-confirm [data-confirm]').click();await p.waitForFunction(()=>document.querySelector('[data-purpose="yungching:999"]')?.textContent.includes('撤回'));
