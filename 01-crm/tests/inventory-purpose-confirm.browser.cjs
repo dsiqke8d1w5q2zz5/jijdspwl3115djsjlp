@@ -11,10 +11,10 @@ await p.evaluate(async()=>{await InventoryMarket.updateState('pw',s=>{s.records[
 assert.equal(await p.locator('details.im-candidates').filter({hasText:'已下架／連結失效'}).count(),1);
 const pending=p.locator('details.im-candidates').filter({hasText:'待確認用途'});await p.locator('[data-inventory-view=purpose]').click();
 await p.locator('[data-purpose="yungching:999"]').click();await p.locator('.im-confirm [data-cancel]').click();assert(await p.locator('[data-purpose="yungching:999"]').isVisible());
-await p.locator('[data-purpose="yungching:999"]').click();await p.locator('.im-confirm [data-confirm]').click();await p.waitForFunction(()=>document.querySelector('[data-purpose="yungching:999"]')?.textContent.includes('撤回'));
+await p.locator('[data-purpose="yungching:999"]').click();await p.locator('.im-confirm [data-confirm]').click();await p.waitForFunction(()=>document.querySelector('[data-purpose="yungching:999"]')?.textContent.includes('已確認'));
 assert.equal(await p.locator('details.im-candidates').filter({hasText:'待確認用途'}).count(),0);
 for(const width of [1440,1024,780]){await p.setViewportSize({width,height:1000});await p.screenshot({path:require('path').join(process.env.TEMP,'inventory-purpose-'+width+'.png'),fullPage:true});assert(await p.locator('#imResults').evaluate(e=>e.scrollWidth<=e.clientWidth+2));}
-await p.reload();await p.evaluate(()=>InventoryMarket.open());await p.waitForFunction(()=>document.querySelector('[data-purpose="yungching:999"]')?.textContent.includes('撤回'));await p.locator('[data-purpose="yungching:999"]').click();await p.waitForFunction(()=>document.querySelector('#imResults').textContent.includes('待確認用途'));
+await p.reload();await p.evaluate(()=>InventoryMarket.open());await p.waitForFunction(()=>document.querySelector('[data-purpose="yungching:999"]')?.textContent.includes('已確認'));await p.locator('[data-purpose="yungching:999"]').click();await p.waitForFunction(()=>document.querySelector('#imResults').textContent.includes('待確認用途'));
 
 const sections=await p.locator('#imResults>details.im-candidates>summary').allTextContents();assert(sections.findIndex(x=>x.includes('待確認用途'))<sections.findIndex(x=>x.includes('已下架')));
 await p.locator('[data-inventory-view=expired]').click();
