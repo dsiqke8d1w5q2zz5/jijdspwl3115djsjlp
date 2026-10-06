@@ -1,7 +1,7 @@
 // Pagination is based on each site's visible controls; absence is not proof of completion.
 globalThis.crmReadPage=function(source,city){
  if(/驗證您是否|verify you are human|checking your browser|access denied|just a moment/i.test(document.title+' '+document.body.innerText.slice(0,1600)))return {rows:[],blocked:true,complete:false};
- const confirmedEmpty=(source==='591'&&location.hostname==='business.591.com.tw'&&/已為你找到\s*0\s*筆物件/.test(document.body.innerText))||(source==='sinyi'&&/共有\s*0\s*筆/.test(document.body.innerText))||(source==='yungching'&&/抱歉，暫無符合物件/.test(document.body.innerText))||(source==='591'&&/抱歉，[\s\S]{0,100}內暫無[\s\S]{0,100}相關內容/.test(document.body.innerText));
+ const confirmedEmpty=(source==='591'&&location.hostname==='business.591.com.tw'&&(/已為你找到\s*0\s*筆物件/.test(document.body.innerText)||[...document.querySelectorAll('h3')].some(e=>e.checkVisibility()&&e.textContent.trim()==='很抱歉，暫時沒有為您找到合適的物件')))||(source==='sinyi'&&/共有\s*0\s*筆/.test(document.body.innerText))||(source==='yungching'&&/抱歉，暫無符合物件/.test(document.body.innerText))||(source==='591'&&/抱歉，[\s\S]{0,100}內暫無[\s\S]{0,100}相關內容/.test(document.body.innerText));
  if(confirmedEmpty)return {rows:[],page:0,total:0,next:null,complete:true,blocked:false};
  const rows=crmReadListings(source,city),n=x=>Number(String(x||'').replace(/[^0-9]/g,'')),url=new URL(location.href);let page=0,total=0,next=null;
  if(source==='yungching'){page=n(document.querySelector('.paginationPageListItem.actived')?.textContent);total=Math.max(0,...[...document.querySelectorAll('.paginationPageListItem')].map(e=>n(e.textContent)));if(page&&total>page){url.pathname=url.pathname.replace('/region/','/list/');url.searchParams.set('pg',page+1);next=url.href;}}
