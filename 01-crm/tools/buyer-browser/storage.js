@@ -1,7 +1,7 @@
 // Large jobs and history belong in IndexedDB rather than chrome.storage.local's small quota.
 (function(){
 let connection;
-const large=new Set(['job','history','last','lastManual','manualFeeds','inventoryFeeds']);
+const large=new Set(['job','dailyJob','history','last','lastManual','manualFeeds','inventoryFeeds']);
 const db=()=>connection||(connection=new Promise((resolve,reject)=>{const r=indexedDB.open('buyer-helper-data',1);r.onupgradeneeded=()=>r.result.createObjectStore('state');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);}));
 async function get(keys){keys=Array.isArray(keys)?keys:[keys];const old=await chrome.storage.local.get(keys),d=await db(),out={...old};await Promise.all(keys.filter(k=>large.has(k)).map(k=>new Promise((resolve,reject)=>{const r=d.transaction('state').objectStore('state').get(k);r.onsuccess=()=>{if(r.result!==undefined)out[k]=r.result;resolve();};r.onerror=()=>reject(r.error);})));return out;}
 async function set(values){const d=await db(),big=Object.entries(values).filter(([k])=>large.has(k)),small=Object.fromEntries(Object.entries(values).filter(([k])=>!large.has(k)));if(big.length){await new Promise((resolve,reject)=>{const tx=d.transaction('state','readwrite');for(const [k,v]of big)tx.objectStore('state').put(v,k);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||Error('資料未保存'));});await chrome.storage.local.remove(big.map(([k])=>k));}if(values.job)small.jobInfo={status:values.job.status,pages:values.job.pages,scanned:values.job.scanned};if(values.last)small.lastAt=values.last.generatedAt;if(Object.keys(small).length)await chrome.storage.local.set(small);}
