@@ -1,7 +1,7 @@
-var CACHE_NAME = 'crm-v20261006archive278';
+var CACHE_NAME = 'crm-v20261006align279';
 var URLS_TO_CACHE = [
-  './template-archive.js?v=20261006archive278',
-  './template-archive.css?v=20261006archive278',
+  './template-archive.js?v=20261006align279',
+  './template-archive.css?v=20261006align279',
   './bulk-search.js?v=20261006nav261',
   './bulk-search.css?v=20261006nav261',
   './daily-search-report.js?v=20261006report274',

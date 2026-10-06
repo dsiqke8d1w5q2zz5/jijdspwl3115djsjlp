@@ -7,3 +7,9 @@
 #mktBody>.tpl-archive-toggle{margin-bottom:8px}
 
 #tplBody .tpl-object-tabs button{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;flex:0 0 auto;max-width:240px;text-align:left}#tplBody .tpl-object-tabs{max-height:160px;overflow:auto}#tplBody .tpl-list-toolbar>.tpl-archive-toggle,#tplAddBtn{flex:none}@media(max-width:600px){#tplBody .tpl-list-toolbar{flex-wrap:wrap}#tplBody .tpl-list-toolbar>.tpl-object-tabs{flex-basis:100%}}
+
+/* Align template navigation and utility controls on the same top edge. */
+#tplBody .tpl-list-toolbar>.tpl-object-tabs{padding:0 0 4px;align-items:flex-start}
+#tplModal #tplAddBtn{margin-top:0}
+#tplBody .tpl-list-toolbar button,#tplBody .tpl-content-panel>div:first-child>button{box-sizing:border-box;min-height:34px;line-height:20px!important;padding:6px 10px!important;border-width:1px}
+#tplBody .tpl-list-toolbar>.tpl-archive-toggle{margin:0}
