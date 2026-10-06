@@ -206,3 +206,5 @@
 .im-dialog .im-candidates{padding-block:5px;margin-block:2px 5px}
 .im-dialog .im-candidates>p{margin-block:3px}
 .im-dialog #imResults{padding-bottom:6px}
+
+.im-dialog .im-listing-row:has(.im-off-badge){grid-template-columns:58px 80px minmax(0,1fr) auto}.im-dialog .im-listing-row:has(.im-off-badge):not(:has(>img)){grid-template-columns:58px minmax(0,1fr) auto}.im-off-badge{white-space:nowrap;background:#eef1f4;color:#526477;font-size:13px;padding:3px 5px}@media(max-width:700px){.im-dialog .im-listing-row:has(.im-off-badge){grid-template-columns:58px 60px minmax(0,1fr) auto}.im-dialog .im-listing-row:has(.im-off-badge):not(:has(>img)){grid-template-columns:58px minmax(0,1fr) auto}}

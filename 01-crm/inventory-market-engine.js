@@ -31,8 +31,9 @@ function apply(previous,config,feed,now=new Date().toISOString()){
   for(const raw of rows){const p={...raw,...(config.buildingDecisions?.[raw.id]?.same?{matchNote:'已人工確認同棟'}:config.mode!=='road'&&!raw.community?{matchNote:'建案名稱待確認'}:{}),seenAt:raw.seenAt||feed.generatedAt||now},old=s.records[p.id];if(old&&(time(p.seenAt)<time(old.seenAt)||(old.availability&&old.availability!=='active'&&time(p.seenAt)<=time(s.scans?.[source.id]?.at))))continue;
    const duplicate=!old&&p.kind!=='transaction'&&Object.values(s.records).some(q=>q.kind!=='transaction'&&root.BuyerGrouping?.same(p,q));
    let kind='';if(initialized){if(!old&&!duplicate)kind=p.kind==='transaction'?'成交':'New';else if(old&&p.kind==='transaction'&&['price','area','address','tradeDate','floorText','type','community','unit','termination','notes','parkingPrice','parkingArea'].some(field=>JSON.stringify(p[field]??null)!==JSON.stringify(old[field]??null)))kind='成交更正';else if(old&&Number.isFinite(p.price)&&Number.isFinite(old.price)&&p.price!==old.price)kind=p.kind==='transaction'?'成交更正':p.price<old.price?'Down':'';}
-   if(old?.availability&&old.availability!=='active'&&p.kind!=='transaction')kind='重新上架';
+   if(old?.availability==='off'&&raw.availability!=='unavailable'&&p.kind!=='transaction')kind='重新上架';
    p.availability=raw.availability==='unavailable'?'off':old?.availability==='off'&&time(p.seenAt)<=time(old.linkCheckedAt)?'off':'active';p.missingScans=0;
+   if(p.availability==='off'){kind='';if(old?.availability!=='off')confirmedOff(s,config,p,now);}
    if(kind&&assess(config,p).match&&!assess(config,p).missing.length){const id=[source.id,p.id,kind,p.seenAt,p.price].join('|');if(!s.events.some(e=>e.id===id))s.events.push({id,kind,listingId:p.id,at:now,before:old?.price,price:p.price});}
    for(const k of ['purposeAttemptedAt','purposeCheckedAt','linkCheckedAt'])if(old?.[k]&&!p[k])p[k]=old[k];
    s.records[p.id]=p;
@@ -42,15 +43,9 @@ function apply(previous,config,feed,now=new Date().toISOString()){
    if(stamp>time(previousScan?.at)&&feed.scanId!==previousScan?.id){
     const present=new Set(rows.map(p=>p.id));
     for(const p of Object.values(s.records)){
-     if(p.source!==source.id||p.kind==='transaction'||excluded(config,p)||!matches(config,p)||!assess(config,p).match||assess(config,p).missing.length||present.has(p.id)||time(p.seenAt)>stamp)continue;
+     if(p.source!==source.id||p.kind==='transaction'||excluded(config,p)||!matches(config,p)||!assess(config,p).match||present.has(p.id)||time(p.seenAt)>stamp)continue;
      p.missingScans=(p.missingScans||0)+1;
-     if(p.missingScans>=3&&(!p.availability||p.availability==='active')){
-      p.availability='suspected';
-      if(config.notifyDown!==false&&assess(config,p).match&&!assess(config,p).missing.length){
-       const other=Object.values(s.records).some(q=>q.id!==p.id&&q.availability!=='suspected'&&q.availability!=='off'&&root.BuyerGrouping?.same(p,q));
-       s.events.push({id:[p.id,'疑似下架',feed.scanId].join('|'),kind:other?'其中一筆疑似下架':'疑似下架',listingId:p.id,at:now});
-      }
-     }
+     if(p.missingScans>=3&&(!p.availability||p.availability==='active'))p.availability='suspected';
     }
     s.scans[source.id]={id:feed.scanId,at:feed.generatedAt};
    }
@@ -60,18 +55,27 @@ function apply(previous,config,feed,now=new Date().toISOString()){
  s.sourceStatus||={};for(const source of sources){const old=s.sourceStatus[source.id];if(!old||time(feed.generatedAt)>=time(old.at))s.sourceStatus[source.id]={...source,at:feed.generatedAt};}s.lastSources=sources;s.checkedAt=now;s.events=s.events.slice(-1000);return s;
 }
 
+function confirmedOff(state,config,p,now){
+ p.availability='off';p.linkCheckedAt=now;
+ if(config.enabled===false||config.notifyDown===false||excluded(config,p)||!matches(config,p)||!assess(config,p).match)return;
+ const other=Object.values(state.records||{}).some(q=>q.id!==p.id&&q.kind!=='transaction'&&(!q.availability||q.availability==='active')&&!excluded(config,q)&&root.BuyerGrouping?.same(p,q));
+ state.events||=[];state.events.push({id:[p.id,'已下架',now].join('|'),kind:other?'其中一筆已下架':'已下架',listingId:p.id,at:now});
+}
 function verify(previous,config,checks,scanId,now=new Date().toISOString()){
- const s=structuredClone(previous);if(config.enabled===false||config.notifyDown===false)return s;for(const check of checks||[]){const p=s.records?.[check.id];if(!p||p.kind==='transaction'||excluded(config,p)||!matches(config,p)||!assess(config,p).match||assess(config,p).missing.length||!p.missingScans||s.scans?.[p.source]?.id!==scanId)continue;p.verifiedScan=scanId;
- if(check.status!=='off'||p.availability==='off')continue;p.availability='off';
- if(config.notifyDown!==false&&config.enabled!==false&&assess(config,p).match&&!assess(config,p).missing.length){const other=Object.values(s.records).some(q=>q.id!==p.id&&(!q.availability||q.availability==='active')&&root.BuyerGrouping?.same(p,q));s.events.push({id:[p.id,'已下架',scanId].join('|'),kind:other?'其中一筆已下架':'已下架',listingId:p.id,at:now});}
+ const s=structuredClone(previous);if(config.enabled===false)return s;
+ for(const check of checks||[]){const p=s.records?.[check.id];if(!p||p.kind==='transaction'||excluded(config,p)||!matches(config,p)||!assess(config,p).match||!p.missingScans||s.scans?.[p.source]?.id!==scanId)continue;
+ p.verifiedScan=scanId;
+ if(check.status==='active'&&p.availability!=='off'){p.availability='active';p.missingScans=0;p.linkCheckedAt=now;}
+ if(check.status==='off'&&p.availability!=='off')confirmedOff(s,config,p,now);
  }return s;
 }
+function changeRelevant(event){return !/下架/.test(event.kind);}
 
 function day(at){const d=new Date(at);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
-function eventRelevant(config,event,p){if(!p||excluded(config,p)||!matches(config,p))return false;if(p.kind==='transaction')return config.transactionsEnabled!==false;if(config.enabled===false||!assess(config,p).match||assess(config,p).missing.length)return false;return config.notifyDown!==false||!/下架/.test(event.kind);}
+function eventRelevant(config,event,p){if(!p||excluded(config,p)||!matches(config,p))return false;if(p.kind==='transaction')return config.transactionsEnabled!==false;if(/疑似下架/.test(event.kind))return false;if(config.enabled===false||!assess(config,p).match||(!/已下架/.test(event.kind)&&assess(config,p).missing.length))return false;return config.notifyDown!==false||!/下架/.test(event.kind);}
 function reminder(c,id,label,state,save,now=new Date()){
- const date=day(now),events=state.events.filter(e=>day(e.at)===date);if(!events.length||c.archived||c._deleted)return false;const key='inventory-watch:'+id+':'+date,old=c.schedules,items=structuredClone(old||[]),existing=items.find(x=>x.id===key),known=existing?.marketEvents||{};if(events.every(e=>known[e.id]))return false;const all={...known,...Object.fromEntries(events.map(e=>[e.id,e.kind]))},counts={};Object.values(all).forEach(k=>counts[k]=(counts[k]||0)+1);const memo=Object.entries(counts).map(([k,n])=>({'New':'新發現刊登','Down':'降價','成交':'新公布成交','成交更正':'成交更正','疑似下架':'疑似下架','其中一筆疑似下架':'其中一筆疑似下架','已下架':'已下架','其中一筆已下架':'其中一筆已下架','重新上架':'重新上架'}[k])+n+'筆').join('、');const entry={...existing,id:key,date:existing?.date||date,time:existing?.time||'',memo,propertyRef:state.propertyRef||existing?.propertyRef||{clientId:c.id,type:'庫存屋主',label,address:''},schedType:'庫存屋主',marketEvents:all,_deleted:false,updatedAt:now.toISOString()};if(existing)Object.assign(existing,entry);else items.push(entry);c.schedules=items;if(!save()){c.schedules=old;return false;}return true;
+ const date=day(now),events=state.events.filter(e=>day(e.at)===date&&!/疑似下架/.test(e.kind));if(!events.length||c.archived||c._deleted)return false;const key='inventory-watch:'+id+':'+date,old=c.schedules,items=structuredClone(old||[]),existing=items.find(x=>x.id===key),known=existing?.marketEvents||{};if(events.every(e=>known[e.id]))return false;const all={...known,...Object.fromEntries(events.map(e=>[e.id,e.kind]))},counts={};Object.values(all).forEach(k=>counts[k]=(counts[k]||0)+1);const memo=Object.entries(counts).map(([k,n])=>({'New':'新發現刊登','Down':'降價','成交':'新公布成交','成交更正':'成交更正','疑似下架':'疑似下架','其中一筆疑似下架':'其中一筆疑似下架','已下架':'新確認下架','其中一筆已下架':'其中一筆已下架','重新上架':'重新上架'}[k])+n+'筆').join('、');const entry={...existing,id:key,date:existing?.date||date,time:existing?.time||'',memo,propertyRef:state.propertyRef||existing?.propertyRef||{clientId:c.id,type:'庫存屋主',label,address:''},schedType:'庫存屋主',marketEvents:all,_deleted:false,updatedAt:now.toISOString()};if(existing)Object.assign(existing,entry);else items.push(entry);c.schedules=items;if(!save()){c.schedules=old;return false;}return true;
 }
 function prioritizeGroups(groups,events=[],ack=0){const fresh=new Set(events.filter(e=>['New','Down'].includes(e.kind)&&time(e.at)>ack).map(e=>e.listingId));return groups.map((group,index)=>({group,index,fresh:group.some(({p})=>p.kind!=='transaction'&&fresh.has(p.id))})).sort((a,b)=>Number(b.fresh)-Number(a.fresh)||a.index-b.index).map(x=>x.group);}
-const api={purposeKey,manualPurpose,eventRelevant,candidate,prioritizeGroups,excluded,exclusionGroup,exclusion,verify,criteria,assess,conditionFields,buildingTypes,norm,communityName,aliases,location,matches,apply,reminder};root.InventoryMarketEngine=api;if(typeof module!=='undefined')module.exports=api;
+const api={confirmedOff,changeRelevant,purposeKey,manualPurpose,eventRelevant,candidate,prioritizeGroups,excluded,exclusionGroup,exclusion,verify,criteria,assess,conditionFields,buildingTypes,norm,communityName,aliases,location,matches,apply,reminder};root.InventoryMarketEngine=api;if(typeof module!=='undefined')module.exports=api;
 })(globalThis);
