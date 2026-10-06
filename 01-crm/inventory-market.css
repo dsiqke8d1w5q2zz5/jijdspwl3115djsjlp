@@ -160,3 +160,16 @@
 .im-floor-preset{grid-column:span 2;display:flex;align-items:center;gap:8px;min-width:0}.im-floor-preset button{flex:none;padding:4px 8px;min-height:30px}.im-floor-preset small{font-size:12px;line-height:1.4;overflow-wrap:anywhere}@media(max-width:1000px){.im-floor-preset{grid-column:1/-1}}@media(max-width:700px){.im-floor-preset{flex-wrap:wrap}}
 
 .im-dialog .im-actions .im-purpose-confirm{background:#193b56;color:#fff;border-color:#193b56;font-weight:700;white-space:normal}.im-actions{flex-wrap:wrap}
+
+.im-dialog .im-listing-row{grid-template-columns:38px 80px minmax(0,1fr) auto}
+.im-listing-row>.im-leading-badges{grid-column:1;grid-row:1/3;align-self:center}
+.im-leading-badges .im-badge{margin:0;font-weight:700}
+.im-dialog .im-listing-row>img{grid-column:2}
+.im-dialog .im-listing-row .im-main>strong{grid-column:3}
+.im-dialog .im-listing-row .im-meta{grid-column:3/5}
+.im-dialog .im-listing-row .im-actions{grid-column:4}
+.im-dialog .im-listing-row:not(:has(>img)){grid-template-columns:38px minmax(0,1fr) auto}
+.im-dialog .im-listing-row:not(:has(>img)) .im-main>strong{grid-column:2}
+.im-dialog .im-listing-row:not(:has(>img)) .im-meta{grid-column:2/4}
+.im-dialog .im-listing-row:not(:has(>img)) .im-actions{grid-column:3}
+@media(max-width:700px){.im-dialog .im-listing-row{grid-template-columns:34px 60px minmax(0,1fr) auto}}
