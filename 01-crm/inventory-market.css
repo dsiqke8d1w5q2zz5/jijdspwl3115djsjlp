@@ -187,3 +187,19 @@
 .im-dialog .im-view-tabs{padding:2px}
 .im-dialog .im-view-tabs button,.im-dialog #imRead,.im-dialog .im-subtabs button{min-height:28px;padding-block:2px;line-height:1.4}
 .im-dialog .im-subtabs{row-gap:4px;margin-bottom:4px}
+
+/* Tighten surrounding whitespace; preserve font and image dimensions. */
+.im-dialog header{padding-block:4px}
+.im-dialog header button,.im-dialog .im-primary>button:not(.ds-inline-summary),.im-dialog .im-property-tabs button{min-height:30px;padding-block:3px;line-height:1.4}
+.im-controls{padding-top:4px}
+.im-primary{margin-bottom:2px;row-gap:4px}
+.im-disclosures{row-gap:1px}
+.im-disclosures>details>summary,.im-disclosures>details[open]>summary{padding-block:2px;margin-block:0}
+.im-dialog .im-row{padding-block:3px;margin-block:3px}
+.im-dialog .im-group{margin-block:3px}
+.im-dialog .im-group>.im-row{margin:0}
+.im-dialog .im-group-list>.im-row{padding-block:3px;margin:0}
+.im-dialog .im-actions button{min-height:26px;padding-block:2px}
+.im-dialog .im-candidates{padding-block:5px;margin-block:2px 5px}
+.im-dialog .im-candidates>p{margin-block:3px}
+.im-dialog #imResults{padding-bottom:6px}
