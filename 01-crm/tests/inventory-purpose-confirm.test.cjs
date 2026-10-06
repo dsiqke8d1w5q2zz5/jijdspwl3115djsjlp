@@ -1,0 +1,13 @@
+const assert=require('assert/strict'),E=require('../inventory-market-engine.js');
+const p={id:'yungching:7417941',address:'台北市中正區重慶南路三段4巷9號',source:'yungching',price:2288};
+const c={address:p.address,mode:'road',searchPurpose:'住宅',enabled:true,purposeConfirmations:{}};
+assert(E.assess(c,p).missing.includes('用途'));
+c.purposeConfirmations[p.id]={key:E.purposeKey(c)};
+assert(!E.assess(c,p).missing.includes('用途'));
+assert.equal(E.assess(c,{...p,usage:'一般事務所'}).match,false);
+assert(E.assess({...c,searchPurpose:'店面'},p).missing.includes('店面用途'));
+const state={records:{[p.id]:{...p,usage:'住家用',purposeAttemptedAt:'2026-10-06T01:00:00Z'}},events:[],baselines:{}};
+const next=E.apply(state,c,{generatedAt:'2026-10-06T02:00:00Z',sources:[{id:'yungching',status:'ok'}],listings:[p]});
+assert.equal(next.records[p.id].usage,'住家用');assert.equal(next.records[p.id].purposeAttemptedAt,state.records[p.id].purposeAttemptedAt);
+assert(!E.assess(c,{...p,usage:'集合住宅'}).missing.length);
+console.log('PASS manual purpose scope, explicit conflicts, collective housing, enrichment survives new feeds');
