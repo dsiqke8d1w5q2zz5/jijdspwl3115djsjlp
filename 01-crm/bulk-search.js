@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const names={buyers:'一鍵配案',inventory:'一鍵追蹤'},sources={yungching:'永慶',sinyi:'信義','591':'591'},esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const names={buyers:'買方一鍵配案',inventory:'物件一鍵追蹤'},sources={yungching:'永慶',sinyi:'信義','591':'591'},esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let dialog,scope,launchBusy=false,timer;const latest={},imported={};
 function request(type,payload){return new Promise((resolve,reject)=>{const id=crypto.randomUUID(),timer=setTimeout(()=>{removeEventListener('message',listen);reject(Error('搜尋助手未回應，請確認 Chrome 助手已更新至 1.2.24。'));},10000);function listen(e){if(e.source!==window||e.origin!==location.origin||e.data?.channel!=='CRM_BUYER_RESPONSE'||e.data.id!==id)return;clearTimeout(timer);removeEventListener('message',listen);e.data.result?.error?reject(Error(e.data.result.error)):resolve(e.data.result);}addEventListener('message',listen);postMessage({channel:'CRM_BUYER_REQUEST',id,type,payload},location.origin);});}
 function message(text){if(dialog?.open){dialog.querySelector('.bulk-content').textContent=text;dialog.querySelector('[data-retry]').hidden=true;}}
