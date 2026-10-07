@@ -13,7 +13,7 @@ s=E.apply(s,cfg,feed(6),at(6));assert.equal(s.events.length,0);
 s=E.apply(s,cfg,feed(7,[p]),at(7));assert.equal(s.events.length,0);assert.equal(s.records[p.id].missingScans,0);
 s=E.apply(s,cfg,feed(8),at(8));s=E.verify(s,cfg,[{id:p.id,status:'unknown'}],'scan8',at(8));assert.equal(s.records[p.id].availability,'active');
 s=E.verify(s,cfg,[{id:p.id,status:'off'}],'scan8',at(8));assert.equal(s.events.at(-1).kind,'已下架');const n=s.events.length;s=E.verify(s,cfg,[{id:p.id,status:'off'}],'scan8',at(8));assert.equal(s.events.length,n);
-s=E.apply(s,cfg,feed(9,[{...p,price:2000}]),at(9));assert.equal(s.records[p.id].availability,'active');assert.equal(s.events.length,n);assert(!E.assess(cfg,s.records[p.id]).match);
+s=E.apply(s,cfg,feed(9,[{...p,price:2000}]),at(9));assert.equal(s.records[p.id].availability,'off');assert.equal(s.events.length,n);assert(!E.assess(cfg,s.records[p.id]).match);
 assert(E.assess(cfg,{...p,kind:'transaction',price:9999}).match);assert.deepEqual(E.assess({criteria:{roomsMin:2}},p).missing,['房數']);assert.throws(()=>E.criteria({areaMin:20,areaMax:10}));assert.throws(()=>E.criteria({roomsMin:1.5}));assert.equal(E.criteria({floorMin:-1}).floorMin,-1);
 let disabled=E.apply(null,{...cfg,enabled:false},feed(0,[p]));assert.equal(Object.keys(disabled.records).length,0);
 let own=E.apply(null,{...cfg,ownIds:[p.id]},feed(0,[p]));assert.equal(Object.keys(own.records).length,0);
