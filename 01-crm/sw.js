@@ -1,4 +1,4 @@
-var CACHE_NAME = 'crm-v20261007off290';
+var CACHE_NAME = 'crm-v20261007off291';
 var URLS_TO_CACHE = [
   './dashboard-actions.js?v=20261007actions286',
   './dashboard-actions.css?v=20261007menu287',
@@ -15,9 +15,9 @@ var URLS_TO_CACHE = [
   './',
   './index.html','./customer-search.js?v=20261006search263',
   './seller-layout.js?v=20261005audit231',
-  './inventory-market.css?v=20261006confirm277',
+  './inventory-market.css?v=20261007off291',
   './inventory-market-engine.js?v=20261007report282',
-  './inventory-market.js?v=20261007report282',
+  './inventory-market.js?v=20261007off291',
   './buyer-match.css?v=20261006nav261',
   './buyer-match-engine.js?v=20261005sources243',
   './buyer-demands.js?v=20261005layout237',
