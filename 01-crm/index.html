@@ -2809,6 +2809,10 @@ function autoFetchCloud(force, onDone) {
                     var base = useCloud ? cc : local;
                     // 一般客戶：對 schedules / todos 做子陣列合併（保留雙方較新的變更）
                     base.schedules = _mergeItemArr(local.schedules, cc.schedules);
+                    base.searchReportEvents = _mergeItemArr(local.searchReportEvents, cc.searchReportEvents).map(function(row){
+                        var a=(local.searchReportEvents||[]).find(function(x){return x.id===row.id;})||{}, b=(cc.searchReportEvents||[]).find(function(x){return x.id===row.id;})||{};
+                        return {...row,marketEvents:{...a.marketEvents,...b.marketEvents},matchEvents:{...a.matchEvents,...b.matchEvents}};
+                    });
                     base.todos = _mergeItemArr(local.todos, cc.todos);
                     if (local.rProperties && local.rProperties.length) {
                         if (!base.rProperties) base.rProperties = [];
@@ -8029,7 +8033,10 @@ function _softDeleteById(arr, id) {
     return arr;
 }
 // 讀取端：過濾掉 _deleted
-function _liveItems(arr) { return (arr||[]).filter(function(x){ return !x._deleted; }); }
+function isAutomaticSearchReminder(x) {
+ return (!!x.marketEvents && String(x.id||'').startsWith('inventory-watch:') && /^(?:庫存行情｜.*：)?(?:(?:新發現刊登|降價|新公布成交|成交更正|疑似下架|其中一筆疑似下架|新確認下架|其中一筆已下架|重新上架)\d+筆)(?:、(?:新發現刊登|降價|新公布成交|成交更正|疑似下架|其中一筆疑似下架|新確認下架|其中一筆已下架|重新上架)\d+筆)*$/.test(x.memo||'')) || (!!x.matchEvents && String(x.id||'').startsWith('buyer-match:') && /^有 (?:New、Down|New|Down) 物件$/.test(x.memo||''));
+}
+function _liveItems(arr) { return (arr||[]).filter(function(x){ return !x._deleted && !isAutomaticSearchReminder(x); }); }
 
 // 取得所有待辦（合併客戶 c.todos 和個人 _getPT），最舊在前
 function _getAllTodos() {
@@ -13625,14 +13632,18 @@ function deleteMktTemplate(idx) {
 <script src="buyer-demands.js?v=20261005center249"></script>
 <script src="buyer-results.js?v=20261006bulk255"></script>
 <script src="buyer-grouping.js?v=20261005status220"></script>
-<script src="inventory-market-engine.js?v=20261006confirm277"></script>
-<script src="inventory-market.js?v=20261006confirm277"></script>
-<script src="buyer-schedule.js?v=20261005sources243"></script>
+<script src="inventory-market-engine.js?v=20261007report282"></script>
+<script src="inventory-market.js?v=20261007report282"></script>
+<script src="buyer-schedule.js?v=20261007report282"></script>
 <script src="daily-search-report.js?v=20261006report274"></script>
 <script src="buyer-match.js?v=20261006report274"></script>
 <script src="bulk-search.js?v=20261006nav261"></script>
 <script src="seller-layout.js?v=20261005audit231"></script>
 <script src="template-archive.js?v=20261006align279"></script>
 <link rel="stylesheet" href="template-archive.css?v=20261006align279">
+<script src="daily-search-notice.js?v=20261007report282"></script>
+<link rel="stylesheet" href="daily-search-notice.css?v=20261007report282">
+<script src="common-tools.js?v=20261007tools281"></script>
+<link rel="stylesheet" href="common-tools.css?v=20261007tools281">
 </body>
 </html>
