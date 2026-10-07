@@ -35,7 +35,7 @@ function apply(previous,config,feed,now=new Date().toISOString()){
    p.availability=raw.availability==='unavailable'?'off':old?.availability==='off'?'off':'active';p.missingScans=0;
    if(p.availability==='off'){kind='';if(old?.availability!=='off')confirmedOff(s,config,p,now,old?.availability||'active');}
    if(kind&&assess(config,p).match&&!assess(config,p).missing.length){const id=[source.id,p.id,kind,p.seenAt,p.price].join('|');if(!s.events.some(e=>e.id===id))s.events.push({id,kind,listingId:p.id,at:now,before:old?.price,price:p.price});}
-   for(const k of ['purposeAttemptedAt','purposeCheckedAt','linkCheckedAt'])if(old?.[k]&&!p[k])p[k]=old[k];
+   for(const k of ['purposeAttemptedAt','purposeCheckedAt','linkCheckedAt','lastVerifiedAvailableAt','offDuplicateOf'])if(old?.[k]&&!p[k])p[k]=old[k];
    s.records[p.id]=p;
   }
   if(source.status==='ok'&&!feed.incremental&&!['moi','moi-presale'].includes(source.id)&&feed.scanId){
@@ -63,7 +63,7 @@ function confirmedOff(state,config,p,now,previousAvailability=p.availability){
 }
 function confirmedAvailable(state,p,now){
  if(time(now)<time(p.linkCheckedAt))return;
- const wasOff=p.availability==='off';p.availability='active';p.linkCheckedAt=now;p.missingScans=0;p.recheckOff=false;
+ const wasOff=p.availability==='off';p.availability='active';p.lastVerifiedAvailableAt=now;delete p.offDuplicateOf;p.linkCheckedAt=now;p.missingScans=0;p.recheckOff=false;
  if(wasOff){state.events||=[];state.events.push({id:[p.id,'重新上架',now].join('|'),kind:'重新上架',listingId:p.id,at:now,verified:true});}
 }
 function verify(previous,config,checks,scanId,now=new Date().toISOString()){
@@ -74,6 +74,16 @@ function verify(previous,config,checks,scanId,now=new Date().toISOString()){
  if(check.status==='off'&&p.availability!=='off')confirmedOff(s,config,p,now);
  }return s;
 }
+function sameOffProperty(a,b){
+ if(!root.BuyerGrouping?.same(a,b))return false;
+ const fa=matchEngine.floorRange(a),fb=matchEngine.floorRange(b);
+ if(!fa||!fb||JSON.stringify(fa)!==JSON.stringify(fb)||Math.abs(Number(a.area)-Number(b.area))>0.01)return false;
+ if(a.rooms!=null&&b.rooms!=null&&Number(a.rooms)!==Number(b.rooms))return false;
+ if(!norm(a.title)||norm(a.title)!==norm(b.title))return false;
+ // A shared photo supports redacted addresses; exact numbered addresses also qualify.
+ return !!(a.image&&b.image&&a.image===b.image)||(/號/.test(a.address||'')&&norm(a.address)===norm(b.address));
+}
+function offGroups(rows){const groups=[];for(const p of rows){const group=groups.find(g=>g.every(q=>sameOffProperty(p,q)));if(group)group.push(p);else groups.push([p]);}return groups;}
 // Retain a recoverable audit of legacy feed-only relisting cycles.
 function cleanLegacyOff(state){
  if(!state)return state;
@@ -86,6 +96,18 @@ function cleanLegacyOff(state){
   }
  }
  if(remove.size){s.legacyOffAudit||={};for(const e of s.events)if(remove.has(e.id))s.legacyOffAudit[e.id]={...e,reason:'legacy-unverified-relisting-cycle'};s.events=s.events.filter(e=>!remove.has(e.id));}
+ // Cross-ID duplicates require an older confirmed off record and no verified return to sale.
+ for(const group of offGroups(Object.values(s.records||{}).filter(p=>p.kind!=='transaction'&&p.availability==='off'))){
+  const offAt=p=>time(p.offConfirmedAt)||Math.min(...(s.events||[]).filter(e=>e.listingId===p.id&&['已下架','其中一筆已下架'].includes(e.kind)).map(e=>time(e.at)))||time(p.linkCheckedAt);
+  const dated=group.map(p=>({p,at:Number.isFinite(offAt(p))?offAt(p):time(p.linkCheckedAt)})).filter(x=>x.at>0).sort((a,b)=>a.at-b.at);
+  if(dated.length<2)continue;const first=dated[0];
+  for(const {p,at} of dated.slice(1)){if(at<=first.at)continue;
+   if(time(p.lastVerifiedAvailableAt)>first.at||(s.events||[]).some(e=>group.some(q=>q.id===e.listingId)&&e.kind==='重新上架'&&e.verified&&time(e.at)>first.at))continue;
+   const duplicateEvents=(s.events||[]).filter(e=>e.listingId===p.id&&['已下架','其中一筆已下架'].includes(e.kind)&&time(e.at)>=first.at);
+   s.legacyOffAudit||={};for(const e of duplicateEvents)s.legacyOffAudit[e.id]={...e,reason:'duplicate-off-property',originalListingId:first.p.id};
+   const ids=new Set(duplicateEvents.map(e=>e.id));s.events=s.events.filter(e=>!ids.has(e.id));p.offDuplicateOf=first.p.id;
+  }
+ }
  return s;
 }
 function changeRelevant(event){return !/下架/.test(event.kind);}
@@ -96,5 +118,5 @@ function reminder(c,id,label,state,save,now=new Date()){
  const date=day(now),events=state.events.filter(e=>day(e.at)===date&&!/疑似下架/.test(e.kind));if(!events.length||c.archived||c._deleted)return false;const key='inventory-watch:'+id+':'+date,old=c.searchReportEvents,items=structuredClone(old||[]),existing=items.find(x=>x.id===key),known=existing?.marketEvents||{};if(events.every(e=>known[e.id]))return false;const all={...known,...Object.fromEntries(events.map(e=>[e.id,e.kind]))},counts={};Object.values(all).forEach(k=>counts[k]=(counts[k]||0)+1);const memo=Object.entries(counts).map(([k,n])=>({'New':'新發現刊登','Down':'降價','成交':'新公布成交','成交更正':'成交更正','疑似下架':'疑似下架','其中一筆疑似下架':'其中一筆疑似下架','已下架':'新確認下架','其中一筆已下架':'其中一筆已下架','重新上架':'重新上架'}[k])+n+'筆').join('、');const entry={...existing,id:key,date:existing?.date||date,time:existing?.time||'',memo,propertyRef:state.propertyRef||existing?.propertyRef||{clientId:c.id,type:'庫存屋主',label,address:''},schedType:'庫存屋主',marketEvents:all,_deleted:false,updatedAt:now.toISOString()};if(existing)Object.assign(existing,entry);else items.push(entry);c.searchReportEvents=items;if(!save()){c.searchReportEvents=old;return false;}return true;
 }
 function prioritizeGroups(groups,events=[],ack=0){const fresh=new Set(events.filter(e=>['New','Down'].includes(e.kind)&&time(e.at)>ack).map(e=>e.listingId));return groups.map((group,index)=>({group,index,fresh:group.some(({p})=>p.kind!=='transaction'&&fresh.has(p.id))})).sort((a,b)=>Number(b.fresh)-Number(a.fresh)||a.index-b.index).map(x=>x.group);}
-const api={cleanLegacyOff,confirmedAvailable,confirmedOff,changeRelevant,purposeKey,manualPurpose,eventRelevant,candidate,prioritizeGroups,excluded,exclusionGroup,exclusion,verify,criteria,assess,conditionFields,buildingTypes,norm,communityName,aliases,location,matches,apply,reminder};root.InventoryMarketEngine=api;if(typeof module!=='undefined')module.exports=api;
+const api={sameOffProperty,offGroups,cleanLegacyOff,confirmedAvailable,confirmedOff,changeRelevant,purposeKey,manualPurpose,eventRelevant,candidate,prioritizeGroups,excluded,exclusionGroup,exclusion,verify,criteria,assess,conditionFields,buildingTypes,norm,communityName,aliases,location,matches,apply,reminder};root.InventoryMarketEngine=api;if(typeof module!=='undefined')module.exports=api;
 })(globalThis);
