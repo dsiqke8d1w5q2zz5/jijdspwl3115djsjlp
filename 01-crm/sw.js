@@ -1,11 +1,11 @@
-var CACHE_NAME = 'crm-v20261007drag289';
+var CACHE_NAME = 'crm-v20261007off290';
 var URLS_TO_CACHE = [
   './dashboard-actions.js?v=20261007actions286',
   './dashboard-actions.css?v=20261007menu287',
   './common-tools.js?v=20261007tools281',
   './common-tools.css?v=20261007instant283',
-  './daily-search-notice.js?v=20261007read288',
-  './daily-search-notice.css?v=20261007read288',
+  './daily-search-notice.js?v=20261007off290',
+  './daily-search-notice.css?v=20261007off290',
   './template-archive.js?v=20261007drag289',
   './template-archive.css?v=20261007drag289',
   './bulk-search.js?v=20261006nav261',
