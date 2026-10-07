@@ -1,7 +1,7 @@
-var CACHE_NAME = 'crm-v20261007actions286';
+var CACHE_NAME = 'crm-v20261007menu287';
 var URLS_TO_CACHE = [
   './dashboard-actions.js?v=20261007actions286',
-  './dashboard-actions.css?v=20261007actions286',
+  './dashboard-actions.css?v=20261007menu287',
   './common-tools.js?v=20261007tools281',
   './common-tools.css?v=20261007instant283',
   './daily-search-notice.js?v=20261007compact285',
