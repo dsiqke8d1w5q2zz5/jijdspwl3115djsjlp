@@ -67,7 +67,6 @@ dialog.innerHTML='<header><h2 id="dailyNoticeTitle">早上自動搜尋結果</h2
 
 compactReport(view);
 dialog.querySelector('[data-retry]').onclick=async e=>{const b=e.currentTarget;b.disabled=true;try{await request('dailyRetry');dialog.querySelector('[data-message]').textContent='已開始重試，可關閉視窗。請從個人搜尋報告查看後續結果。';b.hidden=true;}catch(error){dialog.querySelector('[data-message]').textContent=error.message;b.disabled=false;}};
-const diagnostic=document.createElement('button');diagnostic.type='button';diagnostic.textContent='匯出比對紀錄';diagnostic.onclick=async()=>{diagnostic.disabled=true;try{const rows=[];for(const entry of window.InventoryMarket?.entries()||[]){if(!entry.config.id)continue;const state=await InventoryMarket.loadState(entry.config.id);rows.push({watchId:entry.config.id,label:entry.label,records:state?.records,events:state?.events,audit:state?.legacyOffAudit,ack:state?.ack,ackListings:state?.ackListings,reports:(entry.c.searchReportEvents||[]).filter(r=>r.id?.startsWith('inventory-watch:'+entry.config.id+':')),suppressed:entry.c.searchReportSuppressions});}const url=URL.createObjectURL(new Blob([JSON.stringify({version:1,generatedAt:new Date().toISOString(),rows},null,2)],{type:'application/json'}));const link=document.createElement('a');link.href=url;link.download='下架比對紀錄.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch{view.querySelector('[data-message]').textContent='匯出未完成，請重試。';}finally{diagnostic.disabled=false;}};view.querySelector('footer').prepend(diagnostic);
 if(!view.open)view.showModal();remember(id);
 const localMessage=view.querySelector('[data-message]');localMessage.textContent='正在比對本機變動紀錄…';
 Promise.resolve().then(()=>window.InventoryMarket?.cleanLegacyReports()).then(()=>{if(dialog!==view||!view.open)return;refreshChanges(view);if(localMessage.textContent==='正在比對本機變動紀錄…')localMessage.textContent='本機紀錄比對完成';}).catch(()=>{if(dialog===view&&view.open)localMessage.textContent='本機紀錄比對未完成，請關閉後重開報告重試。';});
@@ -85,5 +84,11 @@ setTimeout(check,3000);setInterval(check,15000);document.addEventListener('visib
 }
 
 const anchor=document.querySelector('[data-bulk="inventory"]');if(anchor){const button=document.createElement('button');button.type='button';button.className=anchor.className;button.id='dailyReportButton';button.textContent='早上報告';button.title='查看最近一次早上自動搜尋結果，不會重新搜尋';button.onclick=open;anchor.after(button);}
-window.DailySearchNotice={check,open};
+function openDiagnostics(){
+if(dialog?.open)return;
+const view=shell();view.innerHTML='<header><h2 id="dailyNoticeTitle">問題診斷</h2><button data-close aria-label="關閉">×</button></header><div class="daily-notice-body"><p>下架提醒有異常時，可匯出比對紀錄供查問題。</p><p>檔案包含案件與刊登紀錄，僅下載到本機。</p><p data-message role="status"></p></div><footer><button data-close>關閉</button></footer>';
+const diagnostic=document.createElement('button');diagnostic.type='button';diagnostic.textContent='匯出比對紀錄';diagnostic.onclick=async()=>{diagnostic.disabled=true;try{const rows=[];for(const entry of window.InventoryMarket?.entries()||[]){if(!entry.config.id)continue;const state=await InventoryMarket.loadState(entry.config.id);rows.push({watchId:entry.config.id,label:entry.label,records:state?.records,events:state?.events,audit:state?.legacyOffAudit,ack:state?.ack,ackListings:state?.ackListings,reports:(entry.c.searchReportEvents||[]).filter(r=>r.id?.startsWith('inventory-watch:'+entry.config.id+':')),suppressed:entry.c.searchReportSuppressions});}const url=URL.createObjectURL(new Blob([JSON.stringify({version:1,generatedAt:new Date().toISOString(),rows},null,2)],{type:'application/json'}));const link=document.createElement('a');link.href=url;link.download='下架比對紀錄.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch{view.querySelector('[data-message]').textContent='匯出未完成，請重試。';}finally{diagnostic.disabled=false;}};view.querySelector('footer').prepend(diagnostic);
+view.showModal();
+}
+window.DailySearchNotice={check,open,openDiagnostics};
 })();

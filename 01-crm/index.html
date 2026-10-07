@@ -861,6 +861,7 @@
                 <button onclick="runDataCheck();closeHeaderMore()" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 16px;border:none;background:none;cursor:pointer;font-size:14px;color:#1C1917;font-family:inherit;text-align:left"><i class="ti ti-shield-check" style="font-size:18px;color:#059669"></i> 健檢</button>
                 <button onclick="cleanupDuplicateSchedules();closeHeaderMore()" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 16px;border:none;background:none;cursor:pointer;font-size:14px;color:#1C1917;font-family:inherit;text-align:left"><i class="ti ti-wash-dry" style="font-size:18px;color:#0891B2"></i> 清理重複行程</button>
                 <div style="height:1px;background:#E7E5E4;margin:4px 12px"></div>
+                <button onclick="closeHeaderMore();DailySearchNotice.openDiagnostics()" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 16px;border:none;background:none;cursor:pointer;font-size:14px;color:#1C1917;font-family:inherit;text-align:left"><i class="ti ti-tool" style="font-size:18px;color:#57534E"></i> 問題診斷</button>
                 <button onclick="clearCache();closeHeaderMore()" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 16px;border:none;background:none;cursor:pointer;font-size:14px;color:#1C1917;font-family:inherit;text-align:left"><i class="ti ti-refresh" style="font-size:18px;color:#57534E"></i> 重新載入</button>
             </div>
         </div>
@@ -872,6 +873,7 @@
     <div class="mobile-setting-menu" id="mobileSettingMenu">
         <button onclick="closeMobileSetting();openImgTool()">圖片工具</button>
         <button onclick="closeMobileSetting();TranscriptImport.openStandalone()">謄本分析工具</button>
+        <button onclick="closeMobileSetting();DailySearchNotice.openDiagnostics()">問題診斷</button>
         <button onclick="openTrash();closeMobileSetting()"><i class="ti ti-trash" style="font-size:16px;color:#DC2626"></i> 資源回收桶</button>
         <button onclick="cloudRestore();closeMobileSetting()"><i class="ti ti-cloud-download" style="font-size:16px;color:#2563EB"></i> 雲端還原</button>
         <button onclick="exportCSV();closeMobileSetting()"><i class="ti ti-download" style="font-size:16px;color:#059669"></i> 匯出</button>
@@ -13643,7 +13645,7 @@ function deleteMktTemplate(idx) {
 <script src="seller-layout.js?v=20261005audit231"></script>
 <script src="template-archive.js?v=20261007drag289"></script>
 <link rel="stylesheet" href="template-archive.css?v=20261007drag289">
-<script src="daily-search-notice.js?v=20261007audit297"></script>
+<script src="daily-search-notice.js?v=20261007diagnostic299"></script>
 <link rel="stylesheet" href="daily-search-notice.css?v=20261007off290">
 <script src="common-tools.js?v=20261007tools281"></script>
 <link rel="stylesheet" href="common-tools.css?v=20261007instant283">
