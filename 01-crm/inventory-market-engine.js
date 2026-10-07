@@ -33,7 +33,7 @@ function apply(previous,config,feed,now=new Date().toISOString()){
    let kind='';if(initialized){if(!old&&!duplicate)kind=p.kind==='transaction'?'成交':'New';else if(old&&p.kind==='transaction'&&['price','area','address','tradeDate','floorText','type','community','unit','termination','notes','parkingPrice','parkingArea'].some(field=>JSON.stringify(p[field]??null)!==JSON.stringify(old[field]??null)))kind='成交更正';else if(old&&Number.isFinite(p.price)&&Number.isFinite(old.price)&&p.price!==old.price)kind=p.kind==='transaction'?'成交更正':p.price<old.price?'Down':'';}
    if(old?.availability==='off'&&p.kind!=='transaction'){kind='';p.recheckOff=raw.availability!=='unavailable'&&time(p.seenAt)>time(old.linkCheckedAt);p.offConfirmedAt=old.offConfirmedAt||old.linkCheckedAt;}
    p.availability=raw.availability==='unavailable'?'off':old?.availability==='off'?'off':'active';p.missingScans=0;
-   if(p.availability==='off'){kind='';if(old?.availability!=='off')confirmedOff(s,config,p,now,old?.availability||'active');}
+   if(p.availability==='off'){kind='';if(old&&old.availability!=='off')confirmedOff(s,config,p,now,old.availability||'active');else if(!old){p.offConfirmedAt=now;p.offBaseline=true;}}
    if(kind&&assess(config,p).match&&!assess(config,p).missing.length){const id=[source.id,p.id,kind,p.seenAt,p.price].join('|');if(!s.events.some(e=>e.id===id))s.events.push({id,kind,listingId:p.id,at:now,before:old?.price,price:p.price});}
    for(const k of ['purposeAttemptedAt','purposeCheckedAt','linkCheckedAt','lastVerifiedAvailableAt','offDuplicateOf'])if(old?.[k]&&!p[k])p[k]=old[k];
    s.records[p.id]=p;
@@ -74,6 +74,7 @@ function verify(previous,config,checks,scanId,now=new Date().toISOString()){
  if(check.status==='off'&&p.availability!=='off')confirmedOff(s,config,p,now);
  }return s;
 }
+function photoIdentity(value){try{const u=new URL(value);if(/^img\d*\.591\.com\.tw$/.test(u.hostname))return '591:'+u.pathname.split('!')[0];return u.href;}catch{return '';}}
 function sameOffProperty(a,b){
  if(!root.BuyerGrouping?.same(a,b))return false;
  const fa=matchEngine.floorRange(a),fb=matchEngine.floorRange(b);
@@ -81,13 +82,20 @@ function sameOffProperty(a,b){
  if(a.rooms!=null&&b.rooms!=null&&Number(a.rooms)!==Number(b.rooms))return false;
  if(!norm(a.title)||norm(a.title)!==norm(b.title))return false;
  // A shared photo supports redacted addresses; exact numbered addresses also qualify.
- return !!(a.image&&b.image&&a.image===b.image)||(/號/.test(a.address||'')&&norm(a.address)===norm(b.address));
+ return !!(a.image&&b.image&&photoIdentity(a.image)===photoIdentity(b.image))||(/號/.test(a.address||'')&&norm(a.address)===norm(b.address));
 }
 function offGroups(rows){const groups=[];for(const p of rows){const group=groups.find(g=>g.every(q=>sameOffProperty(p,q)));if(group)group.push(p);else groups.push([p]);}return groups;}
 // Retain a recoverable audit of legacy feed-only relisting cycles.
 function cleanLegacyOff(state){
  if(!state)return state;
  const s=structuredClone(state),byId=new Map(),remove=new Set();
+ // Legacy first discovery already returned unavailable: not a transition from active.
+ for(const e of s.events||[]){const p=s.records?.[e.listingId];if(!p||!['已下架','其中一筆已下架'].includes(e.kind))continue;
+ const detailAt=typeof p.at==='number'?p.at:time(p.at);
+ if(p.discovery==='new'&&p.availability==='off'&&/404|已失效/.test(p.availabilityReason||'')&&time(p.firstSeenAt)>0&&detailAt>=time(p.firstSeenAt)&&detailAt<=time(e.at)&&day(p.firstSeenAt)===day(e.at)&&!p.lastVerifiedAvailableAt&&!(s.events||[]).some(x=>x.listingId===p.id&&x.kind==='重新上架'&&x.verified)){
+ s.legacyOffAudit||={};s.legacyOffAudit[e.id]={...e,reason:'first-discovered-unavailable'};remove.add(e.id);p.offBaseline=true;
+ }}
+ s.events=(s.events||[]).filter(e=>!remove.has(e.id));remove.clear();
  for(const e of s.events||[]){if(!byId.has(e.listingId))byId.set(e.listingId,[]);byId.get(e.listingId).push(e);}
  for(const [id,events] of byId){let first=null,pending=[];
   for(const e of events.slice().sort((a,b)=>time(a.at)-time(b.at))){
@@ -99,7 +107,8 @@ function cleanLegacyOff(state){
  // Cross-ID duplicates require an older confirmed off record and no verified return to sale.
  for(const group of offGroups(Object.values(s.records||{}).filter(p=>p.kind!=='transaction'&&p.availability==='off'))){
   const offAt=p=>time(p.offConfirmedAt)||Math.min(...(s.events||[]).filter(e=>e.listingId===p.id&&['已下架','其中一筆已下架'].includes(e.kind)).map(e=>time(e.at)))||time(p.linkCheckedAt);
-  const dated=group.map(p=>({p,at:Number.isFinite(offAt(p))?offAt(p):time(p.linkCheckedAt)})).filter(x=>x.at>0).sort((a,b)=>a.at-b.at);
+  const legacyAt=p=>time(p.linkCheckedAt)||(p.availability==='off'&&/404|已失效/.test(p.availabilityReason||'')&&typeof p.at==='number'?p.at:0);
+  const dated=group.map(p=>({p,at:Number.isFinite(offAt(p))?offAt(p):legacyAt(p)})).filter(x=>x.at>0).sort((a,b)=>a.at-b.at);
   if(dated.length<2)continue;const first=dated[0];
   for(const {p,at} of dated.slice(1)){if(at<=first.at)continue;
    if(time(p.lastVerifiedAvailableAt)>first.at||(s.events||[]).some(e=>group.some(q=>q.id===e.listingId)&&e.kind==='重新上架'&&e.verified&&time(e.at)>first.at))continue;
