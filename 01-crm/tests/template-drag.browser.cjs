@@ -1,0 +1,27 @@
+const assert=require('assert/strict'),fs=require('fs'),path=require('path'),{chromium}=require(process.env.PLAYWRIGHT_MODULE);
+(async()=>{const b=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});try{const p=await b.newPage({viewport:{width:1440,height:1000}}),errors=[];p.on('pageerror',e=>errors.push(e.message));await p.route('https://**/*',r=>r.request().url().includes('buyer-feed.json')?r.fulfill({json:{schema:1,generatedAt:new Date().toISOString(),sources:[],listings:[]}}):r.abort());await p.route('http://localhost:43123/**',r=>{const f=path.resolve('01-crm','.'+new URL(r.request().url()).pathname);if(f.endsWith('inventory-transactions.json'))return r.fulfill({json:{schema:1,generatedAt:new Date().toISOString(),sources:[{id:'moi',status:'ok'}],listings:[]}});if(!fs.existsSync(f)||!fs.statSync(f).isFile())return r.fulfill({status:404,body:''});return r.fulfill({body:fs.readFileSync(f),contentType:f.endsWith('.html')?'text/html':f.endsWith('.js')?'text/javascript':'text/css'});});await p.addInitScript(()=>{window.invCalls=[];window.invJob=null;addEventListener('message',e=>{if(e.data?.channel!=='CRM_BUYER_REQUEST')return;const {id,type,payload}=e.data;invCalls.push({type,payload});if(type==='cancel'&&invJob)invJob.status='cancelled';let result=type==='hello'?{version:3,extensionVersion:'1.2.14'}:type==='inventorySync'||type==='sync'?{saved:payload.length}:type==='progress'?{job:invJob}:type==='last'?{inventoryFeeds:{}}:type==='buyerVerify'?{checks:payload.rows.map(p=>({id:p.id,...(['yungching:7417941','591:20734577'].includes(p.id)?{usage:'住家用',usageEvidence:'法定用途',availability:'available'}:{})}))}:type==='inventorySearch'?{jobId:'test'}:{};postMessage({channel:'CRM_BUYER_RESPONSE',id,result},location.origin);});});await p.goto('http://localhost:43123/index.html');
+
+
+
+
+
+await p.evaluate(()=>{autoSync=()=>{};DB=[{id:'drag-a',name:'屋主甲',types:['庫存屋主'],mktTemplates:[{title:'第一筆',content:'甲內容'},{title:'已封存',content:'封存內容',archived:true}]},{id:'drag-b',name:'屋主乙',types:['庫存屋主'],mktTemplates:[{title:'第二筆',content:'乙內容'}]}];persist();_templates=[{title:'租一',content:'一'},{title:'租二',content:'二'}];persistTemplates();_signingTemplates=[{title:'簽一',content:'一'},{title:'簽二',content:'二'}];persistSigningTemplates();_otherTemplates=[{title:'其他一',content:'一'},{title:'其他二',content:'二'}];persistOtherTemplates();openTemplates();});
+const tabs=p.locator('#tplBody .tpl-object-tabs button');
+for(const category of ['stock','rental','signing','other']){
+ await p.evaluate(t=>{_tplArchiveView=false;setTplTab(t)},category);
+ const before=await tabs.allTextContents();const content=await p.locator('#tplBody pre:visible').innerText();
+ await tabs.nth(0).dragTo(tabs.nth(1));
+ assert.deepEqual(await tabs.allTextContents(),before.slice().reverse());
+ assert.equal(await p.locator('#tplBody pre:visible').innerText(),content);
+ await tabs.nth(1).press('Alt+ArrowLeft');assert.deepEqual(await tabs.allTextContents(),before);
+ await tabs.nth(0).dragTo(tabs.nth(1));
+}
+await p.reload();await p.evaluate(()=>{autoSync=()=>{};openTemplates();});
+assert.deepEqual(await tabs.allTextContents(),['第二筆','第一筆']);
+await p.locator('#tplBody .tpl-archive-toggle').click();assert.deepEqual(await tabs.allTextContents(),['已封存']);
+await p.locator('#tplBody .tpl-archive-toggle').click();assert.deepEqual(await tabs.allTextContents(),['第二筆','第一筆']);
+await p.evaluate(()=>{DB[1].mktTemplates[0].title='很長的社區名稱與完整地址'.repeat(15);DB[1].mktTemplates[0].content='很長備註'.repeat(100)+' 99,999,999 萬';setTplTab('stock');});
+for(const width of [1440,780,430]){await p.setViewportSize({width,height:1000});assert(await p.locator('#tplBody').evaluate(e=>e.scrollWidth<=e.clientWidth+2));await p.screenshot({path:path.join(process.env.TEMP,'template-drag-'+width+'.png')});}
+await p.evaluate(()=>{window.persist=()=>false;});const before=await tabs.allTextContents();await tabs.nth(0).dragTo(tabs.nth(1));assert.deepEqual(await tabs.allTextContents(),before);
+assert.deepEqual(errors,[]);console.log('PASS dragging 4 categories, cross-client stock ordering, keyboard, preserved selection, reload, archived separation, failed save rollback, long content 3 widths');
+}finally{await b.close();}})().catch(e=>{console.error(e);process.exitCode=1});

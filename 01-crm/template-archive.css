@@ -13,3 +13,6 @@
 #tplModal #tplAddBtn{margin-top:0}
 #tplBody .tpl-list-toolbar button,#tplBody .tpl-content-panel>div:first-child>button{box-sizing:border-box;min-height:34px;line-height:20px!important;padding:6px 10px!important;border-width:1px}
 #tplBody .tpl-list-toolbar>.tpl-archive-toggle{margin:0}
+#tplBody .tpl-object-tabs button[draggable=true]{cursor:grab}
+#tplBody .tpl-object-tabs button.tpl-dragging{opacity:.5;cursor:grabbing}
+#tplBody .tpl-object-tabs button.tpl-drop-target{outline:2px solid #287ba0;outline-offset:-2px}

@@ -31,6 +31,7 @@ function prepareTemplateArchive(body, stock) {
         if (!match || !list) return;
         var tpl = list[Number(match[match.length - 1])];
         if (!tpl) return;
+        card._templateOrder = { tpl: tpl, client: client, list: list, storage: storage, save: save };
         if (tpl.archived) count++;
         if (!!tpl.archived !== archived) { card.remove(); return; }
         var button = document.createElement('button');
@@ -58,4 +59,42 @@ function prepareTemplateArchive(body, stock) {
         body.replaceChildren(); var empty = document.createElement('p'); empty.className = 'tpl-archive-empty';
         empty.textContent = archived ? '目前沒有已封存範本' : '目前沒有使用中的範本，可新增或從已封存還原。'; body.append(empty);
     }
+}
+
+function sortTemplateCards(cards) {
+    return cards.sort(function(a,b) {
+        var x=a._templateOrder.tpl.sortOrder, y=b._templateOrder.tpl.sortOrder;
+        return (Number.isFinite(x)?x:Number.MAX_SAFE_INTEGER)-(Number.isFinite(y)?y:Number.MAX_SAFE_INTEGER);
+    });
+}
+function enableTemplateDragging(nav, cards) {
+    var source=-1;
+    function move(from,to) {
+        if(from===to || from<0 || to<0 || to>=cards.length) return;
+        var selected=cards[Array.from(nav.children).findIndex(function(b){return b.getAttribute('aria-selected')==='true';})];
+        var ordered=cards.slice(), old=cards.map(function(c){return c._templateOrder.tpl.sortOrder;});
+        ordered.splice(to,0,ordered.splice(from,1)[0]);
+        ordered.forEach(function(c,i){c._templateOrder.tpl.sortOrder=i;});
+        var data=cards[0]._templateOrder;
+        try {
+            if(data.client) { if(!persist()) throw Error('save'); }
+            else { localStorage.setItem(data.storage,JSON.stringify(data.list)); data.save(); }
+        } catch(error) {
+            cards.forEach(function(c,i){if(old[i]===undefined)delete c._templateOrder.tpl.sortOrder;else c._templateOrder.tpl.sortOrder=old[i];});
+            showToast('排序未保存，請重試','error');return;
+        }
+        _tplSelectedPages[_tplTab]=ordered.indexOf(selected);
+        setTplTab(_tplTab);
+        document.querySelectorAll('#tplBody .tpl-object-tabs button')[to].focus({preventScroll:true});
+    }
+    Array.from(nav.children).forEach(function(button,i){
+        button.draggable=true;
+        button.title='拖曳排序；Alt＋左右鍵也可移動';
+        button.addEventListener('dragstart',function(e){source=i;e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain','template');button.classList.add('tpl-dragging');});
+        button.addEventListener('dragover',function(e){if(source<0)return;e.preventDefault();e.dataTransfer.dropEffect='move';button.classList.add('tpl-drop-target');});
+        button.addEventListener('dragleave',function(){button.classList.remove('tpl-drop-target');});
+        button.addEventListener('drop',function(e){if(source<0)return;e.preventDefault();move(source,i);source=-1;});
+        button.addEventListener('dragend',function(){source=-1;Array.from(nav.children).forEach(function(b){b.classList.remove('tpl-dragging','tpl-drop-target');});});
+        button.addEventListener('keydown',function(e){if(e.altKey && ['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();e.stopImmediatePropagation();move(i,i+(e.key==='ArrowRight'?1:-1));}},true);
+    });
 }

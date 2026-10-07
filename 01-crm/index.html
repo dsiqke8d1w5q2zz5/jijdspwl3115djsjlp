@@ -12990,6 +12990,7 @@ function arrangeTemplatePages() {
     var body = document.getElementById('tplBody');
     prepareTemplateArchive(body, false);
     var cards = Array.from(body.children).filter(function(el){return el.querySelector(':scope > pre');});
+    sortTemplateCards(cards);
     var toolbar = document.createElement('div');
     toolbar.className = 'tpl-list-toolbar';
     var add = document.createElement('button');
@@ -13047,6 +13048,7 @@ function arrangeTemplatePages() {
     });
     toolbar.prepend(nav);
     select(selected,false);
+    enableTemplateDragging(nav, cards);
 }
 
 function renderTemplateList() {
@@ -13639,8 +13641,8 @@ function deleteMktTemplate(idx) {
 <script src="buyer-match.js?v=20261006report274"></script>
 <script src="bulk-search.js?v=20261006nav261"></script>
 <script src="seller-layout.js?v=20261005audit231"></script>
-<script src="template-archive.js?v=20261006align279"></script>
-<link rel="stylesheet" href="template-archive.css?v=20261006align279">
+<script src="template-archive.js?v=20261007drag289"></script>
+<link rel="stylesheet" href="template-archive.css?v=20261007drag289">
 <script src="daily-search-notice.js?v=20261007read288"></script>
 <link rel="stylesheet" href="daily-search-notice.css?v=20261007read288">
 <script src="common-tools.js?v=20261007tools281"></script>
