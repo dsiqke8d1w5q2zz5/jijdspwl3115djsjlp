@@ -9,6 +9,7 @@ const assert=require('assert/strict'),fs=require('fs'),path=require('path'),{chr
 for(const width of [1920,1440,1200,1024,780,430]){
  await p.setViewportSize({width,height:1000});
  const mobile=width<=768;
+ if(!mobile){const boxes=await p.locator('.header .btn-add,.header .header-bulk>button,.header .header-tools .header-btn').evaluateAll(es=>es.map(e=>({height:e.getBoundingClientRect().height,right:e.getBoundingClientRect().right})));assert(boxes.every(b=>b.height===38));assert(boxes.every(b=>b.right<=width));}
  const trigger=p.locator(mobile?'.mobile-cloud [aria-controls="commonToolsPanel"]':'.common-tools-wrap > button');
  await trigger.click();assert(await p.locator('#commonToolsPanel').isVisible());
  assert.deepEqual(await p.locator('#commonToolsPanel button').allTextContents(),[' 常用範本',' 圖片編輯',' 謄本分析']);
