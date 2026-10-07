@@ -151,5 +151,5 @@ function open(targetKey,immediate=false,options={}){if(typeof targetKey==='strin
 const button=document.createElement('button');button.type='button';button.id='inventoryMarketEntry';button.className='sort-sel';button.textContent='庫存行情追蹤';button.onclick=open;document.querySelector('#sortSel')?.before(button);
 setInterval(()=>tick(),60000);addEventListener('focus',()=>tick());addEventListener('crm:buyers-saved',()=>{synced='';});addEventListener('storage',e=>{if(e.key==='reCRM')synced='';});
 function openResults(members=[]){const list=entries(),problem=list.find(e=>members.some(m=>String(m.id)==='inventory:'+e.config.id&&!m.completed));open((problem||list[0])?.key);}
-window.InventoryMarket={openResults,prepareBulk:sync,prepareSave,cardBadge,open,mountDetail,setAutomatic,tick,entries,ingest,loadState,updateState,demands};
+window.InventoryMarket={cleanLegacyReports,openResults,prepareBulk:sync,prepareSave,cardBadge,open,mountDetail,setAutomatic,tick,entries,ingest,loadState,updateState,demands};
 })();
