@@ -138,5 +138,10 @@ function systemStatus(p,events=[],now=Date.now()){
 }
 function prioritizeGroups(groups,events=[],ack=0){return groups.map((group,index)=>({group,index,date:Math.max(0,...group.map(({p})=>systemStatus(p,events).at))})).sort((a,b)=>b.date-a.date||a.index-b.index).map(x=>x.group);}
 
-const api={systemStatus,sameOffProperty,offGroups,cleanLegacyOff,confirmedAvailable,confirmedOff,changeRelevant,purposeKey,manualPurpose,eventRelevant,candidate,prioritizeGroups,excluded,exclusionGroup,exclusion,verify,criteria,assess,conditionFields,buildingTypes,norm,communityName,aliases,location,matches,apply,reminder};root.InventoryMarketEngine=api;if(typeof module!=='undefined')module.exports=api;
+function sortListingGroups(groups,events=[],order='date-desc'){
+ const date=p=>time(p.systemFirstSeenAt)||time(p.firstMatchedAt)||time(p.firstSeenAt)||time(p.publishedObservedAt)||Math.min(...events.filter(e=>e.listingId===p.id&&e.kind==='New').map(e=>time(e.at)).filter(Boolean),Infinity);
+ const direction=order.endsWith('-asc')?1:-1;
+ return groups.map((group,index)=>{const dates=group.map(({p})=>date(p)).filter(Number.isFinite);const prices=group.map(({p})=>Number(p.price)).filter(n=>Number.isFinite(n)&&n>0);return {group,index,value:order.startsWith('count-')?group.length:order.startsWith('price-')?(prices.length?Math.min(...prices):null):(dates.length?Math.max(...dates):null)};}).sort((a,b)=>a.value===null?(b.value===null?a.index-b.index:1):b.value===null?-1:direction*(a.value-b.value)||a.index-b.index).map(x=>x.group);
+}
+const api={sortListingGroups,systemStatus,sameOffProperty,offGroups,cleanLegacyOff,confirmedAvailable,confirmedOff,changeRelevant,purposeKey,manualPurpose,eventRelevant,candidate,prioritizeGroups,excluded,exclusionGroup,exclusion,verify,criteria,assess,conditionFields,buildingTypes,norm,communityName,aliases,location,matches,apply,reminder};root.InventoryMarketEngine=api;if(typeof module!=='undefined')module.exports=api;
 })(globalThis);

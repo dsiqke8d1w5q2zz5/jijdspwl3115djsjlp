@@ -243,3 +243,5 @@
 .im-dialog .im-meta small{font-size:13px}
 .im-dialog .im-actions>strong{font-size:16px;min-width:8ch;text-align:right;white-space:nowrap}
 .im-leading-badges .im-system-date:has(.status-time){background:#edf2f6;color:#526b80;font-weight:600}
+
+.im-dialog .im-sort{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:14px;white-space:nowrap}.im-dialog .im-sort[hidden]{display:none}.im-dialog .im-sort select{font:inherit;min-height:36px;padding:6px 10px;border:1px solid #cbd9e6;border-radius:8px;background:white;color:#193c57;max-width:100%}

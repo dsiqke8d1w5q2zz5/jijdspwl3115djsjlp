@@ -808,16 +808,19 @@
         .ac-item { padding:8px 12px; font-size:14px; cursor:pointer; }
         .ac-item:hover, .ac-item.active { background:var(--bg); }
         .ac-item b { color:var(--deep); }
-    </style>
+    .sp-paused > :not(:first-child):not(.sp-pause-reason){opacity:.45}
+.sp-paused > :first-child > :not(.sp-archive-btn):not(.c-del){opacity:.45}
+.sp-paused .sp-archive-btn{opacity:1;box-shadow:0 0 0 1px #059669}
+</style>
     <link rel="stylesheet" href="image-composer.css?v=20261005audit210">
     <link rel="stylesheet" href="area-editor.css?v=20261005audit210">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
     <link rel="stylesheet" href="ui-foundation.css?v=20261005audit210">
-    <link rel="stylesheet" href="responsive-layout.css?v=20261008sched317">
-<link rel="stylesheet" href="inventory-market.css?v=20261008detail327">
+    <link rel="stylesheet" href="responsive-layout.css?v=20261008sort328">
+<link rel="stylesheet" href="inventory-market.css?v=20261008sort328">
 <link rel="stylesheet" href="bulk-search.css?v=20261006nav261">
 <link rel="stylesheet" href="daily-search-report.css?v=20261006report274">
-<link rel="stylesheet" href="buyer-match.css?v=20261008detail327">
+<link rel="stylesheet" href="buyer-match.css?v=20261008sort328">
 <script src="./customer-search.js?v=20261006search263"></script>
 <style>.card-search-hit{font-size:13px;line-height:1.5;color:#526880;overflow-wrap:anywhere;white-space:normal;margin:4px 0 0}</style>
 </head>
@@ -5875,7 +5878,8 @@ function doSpPause(el, reason) {
 function applySpArchiveStyle(block, archived, reason) {
     var existReason = block.querySelector('.sp-pause-reason');
     if (archived) {
-        block.style.opacity = '0.45';
+        block.style.opacity = '';
+        block.classList.add('sp-paused');
         block.style.borderLeftColor = '#A8A29E';
         block.querySelectorAll('input:not([data-f="spArchived"]):not([data-f="grade"]),select,textarea').forEach(function(el){ el.disabled = true; });
         block.querySelectorAll('button:not(.sp-archive-btn):not(.c-del)').forEach(function(el){ el.disabled = true; el.style.pointerEvents = 'none'; });
@@ -5892,6 +5896,7 @@ function applySpArchiveStyle(block, archived, reason) {
     } else {
         block.style.opacity = '';
         block.style.borderLeftColor = '#8B7355';
+        block.classList.remove('sp-paused');
         block.querySelectorAll('input:not([data-f="spArchived"]):not([data-f="grade"]),select,textarea').forEach(function(el){ el.disabled = false; });
         block.querySelectorAll('button:not(.sp-archive-btn):not(.c-del)').forEach(function(el){ el.disabled = false; el.style.pointerEvents = ''; });
         if (existReason) existReason.remove();
@@ -7752,7 +7757,7 @@ function quickSchedule(clientId, prefillDate, prefillTime, prefillMemo, prefillT
         var _memoLine=box.querySelector('[data-quick-field="qs-memo"]').parentElement;
         _memoLine.classList.add('schedule-inline-memo');_footer.prepend(_memoLine);
     }
-    ScheduleReminders.mount(box,_originalSched,()=>rocToISO(box.querySelector('[data-quick-field="qs-date"]').value),()=>box.querySelector('[data-quick-field="qs-time"]').value,_footer);
+    ScheduleReminders.mount(box,_originalSched,()=>rocToISO(box.querySelector('[data-quick-field="qs-date"]').value),()=>box.querySelector('[data-quick-field="qs-time"]').value,inlineMount?null:_footer);
     // 儲存
     box.querySelector('[data-quick-field=\"qs-save\"]').onclick = function() {
         var dateVal = box.querySelector('[data-quick-field=\"qs-date\"]').value.trim();
@@ -13655,13 +13660,13 @@ function deleteMktTemplate(idx) {
 <script src="buyer-demands.js?v=20261005center249"></script>
 <script src="buyer-results.js?v=20261006bulk255"></script>
 <script src="buyer-grouping.js?v=20261005status220"></script>
-<script src="inventory-market-engine.js?v=20261008detail327"></script>
-<script src="inventory-market.js?v=20261008detail327"></script>
+<script src="inventory-market-engine.js?v=20261008sort328"></script>
+<script src="inventory-market.js?v=20261008sort328"></script>
 <script src="buyer-schedule.js?v=20261007report282"></script>
 <script src="daily-search-report.js?v=20261006report274"></script>
-<script src="buyer-match.js?v=20261008detail327"></script>
+<script src="buyer-match.js?v=20261008sort328"></script>
 <script src="bulk-search.js?v=20261006nav261"></script>
-<script src="seller-layout.js?v=20261008sched317"></script>
+<script src="seller-layout.js?v=20261008sort328"></script>
 <script src="template-archive.js?v=20261007drag289"></script>
 <link rel="stylesheet" href="template-archive.css?v=20261007drag289">
 <script src="daily-search-notice.js?v=20261008time313"></script>
