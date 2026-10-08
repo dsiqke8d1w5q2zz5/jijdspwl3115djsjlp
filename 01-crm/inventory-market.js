@@ -58,7 +58,7 @@ async function drainPurpose(){
 
 async function deleteExpired(id){
  const e=current(),p=states.get(e?.config.id)?.records?.[id];if(!p||p.availability!=='off')return;
- const approved=await new Promise(resolve=>{const modal=document.createElement('dialog');modal.className='im-confirm';modal.innerHTML='<h2>刪除此筆已下架紀錄？</h2><p>'+esc(p.title||p.address)+'</p><p>會刪除此追蹤項目中的這筆物件資料與相關變化紀錄，無法還原。其他刊登與成交行情不受影響。</p><footer><button data-cancel>取消</button><button data-confirm>刪除紀錄</button></footer>';document.body.append(modal);modal.querySelector('[data-cancel]').onclick=()=>modal.close();modal.querySelector('[data-confirm]').onclick=()=>modal.close('yes');modal.onclose=()=>{const yes=modal.returnValue==='yes';modal.remove();resolve(yes);};modal.showModal();});
+ const approved=await new Promise(resolve=>{const modal=document.createElement('dialog');modal.className='im-confirm';modal.innerHTML='<h2>刪除此筆已下架紀錄？</h2><p>'+esc(p.title||p.address)+'</p><p>會刪除此追蹤項目中的這筆物件資料與相關變化紀錄，無法還原。其他刊登與成交行情不受影響。</p><footer><button data-cancel>取消</button><button data-confirm autofocus>刪除紀錄</button></footer>';document.body.append(modal);modal.querySelector('[data-cancel]').onclick=()=>modal.close();modal.querySelector('[data-confirm]').onclick=()=>modal.close('yes');modal.onclose=()=>{const yes=modal.returnValue==='yes';modal.remove();resolve(yes);};modal.showModal();});
  if(!approved)return;const fresh=entries().find(x=>x.key===e.key&&x.config.id===e.config.id);if(!fresh)return;
  const old=fresh.c.inventoryWatch;
  fresh.c.inventoryWatch={...old,[fresh.slot]:{...fresh.config,deletedListings:{...fresh.config.deletedListings,[id]:new Date().toISOString()}}};

@@ -1,4 +1,4 @@
-var CACHE_NAME = 'crm-v20261008partial321';
+var CACHE_NAME = 'crm-v20261008enter322';
 var URLS_TO_CACHE = [
   './reminder-engine.js?v=20261008prefs307',
   './schedule-reminders.js?v=20261008time313',
@@ -18,16 +18,16 @@ var URLS_TO_CACHE = [
   './',
   './index.html','./customer-search.js?v=20261006search263',
   './seller-layout.js?v=20261008sched317',
-  './inventory-market.css?v=20261008partial321',
-  './inventory-market-engine.js?v=20261008partial321',
-  './inventory-market.js?v=20261008partial321',
-  './buyer-match.css?v=20261008partial321',
+  './inventory-market.css?v=20261008enter322',
+  './inventory-market-engine.js?v=20261008enter322',
+  './inventory-market.js?v=20261008enter322',
+  './buyer-match.css?v=20261008enter322',
   './buyer-match-engine.js?v=20261005sources243',
   './buyer-demands.js?v=20261005layout237',
   './buyer-results.js?v=20261005sources243',
   './buyer-grouping.js?v=20261005status220',
   './buyer-schedule.js?v=20261007report282',
-  './buyer-match.js?v=20261008partial321',
+  './buyer-match.js?v=20261008enter322',
   './ui-foundation.css?v=20261005audit210',
   './responsive-layout.css?v=20261008sched317',
   './detail-properties.js?v=20261005audit231',
