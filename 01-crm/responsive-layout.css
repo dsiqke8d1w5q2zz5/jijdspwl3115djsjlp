@@ -219,6 +219,12 @@
 /* Overview has no list controls and reserves no toolbar space. */
 .main-fixed-top.overview-toolbar-hidden{display:none}
 #dashboard>.dash-sections{margin-top:0}
+#dashboard .dash-section{min-width:0}
+#dashboard :is(.dash-seller,.dash-rental,.dash-bday) .dash-item{flex-wrap:wrap!important;overflow-wrap:anywhere}
+#dashboard :is(.dash-seller,.dash-rental,.dash-bday) .dash-item-name{white-space:normal!important;overflow-wrap:anywhere;min-width:0;flex-wrap:wrap;max-width:100%}
+#dashboard :is(.dash-seller,.dash-rental) .dash-item-name>span{max-width:100%;flex-shrink:1!important}
+#dashboard .dash-bday .dash-item-name{flex:1 1 10em;overflow:visible;text-overflow:clip}
+#dashboard :is(.dash-seller,.dash-rental,.dash-bday) .dash-item>div{min-width:0;overflow-wrap:anywhere}
 
 /* Dashboard panels stay inside their scroll container on hover and click. */
 #dashboard .dash-section{transition:box-shadow .2s}

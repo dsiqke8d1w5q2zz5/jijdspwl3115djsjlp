@@ -8,7 +8,7 @@ function validate(clients){
   if(typeof c.id!=='string'||c.id.length>200||!c.id||typeof c.revision!=='string'||!Number.isFinite(Date.parse(c.revision))||new Date(c.revision).toISOString()!==c.revision||!Array.isArray(c.items)||c.items.length>500)throw Error('Invalid client');
   const ids=new Set();
   for(const i of c.items){
-   if(typeof i.id!=='string'||i.id.length>500||!i.id||ids.has(i.id)||!Number.isSafeInteger(i.due)||!Number.isSafeInteger(i.start)||!Number.isSafeInteger(i.enabledAt)||i.start<i.due||i.start-i.due>1800000)throw Error('Invalid reminder');
+   if(typeof i.id!=='string'||i.id.length>500||!i.id||ids.has(i.id)||!Number.isSafeInteger(i.due)||!Number.isSafeInteger(i.start)||!Number.isSafeInteger(i.enabledAt)||(i.time?(i.start<i.due||i.start-i.due>86400000):(i.due<i.start||i.due-i.start>=86400000)))throw Error('Invalid reminder');
    let identity;try{identity=JSON.parse(i.id);}catch{throw Error('Invalid identity');}
    if(!Array.isArray(identity)||identity.length!==2||identity[0]!==c.id)throw Error('Invalid identity');
    for(const k of ['title','memo','property','date','time'])if(typeof i[k]!=='string'||i[k].length>15000)throw Error('Invalid text');
@@ -22,6 +22,10 @@ export async function syncClients(env,clients){
   // A single D1 batch is atomic. Older tabs cannot resurrect cancelled reminders.
   const eligible=c.items.filter(i=>i.enabledAt<=i.due);
   await env.DB.batch([
+   // Carry over the original due-key ledger before settings change the due time.
+   statement(env,`INSERT OR IGNORE INTO deliveries(event,retry_key,state,attempts,lease,next_attempt,last_status,sent_at)
+    SELECT r.id||':start:'||CASE WHEN json_extract(r.payload,'$.time')='' THEN CAST(strftime('%s',json_extract(r.payload,'$.date')||'T00:00:00+08:00') AS INTEGER)*1000 ELSE json_extract(r.payload,'$.start') END,d.retry_key,d.state,d.attempts,d.lease,d.next_attempt,d.last_status,d.sent_at
+    FROM reminders r JOIN deliveries d ON d.event=r.id||':'||r.due WHERE r.client_id=?`,c.id),
    statement(env,'INSERT INTO clients(id,revision) VALUES (?,?) ON CONFLICT(id) DO NOTHING',c.id,''),
    statement(env,'DELETE FROM reminders WHERE client_id=? AND EXISTS(SELECT 1 FROM clients WHERE id=? AND revision<?)',c.id,c.id,c.revision),
    statement(env,`INSERT INTO reminders(id,client_id,due,payload)
@@ -34,11 +38,11 @@ export async function syncClients(env,clients){
 }
 export async function sendDue(env,now=Date.now(),send=fetch){
  if(!ready(env))return;
- const {results}=await statement(env,`SELECT r.* FROM reminders r LEFT JOIN deliveries d ON d.event=r.id||':'||r.due
+ const {results}=await statement(env,`SELECT r.* FROM reminders r LEFT JOIN deliveries d ON d.event=r.id||':start:'||json_extract(r.payload,'$.start') OR d.event=r.id||':'||r.due
  WHERE r.due BETWEEN ? AND ? AND (d.event IS NULL OR (d.state='pending' AND d.attempts<5 AND d.lease<=? AND d.next_attempt<=?))
  ORDER BY r.due LIMIT 10`,now-WINDOW,now,now,now).all();
  for(const row of results){
-  const event=row.id+':'+row.due;
+  const event=row.id+':start:'+JSON.parse(row.payload).start;
   await statement(env,'INSERT INTO deliveries(event,retry_key) VALUES (?,?) ON CONFLICT(event) DO NOTHING',event,crypto.randomUUID()).run();
   const lock=await statement(env,`UPDATE deliveries SET lease=?,attempts=attempts+1 WHERE event=? AND state='pending' AND attempts<5 AND lease<=? AND next_attempt<=?`,now+60000,event,now,now).run();
   if(!lock.meta.changes)continue;

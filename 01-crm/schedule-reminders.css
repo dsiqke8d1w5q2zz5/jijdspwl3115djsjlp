@@ -7,6 +7,10 @@
 .reminder-settings::backdrop{background:#173c5666}
 .reminder-settings h2{margin:0 0 12px;font-size:20px}.reminder-settings label{display:block;margin:12px 0;font-size:14px}
 .reminder-settings input{display:block;box-sizing:border-box;width:100%;padding:8px;font:inherit;border:1px solid #c7d7e5;border-radius:6px}
+.reminder-settings select{display:block;box-sizing:border-box;width:100%;padding:8px;font:inherit;border:1px solid #c7d7e5;border-radius:6px;background:white}
+.reminder-time-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}.reminder-settings hr{border:0;border-top:1px solid #dbe4ec;margin:16px 0}
+.reminder-bell{width:18px;height:18px;flex:none;vertical-align:-3px;color:#2563eb}
+@media(max-width:430px){.reminder-time-fields{grid-template-columns:1fr;gap:0}}
 .reminder-settings p{font-size:14px;line-height:1.6;overflow-wrap:anywhere}.reminder-settings footer{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
 .reminder-settings button{padding:8px 12px;background:white;border:1px solid #c7d7e5;border-radius:6px;font:inherit;cursor:pointer}
 .fill-menu textarea{box-sizing:border-box;line-height:1.5;resize:vertical;overflow-wrap:anywhere;min-height:42px}

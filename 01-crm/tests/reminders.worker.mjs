@@ -23,6 +23,8 @@ await sendDue(env,now+180000,async(url,req)=>{keys.push(req.headers['X-Line-Retr
 assert.equal(keys.at(-1),keys.at(-2),'ambiguous response uses identical LINE retry key');
 assert.equal(db.prepare("SELECT count(*) AS n FROM deliveries WHERE state='sent'").get().n,2);
 item.enabledAt=item.due+1;await syncClients(env,client(rev(6)));assert.equal(db.prepare('SELECT count(*) AS n FROM reminders').get().n,0,'past due new checkbox suppressed');
+item.enabledAt=now-86400000;item.due+=60000;await syncClients(env,client(rev(7)));await sendDue(env,item.due,sender);assert.equal(calls,1,'lead-time change does not resend same appointment');
+const allDay={...item,id:'["c","all-day"]',time:'',start:Date.parse('2026-10-10T00:00:00+08:00'),due:Date.parse('2026-10-10T09:15:00+08:00')};await syncClients(env,client(rev(8),[allDay]));assert.equal(db.prepare('SELECT count(*) AS n FROM reminders').get().n,1,'date-only time may follow midnight');
 assert.equal((await worker.fetch(new Request('https://reminder.test/health'),env)).status,401);
 assert.equal((await worker.fetch(new Request('https://reminder.test/health',{headers:{Authorization:'Bearer '+env.REMINDER_API_KEY,Origin:'https://evil.test'}}),env)).status,403);
 const response=await worker.fetch(new Request('https://reminder.test/health',{headers:{Authorization:'Bearer '+env.REMINDER_API_KEY,Origin:env.ALLOWED_ORIGIN}}),env);
