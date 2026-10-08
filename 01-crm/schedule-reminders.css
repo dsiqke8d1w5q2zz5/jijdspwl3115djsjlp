@@ -3,7 +3,7 @@
 .schedule-reminder input[type=checkbox]{width:18px!important;height:18px;flex:none;accent-color:#1c5679;margin:0}
 .schedule-reminder small{font-size:12px;color:#587087;overflow-wrap:anywhere;flex:1;min-width:150px}
 .schedule-reminder button{font:inherit;color:#1c5679;background:white;border:1px solid #c7d7e5;border-radius:6px;padding:3px 8px;cursor:pointer}
-.reminder-settings{width:min(460px,calc(100vw - 32px));box-sizing:border-box;max-height:90vh;overflow:auto;border:1px solid #c7d7e5;border-radius:14px;padding:20px;color:#173c56}
+.reminder-settings{position:fixed;inset:0;margin:auto;width:min(460px,calc(100vw - 32px));box-sizing:border-box;max-height:90vh;max-height:calc(100dvh - 32px);overflow:auto;border:1px solid #c7d7e5;border-radius:14px;padding:20px;color:#173c56}
 .reminder-settings::backdrop{background:#173c5666}
 .reminder-settings h2{margin:0 0 12px;font-size:20px}.reminder-settings label{display:block;margin:12px 0;font-size:14px}
 .reminder-settings input{display:block;box-sizing:border-box;width:100%;padding:8px;font:inherit;border:1px solid #c7d7e5;border-radius:6px}
