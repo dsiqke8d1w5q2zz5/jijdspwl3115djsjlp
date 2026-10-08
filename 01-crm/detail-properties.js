@@ -458,8 +458,9 @@
         const [key,kind]=config;let entries=(c[key]||[]).map((p,index)=>({p,index}));if(!entries.length){const e=kind==='s'?window.InventoryMarket?.entries().find(e=>e.c.id===c.id):null;return (e?'<div data-inventory-entry="'+esc(e.key)+'"></div>':'')+original(c,viewAs);}
         if(kind==='s'){const watched=new Set((window.InventoryMarket?.entries([c])||[]).filter(e=>e.config.enabled||e.config.transactionsEnabled).map(e=>e.p));entries.sort((a,b)=>Number(watched.has(b.p))-Number(watched.has(a.p))||a.index-b.index);}
         const group='property-detail-'+(++serial),names=entries.map(({p,index})=>title(p,index,kind));
+        const paused=i=>kind==='s'&&!!entries[i].p.spArchived;
         const labels=names.map((name,i)=>names.filter(n=>n===name).length>1?name+'（'+(i+1)+'）':name);
-        const tabs='<div class="det-property-tabs" role="tablist" aria-label="切換物件">'+entries.map((_,i)=>'<button type="button" role="tab" id="'+group+'-tab-'+i+'" aria-controls="'+group+'-page-'+i+'" aria-selected="'+(i===0)+'" tabindex="'+(i===0?0:-1)+'" title="'+esc(labels[i])+'">'+esc(labels[i])+'</button>').join('')+'</div>';
+        const tabs='<div class="det-property-tabs" role="tablist" aria-label="切換物件">'+entries.map((_,i)=>'<button type="button" role="tab" id="'+group+'-tab-'+i+'" aria-controls="'+group+'-page-'+i+'" aria-selected="'+(i===0)+'" tabindex="'+(i===0?0:-1)+'" title="'+esc(labels[i]+(paused(i)?' · 暫停':''))+'">'+esc(labels[i])+(paused(i)?'<span class="det-paused-tag">暫停</span>':'')+'</button>').join('')+'</div>';
         const unlinked=c.type==='房東'?DB.filter(t=>!t._deleted&&t.linkedLandlordId===c.id&&!c.rProperties[t.linkedPropertyIdx||0]).map(t=>row('未指定物件的租客',[t.ttName||t.name,t.ttPhone||t.phone].filter(Boolean).join('　'))).join(''):'';
         return '<div class="det-property-group">'+tabs+entries.map(({p,index},i)=>{
             const copy={...c,[key]:[p]};
@@ -468,7 +469,7 @@
             const body=original(copy,viewAs)+(c.type==='房東'?tenants(c,index):'');
             const inventoryEntry=kind==='s'?window.InventoryMarket?.entries().find(e=>e.c.id===c.id&&e.p===p):null;
             const inventoryActions=inventoryEntry?'<div data-inventory-entry="'+esc(inventoryEntry.key)+'"></div>':'';
-            return '<section class="det-property-page" data-schedule-property-ref="'+esc(JSON.stringify(schedulePropertyRef(c,p,c.type)))+'" id="'+group+'-page-'+i+'" '+(entries.length>1?'role="tabpanel" aria-labelledby="'+group+'-tab-'+i+'"':'aria-label="'+esc(labels[i])+'"')+(i?' hidden':'')+'>'+inventoryActions+compact(body,extras(kind,p),kind,p)+'</section>';
+            return '<section class="det-property-page'+(paused(i)?' det-property-paused':'')+'" data-schedule-property-ref="'+esc(JSON.stringify(schedulePropertyRef(c,p,c.type)))+'" id="'+group+'-page-'+i+'" '+(entries.length>1?'role="tabpanel" aria-labelledby="'+group+'-tab-'+i+'"':'aria-label="'+esc(labels[i])+'"')+(i?' hidden':'')+'>'+inventoryActions+compact(body,extras(kind,p),kind,p)+'</section>';
         }).join('')+unlinked+'</div>';
     };
     function resetDetails(scope){scope.querySelectorAll('.det-property-more[open]').forEach(detail=>detail.open=false);resetPropertyScroll(scope);}
