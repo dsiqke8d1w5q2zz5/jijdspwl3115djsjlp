@@ -222,3 +222,5 @@
 .im-dialog .im-listing-row:has(.im-timed-down){grid-template-columns:90px 80px minmax(0,1fr) auto}.im-dialog .im-listing-row:has(.im-timed-down):not(:has(>img)){grid-template-columns:90px minmax(0,1fr) auto}
 
 .im-leading-badges .status-time{display:inline;font:inherit;color:inherit}
+
+.im-dialog .im-listing-row:has(.im-system-date){grid-template-columns:100px 80px minmax(0,1fr) auto}.im-dialog .im-listing-row:has(.im-system-date):not(:has(>img)){grid-template-columns:100px minmax(0,1fr) auto}.im-system-date{white-space:nowrap}

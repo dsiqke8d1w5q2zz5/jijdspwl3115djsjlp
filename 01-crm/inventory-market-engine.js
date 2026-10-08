@@ -36,6 +36,7 @@ function apply(previous,config,feed,now=new Date().toISOString()){
    if(p.availability==='off'){kind='';if(old&&old.availability!=='off')confirmedOff(s,config,p,now,old.availability||'active');else if(!old){p.offConfirmedAt=now;p.offBaseline=true;}}
    if(kind&&assess(config,p).match&&!assess(config,p).missing.length){const id=[source.id,p.id,kind,p.seenAt,p.price].join('|');if(!s.events.some(e=>e.id===id))s.events.push({id,kind,listingId:p.id,at:now,before:old?.price,price:p.price});}
    for(const k of ['purposeAttemptedAt','purposeCheckedAt','linkCheckedAt','lastVerifiedAvailableAt','offDuplicateOf'])if(old?.[k]&&!p[k])p[k]=old[k];
+   p.systemFirstSeenAt=old?.systemFirstSeenAt||old?.firstSeenAt||old?.publishedObservedAt||(old&&systemStatus(old,s.events).at?new Date(systemStatus(old,s.events).at).toISOString():null)||old?.seenAt||now;
    s.records[p.id]=p;
   }
   if(source.status==='ok'&&!feed.incremental&&!['moi','moi-presale'].includes(source.id)&&feed.scanId){
@@ -126,6 +127,16 @@ function eventRelevant(config,event,p){if(!p||excluded(config,p)||!matches(confi
 function reminder(c,id,label,state,save,now=new Date()){
  const date=day(now),events=state.events.filter(e=>day(e.at)===date&&!/疑似下架/.test(e.kind));if(!events.length||c.archived||c._deleted)return false;const key='inventory-watch:'+id+':'+date,old=c.searchReportEvents,items=structuredClone(old||[]),existing=items.find(x=>x.id===key),known=existing?.marketEvents||{};if(events.every(e=>known[e.id]))return false;const all={...known,...Object.fromEntries(events.map(e=>[e.id,e.kind]))},counts={};Object.values(all).forEach(k=>counts[k]=(counts[k]||0)+1);const memo=Object.entries(counts).map(([k,n])=>({'New':'新發現刊登','Down':'降價','成交':'新公布成交','成交更正':'成交更正','疑似下架':'疑似下架','其中一筆疑似下架':'其中一筆疑似下架','已下架':'新確認下架','其中一筆已下架':'其中一筆已下架','重新上架':'重新上架'}[k])+n+'筆').join('、');const entry={...existing,id:key,date:existing?.date||date,time:existing?.time||'',memo,propertyRef:state.propertyRef||existing?.propertyRef||{clientId:c.id,type:'庫存屋主',label,address:''},schedType:'庫存屋主',marketEvents:all,_deleted:false,updatedAt:now.toISOString()};if(existing)Object.assign(existing,entry);else items.push(entry);c.searchReportEvents=items;if(!save()){c.searchReportEvents=old;return false;}return true;
 }
-function prioritizeGroups(groups,events=[],ack=0){const fresh=new Set(events.filter(e=>e.kind==='New'&&time(e.at)>ack).map(e=>e.listingId));const dates=new Map();for(const e of events)if(e.kind==='New')dates.set(e.listingId,Math.max(dates.get(e.listingId)||0,time(e.at)));return groups.map((group,index)=>({group,index,fresh:group.some(({p})=>p.kind!=='transaction'&&fresh.has(p.id)),date:Math.max(0,...group.map(({p})=>dates.get(p.id)||time(p.firstSeenAt)||time(p.seenAt)))})).sort((a,b)=>Number(b.fresh)-Number(a.fresh)||b.date-a.date||a.index-b.index).map(x=>x.group);}
-const api={sameOffProperty,offGroups,cleanLegacyOff,confirmedAvailable,confirmedOff,changeRelevant,purposeKey,manualPurpose,eventRelevant,candidate,prioritizeGroups,excluded,exclusionGroup,exclusion,verify,criteria,assess,conditionFields,buildingTypes,norm,communityName,aliases,location,matches,apply,reminder};root.InventoryMarketEngine=api;if(typeof module!=='undefined')module.exports=api;
+function systemStatus(p,events=[],now=Date.now()){
+ const relevant=events.filter(e=>e.listingId===p.id&&(['New','Down','成交','成交更正','已下架','其中一筆已下架'].includes(e.kind))).map(e=>({at:time(e.at),kind:e.kind==='Down'?'降價':e.kind==='New'?'上市':e.kind.includes('下架')?'下架':'行情'})).filter(e=>e.at>0);
+ const initial=time(p.systemFirstSeenAt)||time(p.firstMatchedAt)||time(p.firstSeenAt)||time(p.publishedObservedAt)||Math.min(Infinity,...relevant.filter(e=>e.kind==='上市'||e.kind==='行情').map(e=>e.at));
+ const baseline=Number.isFinite(initial)?initial:time(p.seenAt);
+ let result={at:baseline,kind:p.kind==='transaction'?'行情':'上市'};
+ if(p.availability==='off'){result={at:time(p.offConfirmedAt)||Math.max(0,...relevant.filter(e=>e.kind==='下架').map(e=>e.at)),kind:'下架'};}
+ else {for(const e of relevant)if(e.kind!=='下架'&&e.at>=result.at)result=e;if(time(p.priceDroppedAt)>result.at)result={at:time(p.priceDroppedAt),kind:'降價'};}
+ const day=t=>new Date(t).toLocaleDateString('en-CA',{timeZone:'Asia/Taipei'});return {...result,today:result.at>0&&day(result.at)===day(now)};
+}
+function prioritizeGroups(groups,events=[],ack=0){return groups.map((group,index)=>({group,index,date:Math.max(0,...group.map(({p})=>systemStatus(p,events).at))})).sort((a,b)=>b.date-a.date||a.index-b.index).map(x=>x.group);}
+
+const api={systemStatus,sameOffProperty,offGroups,cleanLegacyOff,confirmedAvailable,confirmedOff,changeRelevant,purposeKey,manualPurpose,eventRelevant,candidate,prioritizeGroups,excluded,exclusionGroup,exclusion,verify,criteria,assess,conditionFields,buildingTypes,norm,communityName,aliases,location,matches,apply,reminder};root.InventoryMarketEngine=api;if(typeof module!=='undefined')module.exports=api;
 })(globalThis);
