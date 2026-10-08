@@ -1,4 +1,4 @@
-var CACHE_NAME = 'crm-v20261008off316';
+var CACHE_NAME = 'crm-v20261008sched317';
 var URLS_TO_CACHE = [
   './reminder-engine.js?v=20261008prefs307',
   './schedule-reminders.js?v=20261008time313',
@@ -17,7 +17,7 @@ var URLS_TO_CACHE = [
   './daily-search-report.css?v=20261006report274',
   './',
   './index.html','./customer-search.js?v=20261006search263',
-  './seller-layout.js?v=20261005audit231',
+  './seller-layout.js?v=20261008sched317',
   './inventory-market.css?v=20261008status314',
   './inventory-market-engine.js?v=20261007baseline298',
   './inventory-market.js?v=20261008off316',
@@ -29,7 +29,7 @@ var URLS_TO_CACHE = [
   './buyer-schedule.js?v=20261007report282',
   './buyer-match.js?v=20261008status314',
   './ui-foundation.css?v=20261005audit210',
-  './responsive-layout.css?v=20261008prefs307',
+  './responsive-layout.css?v=20261008sched317',
   './detail-properties.js?v=20261005audit231',
   './edit-layout.js?v=20261005audit210',
   './property-purpose.js?v=20261005audit210',
@@ -88,12 +88,14 @@ self.addEventListener('fetch', function(e) {
   }
   // 只快取 GET 且同源的請求
   if (e.request.method !== 'GET') return;
+  var url = new URL(e.request.url);
+  if (!/^https?:$/.test(url.protocol) || url.origin !== self.location.origin) return;
   e.respondWith(
     fetch(e.request).then(function(resp) {
       // 只快取 2xx 且非 opaque 的回應
       if (resp && resp.ok && resp.type === 'basic') {
         var clone = resp.clone();
-        caches.open(CACHE_NAME).then(function(cache) { cache.put(e.request, clone); });
+        e.waitUntil(caches.open(CACHE_NAME).then(function(cache) { return cache.put(e.request, clone); }).catch(function(error) { console.warn('離線快取未寫入', error); }));
       }
       return resp;
     }).catch(function() {

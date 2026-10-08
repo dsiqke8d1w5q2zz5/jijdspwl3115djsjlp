@@ -27,7 +27,7 @@ function mount(block){
  const select=purpose.querySelector('select'),updateLabels=()=>{const land=select.value==='土地';row.querySelector('[data-f=community]').previousElementSibling.textContent=land?'物件名稱（選填）':'社區／物件名稱';addressGroup.querySelector('label').textContent=land?'土地位置／地號':'物件地址';};select.addEventListener('change',updateLabels);updateLabels();
  const prices=addressGroup.nextElementSibling;if(prices?.querySelector('[data-f=price]'))prices.classList.add('sp-price-row');
  block.firstElementChild.classList.add('sp-management-row');block.querySelector('[data-f=contractType]')?.parentElement.classList.add('sp-contract-row');
- const observer=new ResizeObserver(()=>block.querySelectorAll('.sp-growing').forEach(grow));observer.observe(block);block._identityResizeObserver=observer;requestAnimationFrame(()=>block.querySelectorAll('.sp-growing').forEach(grow));
+ let lastWidth=-1,resizeFrame=0;const observer=new ResizeObserver(()=>{const width=block.clientWidth;if(!width||width===lastWidth)return;lastWidth=width;cancelAnimationFrame(resizeFrame);resizeFrame=requestAnimationFrame(()=>{if(block.isConnected)block.querySelectorAll('.sp-growing').forEach(grow);});});observer.observe(block);block._identityResizeObserver=observer;requestAnimationFrame(()=>block.querySelectorAll('.sp-growing').forEach(grow));
 }
 const original=window.addSellerProperty;window.addSellerProperty=function(){const result=original.apply(this,arguments);mount(document.querySelector('#sPropertyList>.person-block:last-child'));return result;};
 document.querySelectorAll('#sPropertyList>.person-block').forEach(mount);

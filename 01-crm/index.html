@@ -813,7 +813,7 @@
     <link rel="stylesheet" href="area-editor.css?v=20261005audit210">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
     <link rel="stylesheet" href="ui-foundation.css?v=20261005audit210">
-    <link rel="stylesheet" href="responsive-layout.css?v=20261008prefs307">
+    <link rel="stylesheet" href="responsive-layout.css?v=20261008sched317">
 <link rel="stylesheet" href="inventory-market.css?v=20261008status314">
 <link rel="stylesheet" href="bulk-search.css?v=20261006nav261">
 <link rel="stylesheet" href="daily-search-report.css?v=20261006report274">
@@ -1727,6 +1727,7 @@
 <script>
 window.onerror = function(msg, url, line, col, err) {
     if (msg === 'Script error.' && line === 0) return true;
+    if (msg === 'ResizeObserver loop completed with undelivered notifications.' || msg === 'ResizeObserver loop limit exceeded') { console.warn('版面尺寸將於下一幀更新:', msg); return true; }
     if (window._inErrorHandler) return; // 防遞迴
     window._inErrorHandler = true;
     try { console.error('JS錯誤:', msg, '行號:', line, err); } catch(_e){}
@@ -7664,7 +7665,7 @@ function addScheduleRow(data) {
         '<select class="sched-type" style="width:70px;flex-shrink:0;padding:6px 4px;border:1px solid var(--border);border-radius:6px;font-size:12px">'+_stHtml+'</select>' +
         '<div class="roc-date-wrap" style="width:160px;flex-shrink:0"><input type="text" placeholder="日期" style="min-width:0;flex:1" value="'+esc(d.date?isoToROC(d.date):'')+'"><button type="button" class="cal-btn" onclick="openCal(this)"><i class="ti ti-calendar" style="color:#2563EB"></i></button></div>' +
         '<select class="sched-time" style="width:80px;flex-shrink:0">' + buildTimeOptions(d.time||'') + '</select>' +
-        '<input type="text" style="flex:1" placeholder="備註" value="'+esc(d.memo||'')+'">' +
+        '<textarea class="sched-memo" rows="1" placeholder="備註" aria-label="行程內容">'+esc(d.memo||'')+'</textarea>' +
         '<select class="sched-recur" style="width:110px;flex-shrink:0;padding:6px 4px;border:1px solid var(--border);border-radius:6px;font-size:12px;color:'+(d.recurrence?'#0E7490':'inherit')+'" onchange="if(this.value===\'custom\'){openCustomRecur(this,\'\');return;}this.style.color=this.value?\'#0E7490\':\'inherit\'">' + buildRecurOptions(d.recurrence||'') + '</select>' +
     '</div>';
     document.getElementById('scheduleList').insertAdjacentHTML('beforeend', html);
@@ -7675,7 +7676,7 @@ function getSchedules() {
         var dateInput = row.querySelector('.roc-date-wrap input[type="text"]');
         var timeSelect = row.querySelector('.sched-time');
         var allText = row.querySelectorAll('input[type="text"]');
-        var memoInput = allText.length > 1 ? allText[1] : null;
+        var memoInput = row.querySelector('.sched-memo') || (allText.length > 1 ? allText[1] : null);
         var typeSelect = row.querySelector('.sched-type');
         var date = rocToISO(dateInput ? dateInput.value : '');
         var time = timeSelect ? timeSelect.value : '';
@@ -13660,7 +13661,7 @@ function deleteMktTemplate(idx) {
 <script src="daily-search-report.js?v=20261006report274"></script>
 <script src="buyer-match.js?v=20261008status314"></script>
 <script src="bulk-search.js?v=20261006nav261"></script>
-<script src="seller-layout.js?v=20261005audit231"></script>
+<script src="seller-layout.js?v=20261008sched317"></script>
 <script src="template-archive.js?v=20261007drag289"></script>
 <link rel="stylesheet" href="template-archive.css?v=20261007drag289">
 <script src="daily-search-notice.js?v=20261008time313"></script>

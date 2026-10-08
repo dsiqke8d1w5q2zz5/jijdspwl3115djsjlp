@@ -1147,3 +1147,24 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 .main-fixed-top:has(#sellerFilter.on) #sortSel{margin-left:0!important}
 #inventoryMarketEntry:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
 @media(min-width:1200px){.main-fixed-top>#sellerFilter.on{padding-right:320px}}
+
+/* Customer schedules: category/property/date/time, then memo/recurrence. */
+#fModal #scheduleList{container-type:inline-size}
+#fModal #scheduleList .c-row{grid-template-columns:66px minmax(90px,1fr) 158px 84px;align-items:start}
+#fModal #scheduleList .schedule-association-line{display:contents}
+#fModal #scheduleList .schedule-association-line .sched-type{grid-column:1}
+#fModal #scheduleList .schedule-property-picker{grid-column:2;min-width:0}
+#fModal #scheduleList .schedule-property-picker>summary{white-space:normal;overflow-wrap:anywhere;text-overflow:clip;box-sizing:border-box;min-height:32px;padding:6px 20px 6px 8px}
+#fModal #scheduleList .c-row>.roc-date-wrap{grid-column:3}
+#fModal #scheduleList .c-row>.sched-time{grid-column:4}
+#fModal #scheduleList .c-row>.sched-memo{grid-column:1/4;box-sizing:border-box;width:100%;min-width:0;min-height:36px;resize:vertical;overflow-wrap:anywhere}
+#fModal #scheduleList .c-row>.sched-recur{grid-column:4;width:100%!important}
+#fModal #scheduleList .schedule-reminder{grid-column:1/-1;min-width:0}
+@container(max-width:460px){
+ #fModal #scheduleList .c-row{grid-template-columns:66px minmax(0,1fr) 84px}
+ #fModal #scheduleList .schedule-property-picker{grid-column:2/4}
+ #fModal #scheduleList .c-row>.roc-date-wrap{grid-column:1/3}
+ #fModal #scheduleList .c-row>.sched-time{grid-column:3}
+ #fModal #scheduleList .c-row>.sched-memo{grid-column:1/3}
+ #fModal #scheduleList .c-row>.sched-recur{grid-column:3}
+}
