@@ -223,7 +223,7 @@
 #dashboard :is(.dash-seller,.dash-rental,.dash-bday) .dash-item{flex-wrap:wrap!important;overflow-wrap:anywhere}
 #dashboard :is(.dash-seller,.dash-rental,.dash-bday) .dash-item-name{white-space:normal!important;overflow-wrap:anywhere;min-width:0;flex-wrap:wrap;max-width:100%}
 #dashboard :is(.dash-seller,.dash-rental) .dash-item-name>span{max-width:100%;flex-shrink:1!important}
-#dashboard .dash-bday .dash-item-name{flex:1 1 10em;overflow:visible;text-overflow:clip}
+#dashboard .dash-bday .dash-item-name{flex:1 1 4em;min-width:4em;overflow:visible;text-overflow:clip}
 #dashboard :is(.dash-seller,.dash-rental,.dash-bday) .dash-item>div{min-width:0;overflow-wrap:anywhere}
 
 /* Dashboard panels stay inside their scroll container on hover and click. */
