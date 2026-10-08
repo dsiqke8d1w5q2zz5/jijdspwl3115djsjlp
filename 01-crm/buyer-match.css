@@ -112,6 +112,6 @@ dialog.bm-confirm-dialog{position:fixed;inset:0;margin:auto;width:min(480px,calc
 .bm-dialog #bmAcknowledge:hover{background:#115b3b;border-color:#115b3b}
 .bm-dialog #bmAcknowledge:focus-visible{outline:3px solid #80b5e5;outline-offset:2px}
 
-.bm-card:has(.bm-change-marker .status-time){grid-template-columns:90px 64px minmax(0,1fr) 42px}.bm-change-marker .status-time{display:block;font-size:12px;font-weight:400;line-height:1.4;white-space:nowrap}.bm-change-marker:has(.status-time) span{text-align:center;font-size:13px}
+.bm-card:has(.bm-change-marker span){grid-template-columns:90px 64px minmax(0,1fr) 42px}.bm-change-marker .status-time{display:block;font-size:12px;font-weight:400;line-height:1.4;white-space:nowrap}.bm-change-marker span{text-align:center;font-size:13px}
 
 .bm-change-marker .status-time{display:inline;font:inherit;color:inherit}
