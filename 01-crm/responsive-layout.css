@@ -1177,5 +1177,5 @@ body :is(.fill-menu,.ic-dialog,.transcript-dialog) button.ui-close-icon:hover{ba
 
 /* Paused inventory remains readable while visibly separate from active listings. */
 #dModal .det-property-page.det-property-paused{background:#f0f1f3;border:1px solid #e1e4e8;border-radius:8px;padding:10px;box-sizing:border-box}
-#dModal .det-property-tabs button:has(.det-paused-tag){height:auto;min-height:30px;white-space:normal;overflow:visible;overflow-wrap:anywhere}
-#dModal .det-paused-tag{display:inline-block;margin-left:6px;padding:1px 5px;border-radius:4px;background:#e4e7eb;color:#52606d;font-size:12px;font-weight:600;line-height:18px;white-space:nowrap;vertical-align:middle}
+#dModal .det-property-tabs button:has(.det-paused-name){height:auto;min-height:30px;white-space:normal;overflow:visible;overflow-wrap:anywhere}
+#dModal .det-paused-name{text-decoration-line:line-through;text-decoration-thickness:1.5px}

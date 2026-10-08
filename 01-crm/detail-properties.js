@@ -460,7 +460,7 @@
         const group='property-detail-'+(++serial),names=entries.map(({p,index})=>title(p,index,kind));
         const paused=i=>kind==='s'&&!!entries[i].p.spArchived;
         const labels=names.map((name,i)=>names.filter(n=>n===name).length>1?name+'（'+(i+1)+'）':name);
-        const tabs='<div class="det-property-tabs" role="tablist" aria-label="切換物件">'+entries.map((_,i)=>'<button type="button" role="tab" id="'+group+'-tab-'+i+'" aria-controls="'+group+'-page-'+i+'" aria-selected="'+(i===0)+'" tabindex="'+(i===0?0:-1)+'" title="'+esc(labels[i]+(paused(i)?' · 暫停':''))+'">'+esc(labels[i])+(paused(i)?'<span class="det-paused-tag">暫停</span>':'')+'</button>').join('')+'</div>';
+        const tabs='<div class="det-property-tabs" role="tablist" aria-label="切換物件">'+entries.map((_,i)=>'<button type="button" role="tab" id="'+group+'-tab-'+i+'" aria-controls="'+group+'-page-'+i+'" aria-selected="'+(i===0)+'" tabindex="'+(i===0?0:-1)+'" title="'+esc(labels[i]+(paused(i)?' · 暫停':''))+'">'+(paused(i)?'<span class="det-paused-name">'+esc(labels[i])+'</span>':esc(labels[i]))+'</button>').join('')+'</div>';
         const unlinked=c.type==='房東'?DB.filter(t=>!t._deleted&&t.linkedLandlordId===c.id&&!c.rProperties[t.linkedPropertyIdx||0]).map(t=>row('未指定物件的租客',[t.ttName||t.name,t.ttPhone||t.phone].filter(Boolean).join('　'))).join(''):'';
         return '<div class="det-property-group">'+tabs+entries.map(({p,index},i)=>{
             const copy={...c,[key]:[p]};
