@@ -212,3 +212,7 @@
 .im-dialog .im-meta .im-purpose-verified{font:inherit;font-size:12px;font-weight:600;line-height:1.4;min-height:24px;padding:2px 6px;border:1px solid transparent;border-radius:5px;background:#e5f4e9;color:#216b43;white-space:normal;cursor:pointer}.im-dialog .im-meta .im-purpose-verified:hover{background:#d5ebdc;border-color:#8fbaa0}.im-dialog .im-meta .im-purpose-verified:focus-visible{outline:2px solid #286bc0;outline-offset:2px}
 
 .im-off-badge.im-new-off-badge{background:#fff0e3;color:#9a400c}
+
+.im-dialog #imRead{margin-left:auto;background:#18734c;color:#fff;border-color:#18734c;font-weight:700;padding-inline:12px;min-height:32px;flex:none}
+.im-dialog #imRead:hover{background:#115b3b;border-color:#115b3b}
+.im-dialog #imRead:focus-visible{outline:3px solid #80b5e5;outline-offset:2px}
