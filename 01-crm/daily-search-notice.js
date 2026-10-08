@@ -47,9 +47,10 @@ function addSchedule(view,button){
  const memo=[...button.parentElement.querySelectorAll('.daily-change-badge')].map(x=>x.textContent).join('、');
  popup.innerHTML='<form><h2 id="dailyScheduleTitle">加入行程</h2><p>'+esc(c.sName||c.name)+' · '+esc(record?.propertyRef?.label||'')+'</p><div class="daily-schedule-fields"><label>日期<input name="date" type="date" required value="'+today+'"></label><label>時間<input name="time" type="time"></label></div><label>行程內容<textarea name="memo" rows="3" required>'+esc(memo)+'</textarea></label><p role="status" data-error></p><footer><button type="button" data-cancel>取消</button><button type="submit">儲存行程</button></footer></form>';
  document.body.append(popup);popup.onclose=()=>{popup.remove();button.focus({preventScroll:true});};popup.querySelector('[data-cancel]').onclick=()=>popup.close();
+ ScheduleReminders.mount(popup.querySelector('form'),null,()=>popup.querySelector('[name=date]').value,()=>popup.querySelector('[name=time]').value,popup.querySelector('footer'));
  popup.querySelector('form').onsubmit=e=>{e.preventDefault();const form=e.currentTarget,save=form.querySelector('[type=submit]');save.disabled=true;
  if((c.schedules||[]).some(x=>!x._deleted&&x.sourceReportKey===key)){popup.close();button.disabled=true;button.textContent='已加入';return;}
- const old=c.schedules;c.schedules=[...(old||[]),{id:crypto.randomUUID(),sourceReportKey:key,date:form.elements.date.value,time:form.elements.time.value,memo:form.elements.memo.value.trim(),propertyRef:record?.propertyRef,schedType:inventory?'庫存屋主':'經營買方',updatedAt:new Date().toISOString()}];
+ const old=c.schedules;c.schedules=[...(old||[]),{remind:ScheduleReminders.read(form),reminderSetAt:new Date().toISOString(),id:crypto.randomUUID(),sourceReportKey:key,date:form.elements.date.value,time:form.elements.time.value,memo:form.elements.memo.value.trim(),propertyRef:record?.propertyRef,schedType:inventory?'庫存屋主':'經營買方',updatedAt:new Date().toISOString()}];
  if(!persist()){c.schedules=old;form.querySelector('[data-error]').textContent='儲存失敗，請重試。';save.disabled=false;return;}
  button.disabled=true;button.textContent='已加入';popup.close();window.render?.();};popup.showModal();
 }

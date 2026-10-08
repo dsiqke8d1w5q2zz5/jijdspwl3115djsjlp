@@ -1,10 +1,13 @@
-var CACHE_NAME = 'crm-v20261007diagnostic299';
+var CACHE_NAME = 'crm-v20261008remind300';
 var URLS_TO_CACHE = [
+  './reminder-engine.js?v=20261008remind300',
+  './schedule-reminders.js?v=20261008remind300',
+  './schedule-reminders.css?v=20261008remind300',
   './dashboard-actions.js?v=20261007actions286',
   './dashboard-actions.css?v=20261007menu287',
   './common-tools.js?v=20261007tools281',
   './common-tools.css?v=20261007instant283',
-  './daily-search-notice.js?v=20261007diagnostic299',
+  './daily-search-notice.js?v=20261008remind300',
   './daily-search-notice.css?v=20261007off290',
   './template-archive.js?v=20261007drag289',
   './template-archive.css?v=20261007drag289',

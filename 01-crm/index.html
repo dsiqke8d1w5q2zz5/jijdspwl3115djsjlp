@@ -861,6 +861,7 @@
                 <button onclick="runDataCheck();closeHeaderMore()" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 16px;border:none;background:none;cursor:pointer;font-size:14px;color:#1C1917;font-family:inherit;text-align:left"><i class="ti ti-shield-check" style="font-size:18px;color:#059669"></i> 健檢</button>
                 <button onclick="cleanupDuplicateSchedules();closeHeaderMore()" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 16px;border:none;background:none;cursor:pointer;font-size:14px;color:#1C1917;font-family:inherit;text-align:left"><i class="ti ti-wash-dry" style="font-size:18px;color:#0891B2"></i> 清理重複行程</button>
                 <div style="height:1px;background:#E7E5E4;margin:4px 12px"></div>
+                <button onclick="closeHeaderMore();ScheduleReminders.settings()" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 16px;border:none;background:none;cursor:pointer;font-size:14px;color:#1C1917;font-family:inherit;text-align:left">行程提醒設定</button>
                 <button onclick="closeHeaderMore();DailySearchNotice.openDiagnostics()" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 16px;border:none;background:none;cursor:pointer;font-size:14px;color:#1C1917;font-family:inherit;text-align:left"><i class="ti ti-tool" style="font-size:18px;color:#57534E"></i> 問題診斷</button>
                 <button onclick="clearCache();closeHeaderMore()" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 16px;border:none;background:none;cursor:pointer;font-size:14px;color:#1C1917;font-family:inherit;text-align:left"><i class="ti ti-refresh" style="font-size:18px;color:#57534E"></i> 重新載入</button>
             </div>
@@ -873,6 +874,7 @@
     <div class="mobile-setting-menu" id="mobileSettingMenu">
         <button onclick="closeMobileSetting();openImgTool()">圖片工具</button>
         <button onclick="closeMobileSetting();TranscriptImport.openStandalone()">謄本分析工具</button>
+        <button onclick="closeMobileSetting();ScheduleReminders.settings()">行程提醒設定</button>
         <button onclick="closeMobileSetting();DailySearchNotice.openDiagnostics()">問題診斷</button>
         <button onclick="openTrash();closeMobileSetting()"><i class="ti ti-trash" style="font-size:16px;color:#DC2626"></i> 資源回收桶</button>
         <button onclick="cloudRestore();closeMobileSetting()"><i class="ti ti-cloud-download" style="font-size:16px;color:#2563EB"></i> 雲端還原</button>
@@ -7675,6 +7677,8 @@ function getSchedules() {
         var recurSelect = row.querySelector('.sched-recur');
         var recurrence = recurSelect ? recurSelect.value : '';
         var obj = { ...(row._originalSchedule||{}), date:date, time:time, memo:memo, schedType:schedType, propertyRef:readScheduleProperty(row) };
+        obj.remind = ScheduleReminders.read(row);
+        if(obj.remind && (!row._originalSchedule?.remind || row._originalSchedule.date!==date || row._originalSchedule.time!==time))obj.reminderSetAt=_nowISO();
         if (recurrence) obj.recurrence = recurrence; else delete obj.recurrence;
         if (date || time || memo) r.push(obj);
     });
@@ -7711,7 +7715,7 @@ function quickSchedule(clientId, prefillDate, prefillTime, prefillMemo, prefillT
             '<div class="roc-date-wrap" style="flex:1"><input id="qs-date" type="text" placeholder="日期" value="'+esc(isoToROC(prefillDate||localDateISO()))+'"><button type="button" class="cal-btn" onclick="openCal(this)"><i class="ti ti-calendar" style="color:#2563EB"></i></button></div>' +
             '<select id="qs-time" style="width:90px;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:14px">' + buildTimeOptions(prefillTime||'') + '</select>' +
         '</div>' +
-        '<div style="margin-bottom:12px"><input id="qs-memo" type="text" placeholder="事項說明（如：帶看、回電、簽約…）" value="'+esc(prefillMemo||'')+'" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit"></div>' +
+        '<div style="margin-bottom:12px"><textarea id="qs-memo" rows="1" placeholder="事項說明（如：帶看、回電、簽約…）" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit">'+esc(prefillMemo||'')+'</textarea></div>' +
         '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">' +
             '<i class="ti ti-repeat" style="color:'+(prefillRecur?'#0E7490':'#A8A29E')+';font-size:18px"></i>' +
             '<select id="qs-recur" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:'+(prefillRecur?'#0E7490':'inherit')+'" onchange="if(this.value===\'custom\'){openCustomRecur(this,\'\');return;}this.style.color=this.value?\'#0E7490\':\'inherit\';this.previousElementSibling.style.color=this.value?\'#0E7490\':\'#A8A29E\'">' + buildRecurOptions(prefillRecur||'') + '</select>' +
@@ -7740,6 +7744,7 @@ function quickSchedule(clientId, prefillDate, prefillTime, prefillMemo, prefillT
         var _memoLine=box.querySelector('[data-quick-field="qs-memo"]').parentElement;
         _memoLine.classList.add('schedule-inline-memo');_footer.prepend(_memoLine);
     }
+    ScheduleReminders.mount(box,_originalSched,()=>rocToISO(box.querySelector('[data-quick-field="qs-date"]').value),()=>box.querySelector('[data-quick-field="qs-time"]').value,_footer);
     // 儲存
     box.querySelector('[data-quick-field=\"qs-save\"]').onclick = function() {
         var dateVal = box.querySelector('[data-quick-field=\"qs-date\"]').value.trim();
@@ -7757,6 +7762,8 @@ function quickSchedule(clientId, prefillDate, prefillTime, prefillMemo, prefillT
             for (var _i = 0; _i < c.schedules.length; _i++) {
                 var _s = c.schedules[_i];
                 if (!_s._deleted && (prefillIndex !== undefined ? _i === prefillIndex : _s.date === prefillDate && (_s.time||'') === (prefillTime||''))) {
+                    if(ScheduleReminders.read(box)&&(!_s.remind||_s.date!==date||_s.time!==time))_s.reminderSetAt=_nowISO();
+                    _s.remind=ScheduleReminders.read(box);
                     _s.date = date; _s.time = time; _s.memo = memo; _s.schedType = _qsType; _s.propertyRef=readScheduleProperty(box);
                     if (_qsRecur) _s.recurrence = _qsRecur; else delete _s.recurrence;
                     _s.updatedAt = _nowISO();
@@ -7766,7 +7773,7 @@ function quickSchedule(clientId, prefillDate, prefillTime, prefillMemo, prefillT
             }
         }
         if (!_updated) {
-            var _qsObj = { propertyRef:readScheduleProperty(box), id:_newSchedId(), date:date, time:time, memo:memo, schedType:_qsType, updatedAt:_nowISO() };
+            var _qsObj = { remind:ScheduleReminders.read(box), reminderSetAt:_nowISO(), propertyRef:readScheduleProperty(box), id:_newSchedId(), date:date, time:time, memo:memo, schedType:_qsType, updatedAt:_nowISO() };
             if (_qsRecur) _qsObj.recurrence = _qsRecur;
             c.schedules.push(_qsObj);
         }
@@ -7774,7 +7781,7 @@ function quickSchedule(clientId, prefillDate, prefillTime, prefillMemo, prefillT
         overlay.remove();
         render();
     };
-    box.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); box.querySelector('[data-quick-field=\"qs-save\"]').click(); } });
+    box.addEventListener('keydown', function(e) { if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') { e.preventDefault(); box.querySelector('[data-quick-field=\"qs-save\"]').click(); } });
     if (!inlineMount && !window.matchMedia('(max-width:768px)').matches) box.querySelector('[data-quick-field=\"qs-memo\"]').focus();
     return overlay;
 }
@@ -7848,7 +7855,7 @@ function completeSchedule(clientId, date, time, scheduleId) {
         if (recurrence) {
             var nextDate = calcNextRecurDate(date, recurrence);
             if (nextDate) {
-                var nextObj = { propertyRef:found.propertyRef, id:_newSchedId(), date:nextDate, time:time, memo:memo, recurrence:recurrence, updatedAt:_nowISO() };
+                var nextObj = { remind:found.remind===true, reminderSetAt:_nowISO(), propertyRef:found.propertyRef, id:_newSchedId(), date:nextDate, time:time, memo:memo, recurrence:recurrence, updatedAt:_nowISO() };
                 if (recurrence === 'daily' || recurrence === 'custom:1d') nextObj.hideBeforeDate = nextDate;
                 if (schedType) nextObj.schedType = schedType;
                 c.schedules.push(nextObj);
@@ -8404,7 +8411,7 @@ function addPersonalSchedule(editId) {
             '<div class="roc-date-wrap" style="flex:1"><input id="ps-date" type="text" placeholder="日期" value="'+esc(isoToROC(ps.date||localDateISO()))+'"><button type="button" class="cal-btn" onclick="openCal(this)"><i class="ti ti-calendar" style="color:#2563EB"></i></button></div>' +
             '<select id="ps-time" style="width:90px;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:14px">' + buildTimeOptions(ps.time||'') + '</select>' +
         '</div>' +
-        '<div style="margin-bottom:12px"><input id="ps-memo" type="text" placeholder="事項說明" value="'+esc(ps.memo||'')+'" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit"></div>' +
+        '<div style="margin-bottom:12px"><textarea id="ps-memo" rows="1" placeholder="事項說明" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit">'+esc(ps.memo||'')+'</textarea></div>' +
         '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">' +
             '<i class="ti ti-repeat" style="color:'+(ps.recurrence?'#0E7490':'#A8A29E')+';font-size:18px"></i>' +
             '<select id="ps-recur" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:'+(ps.recurrence?'#0E7490':'inherit')+'" onchange="if(this.value===\'custom\'){openCustomRecur(this,\'\');return;}this.style.color=this.value?\'#0E7490\':\'inherit\';this.previousElementSibling.style.color=this.value?\'#0E7490\':\'#A8A29E\'">' + buildRecurOptions(ps.recurrence||'') + '</select>' +
@@ -8472,6 +8479,7 @@ function addPersonalSchedule(editId) {
         };
     }
 
+    ScheduleReminders.mount(box,ps,()=>rocToISO(box.querySelector('#ps-date').value),()=>box.querySelector('#ps-time').value,box.querySelector('#ps-save').parentElement);
     document.getElementById('ps-save').onclick = function() {
         var date = rocToISO(document.getElementById('ps-date').value);
         var time = document.getElementById('ps-time').value;
@@ -8479,9 +8487,9 @@ function addPersonalSchedule(editId) {
         if (!date) { showToast('請選擇日期', 'warn'); return; }
         var _psRecurEl = document.getElementById('ps-recur'); var _psRecur = _psRecurEl ? _psRecurEl.value : '';
         var _psTypeEl = document.getElementById('ps-type'); var _psType = _psTypeEl ? _psTypeEl.value : '';
-        var _psObj = { date:date, time:time, memo:memo, updatedAt:_nowISO() };
-        if (_psRecur) _psObj.recurrence = _psRecur;
-        if (_psType) _psObj.schedType = _psType;
+        var _psObj = { ...ps, remind:ScheduleReminders.read(box), reminderSetAt:ps.remind&&ps.date===date&&ps.time===time?ps.reminderSetAt||ps.updatedAt:_nowISO(), date:date, time:time, memo:memo, updatedAt:_nowISO() };
+        if (_psRecur) _psObj.recurrence = _psRecur; else delete _psObj.recurrence;
+        if (_psType) _psObj.schedType = _psType; else delete _psObj.schedType;
 
         if (editing) {
             var arr = _getPS();
@@ -8511,7 +8519,7 @@ function addPersonalSchedule(editId) {
         render();
     };
     box.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && e.target.id !== 'ps-client-search') {
+        if (e.key === 'Enter' && e.target.id !== 'ps-client-search' && e.target.tagName !== 'TEXTAREA') {
             e.preventDefault();
             document.getElementById('ps-save').click();
         }
@@ -8538,7 +8546,7 @@ function completePersonalSchedule(id) {
         if (item.recurrence) {
             var nextDate = calcNextRecurDate(item.date, item.recurrence);
             if (nextDate) {
-                var nextObj = { id:_newSchedId(), date:nextDate, time:item.time, memo:memo, recurrence:item.recurrence, updatedAt:_nowISO() };
+                var nextObj = { remind:item.remind===true, reminderSetAt:_nowISO(), id:_newSchedId(), date:nextDate, time:item.time, memo:memo, recurrence:item.recurrence, updatedAt:_nowISO() };
                 if (item.recurrence === 'daily' || item.recurrence === 'custom:1d') nextObj.hideBeforeDate = nextDate;
                 arr.push(nextObj);
                 showToast('已產生下一筆循環行程：' + isoToROC(nextDate), 'ok');
@@ -13632,6 +13640,9 @@ function deleteMktTemplate(idx) {
 <script src="edit-layout.js?v=20261005audit210"></script>
 <script src="property-purpose.js?v=20261005audit210"></script>
 <script src="schedule-property.js?v=20261005audit210"></script>
+<link rel="stylesheet" href="schedule-reminders.css?v=20261008remind300">
+<script src="reminder-engine.js?v=20261008remind300"></script>
+<script src="schedule-reminders.js?v=20261008remind300"></script>
 <script src="buyer-match-engine.js?v=20261006bulk255"></script>
 <script src="buyer-demands.js?v=20261005center249"></script>
 <script src="buyer-results.js?v=20261006bulk255"></script>
@@ -13645,7 +13656,7 @@ function deleteMktTemplate(idx) {
 <script src="seller-layout.js?v=20261005audit231"></script>
 <script src="template-archive.js?v=20261007drag289"></script>
 <link rel="stylesheet" href="template-archive.css?v=20261007drag289">
-<script src="daily-search-notice.js?v=20261007diagnostic299"></script>
+<script src="daily-search-notice.js?v=20261008remind300"></script>
 <link rel="stylesheet" href="daily-search-notice.css?v=20261007off290">
 <script src="common-tools.js?v=20261007tools281"></script>
 <link rel="stylesheet" href="common-tools.css?v=20261007instant283">

@@ -1,0 +1,8 @@
+{
+  "name": "crm-reminders",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-01",
+  "triggers": { "crons": ["* * * * *"] },
+  "vars": { "ALLOWED_ORIGIN": "https://dsiqke8d1w5q2zz5.github.io" },
+  "d1_databases": [{ "binding": "DB", "database_name": "crm-reminders", "database_id": "10d6aabb-2c8e-4b52-8e36-9afa2dd7673a" }]
+}
