@@ -232,3 +232,14 @@
 .im-dialog .im-view-tabs button{min-height:36px;padding-block:6px}
 .im-dialog .im-subtabs{border-top:1px solid #cbd9e6;padding-top:10px;margin-bottom:12px;gap:8px}
 .im-dialog .im-subtabs button{min-height:36px;padding:6px 12px;line-height:1.4}
+
+/* Match the buyer panel hierarchy while keeping category rows distinct. */
+.im-dialog header{padding-block:8px}
+.im-dialog .im-primary{margin-bottom:4px;gap:6px 8px}
+.im-dialog>.im-result-tools{padding-block:4px;margin-bottom:4px}
+.im-dialog .im-subtabs{padding-top:6px;margin-bottom:8px}
+.im-dialog .im-main>strong{font-size:15px;line-height:1.4}
+.im-dialog .im-meta{font-size:13px;line-height:1.5}
+.im-dialog .im-meta small{font-size:13px}
+.im-dialog .im-actions>strong{font-size:16px;min-width:8ch;text-align:right;white-space:nowrap}
+.im-leading-badges .im-system-date:has(.status-time){background:#edf2f6;color:#526b80;font-weight:600}

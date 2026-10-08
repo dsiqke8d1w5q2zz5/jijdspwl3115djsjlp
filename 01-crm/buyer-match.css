@@ -117,3 +117,25 @@ dialog.bm-confirm-dialog{position:fixed;inset:0;margin:auto;width:min(480px,calc
 .bm-change-marker .status-time{display:inline;font:inherit;color:inherit}
 
 .bm-change-marker>span{font-size:15px;line-height:1.4;padding:3px 6px}
+
+/* Compact buyer summary, report and filters without shrinking controls. */
+.bm-body>.bm-summary{margin:4px 0;padding:6px 9px}
+.bm-body>.daily-search-report{margin:4px 0 6px;padding:6px 12px}
+.bm-body>.bm-info-tools{margin:3px 0 4px}
+.bm-body>.bm-count{margin:4px 0}
+.bm-body>.bm-result-filters{margin-block:0}
+
+/* Shared market reading hierarchy: identity left, actions right, compact summary. */
+.bm-dialog>header{padding-block:8px}
+.bm-toolbar{margin-block:0 4px;gap:6px 8px}
+.bm-toolbar #bmEdit{order:1}.bm-toolbar .bm-auto-pill{order:2}
+.bm-toolbar #bmRun{order:3;margin-left:auto}.bm-toolbar #bmCancel,.bm-toolbar #bmRetry{order:4}.bm-toolbar #bmFavorites{order:5}
+.bm-body>.bm-summary{line-height:1.5}
+.bm-body>.daily-search-report .ds-collapse>summary>strong{font-size:15px}
+.bm-body>.daily-search-report .ds-status,.bm-body>.daily-search-report .ds-day{font-size:14px}
+.bm-row-main h3{font-size:15px;line-height:1.4}
+.bm-row-main .bm-price{font-size:16px;min-width:8ch;text-align:right;font-variant-numeric:tabular-nums}
+.bm-row-sub{font-size:13px;line-height:1.5}
+.bm-change-marker>.bm-system-date{background:#edf2f6;color:#526b80;font-weight:600}
+
+.bm-toolbar #bmFavorites{margin-left:0}
