@@ -226,3 +226,9 @@
 .im-dialog .im-listing-row:has(.im-system-date){grid-template-columns:100px 80px minmax(0,1fr) auto}.im-dialog .im-listing-row:has(.im-system-date):not(:has(>img)){grid-template-columns:100px minmax(0,1fr) auto}.im-system-date{white-space:nowrap}
 
 .im-leading-badges .im-system-date{font-size:15px;line-height:1.4;padding:3px 6px}
+
+/* Separate main views from their listing categories. */
+.im-dialog>.im-result-tools{padding-block:8px;margin-bottom:10px}
+.im-dialog .im-view-tabs button{min-height:36px;padding-block:6px}
+.im-dialog .im-subtabs{border-top:1px solid #cbd9e6;padding-top:10px;margin-bottom:12px;gap:8px}
+.im-dialog .im-subtabs button{min-height:36px;padding:6px 12px;line-height:1.4}
