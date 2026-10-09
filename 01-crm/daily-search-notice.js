@@ -13,6 +13,11 @@ function reviewCovers(saved,events){try{const prior=Object.fromEntries(JSON.pars
 function reviewed(){try{return JSON.parse(localStorage.getItem(reviewKey)||'{}');}catch{return {};}}
 function refreshChanges(view){const section=view.querySelector('.daily-notice-changes');if(!section)return;const positions=[...section.querySelectorAll('[role=tabpanel]')].map(p=>p.scrollTop);const selected=Number(section.dataset.selected);section.outerHTML=changes(view.dataset.day,selected);view.querySelectorAll('.daily-notice-changes [role=tabpanel]').forEach((p,i)=>p.scrollTop=positions[i]||0);}
 function markReviewed(view,button){const saved=reviewed(),id=button.dataset.reviewKey;if(button.getAttribute('aria-pressed')==='true')delete saved[id];else saved[id]=button.dataset.reviewSignature;try{localStorage.setItem(reviewKey,JSON.stringify(saved));}catch{view.querySelector('[data-message]').textContent='已看狀態未能保存，請重試。';return;}refreshChanges(view);view.querySelector('[data-review-key="'+CSS.escape(id)+'"]')?.focus({preventScroll:true});}
+function captureReviewed(c,watchId,view){
+ const items=new Map();for(const row of [...(c.schedules||[]).filter(x=>typeof isAutomaticSearchReminder==='function'&&isAutomaticSearchReminder(x)),...(c.searchReportEvents||[])]){if(row._deleted)continue;const inventory=String(row.id).startsWith('inventory-watch:');if(watchId?!String(row.id).startsWith('inventory-watch:'+watchId+':'):inventory)continue;const field=inventory?'marketEvents':'matchEvents';const id=JSON.stringify([String(c.id),row.id]);items.set(id,{...items.get(id),...Object.fromEntries(Object.entries(row[field]||{}).filter(([id,kind])=>!c.searchReportSuppressions?.[id]&&(!watchId||(view==='transactions')===['成交','成交更正'].includes(kind))))});}return [...items];
+}
+function commitReviewed(snapshot){const saved=reviewed();for(const [id,events] of snapshot){let prior={};try{prior=Object.fromEntries(JSON.parse(saved[id]));}catch{}saved[id]=JSON.stringify(Object.entries({...prior,...events}).sort(([a],[b])=>a.localeCompare(b)));}localStorage.setItem(reviewKey,JSON.stringify(saved));if(dialog?.open)refreshChanges(dialog);}
+function returnToReport(detail){if(dialog?.open&&(detail?._reportEntries||detail?._fromDailyReport)){detail.close();refreshChanges(dialog);dialog.querySelector('[data-change-tab][aria-selected="true"]')?.focus({preventScroll:true});}}
 function changes(day,selected){
  const savedReviews=reviewed();
  const groups=[['買方配案',[]],['物件追蹤',[]]];
@@ -34,8 +39,8 @@ function openChange(view,row,eventKind){
  if(row.dataset.changeKind==='inventory'){
  const watchId=row.dataset.changeRecord.slice('inventory-watch:'.length,-11),entry=InventoryMarket.entries().find(e=>String(e.c.id)===String(c.id)&&e.config.id===watchId);
  if(!entry){view.querySelector('[data-message]').textContent='此物件的追蹤設定已變更，請從客戶資料查看。';return;}
- const kinds=[...row.querySelectorAll('[data-change-event]')].map(b=>b.dataset.changeEvent);const off=eventKind?['已下架','其中一筆已下架'].includes(eventKind):kinds.length>0&&kinds.every(k=>['已下架','其中一筆已下架'].includes(k));InventoryMarket.open(entry.key,false,{inventoryView:off?'expired':'active'});
- }else{if(c.buyerMatching?.auto!==true){view.querySelector('[data-message]').textContent='此買方目前未開啟配案，請從客戶資料查看。';return;}BuyerMatching.open(c.id);}
+ const kinds=[...row.querySelectorAll('[data-change-event]')].map(b=>b.dataset.changeEvent);const off=eventKind?['已下架','其中一筆已下架'].includes(eventKind):kinds.length>0&&kinds.every(k=>['已下架','其中一筆已下架'].includes(k));const reportEntries=[...view.querySelectorAll('[data-change-kind="inventory"]')].map(el=>{const watch=el.dataset.changeRecord.slice('inventory-watch:'.length,-11),found=InventoryMarket.entries().find(e=>String(e.c.id)===el.dataset.changeClient&&e.config.id===watch),kinds=[...el.querySelectorAll('[data-change-event]')].map(b=>b.dataset.changeEvent);return found?{key:found.key,inventoryView:kinds.length&&kinds.every(k=>['已下架','其中一筆已下架'].includes(k))?'expired':'active'}:null;}).filter(Boolean);InventoryMarket.open(entry.key,false,{inventoryView:off?'expired':'active',reportEntries});
+ }else{if(c.buyerMatching?.auto!==true){view.querySelector('[data-message]').textContent='此買方目前未開啟配案，請從客戶資料查看。';return;}BuyerMatching.open(c.id);const detail=document.querySelector('.bm-dialog[open]');if(detail)detail._fromDailyReport=true;}
 }
 function addSchedule(view,button){
  const c=DB.find(c=>String(c.id)===button.dataset.scheduleClient&&!c._deleted&&!c.archived),key=button.dataset.scheduleRecord;
@@ -91,5 +96,5 @@ const view=shell();view.innerHTML='<header><h2 id="dailyNoticeTitle">問題診�
 const diagnostic=document.createElement('button');diagnostic.type='button';diagnostic.textContent='匯出比對紀錄';diagnostic.onclick=async()=>{diagnostic.disabled=true;try{const rows=[];for(const entry of window.InventoryMarket?.entries()||[]){if(!entry.config.id)continue;const state=await InventoryMarket.loadState(entry.config.id);rows.push({watchId:entry.config.id,label:entry.label,records:state?.records,events:state?.events,audit:state?.legacyOffAudit,ack:state?.ack,ackListings:state?.ackListings,reports:(entry.c.searchReportEvents||[]).filter(r=>r.id?.startsWith('inventory-watch:'+entry.config.id+':')),suppressed:entry.c.searchReportSuppressions});}const url=URL.createObjectURL(new Blob([JSON.stringify({version:1,generatedAt:new Date().toISOString(),rows},null,2)],{type:'application/json'}));const link=document.createElement('a');link.href=url;link.download='下架比對紀錄.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch{view.querySelector('[data-message]').textContent='匯出未完成，請重試。';}finally{diagnostic.disabled=false;}};view.querySelector('footer').prepend(diagnostic);
 view.showModal();
 }
-window.DailySearchNotice={check,open,openDiagnostics};
+window.DailySearchNotice={check,open,openDiagnostics,captureReviewed,commitReviewed,returnToReport};
 })();
