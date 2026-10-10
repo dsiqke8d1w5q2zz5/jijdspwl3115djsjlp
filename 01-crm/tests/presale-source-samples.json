@@ -1,0 +1,69 @@
+{
+  "checkedAt": "2026-10-10T03:31:51.105Z",
+  "samples": [
+    {
+      "source": "yungching",
+      "url": "https://buy.yungching.com.tw/house/7113389",
+      "title": "太平永成天悅｜長億重劃區｜三房車位(A2預售屋)",
+      "age": null,
+      "ageText": "",
+      "expected": "presale"
+    },
+    {
+      "source": "yungching",
+      "url": "https://buy.yungching.com.tw/house/7376497",
+      "title": "太平永成天悅/長億重劃區/電梯華廈/3房車位A戶",
+      "age": 1,
+      "ageText": "1.0年",
+      "expected": "completed"
+    },
+    {
+      "source": "yungching",
+      "url": "https://buy.yungching.com.tw/house/7117587",
+      "title": "永成天悅🍬太平長億重劃區電梯華廈兩房車位",
+      "age": null,
+      "ageText": "",
+      "expected": "unknown"
+    },
+    {
+      "source": "sinyi",
+      "url": "https://www.sinyi.com.tw/buy/house/19014X",
+      "title": "久郡醴御",
+      "age": null,
+      "ageText": "預售",
+      "expected": "presale"
+    },
+    {
+      "source": "sinyi",
+      "url": "https://www.sinyi.com.tw/buy/house/2740DC",
+      "title": "天母儷園庭院戶稀有釋出！",
+      "age": 21.9,
+      "ageText": "21.9年",
+      "expected": "completed"
+    },
+    {
+      "source": "sinyi",
+      "url": "https://www.sinyi.com.tw/buy/house/80689A",
+      "title": "將捷旅境．－真境",
+      "age": null,
+      "ageText": "--",
+      "expected": "unknown"
+    },
+    {
+      "source": "591",
+      "url": "https://sale.591.com.tw/home/house/detail/2/20766202.html",
+      "title": "近捷運行天宮預售松江ONE挑高質感宅",
+      "age": null,
+      "ageText": "-",
+      "expected": "presale"
+    },
+    {
+      "source": "591",
+      "url": "https://sale.591.com.tw/home/house/detail/2/20761201.html",
+      "title": "潘安極選🍎昇陽麗鉑採光高樓電梯美妝三房👑",
+      "age": 1,
+      "ageText": "1年",
+      "expected": "completed"
+    }
+  ]
+}

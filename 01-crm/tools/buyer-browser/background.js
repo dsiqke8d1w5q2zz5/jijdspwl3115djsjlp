@@ -13,6 +13,7 @@ function tasksFor(ds){const tasks=new Map(),valid=v=>/^\d+(?:\.\d+)?$/.test(Stri
  if(lo||hi){yc.push(lo+'-'+hi+'_price');sy.push((lo||'min')+'-'+(hi||'up')+'-price');if(lo&&hi)u.searchParams.set('price',lo+'_'+hi);}
  if(amin||amax){yc.push(amin+'-'+amax+'_pin');sy.push((amin||'min')+'-'+(amax||'up')+'-area');}
  if(fmin||fmax){yc.push(fmin+'-'+fmax+'_fr');sy.push((fmin||'min')+'-'+(fmax||'up')+'-floor');if(fmin&&fmax)u.searchParams.set('floor',fmin+'_'+fmax);}
+ if(m.exclude?.includes('presale'))sy.push('resale');
  if(age){yc.push('-'+age+'_age');sy.push('0-'+age+'-year');}
  // Usage labels (shop/office/mixed use) may describe an apartment too. Check locally after retrieval.
  if(word){yc.push(encodeURIComponent(word)+'_kw');sy.push(encodeURIComponent(word)+'-keyword');u.searchParams.set('keywords',word);}
