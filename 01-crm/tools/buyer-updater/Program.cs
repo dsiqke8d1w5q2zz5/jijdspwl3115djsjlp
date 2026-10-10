@@ -19,7 +19,7 @@ static class Program {
  static readonly string Root=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"CRM-BuyerHelper");
  static readonly string Settings=Path.Combine(Root,"install-path.txt");
  const string Protocol="crm-buyer-helper";
- const string UpdaterVersion="1.0.4";
+ const string UpdaterVersion="1.0.5";
  static readonly HashSet<string> Allowed=new HashSet<string>(new[]{"manifest.json","background.js","bridge.js","popup.html","popup.js","read.js","read591.js","pagination.js","areas.js","match-engine.js","storage.js","acorn.js","ACORN-LICENSE.txt"},StringComparer.Ordinal);
  [STAThread] static int Main(string[] args) {
   if(args.Length==2&&args[0]=="--register-launcher"){try{File.WriteAllText(args[1],"REGISTERED "+RegisterLauncher());return 0;}catch(Exception e){File.WriteAllText(args[1],e.ToString());return 1;}}
@@ -34,7 +34,21 @@ static class Program {
   if(args.Length!=0&&(args.Length!=1||!IsUpdateLink(args[0]))){MessageBox.Show("更新連結不正確，請從房仲管家開啟。");return 1;}
   bool created;using(var mutex=new System.Threading.Mutex(true,"Local\\CRM-BuyerHelper-Updater",out created)){if(!created){MessageBox.Show("更新工具已經開啟。");return 0;}try{RegisterLauncher();}catch(Exception e){MessageBox.Show("無法設定網頁直接更新："+e.Message);return 1;}Application.Run(new Updater());}return 0;
  }
- static string RegisterLauncher(){var launcher=CopyLauncher(Path.Combine(Root,"updater-"+UpdaterVersion));using(var key=Registry.CurrentUser.CreateSubKey(@"Software\Classes\"+Protocol)){WriteProtocol(key,launcher);}return launcher;}
+ // Keep the user's original EXE beside the helper when launched from that folder.
+ // A downloaded copy still gets a persistent location outside Downloads.
+ static bool HasAdjacentHelper(string executable){return File.Exists(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(executable)),"房仲管家搜尋助手","manifest.json"));}
+ [DllImport("shell32.dll")] static extern void SHChangeNotify(uint eventId,uint flags,IntPtr item1,IntPtr item2);
+ [DllImport("shlwapi.dll",CharSet=CharSet.Unicode)] static extern uint AssocQueryString(uint flags,uint value,string association,string extra,StringBuilder output,ref uint length);
+ static string AssociationValue(uint value){uint length=32768;var output=new StringBuilder((int)length);uint result=AssocQueryString(0x1000,value,Protocol,null,output,ref length);if(result!=0||output.Length==0)throw new Exception("Windows 尚未辨識更新工具的啟動連結（"+result.ToString("X8")+"）。請直接從檔案總管開啟此 EXE 再試一次。");return output.ToString();}
+ static string RegisterLauncher(){
+  var launcher=HasAdjacentHelper(Application.ExecutablePath)?Path.GetFullPath(Application.ExecutablePath):CopyLauncher(Path.Combine(Root,"updater-"+UpdaterVersion));
+  using(var key=Registry.CurrentUser.CreateSubKey(@"Software\Classes\"+Protocol)){WriteProtocol(key,launcher);key.Flush();}
+  SHChangeNotify(0x08000000,0,IntPtr.Zero,IntPtr.Zero);
+  var executable=AssociationValue(2);var displayName=AssociationValue(4);
+  if(!String.Equals(Path.GetFullPath(executable),launcher,StringComparison.OrdinalIgnoreCase))throw new Exception("Windows 的更新連結仍指向其他程式，請直接從檔案總管開啟新版 EXE 修復。");
+  Directory.CreateDirectory(Root);File.WriteAllText(Path.Combine(Root,"launcher-registration.txt"),DateTime.Now.ToString("s")+"\r\nUpdater "+UpdaterVersion+"\r\n"+launcher+"\r\nWindows association verified: "+displayName+"\r\nBrowser launch still requires browser confirmation.");
+  return launcher;
+ }
  static bool IsUpdateLink(string value){return String.Equals(value,Protocol+"://update",StringComparison.OrdinalIgnoreCase)||String.Equals(value,Protocol+"://update/",StringComparison.OrdinalIgnoreCase);}
  static string CopyLauncher(string directory){directory=Path.GetFullPath(directory);Directory.CreateDirectory(directory);if((File.GetAttributes(directory)&FileAttributes.ReparsePoint)!=0)throw new Exception("更新工具位置不可使用連結資料夾。");string target=Path.Combine(directory,"BuyerHelperUpdater.exe"),source=Application.ExecutablePath;if(File.Exists(target)&&(File.GetAttributes(target)&FileAttributes.ReparsePoint)!=0)throw new Exception("更新工具不可使用連結檔案。");if(!String.Equals(Path.GetFullPath(source),target,StringComparison.OrdinalIgnoreCase)&&(!File.Exists(target)||Hash(File.ReadAllBytes(target))!=Hash(File.ReadAllBytes(source))))File.Copy(source,target,true);return target;}
  static string ProtocolCommand(string launcher){return "\""+Path.GetFullPath(launcher)+"\" \"%1\"";}
