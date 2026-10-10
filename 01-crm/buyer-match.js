@@ -64,6 +64,19 @@ function showSearchProgress(job){
 }
 setInterval(()=>{if(dialog?.open&&helperJob?.status==='running')showSearchProgress(helperJob);},1000);
 function acceptJobFeed(job){if(!job?.feed)return;if(job.buyerId){const c=DB.find(c=>String(c.id)===job.buyerId);if(c)runBuyer(c,job.feed);}else buyers().filter(c=>(job.buyerIds||[]).includes(String(c.id))).forEach(c=>runBuyer(c,job.feed));}
+// Only an explicit manual search repairs retained rows absent from this search feed.
+async function repairHistoricalDetails(c,job,owner,epoch){
+ const present=new Set((job.feed?.listings||[]).map(p=>p.id)),ds=demands(c),started=Date.parse(job.startedAt)||0;
+ const candidates=BuyerResults.rows(c).filter(p=>!present.has(p.id)&&['yungching','sinyi','591'].includes(p.source)&&!c.buyerMatching?.hidden?.includes(p.id)&&tracking(c,p.id).status!=='rejected'&&(Date.parse(p.detailAttemptedAt||p.detailCheckedAt)||0)<started&&ds.some(d=>{const r=BuyerMatchEngine.evaluate(d,p);return r.status==='pending'&&r.pending.some(t=>/用途|主建物坪數|建坪|屋齡|車位|房間數|房屋類型|電梯|樓層|是否已完工/.test(t));}));
+ let done=0,failed=0;
+ for(const source of ['yungching','sinyi','591']){const rows=candidates.filter(p=>p.source===source);
+ for(let i=0;i<rows.length;i+=3){if(dialog!==owner||!owner.open||epoch!==searchEpoch)return '';const batch=rows.slice(i,i+3);textStatus('正在補讀未出現在本次搜尋的舊物件 '+done+'／'+candidates.length+' 筆；每筆本次只核對一次。');
+ let checks;try{const result=await helperRequest('buyerVerify',{rows:batch.map(p=>({id:p.id,source:p.source,url:p.url}))},90000);checks=result.checks||[];}catch(e){checks=batch.map(p=>({id:p.id,detailStatus:'failed',detailAttemptedAt:new Date().toISOString(),detailError:'舊資料補讀失敗：'+e.message}));}
+ const returned=new Set(checks.map(p=>p.id));checks.push(...batch.filter(p=>!returned.has(p.id)).map(p=>({id:p.id,detailStatus:'failed',detailAttemptedAt:new Date().toISOString(),detailError:'舊資料補讀未回傳結果'})));
+ await BuyerResults.applyChecks(c,checks);if(BuyerResults.error())throw Error(BuyerResults.error());failed+=checks.filter(p=>p.detailStatus==='failed').length;done+=batch.length;
+ if(dialog!==owner||!owner.open||epoch!==searchEpoch)return '';restoreBuyer(c);render();
+ }}return done?' 舊物件核對 '+done+' 筆'+(failed?'，其中 '+failed+' 筆未完成，已保留原因':'，已依補齊資料重新配對')+'。':'';
+}
 async function searchNow(mode){
  if(launchBusy)return;if(!helper){textStatus('請先連接搜尋助手。');return;}
  if(!helperVersion||helperVersion.localeCompare('1.2.2',undefined,{numeric:true})<0){textStatus('請用原本的 EXE 更新助手至 1.2.2，再啟用三站搜尋與加速。');return;}
@@ -77,7 +90,7 @@ async function searchNow(mode){
   while(dialog===owner&&owner.open&&epoch===searchEpoch){
    const {job}=await helperRequest('progress');if(epoch!==searchEpoch||dialog!==owner)return;
    if(!job||job.id!==result.jobId)throw Error('搜尋已切換，請重新確認進度');helperJob=job;acceptJobFeed(job);render();
-   if(job.status!=='running'){textStatus(job.error||(job.status==='cancelled'?'搜尋已停止，部分結果已保留。':'本次搜尋結束：取得 '+(job.feed?.listings.length||0)+' 筆候選。完成與未完成範圍請查看各站狀態。'));if(job.failures?.length)showSearchProgress(job);break;}
+   if(job.status!=='running'){const repairNote=mode!=='retry'&&['completed','partial'].includes(job.status)?await repairHistoricalDetails(c,job,owner,epoch):'';if(dialog!==owner||!owner.open||epoch!==searchEpoch)return;textStatus((job.error||(job.status==='cancelled'?'搜尋已停止，部分結果已保留。':'本次搜尋結束：取得 '+(job.feed?.listings.length||0)+' 筆候選。完成與未完成範圍請查看各站狀態。'))+repairNote);if(job.failures?.length)showSearchProgress(job);break;}
    $('bmHelper').textContent='搜尋助手已連接 · 正在搜尋三站，符合物件會陸續顯示';
    showSearchProgress(job);
    await new Promise(r=>setTimeout(r,2000));
