@@ -8,7 +8,7 @@ function floorRange(p){
  const n=v=>v.startsWith('B')?-Number(v.slice(1)):Number(v),a=n(m[1]),b=m[2]?n(m[2]):a;if(a===0||b===0)return null;return {min:Math.min(a,b),max:Math.max(a,b)};
 }
 function floorLabel(p){const r=floorRange(p);if(!r)return '樓層待確認';const label=n=>n<0?'B'+(-n):String(n);return label(r.min)+(r.min===r.max?'':'–'+label(r.max))+'樓';}
-function normalizeListing(p){const out={...p};const savedParking=String(p.sinyiDetails?.parking||'');if(p.source==='sinyi'&&!p.parkingType&&/平面|機械|塔式/.test(savedParking)){out.parkingType=savedParking;out.parking=true;}if(p.floor!=null&&!p.floorText)out.floorText=String(p.floor);for(const key of ["price","area","mainArea","age","floor","totalFloors","rooms","priceBeforeDrop"]){if(key in out)out[key]=num(out[key]);}return out;}
+function normalizeListing(p){const out={...p};const monthAge=String(p.ageText||'').normalize('NFKC').trim().match(/^(?:屋齡[：:\s]*)?(?:(\d+(?:\.\d+)?)\s*年\s*)?(\d+)\s*(?:個月|月)(?:\s*屋齡)?$/);if(monthAge)out.age=Number(monthAge[1]||0)+Number(monthAge[2])/12;const savedParking=String(p.sinyiDetails?.parking||'');if(p.source==='sinyi'&&!p.parkingType&&/平面|機械|塔式/.test(savedParking)){out.parkingType=savedParking;out.parking=true;}if(p.floor!=null&&!p.floorText)out.floorText=String(p.floor);for(const key of ["price","area","mainArea","age","floor","totalFloors","rooms","priceBeforeDrop"]){if(key in out)out[key]=num(out[key]);}return out;}
 
 // Only descriptive fields retain explicit evidence across sparse listing updates.
 // Prices and availability continue through their separate freshness/lifecycle rules.
@@ -23,7 +23,7 @@ function mergeListingFields(old={},incoming={},at=''){
  if(known(next.usage)&&out.usage===next.usage&&next.usage!==old.usage&&!known(next.usageEvidence))out.usageEvidence='';const shape=v=>String(v||'').trim().replace(/^(住宅大樓|電梯大廈)$/,'電梯大樓');const types=['公寓','華廈','電梯大樓','住宅大樓','電梯大廈','透天','透天厝','別墅','套房'];const explicit=[next.buildingType,next.type].filter(v=>types.includes(v));
  if(old.typeConflict)out.typeConflict=true;
  if(explicit.length){const fresh=next.detailCheckedAt||next.seenAt||at,oldAt=Math.max(stamp(old.fieldCheckedAt?.type||old.detailCheckedAt||old.seenAt),stamp(old.fieldCheckedAt?.buildingType||old.detailCheckedAt||old.seenAt));if(stamp(fresh)>=oldAt){out.type=out.buildingType=explicit[0];meta.type=meta.buildingType=fresh;out.typeConflict=explicit.some(v=>shape(v)!==shape(explicit[0]));if(shape(explicit[0])!==shape(old.buildingType||old.type)&&typeof next.elevator!=='boolean'){out.elevator=null;meta.elevator=fresh;}}}else if(old.typeConflict)out.typeConflict=true;
- out.fieldCheckedAt=meta;return out;
+ out.fieldCheckedAt=meta;return normalizeListing(out);
 }
 // Use listing-specific evidence only; page navigation and generic disclaimers are not evidence.
 function constructionStatus(p){
