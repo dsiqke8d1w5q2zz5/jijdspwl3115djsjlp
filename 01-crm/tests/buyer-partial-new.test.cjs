@@ -1,0 +1,13 @@
+const assert=require('node:assert/strict');
+global.BuyerMatchEngine=require('../buyer-match-engine.js');global.BuyerGrouping=require('../buyer-grouping.js');require('../buyer-schedule.js');
+const now=new Date(2026,9,10,10),old=new Date(2026,9,9,10).toISOString(),today=now.toISOString();
+const base={city:'新北市',district:'板橋區',community:'板橋世家',address:'新北市板橋區民族路',floor:10,area:48.45,price:2998,age:28};
+const rows=[{...base,id:'591:old',firstMatchedAt:old},{...base,id:'591:extra',firstMatchedAt:today},{...base,id:'591:other',floor:11,firstMatchedAt:today}];
+const c={id:'test',buyerMatching:{auto:true},bDemands:[{}]},key='591:extra|New|'+today;
+let kinds=BuyerSchedule.listingKinds(c,rows);assert.equal(kinds.get('591:extra'),'部分新上市');assert.equal(kinds.get('591:other'),'New');
+assert(BuyerSchedule.sync(c,rows,()=>true,now));assert.equal(c.searchReportEvents[0].matchEvents[key],'部分新上市');assert(!BuyerSchedule.sync(c,rows,()=>true,now));
+c.searchReportEvents[0].matchEvents[key]='New';c.searchReportEvents[0]._deleted=true;c.buyerMatching.acknowledgedAt=new Date(+now+1000).toISOString();assert(BuyerSchedule.sync(c,rows,()=>true,now));assert(c.searchReportEvents[0]._deleted);assert.equal(c.searchReportEvents[0].matchEvents[key],'部分新上市');
+c.buyerMatching.separateListings=['591:extra'];assert.equal(BuyerSchedule.listingKinds(c,rows).get('591:extra'),'New');
+assert.equal(BuyerSchedule.listingKinds({},rows.map(p=>({...p,firstMatchedAt:today}))).get('591:extra'),'New');
+assert(!BuyerSchedule.sync(c,rows,()=>true,new Date(2026,9,11,10)));
+console.log('PASS buyer partial/new unit distinction, same-day groups, manual split, report repair after read, idempotence, date rollover');
