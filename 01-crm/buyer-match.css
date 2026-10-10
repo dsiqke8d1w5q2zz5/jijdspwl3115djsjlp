@@ -102,7 +102,7 @@
 
 .bm-view-tabs{display:flex;gap:6px;flex-wrap:wrap}.bm-view-tabs button{font-weight:600}.bm-view-tabs button[aria-pressed="true"]{background:#193c5b;color:#fff;border-color:#193c5b}.bm-view-tabs button[data-view="pending"]:not([aria-pressed="true"]){background:#fff5dc;color:#886010;border-color:#ead9a8}
 
-.bm-dialog .bm-row-main>button.bm-confirm-match{min-height:34px;height:auto;padding:5px 12px;border:1px solid #193e5c;background:#193e5c;color:#fff;font-size:14px;font-weight:700;line-height:22px;white-space:nowrap;border-radius:7px}.bm-dialog .bm-row-main>button.bm-confirm-match:hover{background:#285578;border-color:#285578}.bm-dialog .bm-row-main>button.bm-confirm-match:focus-visible{outline:3px solid #80b9e3;outline-offset:2px}.bm-dialog .bm-row-main>button.bm-confirm-revoke{background:#fff;color:#193e5c}.bm-dialog .bm-row-main>button.bm-confirm-revoke:hover{background:#eaf2f8}
+.bm-dialog .bm-row-main>button.bm-confirm-match{min-height:34px;height:auto;padding:5px 7px;border:1px solid #193e5c;background:#193e5c;color:#fff;font-size:14px;font-weight:700;line-height:22px;white-space:nowrap;border-radius:7px}.bm-dialog .bm-row-main>button.bm-confirm-match:hover{background:#285578;border-color:#285578}.bm-dialog .bm-row-main>button.bm-confirm-match:focus-visible{outline:3px solid #80b9e3;outline-offset:2px}.bm-dialog .bm-row-main>button.bm-confirm-revoke{background:#fff;color:#193e5c}.bm-dialog .bm-row-main>button.bm-confirm-revoke:hover{background:#eaf2f8}
 
 dialog.bm-confirm-dialog{position:fixed;inset:0;margin:auto;width:min(480px,calc(100vw - 40px));max-height:calc(100dvh - 40px);box-sizing:border-box;overflow:auto;padding:24px;border:1px solid #d4dfe8;border-radius:16px;background:#fff;color:#193e5c;box-shadow:0 20px 65px #102b4655}dialog.bm-confirm-dialog::backdrop{background:#102b4670}dialog.bm-confirm-dialog h2{font-size:20px;margin:0 0 16px}dialog.bm-confirm-dialog p{font-size:15px;line-height:1.65;margin:12px 0;overflow-wrap:anywhere}dialog.bm-confirm-dialog .bm-confirm-property{font-weight:700;background:#f0f5f9;padding:10px 12px;border-radius:8px}dialog.bm-confirm-dialog form{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}dialog.bm-confirm-dialog button{min-height:40px;padding:8px 18px;font-size:15px;border:1px solid #cbd9e5;border-radius:8px;background:white;color:#193e5c;cursor:pointer}dialog.bm-confirm-dialog .bm-confirm-accept{background:#193e5c;color:white;border-color:#193e5c;font-weight:700}dialog.bm-confirm-dialog button:focus-visible{outline:3px solid #80b9e3;outline-offset:2px}
 
@@ -139,3 +139,5 @@ dialog.bm-confirm-dialog{position:fixed;inset:0;margin:auto;width:min(480px,calc
 .bm-change-marker>.bm-system-date{background:#edf2f6;color:#526b80;font-weight:600}
 
 .bm-toolbar #bmFavorites{margin-left:0}
+
+.bm-dialog .bm-row-main>button.bm-confirm-match+button.bm-confirm-match{margin-left:-4px}
