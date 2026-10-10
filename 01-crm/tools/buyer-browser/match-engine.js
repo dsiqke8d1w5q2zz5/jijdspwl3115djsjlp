@@ -13,7 +13,7 @@ function normalizeListing(p){const out={...p};if(p.floor!=null&&!p.floorText)out
 // Only descriptive fields retain explicit evidence across sparse listing updates.
 // Prices and availability continue through their separate freshness/lifecycle rules.
 function mergeListingFields(old={},incoming={},at=''){
- const next=normalizeListing(incoming),out={...next},keys=['ageText','constructionStatus','registeredUsage','usage','usageEvidence','buildingType','type','elevator','rooms','parking','parkingType'],known=v=>v!==null&&v!==undefined&&!(typeof v==='string'&&!v.trim());
+ const next=normalizeListing(incoming),out={...next},keys=['mainArea','landArea','halls','bathrooms','sinyiDetails','ageText','constructionStatus','registeredUsage','usage','usageEvidence','buildingType','type','elevator','rooms','parking','parkingType'],known=v=>v!==null&&v!==undefined&&!(typeof v==='string'&&!v.trim());
  if(known(next.registeredUsage)&&!known(next.usage))next.usage=next.registeredUsage;
  const meta={...(old.fieldCheckedAt||{})},stamp=v=>Date.parse(v)||0;
  for(const key of keys){const prior=stamp(old.fieldCheckedAt?.[key]||old.detailCheckedAt||old.seenAt),fresh=next.fieldCheckedAt?.[key]||next.detailCheckedAt||next.seenAt||at;
