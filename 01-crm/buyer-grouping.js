@@ -9,8 +9,8 @@ function facts(p){
  const local=address.replace(city||'','').replace(district||'',''),road=local.match(/^(.+?(?:路|街|大道))/)?.[1]||'',tail=road?local.slice(road.length):local;
  return {city,district,road,section:section(tail.match(/^([一二三四五六七八九十\d]+)段/)?.[1]),lane:tail.match(/(\d+)巷/)?.[1]||'',alley:tail.match(/(\d+)弄/)?.[1]||'',number:(tail.match(/(\d+(?:(?:之|-)\d+)*)號(?:之(\d+))?/)?.slice(1).filter(Boolean).join('-')||'').replaceAll('之','-'),community:norm(p.community),area:num(p.area),floor:floorEngine.floorRange(p)?JSON.stringify(floorEngine.floorRange(p)):null,age:num(p.age),price:num(p.price),rooms:num(p.rooms)};
 }
-function same(a,b){
- const x=facts(a),y=facts(b);if(!x.city||!x.district||x.city!==y.city||x.district!==y.district)return false;
+function same(a,b){return sameFacts(facts(a),facts(b));}
+function sameFacts(x,y){if(!x.city||!x.district||x.city!==y.city||x.district!==y.district)return false;
  if(x.road&&y.road&&x.road!==y.road)return false;
  if(!((x.road&&x.road===y.road)||(x.community&&x.community===y.community)))return false;
  if(['section','lane','alley','number'].some(k=>x[k]&&y[k]&&x[k]!==y[k]))return false;
@@ -24,11 +24,12 @@ function warnings(rows){const list=rows.map(r=>facts(r.p)),notes=[];const ages=l
 // Choose the largest mutually compatible candidate before assigning remaining rows.
 // Stable evidence ordering makes membership independent of search/display order.
 function group(rows,separate=[]){
+ const prepared=new Map(rows.map(r=>[r,facts(r.p)]));
  const isolated=new Set(separate),groups=[],buckets=new Map(),positions=new Map(rows.map((r,i)=>[r,i]));
- for(const row of rows){if(isolated.has(row.p.id)){groups.push([row]);continue;}const f=facts(row.p),key=JSON.stringify([f.city,f.district,f.price]);if(!buckets.has(key))buckets.set(key,[]);buckets.get(key).push(row);}
+ for(const row of rows){if(isolated.has(row.p.id)){groups.push([row]);continue;}const f=prepared.get(row),key=JSON.stringify([f.city,f.district,f.price]);if(!buckets.has(key))buckets.set(key,[]);buckets.get(key).push(row);}
  for(const bucket of buckets.values()){
-  const keys=bucket.map(r=>JSON.stringify([r.p.id||'',facts(r.p)])),links=bucket.map(()=>new Set());
-  for(let i=0;i<bucket.length;i++)for(let j=i+1;j<bucket.length;j++)if(same(bucket[i].p,bucket[j].p)){links[i].add(j);links[j].add(i);}
+  const keys=bucket.map(r=>JSON.stringify([r.p.id||'',prepared.get(r)])),links=bucket.map(()=>new Set());
+  for(let i=0;i<bucket.length;i++)for(let j=i+1;j<bucket.length;j++)if(sameFacts(prepared.get(bucket[i]),prepared.get(bucket[j]))){links[i].add(j);links[j].add(i);}
   let remaining=bucket.map((_,i)=>i);
   while(remaining.length){
    const active=new Set(remaining),degree=i=>[...links[i]].filter(j=>active.has(j)).length;
