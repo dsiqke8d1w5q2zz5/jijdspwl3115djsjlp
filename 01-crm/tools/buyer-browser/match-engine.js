@@ -29,7 +29,7 @@ function mergeListingFields(old={},incoming={},at=''){
 function constructionStatus(p){
  const ageText=String(p.ageText||''),title=String(p.title||''),state=String(p.constructionStatus||'');
  const clean=title.replace(/(?:非|不是|非屬)預售(?:屋|案)?/g,'');
- if(state==='presale'||/預售|興建中|施工中|未完工/.test(ageText)||/預售|預收|興建中|施工中|未完工/.test(clean))return 'presale';
+ if((p.source==='591'&&/^[-－–—]+$/.test(ageText.trim()))||state==='presale'||/預售|興建中|施工中|未完工/.test(ageText)||/預售|預收|興建中|施工中|未完工/.test(clean))return 'presale';
  if(state==='completed'||/新成屋|已完工|已交屋|中古屋/.test(ageText+' '+title)||num(p.age)>0)return 'completed';
  return 'unknown';
 }
