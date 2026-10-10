@@ -49,7 +49,8 @@ async function drainPurpose(){
  let checks=[];try{checks=(await request('buyerVerify',{rows:active.map(v=>({id:v.p.id,url:v.p.url,source:v.p.source}))},90000)).checks||[];}catch{}
  for(const v of active){if(!entries().some(e=>e.key===v.entry&&e.config.id===v.watch&&(e.config.enabled||v.manual)))continue;const check=checks.find(c=>c.id===v.p.id);
  await updateState(v.watch,s=>{const row=s?.records?.[v.p.id];if(!row)return s;
- if(check?.usage){row.usage=check.usage;row.usageEvidence=check.usageEvidence;row.purposeCheckedAt=at;row.fieldCheckedAt={...row.fieldCheckedAt,usage:at,usageEvidence:at};}
+ // Preserve every descriptive detail read during verification. Price and availability use their lifecycle paths.
+ if(check&&check.detailStatus!=='failed'){const {availability,availabilityReason,price,...fields}=check;Object.assign(row,BuyerMatchEngine.mergeListingFields(row,{...fields,detailCheckedAt:check.detailCheckedAt||at},at));if(check.usage)row.purposeCheckedAt=at;}
  if(check?.availability==='unavailable'){E.confirmedOff(s,entries().find(e=>e.key===v.entry&&e.config.id===v.watch).config,row,at);row.linkCheckedAt=at;row.availabilityReason=check.availabilityReason||'原物件連結已失效';}else if(check?.availability==='available'){E.confirmedAvailable(s,row,at);}
  row.purposeAttemptedAt=at;return s;});const fresh=entries().find(e=>e.key===v.entry&&e.config.id===v.watch),latest=states.get(v.watch);if(fresh&&latest&&E.reminder(fresh.c,fresh.config.id,fresh.label,{...latest,propertyRef:window.schedulePropertyRef(fresh.c,fresh.p,'庫存屋主'),events:latest.events.filter(x=>E.eventRelevant(fresh.config,x,latest.records[x.listingId]))},persist))window.render?.();}
  if(dialog?.open)renderResults();

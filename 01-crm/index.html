@@ -816,11 +816,11 @@
     <link rel="stylesheet" href="area-editor.css?v=20261005audit210">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
     <link rel="stylesheet" href="ui-foundation.css?v=20261005audit210">
-    <link rel="stylesheet" href="responsive-layout.css?v=20261010audit349">
-<link rel="stylesheet" href="inventory-market.css?v=20261010audit349">
+    <link rel="stylesheet" href="responsive-layout.css?v=20261010audit350">
+<link rel="stylesheet" href="inventory-market.css?v=20261010audit350">
 <link rel="stylesheet" href="bulk-search.css?v=20261006nav261">
 <link rel="stylesheet" href="daily-search-report.css?v=20261006report274">
-<link rel="stylesheet" href="buyer-match.css?v=20261010audit349">
+<link rel="stylesheet" href="buyer-match.css?v=20261010audit350">
 <script src="./customer-search.js?v=20261006search263"></script>
 <style>.card-search-hit{font-size:13px;line-height:1.5;color:#526880;overflow-wrap:anywhere;white-space:normal;margin:4px 0 0}</style>
 </head>
@@ -866,6 +866,7 @@
                 <div style="height:1px;background:#E7E5E4;margin:4px 12px"></div>
                 <button onclick="closeHeaderMore();ScheduleReminders.settings()" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 16px;border:none;background:none;cursor:pointer;font-size:14px;color:#1C1917;font-family:inherit;text-align:left"><svg class="reminder-bell" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5a2 2 0 0 1 4 0 6 6 0 0 1 4 6v3a4 4 0 0 0 2 3H4a4 4 0 0 0 2-3v-3a6 6 0 0 1 4-6M9 17v1a3 3 0 0 0 6 0v-1"/></svg> 行程提醒設定</button>
                 <button onclick="closeHeaderMore();DailySearchNotice.openDiagnostics()" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 16px;border:none;background:none;cursor:pointer;font-size:14px;color:#1C1917;font-family:inherit;text-align:left"><i class="ti ti-tool" style="font-size:18px;color:#57534E"></i> 問題診斷</button>
+                <button onclick="closeHeaderMore();BuyerHelperUpdate.open()" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 16px;border:none;background:none;cursor:pointer;font-size:14px;color:#1C1917;font-family:inherit;text-align:left"><i class="ti ti-download" style="font-size:18px;color:#57534E"></i> 更新小助手</button>
                 <button onclick="clearCache();closeHeaderMore()" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px 16px;border:none;background:none;cursor:pointer;font-size:14px;color:#1C1917;font-family:inherit;text-align:left"><i class="ti ti-refresh" style="font-size:18px;color:#57534E"></i> 重新載入</button>
             </div>
         </div>
@@ -879,6 +880,7 @@
         <button onclick="closeMobileSetting();TranscriptImport.openStandalone()">謄本分析工具</button>
         <button onclick="closeMobileSetting();ScheduleReminders.settings()"><svg class="reminder-bell" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5a2 2 0 0 1 4 0 6 6 0 0 1 4 6v3a4 4 0 0 0 2 3H4a4 4 0 0 0 2-3v-3a6 6 0 0 1 4-6M9 17v1a3 3 0 0 0 6 0v-1"/></svg> 行程提醒設定</button>
         <button onclick="closeMobileSetting();DailySearchNotice.openDiagnostics()">問題診斷</button>
+        <button onclick="closeMobileSetting();BuyerHelperUpdate.open()">更新小助手</button>
         <button onclick="openTrash();closeMobileSetting()"><i class="ti ti-trash" style="font-size:16px;color:#DC2626"></i> 資源回收桶</button>
         <button onclick="cloudRestore();closeMobileSetting()"><i class="ti ti-cloud-download" style="font-size:16px;color:#2563EB"></i> 雲端還原</button>
         <button onclick="exportCSV();closeMobileSetting()"><i class="ti ti-download" style="font-size:16px;color:#059669"></i> 匯出</button>
@@ -13649,28 +13651,30 @@ function deleteMktTemplate(idx) {
 <script src="image-composer.js?v=20261005audit210"></script>
 <script src="area-editor.js?v=20261005audit210"></script>
 <script src="sync-notice.js?v=20261005audit210"></script>
-<script src="detail-properties.js?v=20261010audit349"></script>
+<script src="detail-properties.js?v=20261010audit350"></script>
 <script src="edit-layout.js?v=20261005audit210"></script>
 <script src="property-purpose.js?v=20261005audit210"></script>
 <script src="schedule-property.js?v=20261005audit210"></script>
 <link rel="stylesheet" href="schedule-reminders.css?v=20261008prefs307">
 <script src="reminder-engine.js?v=20261008prefs307"></script>
 <script src="schedule-reminders.js?v=20261008time313"></script>
-<script src="buyer-match-engine.js?v=20261010audit349"></script>
-<script src="buyer-demands.js?v=20261010audit349"></script>
+<script src="buyer-match-engine.js?v=20261010audit350"></script>
+<script src="buyer-demands.js?v=20261010audit350"></script>
 <script src="buyer-results.js?v=20261006bulk255"></script>
-<script src="buyer-grouping.js?v=20261010audit349"></script>
-<script src="inventory-market-engine.js?v=20261010audit349"></script>
-<script src="inventory-market.js?v=20261010audit349"></script>
-<script src="buyer-schedule.js?v=20261010audit349"></script>
+<script src="buyer-grouping.js?v=20261010audit350"></script>
+<script src="inventory-market-engine.js?v=20261010audit350"></script>
+<script src="inventory-market.js?v=20261010audit350"></script>
+<script src="buyer-schedule.js?v=20261010audit350"></script>
 <script src="daily-search-report.js?v=20261006report274"></script>
-<script src="buyer-match.js?v=20261010audit349"></script>
+<script src="buyer-match.js?v=20261010audit350"></script>
 <script src="bulk-search.js?v=20261006nav261"></script>
-<script src="seller-layout.js?v=20261010audit349"></script>
+<script src="seller-layout.js?v=20261010audit350"></script>
 <script src="template-archive.js?v=20261007drag289"></script>
 <link rel="stylesheet" href="template-archive.css?v=20261007drag289">
-<script src="daily-search-notice.js?v=20261010audit349"></script>
-<link rel="stylesheet" href="daily-search-notice.css?v=20261010audit349">
+<script src="daily-search-notice.js?v=20261010audit350"></script>
+<link rel="stylesheet" href="daily-search-notice.css?v=20261010audit350">
+<link rel="stylesheet" href="buyer-helper-update.css?v=20261010audit350">
+<script src="buyer-helper-update.js?v=20261010audit350"></script>
 <script src="common-tools.js?v=20261007tools281"></script>
 <link rel="stylesheet" href="common-tools.css?v=20261007instant283">
 <script src="dashboard-actions.js?v=20261007actions286"></script>

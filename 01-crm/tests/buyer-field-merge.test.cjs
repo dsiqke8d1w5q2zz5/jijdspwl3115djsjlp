@@ -12,3 +12,11 @@ assert.equal(apartment.buildingType,'公寓');assert.equal(apartment.elevator,nu
 assert.equal(B.evaluate({matchCriteria:{types:['公寓'],elevator:'no'}},apartment).status,'matched');
 const outdated=B.mergeListingFields(apartment,{buildingType:'電梯大樓',detailCheckedAt:'2026-10-04T10:00:00Z'});assert.equal(outdated.buildingType,'公寓');
 const conflict=B.mergeListingFields(old,{type:'公寓',buildingType:'電梯大樓',detailCheckedAt:'2026-10-07T10:00:00Z'});assert(B.evaluate({matchCriteria:{types:['公寓'],elevator:'no'}},conflict).pending.includes('房屋類型衝突'));
+
+// Detailed age text supersedes the stale numeric list value; stale responses do not roll it back.
+const aged=B.mergeListingFields({age:9,ageText:'9年',seenAt:'2026-10-05T10:00:00Z'},{ageText:'5年',detailCheckedAt:'2026-10-06T10:00:00Z'});assert.equal(aged.age,5);assert.equal(B.mergeListingFields(aged,{age:9,ageText:'9年',seenAt:'2026-10-05T10:00:00Z'}).age,5);
+const noParking=B.mergeListingFields({parking:true,parkingType:'坡道平面',seenAt:'2026-10-05T10:00:00Z'},{parking:false,detailCheckedAt:'2026-10-06T10:00:00Z'});assert.equal(noParking.parkingType,null);const unknownParking=B.mergeListingFields(noParking,{parking:true,seenAt:'2026-10-07T10:00:00Z'});assert.equal(B.evaluate({matchCriteria:{parking:'flat'}},unknownParking).status,'pending');
+
+const sinyiNo=B.mergeListingFields({source:'sinyi',parking:true,parkingType:'坡道平面',sinyiDetails:{parking:'坡道平面',isParking:true},seenAt:'2026-10-05T10:00:00Z'},{source:'sinyi',parking:false,seenAt:'2026-10-06T10:00:00Z'});const sinyiUnknown=B.mergeListingFields(sinyiNo,{source:'sinyi',parking:true,seenAt:'2026-10-07T10:00:00Z'});assert.equal(B.evaluate({matchCriteria:{parking:'flat'}},sinyiUnknown).status,'pending','older raw Sinyi parking must not revive cleared flat evidence');
+
+const mutated={parking:true,parkingType:'坡道平面',seenAt:'2026-10-05T10:00:00Z'};Object.assign(mutated,B.mergeListingFields(mutated,{parking:false,seenAt:'2026-10-06T10:00:00Z'}));Object.assign(mutated,B.mergeListingFields(mutated,{parking:true,seenAt:'2026-10-07T10:00:00Z'}));assert.equal(B.evaluate({matchCriteria:{parking:'flat'}},mutated).status,'pending','in-place saved objects must clear invalidated parking type');
