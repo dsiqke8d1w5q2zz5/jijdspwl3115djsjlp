@@ -1,0 +1,1154 @@
+[
+  {
+    "id": "yungching:7139820",
+    "source": "yungching",
+    "url": "https://buy.yungching.com.tw/house/7139820",
+    "yungchingDetails": {
+      "fields": {
+        "建物格局": "3房(室)2廳2衛",
+        "社區": "江翠ONE看更多社區資訊 追蹤社區",
+        "建物坪數": "40.15坪(含車位7.25坪)",
+        "・主建物": "17.93坪",
+        "・共同使用小計": "17.95坪",
+        "・附屬建物小計": "4.27坪(陽台2.13坪、雨遮2.15坪)",
+        "土地坪數": "2.55坪",
+        "土地使用分區": "商業區",
+        "謄本用途": "集合住宅",
+        "房貸": "約79,204元  房貸試算",
+        "單價": "74.41萬/坪(扣除車位價/車位坪數) 問行情",
+        "車位數量": "1個車位",
+        "・車位  1": "坡道平面登記公設，固定車位管理費500元/月 ， 月繳"
+      }
+    },
+    "mainArea": 17.93,
+    "area": 40.15,
+    "landArea": 2.55,
+    "ageText": "7.7 年",
+    "floorText": "11/19樓",
+    "totalFloors": 19,
+    "community": "江翠ONE",
+    "mainAreaEvidence": "永慶主建物",
+    "rooms": 3,
+    "halls": 2,
+    "bathrooms": 2,
+    "parking": true,
+    "parkingType": "坡道平面",
+    "usage": "集合住宅",
+    "usageEvidence": "永慶謄本用途",
+    "buildingType": "住宅大樓",
+    "type": "住宅大樓",
+    "elevator": true,
+    "availability": "available"
+  },
+  {
+    "id": "yungching:7512037",
+    "source": "yungching",
+    "url": "https://buy.yungching.com.tw/house/7512037",
+    "yungchingDetails": {
+      "fields": {
+        "建物格局": "3房(室)2廳2衛",
+        "社區": "新潤青峰看更多社區資訊 追蹤社區",
+        "建物坪數": "55.22坪(含車位19.12坪)",
+        "・主建物": "20.03坪",
+        "・共同使用小計": "31.11坪",
+        "・附屬建物小計": "4.08坪(陽台1.74坪、雨遮2.34坪)",
+        "土地坪數": "5.71坪",
+        "土地使用分區": "第二種住宅區",
+        "謄本用途": "集合住宅",
+        "房貸": "約93,880元  房貸試算",
+        "單價": "74.74萬/坪(扣除車位價/車位坪數) 問行情",
+        "車位數量": "2個車位",
+        "・車位  1": "坡道平面登記公設，固定車位管理費500元/月 ， 月繳",
+        "・車位  2": "坡道平面登記公設，固定車位管理費500元/月 ， 月繳"
+      }
+    },
+    "mainArea": 20.03,
+    "area": 55.22,
+    "landArea": 5.71,
+    "ageText": "6.5 年",
+    "floorText": "14/15樓",
+    "totalFloors": 15,
+    "community": "新潤青峰",
+    "mainAreaEvidence": "永慶主建物",
+    "rooms": 3,
+    "halls": 2,
+    "bathrooms": 2,
+    "parking": true,
+    "parkingType": "坡道平面",
+    "usage": "集合住宅",
+    "usageEvidence": "永慶謄本用途",
+    "buildingType": "住宅大樓",
+    "type": "住宅大樓",
+    "elevator": true,
+    "availability": "available"
+  },
+  {
+    "id": "sinyi:1215MT",
+    "source": "sinyi",
+    "url": "https://www.sinyi.com.tw/buy/house/1215MT",
+    "usage": "集合住宅",
+    "usageEvidence": "信義謄本用途",
+    "buildingType": "電梯大樓",
+    "type": "電梯大樓",
+    "area": 42.25,
+    "landArea": 3.56,
+    "price": 2980,
+    "totalFloors": 19,
+    "rooms": 3,
+    "halls": 2,
+    "bathrooms": 2,
+    "floorText": "17",
+    "ageText": "3.1年",
+    "age": 3.1,
+    "sinyiDetails": {
+      "houseNo": "1215MT",
+      "name": "☆帝國花園傾國傾城",
+      "cityName": "新北市",
+      "zipName": "板橋區",
+      "commId": null,
+      "commName": null,
+      "address": "新北市板橋區華江一路",
+      "totalPrice": 2980,
+      "priceFirst": 2980,
+      "uniPrice": "83.23 萬/坪",
+      "rawUniPrice": "70.53 萬/坪",
+      "isParking": true,
+      "areaBuilding": 42.25,
+      "areaLand": 3.56,
+      "pingUsed": 20.85,
+      "layout": "3房2廳2衛",
+      "totalLayout": "3房2廳2衛",
+      "age": "3.1年",
+      "floor": "17",
+      "floors": "19",
+      "areaInfo": [
+        {
+          "title": "主+陽",
+          "area": 20.85
+        },
+        {
+          "title": "共有部份",
+          "area": 11.21
+        },
+        {
+          "title": "主建物",
+          "area": 19.34
+        },
+        {
+          "title": "陽台",
+          "area": 1.51
+        },
+        {
+          "title": "雨遮",
+          "area": 1.1
+        },
+        {
+          "title": "停車空間(含公設)",
+          "area": 9.09
+        }
+      ],
+      "sfside": true,
+      "sfdarkroom": false,
+      "hasmanager": "全天候",
+      "monthlyFee": "每月約 2,922 元。(車位管理費包含在大樓管理費內 / 月繳)",
+      "roomplus": 0,
+      "hallplus": 0,
+      "bathroomplus": 0,
+      "openroomplus": 0,
+      "houseFront": "西北",
+      "buildingFront": "西北",
+      "windowFront": "東南",
+      "parking": "1個坡道平面(車位總價：220萬)",
+      "latitude": 25.035022,
+      "longitude": 121.474104,
+      "firstDisplay": "2025-10-21 17:05:25",
+      "images": [
+        "https://res.sinyi.com.tw/buy/1215MT/bigimg/A.JPG",
+        "https://res.sinyi.com.tw/buy/1215MT/bigimg/B.JPG",
+        "https://res.sinyi.com.tw/buy/1215MT/bigimg/C.JPG",
+        "https://res.sinyi.com.tw/buy/1215MT/bigimg/D.JPG",
+        "https://res.sinyi.com.tw/buy/1215MT/bigimg/G.JPG",
+        "https://res.sinyi.com.tw/buy/1215MT/bigimg/H.JPG",
+        "https://res.sinyi.com.tw/buy/1215MT/bigimg/I.JPG",
+        "https://res.sinyi.com.tw/buy/1215MT/bigimg/J.JPG",
+        "https://res.sinyi.com.tw/buy/1215MT/bigimg/K.JPG",
+        "https://res.sinyi.com.tw/buy/1215MT/bigimg/L.JPG",
+        "https://res.sinyi.com.tw/buy/1215MT/bigimg/M.JPG",
+        "https://res.sinyi.com.tw/buy/1215MT/bigimg/N.JPG",
+        "https://res.sinyi.com.tw/buy/1215MT/bigimg/O.JPG",
+        "https://res.sinyi.com.tw/buy/1215MT/bigimg/P.JPG",
+        "https://res.sinyi.com.tw/buy/1215MT/bigimg/Q.JPG",
+        "https://res.sinyi.com.tw/buy/1215MT/bigimg/R.JPG",
+        "https://res.sinyi.com.tw/buy/1215MT/bigimg/S.JPG",
+        "https://res.sinyi.com.tw/buy/1215MT/bigimg/T.JPG",
+        "https://res.sinyi.com.tw/buy/1215MT/bigimg/U.JPG",
+        "https://res.sinyi.com.tw/buy/1215MT/bigimg/E.JPG"
+      ],
+      "layoutImage": "https://res.sinyi.com.tw/buy/1215MT/bigimg/E.JPG",
+      "layoutImage3D": null,
+      "vrUrl": "https://web.sinyi.com.tw/3DVR/index2.php?packageid=SinyiTW-286590_d15ccc63702a4e778290097f969048ea&memberId=&SID=MjAyNjEwMTAxMjIzNTQwNTg%3D&houseno=1215MT",
+      "videoUrl": null,
+      "cityId": "2",
+      "zipCode": "220",
+      "houselandtype": [
+        "L"
+      ],
+      "houselandtypeShow": [
+        "L"
+      ],
+      "landUniprice": "",
+      "discount": 0,
+      "isHasBalcony": 1,
+      "map": "https://res.sinyi.com.tw/buy/1215MT/lifeimg/1215MT_MAP.JPG",
+      "directionland": null,
+      "houseSize": {
+        "title": "主+陽(含其他)",
+        "area": 21.95
+      },
+      "parkPriceSource": 1,
+      "building": {
+        "buildingStructure": "鋼骨鋼筋混凝土",
+        "wallStructure": "方塊磚",
+        "family": "10",
+        "purpose": "集合住宅",
+        "other": null,
+        "partition": "商業區;",
+        "notice": null
+      },
+      "features": [
+        "散步到江子翠捷運站",
+        "樓下即未來購物商場",
+        "近市場學校公園",
+        "臨近６４快速道路方便",
+        "樓下即未來購物商場",
+        "稀有邊間戶通風採光佳",
+        "網路預約APP專人服務",
+        "屋主誠意出售"
+      ],
+      "neighborhood": [
+        {
+          "type": "traffic",
+          "places": [
+            {
+              "title": "L 捷運江子翠站 - 出口6",
+              "distance": 882,
+              "time": "728"
+            },
+            {
+              "title": "S 捷運江子翠站 - 出口1",
+              "distance": 905,
+              "time": "753"
+            },
+            {
+              "title": "K 捷運江子翠站 - 出口5",
+              "distance": 958,
+              "time": "815"
+            },
+            {
+              "title": "X 捷運江子翠站 - 出口2",
+              "distance": 991,
+              "time": "835"
+            },
+            {
+              "title": "V 捷運江子翠站 - 出口4",
+              "distance": 1051,
+              "time": "918"
+            },
+            {
+              "title": "0 普客二四停車場",
+              "distance": 32,
+              "time": "26"
+            },
+            {
+              "title": "1 YouBike2.0",
+              "distance": 122,
+              "time": "99"
+            },
+            {
+              "title": "2 新北市停車場",
+              "distance": 288,
+              "time": "234"
+            },
+            {
+              "title": "3 YouBike2.0",
+              "distance": 149,
+              "time": "119"
+            },
+            {
+              "title": "4 新北市停車場",
+              "distance": 305,
+              "time": "248"
+            },
+            {
+              "title": "5 YouBike2.0",
+              "distance": 157,
+              "time": "128"
+            },
+            {
+              "title": "6 新北市停車場",
+              "distance": 180,
+              "time": "149"
+            },
+            {
+              "title": "7 YouBike2.0",
+              "distance": 203,
+              "time": "166"
+            },
+            {
+              "title": "8 新北市停車場",
+              "distance": 772,
+              "time": "632"
+            },
+            {
+              "title": "9 YouBike2.0",
+              "distance": 586,
+              "time": "501"
+            },
+            {
+              "title": "A YouBike2.0",
+              "distance": 285,
+              "time": "229"
+            },
+            {
+              "title": "B 新北市停車場",
+              "distance": 301,
+              "time": "247"
+            },
+            {
+              "title": "C 普客二四停車場",
+              "distance": 328,
+              "time": "268"
+            },
+            {
+              "title": "D YouBike2.0",
+              "distance": 290,
+              "time": "233"
+            },
+            {
+              "title": "E YouBike2.0",
+              "distance": 772,
+              "time": "634"
+            },
+            {
+              "title": "F YouBike2.0",
+              "distance": 457,
+              "time": "375"
+            },
+            {
+              "title": "G 新北市停車場",
+              "distance": 437,
+              "time": "352"
+            },
+            {
+              "title": "H 新北市停車場",
+              "distance": 889,
+              "time": "758"
+            },
+            {
+              "title": "I 新北市停車場",
+              "distance": 407,
+              "time": "330"
+            },
+            {
+              "title": "J YouBike2.0",
+              "distance": 428,
+              "time": "347"
+            },
+            {
+              "title": "M YouBike2.0",
+              "distance": 884,
+              "time": "730"
+            },
+            {
+              "title": "N YouBike2.0",
+              "distance": 1237,
+              "time": "1003"
+            },
+            {
+              "title": "O 江子翠站(板南線)",
+              "distance": 1019,
+              "time": "871"
+            },
+            {
+              "title": "P YouBike2.0",
+              "distance": 799,
+              "time": "676"
+            },
+            {
+              "title": "Q 新北市停車場",
+              "distance": 635,
+              "time": "520"
+            },
+            {
+              "title": "R YouBike2.0",
+              "distance": 873,
+              "time": "726"
+            },
+            {
+              "title": "T YouBike2.0",
+              "distance": 933,
+              "time": "777"
+            },
+            {
+              "title": "U YouBike2.0",
+              "distance": 639,
+              "time": "519"
+            },
+            {
+              "title": "W YouBike2.0",
+              "distance": 1175,
+              "time": "996"
+            },
+            {
+              "title": "Y YouBike2.0",
+              "distance": 1062,
+              "time": "923"
+            },
+            {
+              "title": "Z 新北市停車場",
+              "distance": 1025,
+              "time": "888"
+            }
+          ]
+        },
+        {
+          "type": "school",
+          "places": [
+            {
+              "title": "0 新北市柏翠非營利幼兒園(委託財團法人心路社會福利基金會辦理)",
+              "distance": 60,
+              "time": ""
+            },
+            {
+              "title": "1 新北市私立偉仁幼兒園",
+              "distance": 276,
+              "time": ""
+            },
+            {
+              "title": "2 市立江翠國小",
+              "distance": 294,
+              "time": ""
+            },
+            {
+              "title": "3 新北市板橋區江翠國民小學附設幼兒園",
+              "distance": 294,
+              "time": ""
+            },
+            {
+              "title": "4 新北市私立板橋育安幼兒園",
+              "distance": 318,
+              "time": ""
+            },
+            {
+              "title": "5 新北市私立向陽托嬰中心",
+              "distance": 462,
+              "time": ""
+            },
+            {
+              "title": "6 新北市私立文聖幼兒園",
+              "distance": 462,
+              "time": ""
+            },
+            {
+              "title": "7 新北市私立山姆叔叔板橋幼兒園",
+              "distance": 511,
+              "time": ""
+            },
+            {
+              "title": "8 新北市私立古典幼兒園",
+              "distance": 556,
+              "time": ""
+            },
+            {
+              "title": "9 新北市私立江翠幼兒園",
+              "distance": 565,
+              "time": ""
+            },
+            {
+              "title": "A 新北市私立巧可麗巧宇幼兒園",
+              "distance": 594,
+              "time": ""
+            },
+            {
+              "title": "B 新北市私立康園幼兒園",
+              "distance": 656,
+              "time": ""
+            },
+            {
+              "title": "C 新北市私立心世紀幼兒園",
+              "distance": 679,
+              "time": ""
+            },
+            {
+              "title": "D 新北市板橋區文聖國民小學附設幼兒園",
+              "distance": 728,
+              "time": ""
+            },
+            {
+              "title": "E 市立文聖國小",
+              "distance": 728,
+              "time": ""
+            },
+            {
+              "title": "F 新北市私立悅嘉幼兒園",
+              "distance": 775,
+              "time": ""
+            },
+            {
+              "title": "G 新北市私立小小世界托嬰中心",
+              "distance": 808,
+              "time": ""
+            },
+            {
+              "title": "H 新北市立江翠國民中學附設幼兒園",
+              "distance": 812,
+              "time": ""
+            },
+            {
+              "title": "I 新北市私立卡爾斯登托嬰中心",
+              "distance": 835,
+              "time": ""
+            },
+            {
+              "title": "J 新北市私立卡爾斯登幼兒園",
+              "distance": 835,
+              "time": ""
+            },
+            {
+              "title": "K 新北市私立發現小熊森林幼兒園",
+              "distance": 839,
+              "time": ""
+            },
+            {
+              "title": "L 新北市私立凱思莉幼兒園",
+              "distance": 844,
+              "time": ""
+            },
+            {
+              "title": "M 新北市私立寶貝媽咪幼兒園",
+              "distance": 854,
+              "time": ""
+            },
+            {
+              "title": "N 茵幼爾股份有限公司附設新北市私立寶貝媽咪托嬰中心",
+              "distance": 854,
+              "time": ""
+            },
+            {
+              "title": "O 新北市私立若仁幼兒園",
+              "distance": 854,
+              "time": ""
+            },
+            {
+              "title": "P 新北市私立寶貝媽咪資優幼兒園",
+              "distance": 854,
+              "time": ""
+            },
+            {
+              "title": "Q 新北市私立艾法薇爾幼兒園",
+              "distance": 873,
+              "time": ""
+            },
+            {
+              "title": "R 新北市翠中非營利幼兒園(委託財團法人三之三生命教育基金會辦理)",
+              "distance": 884,
+              "time": ""
+            },
+            {
+              "title": "S 市立江翠國中",
+              "distance": 884,
+              "time": ""
+            },
+            {
+              "title": "T 新北市私立心耶魯幼兒園",
+              "distance": 902,
+              "time": ""
+            },
+            {
+              "title": "U 新北市私立圓心坊幼兒園",
+              "distance": 938,
+              "time": ""
+            },
+            {
+              "title": "V 新北市私立愛唯揚幼兒園",
+              "distance": 943,
+              "time": ""
+            },
+            {
+              "title": "W 新北市私立莒光幼兒園",
+              "distance": 955,
+              "time": ""
+            }
+          ]
+        },
+        {
+          "type": "market",
+          "places": [
+            {
+              "title": "0 美廉社",
+              "distance": 141,
+              "time": ""
+            },
+            {
+              "title": "1 美廉社",
+              "distance": 393,
+              "time": ""
+            },
+            {
+              "title": "2 全聯福利中心",
+              "distance": 475,
+              "time": ""
+            },
+            {
+              "title": "3 全聯福利中心",
+              "distance": 594,
+              "time": ""
+            },
+            {
+              "title": "4 美廉社",
+              "distance": 606,
+              "time": ""
+            },
+            {
+              "title": "5 家樂福便利購",
+              "distance": 618,
+              "time": ""
+            },
+            {
+              "title": "6 全聯福利中心",
+              "distance": 641,
+              "time": ""
+            },
+            {
+              "title": "7 美廉社",
+              "distance": 681,
+              "time": ""
+            },
+            {
+              "title": "8 美廉社",
+              "distance": 717,
+              "time": ""
+            },
+            {
+              "title": "9 美廉社",
+              "distance": 808,
+              "time": ""
+            },
+            {
+              "title": "A 美廉社",
+              "distance": 895,
+              "time": ""
+            }
+          ]
+        },
+        {
+          "type": "hospital",
+          "places": [
+            {
+              "title": "0 療寮診所",
+              "distance": 179,
+              "time": ""
+            },
+            {
+              "title": "1 林國本耳鼻喉科診所",
+              "distance": 313,
+              "time": ""
+            },
+            {
+              "title": "2 宏元小兒科診所",
+              "distance": 375,
+              "time": ""
+            },
+            {
+              "title": "3 晴天牙醫診所",
+              "distance": 375,
+              "time": ""
+            },
+            {
+              "title": "4 杏蘊中醫診所",
+              "distance": 376,
+              "time": ""
+            },
+            {
+              "title": "5 張博揚小兒科診所",
+              "distance": 391,
+              "time": ""
+            },
+            {
+              "title": "6 良鴻牙醫診所",
+              "distance": 392,
+              "time": ""
+            },
+            {
+              "title": "7 海棠牙醫診所",
+              "distance": 393,
+              "time": ""
+            },
+            {
+              "title": "8 新象眼科診所",
+              "distance": 431,
+              "time": ""
+            },
+            {
+              "title": "9 福霖堂中醫診所",
+              "distance": 435,
+              "time": ""
+            },
+            {
+              "title": "A 恩美牙醫診所",
+              "distance": 439,
+              "time": ""
+            },
+            {
+              "title": "B 建國牙醫診所",
+              "distance": 441,
+              "time": ""
+            },
+            {
+              "title": "C 陳尚志診所",
+              "distance": 443,
+              "time": ""
+            },
+            {
+              "title": "D 志善眼科診所",
+              "distance": 448,
+              "time": ""
+            },
+            {
+              "title": "E 麗暘診所",
+              "distance": 471,
+              "time": ""
+            },
+            {
+              "title": "F 原力復健科診所",
+              "distance": 484,
+              "time": ""
+            },
+            {
+              "title": "G 宏國中醫診所",
+              "distance": 507,
+              "time": ""
+            },
+            {
+              "title": "H 憲忠診所",
+              "distance": 511,
+              "time": ""
+            },
+            {
+              "title": "I 全安牙醫診所",
+              "distance": 514,
+              "time": ""
+            },
+            {
+              "title": "J 建明診所",
+              "distance": 515,
+              "time": ""
+            },
+            {
+              "title": "K 辰元復健科診所",
+              "distance": 518,
+              "time": ""
+            },
+            {
+              "title": "L 家福中醫診所",
+              "distance": 528,
+              "time": ""
+            },
+            {
+              "title": "M 康維牙醫診所",
+              "distance": 531,
+              "time": ""
+            },
+            {
+              "title": "N 板橋聖昌中醫診所",
+              "distance": 532,
+              "time": ""
+            },
+            {
+              "title": "O 利人診所",
+              "distance": 534,
+              "time": ""
+            },
+            {
+              "title": "P 松柏牙醫診所",
+              "distance": 537,
+              "time": ""
+            },
+            {
+              "title": "Q 芯悦牙醫診所",
+              "distance": 540,
+              "time": ""
+            },
+            {
+              "title": "R 研知診所",
+              "distance": 546,
+              "time": ""
+            },
+            {
+              "title": "S 儒林居中醫診所",
+              "distance": 547,
+              "time": ""
+            },
+            {
+              "title": "T 昇陽診所",
+              "distance": 557,
+              "time": ""
+            },
+            {
+              "title": "U 德聲牙醫診所",
+              "distance": 561,
+              "time": ""
+            },
+            {
+              "title": "V 板聯診所",
+              "distance": 581,
+              "time": ""
+            },
+            {
+              "title": "W 浩明牙醫診所",
+              "distance": 582,
+              "time": ""
+            },
+            {
+              "title": "X 穎泰診所",
+              "distance": 599,
+              "time": ""
+            },
+            {
+              "title": "Y 江翠中醫診所",
+              "distance": 601,
+              "time": ""
+            },
+            {
+              "title": "Z 揚名牙醫診所",
+              "distance": 617,
+              "time": ""
+            }
+          ]
+        },
+        {
+          "type": "other",
+          "places": []
+        }
+      ]
+    },
+    "mainArea": 19.34,
+    "parking": true,
+    "parkingType": "1個坡道平面(車位總價：220萬)",
+    "availability": "available"
+  },
+  {
+    "id": "sinyi:5134LW",
+    "source": "sinyi",
+    "url": "https://www.sinyi.com.tw/buy/house/5134LW",
+    "usage": "集合住宅",
+    "usageEvidence": "信義謄本用途",
+    "buildingType": "電梯大樓",
+    "type": "電梯大樓",
+    "area": 46.75,
+    "landArea": 5.08,
+    "price": 3188,
+    "totalFloors": 20,
+    "rooms": 3,
+    "halls": 2,
+    "bathrooms": 2,
+    "floorText": "14",
+    "ageText": "6.0年",
+    "age": 6,
+    "sinyiDetails": {
+      "houseNo": "5134LW",
+      "name": "獨家新埔捷運質感三房",
+      "cityName": "新北市",
+      "zipName": "板橋區",
+      "commId": "0027721",
+      "commName": "新樸香榭/香榭京宴/藏悦",
+      "address": "新北市板橋區民生路三段",
+      "totalPrice": 3188,
+      "priceFirst": 3188,
+      "uniPrice": "本物件含車位，詳洽經紀人員",
+      "rawUniPrice": null,
+      "isParking": true,
+      "areaBuilding": 46.75,
+      "areaLand": 5.08,
+      "pingUsed": 25.1,
+      "layout": "3房2廳2衛",
+      "totalLayout": "3房2廳2衛",
+      "age": "6.0年",
+      "floor": "14",
+      "floors": "20",
+      "areaInfo": [
+        {
+          "title": "主+陽",
+          "area": 25.1
+        },
+        {
+          "title": "共有部份",
+          "area": 14.5
+        },
+        {
+          "title": "主建物",
+          "area": 21.6
+        },
+        {
+          "title": "陽台",
+          "area": 3.5
+        },
+        {
+          "title": "雨遮",
+          "area": 2.93
+        },
+        {
+          "title": "停車空間(含公設)",
+          "area": 4.23
+        }
+      ],
+      "sfside": true,
+      "sfdarkroom": false,
+      "hasmanager": "日間",
+      "monthlyFee": "每月約 4,514 元。(車位管理費另繳納 500 元 / 月繳)",
+      "roomplus": 0,
+      "hallplus": 0,
+      "bathroomplus": 0,
+      "openroomplus": 0,
+      "houseFront": null,
+      "buildingFront": "西北",
+      "windowFront": null,
+      "parking": "1個塔式車位(車位總價：200萬)",
+      "latitude": 25.029022,
+      "longitude": 121.465466,
+      "firstDisplay": "2026-08-04 11:06:18",
+      "images": [
+        "https://res.sinyi.com.tw/buy/5134LW/bigimg/A.JPG",
+        "https://res.sinyi.com.tw/buy/5134LW/bigimg/B.JPG",
+        "https://res.sinyi.com.tw/buy/5134LW/bigimg/C.JPG",
+        "https://res.sinyi.com.tw/buy/5134LW/bigimg/D.JPG",
+        "https://res.sinyi.com.tw/buy/5134LW/bigimg/G.JPG",
+        "https://res.sinyi.com.tw/buy/5134LW/bigimg/H.JPG",
+        "https://res.sinyi.com.tw/buy/5134LW/bigimg/I.JPG",
+        "https://res.sinyi.com.tw/buy/5134LW/bigimg/J.JPG",
+        "https://res.sinyi.com.tw/buy/5134LW/bigimg/K.JPG",
+        "https://res.sinyi.com.tw/buy/5134LW/bigimg/L.JPG",
+        "https://res.sinyi.com.tw/buy/5134LW/bigimg/M.JPG",
+        "https://res.sinyi.com.tw/buy/5134LW/bigimg/N.JPG",
+        "https://res.sinyi.com.tw/buy/5134LW/bigimg/O.JPG",
+        "https://res.sinyi.com.tw/buy/5134LW/bigimg/P.JPG",
+        "https://res.sinyi.com.tw/buy/5134LW/bigimg/Q.JPG",
+        "https://res.sinyi.com.tw/buy/5134LW/bigimg/R.JPG",
+        "https://res.sinyi.com.tw/buy/5134LW/bigimg/S.JPG",
+        "https://res.sinyi.com.tw/buy/5134LW/bigimg/E.JPG"
+      ],
+      "layoutImage": "https://res.sinyi.com.tw/buy/5134LW/bigimg/E.JPG",
+      "layoutImage3D": null,
+      "videoUrl": null,
+      "cityId": "2",
+      "zipCode": "220",
+      "houselandtype": [
+        "L"
+      ],
+      "houselandtypeShow": [
+        "L"
+      ],
+      "landUniprice": "詳洽經紀人員",
+      "discount": 0,
+      "isHasBalcony": 1,
+      "map": "https://res.sinyi.com.tw/buy/5134LW/lifeimg/5134LW_MAP.JPG",
+      "directionland": null,
+      "houseSize": {
+        "title": "主+陽(含其他)",
+        "area": 28.03
+      },
+      "parkPriceSource": null,
+      "building": {
+        "buildingStructure": "鋼筋混凝土",
+        "wallStructure": "花崗石",
+        "family": "4",
+        "purpose": "集合住宅",
+        "other": null,
+        "partition": "住宅區;",
+        "notice": null
+      },
+      "features": [
+        "新埔江翠雙商圈",
+        "新埔藍線、環狀雙捷運",
+        "方正格局坪效好規劃",
+        "銀級綠建築標章",
+        "日本ＫＹＢ雙制震",
+        "SGS工程品質國際認證",
+        "首購好選擇可拎包入住",
+        "詳細資訊請洽服務專員"
+      ],
+      "neighborhood": []
+    },
+    "mainArea": 21.6,
+    "parking": true,
+    "parkingType": "1個塔式車位(車位總價：200萬)",
+    "availability": "available"
+  },
+  {
+    "id": "591:20743268",
+    "source": "591",
+    "url": "https://sale.591.com.tw/home/house/detail/2/20743268.html",
+    "availability": "available",
+    "detailVersion": 2,
+    "ageText": "8個月",
+    "usage": "集合住宅",
+    "usageEvidence": "591法定用途",
+    "buildingType": "電梯大樓",
+    "type": "電梯大樓",
+    "elevator": true,
+    "rooms": 3,
+    "halls": 2,
+    "bathrooms": 2,
+    "mainArea": 21.59,
+    "landArea": 3.89,
+    "area": 42.87,
+    "floorText": "23F/24F",
+    "totalFloors": 24,
+    "community": "新美齊画世代",
+    "parking": true,
+    "parkingType": "7.65坪，平面式，已含售金內",
+    "details591": {
+      "fields": {
+        "格局": "3房2廳2衛1陽台",
+        "屋齡": "8個月",
+        "權狀坪數": "42.87坪(含車位)",
+        "樓層": "23F/24F",
+        "社區": "<a href=\"https://market.591.com.tw/3699741\"  data-gtm-stat=\"社區-中古屋業務_中古屋詳情頁_資訊-社區點擊\"  target=\"_blank\" class=\"community-info-a\">新美齊画世代</a>",
+        "地址": "新北市板橋區南雅西路一段",
+        "現況": "住宅",
+        "型態": "電梯大樓",
+        "裝潢程度": "尚未裝潢",
+        "管理費": "4294元/月",
+        "帶租約": "否",
+        "法定用途": "集合住宅",
+        "車位": "7.65坪，平面式，已含售金內",
+        "公設比": "35%"
+      },
+      "areas": {
+        "mainarea": {
+          "name": "主建物",
+          "value": "21.59坪"
+        },
+        "subarea": {
+          "name": "附屬建物",
+          "value": "1.27坪"
+        },
+        "pubarea": {
+          "name": "共用部分",
+          "value": "12.35坪"
+        },
+        "groundarea": {
+          "name": "土地（持分）坪數",
+          "value": "3.89坪"
+        }
+      }
+    }
+  },
+  {
+    "id": "591:20970884",
+    "source": "591",
+    "url": "https://sale.591.com.tw/home/house/detail/2/20970884.html",
+    "availability": "available",
+    "detailVersion": 2,
+    "ageText": "5年",
+    "usage": "商業用",
+    "usageEvidence": "591法定用途",
+    "buildingType": "電梯大樓",
+    "type": "電梯大樓",
+    "elevator": true,
+    "rooms": 3,
+    "halls": 2,
+    "bathrooms": 2,
+    "mainArea": 20.95,
+    "landArea": 5.19,
+    "area": 45.66,
+    "floorText": "18F/19F",
+    "totalFloors": 19,
+    "community": "D-聯上匯翠",
+    "parking": true,
+    "parkingType": "9.03坪，平面式，已含售金內",
+    "details591": {
+      "fields": {
+        "格局": "3房2廳2衛",
+        "屋齡": "5年",
+        "權狀坪數": "45.66坪(含車位)",
+        "樓層": "18F/19F",
+        "朝向": "坐北朝南",
+        "社區": "D-聯上匯翠",
+        "地址": "新北市板橋區華江一路",
+        "現況": "住宅",
+        "型態": "電梯大樓",
+        "裝潢程度": "尚未裝潢",
+        "管理費": "3263元/月",
+        "帶租約": "否",
+        "法定用途": "商業用",
+        "車位": "9.03坪，平面式，已含售金內",
+        "公設比": "35%"
+      },
+      "areas": {
+        "mainarea": {
+          "name": "主建物",
+          "value": "20.95坪"
+        },
+        "subarea": {
+          "name": "附屬建物",
+          "value": "2.77坪"
+        },
+        "pubarea": {
+          "name": "共用部分",
+          "value": "12.91坪"
+        },
+        "groundarea": {
+          "name": "土地（持分）坪數",
+          "value": "5.19坪"
+        }
+      }
+    }
+  },
+  {
+    "id": "591:20779075",
+    "source": "591",
+    "url": "https://sale.591.com.tw/home/house/detail/2/20779075.html",
+    "availability": "available",
+    "detailVersion": 2,
+    "ageText": "-",
+    "usage": "住家用",
+    "usageEvidence": "591法定用途",
+    "buildingType": "電梯大樓",
+    "type": "電梯大樓",
+    "elevator": true,
+    "rooms": 2,
+    "halls": 1,
+    "bathrooms": 2,
+    "mainArea": 28.78,
+    "area": 33.77,
+    "floorText": "18F/33F",
+    "totalFloors": 33,
+    "community": "甲山林帝景2號",
+    "parking": true,
+    "parkingType": "4.99坪，平面式，已含售金內",
+    "details591": {
+      "fields": {
+        "格局": "2房1廳2衛1陽台",
+        "屋齡": "-",
+        "權狀坪數": "33.77坪(含車位)",
+        "樓層": "18F/33F",
+        "朝向": "坐東南朝西北",
+        "社區": "<a href=\"https://market.591.com.tw/50676\"  data-gtm-stat=\"社區-中古屋業務_中古屋詳情頁_資訊-社區點擊\"  target=\"_blank\" class=\"community-info-a\">甲山林帝景2號</a>",
+        "地址": "新北市板橋區環河西路四段",
+        "現況": "住宅",
+        "型態": "電梯大樓",
+        "裝潢程度": "尚未裝潢",
+        "帶租約": "否",
+        "法定用途": "住家用",
+        "車位": "4.99坪，平面式，已含售金內"
+      },
+      "areas": {
+        "mainarea": {
+          "name": "主建物",
+          "value": "28.78坪"
+        }
+      }
+    }
+  }
+]
