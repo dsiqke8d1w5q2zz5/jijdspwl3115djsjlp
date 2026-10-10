@@ -35,8 +35,9 @@ function constructionStatus(p){
 }
 function normalizeDemand(d={}){const list=v=>(Array.isArray(v)?v:String(v||'').split(/[,，、]/)).map(x=>String(x).normalize('NFKC').trim().replaceAll('臺','台')).filter(Boolean);const cities=list(d.areaCities);return {...d,areaCities:cities.length?cities:list(d.areaCity),areaDists:list(d.areaDists)};}
 function remainingPreference(d){
- const m=d.matchCriteria||{};
+ const m=d.matchCriteria||{},keywords=new Set(String(m.keywords||'').split(/[、,，;；\n]/).map(x=>x.normalize('NFKC').trim()).filter(Boolean));
  return String(d.want||'').split(/[、,，;；\n]/).map(t=>t.trim()).filter(Boolean).filter(t=>{
+ if(keywords.has(t.normalize('NFKC')))return false;
  const age=t.match(/^(\d+(?:\.\d+)?)年(?:內|以下)?$/);
  if(age&&num(m.ageMax)===Number(age[1]))return false;
  if(t==='平面車位'&&m.parking==='flat')return false;
@@ -63,8 +64,18 @@ function evaluate(d,p){d=normalizeDemand(d);p=normalizeListing(p);const m=d.matc
  const fr=floorRange(p),contains=n=>fr&&fr.min<=n&&fr.max>=n;
  if(m.exclude?.includes('first'))check('非1樓',!!fr,!contains(1));if(m.exclude?.includes('fourth'))check('非4樓',!!fr,!contains(4));if(m.exclude?.includes('top'))check('非頂樓',!!fr&&num(p.totalFloors)!==null,!contains(num(p.totalFloors)));if(m.exclude?.includes('basement'))check('非地下室',!!fr,!!fr&&fr.min>0);
  if(m.keywords){const words=m.keywords.split(/[,，、\n]/).map(x=>x.trim()).filter(Boolean);check('社區／路段',!!(p.address||p.community),words.some(w=>(/路|街|大道/.test(w)?String(p.address||''):p.address+' '+p.community+' '+p.title).includes(w)));}
- const remaining=remainingPreference(d);if(remaining)pending.push('偏好需核對：'+remaining);if(d.noWant)pending.push('排除事項需核對：'+d.noWant);if(!yes.length&&!no.length)pending.push('尚未設定可比對條件');if(p.notInLatest)pending.push('本批未收錄，現況需確認');if(p.stale)pending.push('來源更新失敗，待確認現況');return {yes,pending,no,preferred,preferenceMiss,preferenceUnknown,score:preferred.length,status:no.length?'excluded':pending.length?'pending':'matched'};
+ const remaining=remainingPreference(d);if(remaining)pending.push('偏好需核對：'+remaining);if(d.noWant)pending.push('排除事項需核對：'+d.noWant);if(!yes.length&&!no.length)pending.push('尚未設定可比對條件');if(p.stale)pending.push('來源更新失敗，待確認現況');return {yes,pending,no,preferred,preferenceMiss,preferenceUnknown,score:preferred.length,status:no.length?'excluded':pending.length?'pending':'matched'};
 }
 function summary(d,{advancedOnly=false}={}){const m=d.matchCriteria||{},out=[d.areaDisplay||[...(d.areaCities||[]),...(d.areaDists||[])].join('、'),d.roomTypes,(d.budgetMin||d.budgetMax)?(d.budgetMin||'不限')+'～'+(d.budgetMax||'不限')+'萬':d.budget?d.budget+'萬':'預算不限'];if(advancedOnly)out.length=0;if(m.searchPurpose)out.push("搜尋用途："+m.searchPurpose);if(m.areaMin||m.areaMax)out.push((m.areaBasis==='main'?'主建物':'建坪')+' '+(m.areaMin||'不限')+'～'+(m.areaMax||'不限')+'坪');if(m.ageMax)out.push(m.ageMax+'年內');if(m.floorMin||m.floorMax){const exact=m.floorMin&&m.floorMax&&Number(m.floorMin)===Number(m.floorMax),optional=m.optional?.includes('樓層');out.push('樓層'+(optional?'偏好：':'必要：')+(exact?((optional?'':'僅')+m.floorMin+'樓'):(m.floorMin||'不限')+'～'+(m.floorMax||'不限')+'樓'));}if(m.parking)out.push(m.parking==='flat'?'平面車位':'需車位');if(m.elevator)out.push((m.optional?.includes('電梯')?'偏好':'必要')+'：'+(m.elevator==='yes'?'有電梯':'無電梯'));if(m.exclude?.length)out.push(m.exclude.map(x=>({presale:'排除預售屋',first:'排除1樓',fourth:'排除4樓',top:'排除頂樓',basement:'排除地下室'}[x])).join('、'));if(m.keywords)out.push('社區／路段'+(m.optional?.includes('社區／路段')?'偏好：':'必要：')+m.keywords);const remainingOptional=(m.optional||[]).filter(x=>!['樓層','社區／路段','電梯'].includes(x));if(remainingOptional.length)out.push('偏好：'+remainingOptional.join('、'));return out.filter(Boolean).join('｜');}
-const api={remainingPreference,constructionStatus,mergeListingFields,normalizeDemand,floorRange,floorLabel,evaluate,summary,normalizeListing};if(typeof module!=='undefined')module.exports=api;root.BuyerMatchEngine=api;
+function searchScope(ds){
+ const stable=v=>Array.isArray(v)?v.map(stable).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().filter(k=>v[k]!==undefined).map(k=>[k,stable(v[k])])):v;
+ return JSON.stringify(stable(ds.map(raw=>{const d=normalizeDemand(raw);return Object.fromEntries(['areaCities','areaDists','roomTypes','budgetMin','budgetMax','budget','want','noWant','matchCriteria'].map(k=>[k,d[k]]));})));
+}
+function confirmationValid(record,p,pending){
+ if(!record?.evidence||!Array.isArray(record.pending))return false;
+ try{const previous=JSON.parse(record.evidence);if(!Array.isArray(previous))return false;
+ return previous.filter(([k])=>!['notInLatest','stale'].includes(k)).every(([k,v])=>JSON.stringify(v)===JSON.stringify(p[k]??null))&&pending.every(x=>record.pending.includes(x));
+ }catch{return false;}
+}
+const api={searchScope,confirmationValid,remainingPreference,constructionStatus,mergeListingFields,normalizeDemand,floorRange,floorLabel,evaluate,summary,normalizeListing};if(typeof module!=='undefined')module.exports=api;root.BuyerMatchEngine=api;
 })(typeof window==='undefined'?globalThis:window);

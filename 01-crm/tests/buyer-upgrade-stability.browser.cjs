@@ -1,0 +1,21 @@
+const assert=require('assert/strict'),fs=require('fs'),path=require('path'),E=require('../buyer-match-engine.js'),{chromium}=require(process.env.PLAYWRIGHT_MODULE);
+const d={areaCities:['台北市'],areaDists:['中正區'],budgetMax:'2000',want:'東門國小、中正國中、安靜',matchCriteria:{keywords:'中正國中、東門國小'}};
+assert.equal(E.remainingPreference(d),'安靜');assert.equal(E.remainingPreference({...d,want:'東門國小',matchCriteria:{keywords:'東門'}}),'東門國小');
+const row={id:'591:1',source:'591',price:1988,city:'台北市',district:'中正區',title:'東門國小中正國中',address:'仁愛路一段',usage:'住宅',notInLatest:false};
+const record={evidence:JSON.stringify(Object.entries(row)),pending:['屋齡','本批未收錄，現況需確認']};
+assert(E.confirmationValid(record,{...row,notInLatest:true},['屋齡']));assert(!E.confirmationValid(record,{...row,price:1999},['屋齡']));assert(!E.confirmationValid(record,row,['屋齡','用途']));
+(async()=>{const b=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});try{const p=await b.newPage();await p.route('http://localhost:43123/**',r=>{const name=new URL(r.request().url()).pathname.slice(1);return r.fulfill({contentType:name.endsWith('.js')?'text/javascript; charset=utf-8':'text/html; charset=utf-8',body:name?fs.readFileSync(path.resolve('01-crm',name)):'<html></html>'});});async function load(){await p.goto('http://localhost:43123/');await p.addScriptTag({url:'/buyer-match-engine.js'});await p.addScriptTag({url:'/buyer-results.js'});}await load();
+const result=await p.evaluate(async({d,row})=>{const c={id:'a',bDemands:[d]},scope=BuyerMatchEngine.searchScope(c.bDemands),feed=(day,listings,extra={})=>({generatedAt:`2026-10-${day}T00:00:00Z`,sources:[{id:'591',status:'ok'}],listings,searchScopes:{a:scope},...extra});await BuyerResults.ready(['a']);
+async function ingest(f){BuyerResults.ingest(c,f);await BuyerResults.flush();if(!BuyerResults.rows(c)[0])throw Error(JSON.stringify({error:BuyerResults.error(),state:BuyerResults.state(c.id),verdict:BuyerMatchEngine.evaluate(d,row)}));return BuyerResults.rows(c)[0]}
+await ingest(feed('01',[row]));const flags=[];
+flags.push((await ingest(feed('02',[],{searchScopes:{}}))).notInLatest);
+flags.push((await ingest(feed('03',[],{incremental:true}))).notInLatest);
+flags.push((await ingest(feed('04',[],{sources:[{id:'591',status:'partial'}]}))).notInLatest);
+flags.push((await ingest(feed('05',[],{searchScopes:{a:'other'}}))).notInLatest);
+const missing=await ingest(feed('06',[]));flags.push(missing.notInLatest);
+const status=BuyerMatchEngine.evaluate({...d,want:''},missing).status;
+await ingest(feed('04',[row]));flags.push(BuyerResults.rows(c)[0].notInLatest);
+await ingest(feed('07',[row]));flags.push(BuyerResults.rows(c)[0].notInLatest);
+await BuyerResults.restore(c,{schema:1,buyerId:'a',results:{items:{'591:2':{...row,id:'591:2',notInLatest:true}},runs:[]}});
+return {flags,status,legacy:BuyerResults.rows(c).find(x=>x.id==='591:2').notInLatest};},{d,row});
+assert.deepEqual(result.flags,[false,false,false,false,true,true,false]);assert.equal(result.legacy,false);assert.equal(result.status,'matched');await load();assert.equal(await p.evaluate(async()=>{await BuyerResults.ready(['a']);return BuyerResults.rows({id:'a'}).find(x=>x.id==='591:1').notInLatest}),false);console.log('PASS scoped absence, unknown/partial/incremental/unrelated feeds, stale replay, rediscovery, legacy migration, reload, duplicate preferences and confirmation evidence');}finally{await b.close()}})().catch(e=>{console.error(e);process.exitCode=1});
