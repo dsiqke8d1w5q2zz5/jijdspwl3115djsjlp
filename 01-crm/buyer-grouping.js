@@ -21,8 +21,25 @@ function same(a,b){
  return x.floor!==null&&y.floor!==null&&x.floor===y.floor&&!(x.rooms!==null&&y.rooms!==null&&x.rooms!==y.rooms);
 }
 function warnings(rows){const list=rows.map(r=>facts(r.p)),notes=[];const ages=list.filter(x=>x.age!==null).map(x=>x.age);if(ages.length<list.length)notes.push(ages.length?'部分刊登缺屋齡':'屋齡待確認');if(ages.length>1&&Math.max(...ages)-Math.min(...ages)>=1)notes.push('屋齡不一致');if(list.some(x=>x.floor===null))notes.push('樓層待確認');if(new Set(list.filter(x=>x.rooms!==null).map(x=>x.rooms)).size>1)notes.push('房數不一致');if(['road','section','lane','alley','number'].some(k=>new Set(list.map(x=>x[k]).filter(Boolean)).size>1))notes.push('地址待確認');return notes;}
-// Complete-link comparison prevents chained near-matches from merging distant endpoints.
-function group(rows,separate=[]){const isolated=new Set(separate);const groups=[],buckets=new Map();for(const row of rows){if(isolated.has(row.p.id)){groups.push([row]);continue;}const f=facts(row.p),key=[f.city,f.district,f.price].join('|'),candidates=buckets.get(key)||[];const g=candidates.find(g=>g.every(other=>same(row.p,other.p)));if(g)g.push(row);else{const fresh=[row];groups.push(fresh);candidates.push(fresh);buckets.set(key,candidates);}}return groups;}
+// Choose the largest mutually compatible candidate before assigning remaining rows.
+// Stable evidence ordering makes membership independent of search/display order.
+function group(rows,separate=[]){
+ const isolated=new Set(separate),groups=[],buckets=new Map(),positions=new Map(rows.map((r,i)=>[r,i]));
+ for(const row of rows){if(isolated.has(row.p.id)){groups.push([row]);continue;}const f=facts(row.p),key=JSON.stringify([f.city,f.district,f.price]);if(!buckets.has(key))buckets.set(key,[]);buckets.get(key).push(row);}
+ for(const bucket of buckets.values()){
+  const keys=bucket.map(r=>JSON.stringify([r.p.id||'',facts(r.p)])),links=bucket.map(()=>new Set());
+  for(let i=0;i<bucket.length;i++)for(let j=i+1;j<bucket.length;j++)if(same(bucket[i].p,bucket[j].p)){links[i].add(j);links[j].add(i);}
+  let remaining=bucket.map((_,i)=>i);
+  while(remaining.length){
+   const active=new Set(remaining),degree=i=>[...links[i]].filter(j=>active.has(j)).length;
+   const order=[...remaining].sort((a,b)=>degree(b)-degree(a)||(keys[a]<keys[b]?-1:keys[a]>keys[b]?1:0));
+   let best=[];
+   for(const seed of order){if(degree(seed)+1<best.length)continue;const candidate=[seed];for(const i of order)if(i!==seed&&candidate.every(j=>links[i].has(j)))candidate.push(i);if(candidate.length>best.length)best=candidate;}
+   const selected=new Set(best);groups.push(best.map(i=>bucket[i]).sort((a,b)=>positions.get(a)-positions.get(b)));remaining=remaining.filter(i=>!selected.has(i));
+  }
+ }
+ return groups.sort((a,b)=>positions.get(a[0])-positions.get(b[0]));
+}
 function sortValue(p,field){const area=num(p.area),price=num(p.price);if(field==='unit')return area>0&&price>0?price/area:null;const value=num(p[field]);return value!==null&&(field==='age'?value>=0:value>0)?value:null;}
 function sortGroups(groups,order,ack){const [field,direction]=String(order).split(':'),numeric=['area','price','unit','age'].includes(field)&&['asc','desc'].includes(direction);return groups.map((g,i)=>({g,i,v:numeric?sortValue(g[0].p,field):null,fresh:ack!==undefined&&g.some(({p})=>Date.parse(p.firstMatchedAt)>ack||(Date.parse(p.priceDroppedAt)>ack&&p.priceBeforeDrop>p.price))})).sort((a,b)=>Number(b.fresh)-Number(a.fresh)||(numeric?(a.v===null?(b.v===null?a.i-b.i:1):b.v===null?-1:(a.v-b.v)*(direction==='asc'?1:-1)||a.i-b.i):a.i-b.i)).map(x=>x.g);}
 const api={same,group,warnings,sortValue,sortGroups};if(typeof module!=='undefined')module.exports=api;root.BuyerGrouping=api;

@@ -1,0 +1,86 @@
+[
+  {
+    "id": "yungching:6458966",
+    "city": "新北市",
+    "district": "板橋區",
+    "address": "新北市板橋區華江一路",
+    "price": 3245,
+    "area": 45.47,
+    "age": 3.1,
+    "floor": 19,
+    "floorText": "19/19樓",
+    "rooms": 3
+  },
+  {
+    "id": "591:21044896",
+    "city": "新北市",
+    "district": "板橋區",
+    "address": "新北市板橋區華江一路",
+    "price": 3245,
+    "area": 44.46,
+    "age": 3,
+    "floor": 19,
+    "floorText": "19F/19F",
+    "rooms": 3
+  },
+  {
+    "id": "sinyi:3254KT",
+    "city": "新北市",
+    "district": "板橋區",
+    "address": "新北市板橋區華江一路",
+    "price": 3245,
+    "area": 45.47,
+    "age": 3.1,
+    "floor": 19,
+    "floorText": "19",
+    "rooms": 3
+  },
+  {
+    "id": "591:20928029",
+    "city": "新北市",
+    "district": "板橋區",
+    "address": "新北市板橋區華江一路",
+    "price": 3245,
+    "area": 45.47,
+    "age": 3,
+    "floor": 19,
+    "floorText": "19F/19F",
+    "rooms": 3
+  },
+  {
+    "id": "591:20837846",
+    "city": "新北市",
+    "district": "板橋區",
+    "address": "新北市板橋區華江一路",
+    "price": 3245,
+    "area": 45.47,
+    "age": 2,
+    "floor": 19,
+    "floorText": "19F/19F",
+    "rooms": 3
+  },
+  {
+    "id": "591:20783567",
+    "city": "新北市",
+    "district": "板橋區",
+    "address": "新北市板橋區華江一路",
+    "price": 3245,
+    "area": 45.47,
+    "age": 3,
+    "floor": 19,
+    "floorText": "19F/19F",
+    "rooms": 3
+  },
+  {
+    "id": "591:20817267",
+    "city": "新北市",
+    "district": "板橋區",
+    "address": "新北市板橋區華江一路",
+    "price": 3245,
+    "area": 45.47,
+    "age": 3,
+    "floor": 19,
+    "floorText": "19F/19F",
+    "rooms": 3
+  }
+]
