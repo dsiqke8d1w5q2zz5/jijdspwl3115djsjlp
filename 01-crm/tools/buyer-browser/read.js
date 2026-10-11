@@ -1,5 +1,5 @@
 // Physical building-form codes verified against Sinyi's public houselandtype labels (2026-10-10).
-globalThis.crmSinyiBuildingType=codes=>{const map={A:'公寓',B:'電梯大樓',C:'套房',D:'透天',L:'電梯大樓',M:'華廈',N:'透天'},types=[...new Set((Array.isArray(codes)?codes:[]).map(k=>map[k]).filter(Boolean))];return types.length===1?types[0]:'';};
+globalThis.crmSinyiBuildingType=codes=>{const map={A:'公寓',B:'電梯大樓',C:'套房',D:'透天',G:'廠房',I:'土地',L:'電梯大樓',M:'華廈',N:'透天'},types=[...new Set((Array.isArray(codes)?codes:[]).map(k=>map[k]).filter(Boolean))];return types.length===1?types[0]:'';};
 // Reads rendered listing cards / embedded public listing data only. No requests or page script execution.
 globalThis.crmReadListings=function(source,city){
  const txt=(e,s)=>e.querySelector(s)?.textContent.trim()||'',num=s=>s==null||s===''?null:Number.isFinite(Number(String(s).replaceAll(',','')))?Number(String(s).replaceAll(',','')):null,first=s=>num(String(s||'').replaceAll(',','').match(/[\d.]+/)?.[0]),loc=a=>{const m=a.replaceAll('臺','台').match(/^(台北市|新北市|桃園市|台中市|台南市|高雄市|基隆市|新竹市|新竹縣|苗栗縣|彰化縣|南投縣|雲林縣|嘉義市|嘉義縣|屏東縣|宜蘭縣|花蓮縣|台東縣|澎湖縣|金門縣|連江縣)(.{1,4}?區|.{1,4}?[鄉鎮市])/);return {city:m?.[1]||a.match(/^(新竹市|嘉義市)/)?.[1]||city,district:m?.[2]||''};};
