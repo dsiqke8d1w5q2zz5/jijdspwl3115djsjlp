@@ -106,7 +106,7 @@ async function stopSearch(){const owner=dialog;++searchEpoch;searchBusy=false;la
 function matchKey(c,i){return String(c.id)+':'+i;}
 function signature(d){return JSON.stringify(d);}
 window.addEventListener('crm:buyer-results-updated',e=>{const c=DB.find(c=>String(c.id)===String(e.detail));if(!c)return;restoreBuyer(c);if(BuyerSchedule.sync(c,BuyerResults.rows(c),persist))window.render?.();if(dialog?.open&&String(customerId)===String(c.id))render();});
-function runBuyer(c,input=feed){if(!c||!input)return;BuyerResults.ingest(c,input);restoreBuyer(c);if(BuyerSchedule.sync(c,BuyerResults.rows(c),persist))window.render?.();}
+function runBuyer(c,input=feed){if(!c||!input)return;if(!BuyerResults.ingest(c,input))return;restoreBuyer(c);if(BuyerSchedule.sync(c,BuyerResults.rows(c),persist))window.render?.();}
 
 function confirmationKey(d,p){return JSON.stringify([signature(d),p.id]);}
 function confirmationEvidence(p){return JSON.stringify(['source','url','city','district','address','price','rooms','type','usage','registeredUsage','elevator','parking','parkingType','area','mainArea','age','floor','totalFloor','availability','notInLatest','stale'].map(k=>[k,p[k]??null]));}

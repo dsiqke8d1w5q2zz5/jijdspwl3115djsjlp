@@ -28,10 +28,19 @@ function applyFeed(s,c,feed,observedAt){const at=feed.generatedAt||observedAt,ds
  if(!feed.incremental&&!s.runs.some(x=>x.key===key))s.runs.unshift({key,at,total:feed.listings.length,sources:feed.sources||[]});
  s.runs.sort((a,b)=>stamp(b.at)-stamp(a.at));s.runs=s.runs.slice(0,30);return s;
 }
-function ingest(c,feed){const input=structuredClone(feed),buyer=structuredClone(c),at=new Date().toISOString(),apply=s=>applyFeed(s,buyer,input,at);rowCache.delete(String(c.id));const s=apply(state(c.id));save(c.id,apply);return s;}
+// Exact replay detection, bounded to 64 MB. Do not infer equality from dates alone:
+// a source may correct a field without changing its batch timestamp.
+const appliedInputs=new Map();let appliedBytes=0;
+function forgetInput(key){const old=appliedInputs.get(key);if(old){appliedBytes-=key.length*2;appliedInputs.delete(key);}}
+function ingest(c,feed){const id=String(c.id),scope=root.BuyerMatchEngine.searchScope(c.bDemands?.length?c.bDemands:[c]),key=JSON.stringify([id,scope]),serialized=JSON.stringify(feed);
+ if(!failure&&appliedInputs.get(serialized)?.has(key))return null;
+ const input=structuredClone(feed),buyer={id:c.id,bDemands:structuredClone(c.bDemands?.length?c.bDemands:[c])},at=new Date().toISOString(),apply=s=>applyFeed(s,buyer,input,at);rowCache.delete(id);const s=apply(state(id));
+ if(serialized.length*2<=64*1024*1024){if(!appliedInputs.has(serialized)){appliedInputs.set(serialized,new Set());appliedBytes+=serialized.length*2;}appliedInputs.get(serialized).add(key);while(appliedBytes>64*1024*1024||appliedInputs.size>32)forgetInput(appliedInputs.keys().next().value);}
+ save(id,apply).then(()=>{if(failure)appliedInputs.get(serialized)?.delete(key);});return s;
+}
 function rows(c){const id=String(c.id),s=state(id),snapshots=c.buyerMatching?.snapshots,prior=rowCache.get(id);if(prior?.items===s.items&&prior.snapshots===snapshots)return prior.rows;const rows=Object.values({...snapshots,...s.items}).map(normalize);rowCache.set(id,{items:s.items,snapshots,rows});return rows;}
 function backup(c){return {schema:1,buyerId:c.id,exportedAt:new Date().toISOString(),results:state(c.id),tracking:c.buyerMatching||{}};}
-function restore(c,backup){if(backup?.schema!==1||String(backup.buyerId)!==String(c.id)||!backup.results?.items||!Array.isArray(backup.results.runs))throw Error('備份格式或買方不符');const incoming=Object.values(backup.results.items);if(incoming.some(p=>!p||typeof p.id!=='string'||!/^(yungching|sinyi|591|rakuya|leju):.{1,200}$/.test(p.id)))throw Error('物件編號不正確');const data=structuredClone(backup.results),apply=s=>merge(s,data);rowCache.delete(String(c.id));cache.set(String(c.id),apply(state(c.id)));return save(c.id,apply,false);}
+function restore(c,backup){if(backup?.schema!==1||String(backup.buyerId)!==String(c.id)||!backup.results?.items||!Array.isArray(backup.results.runs))throw Error('備份格式或買方不符');const incoming=Object.values(backup.results.items);if(incoming.some(p=>!p||typeof p.id!=='string'||!/^(yungching|sinyi|591|rakuya|leju):.{1,200}$/.test(p.id)))throw Error('物件編號不正確');for(const keys of appliedInputs.values())for(const key of keys)if(JSON.parse(key)[0]===String(c.id))keys.delete(key);const data=structuredClone(backup.results),apply=s=>merge(s,data);rowCache.delete(String(c.id));cache.set(String(c.id),apply(state(c.id)));return save(c.id,apply,false);}
 function applyChecks(c,checks){const apply=s=>{for(const check of checks){const old=s.items[check.id];if(old&&stamp(check.detailAttemptedAt||check.detailCheckedAt)>stamp(old.detailAttemptedAt||old.detailCheckedAt)){if(check.detailStatus==='failed'){old.detailAttemptedAt=check.detailAttemptedAt;old.detailStatus='failed';old.detailError=check.detailError;old.detailFailures=(old.detailFailures||0)+1;old.detailRetryAt=new Date(stamp(check.detailAttemptedAt)+(old.detailFailures===1?60000:old.detailFailures===2?180000:900000)).toISOString();continue;}old.detailFailures=0;old.detailRetryAt=null;old.detailStatus='ok';old.detailError='';Object.assign(old,root.BuyerMatchEngine.mergeListingFields(old,check,check.detailCheckedAt));if(check.availability==='available'){old.notInLatest=false;old.stale=false;}}}return s;};rowCache.delete(String(c.id));apply(state(c.id));return save(c.id,apply);}
 root.BuyerResults={applyChecks,ready,restore,ingest,rows,state,backup,flush:()=>writeQueue,error:()=>failure};
 })(globalThis);
