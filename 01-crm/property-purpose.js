@@ -11,7 +11,7 @@ const val=(root,k)=>root.querySelector('[data-f="'+k+'"]')?.value||'';
 function area(root){return {...Object.fromEntries(fields.map(k=>[k,val(root,k)])),areaInput:areaEditorData(root)};}
 window.propertyPurposeData=function(block){
  if(!block)return {};
- const out={propertyKey:block._propertyKey,purposeHistory:clone(block._purposeHistory||{}),conversionEstimate:block._conversionEstimate||''};
+ const out={summaryOverrides:clone(block._summaryOverrides||{}),propertyKey:block._propertyKey,purposeHistory:clone(block._purposeHistory||{}),conversionEstimate:block._conversionEstimate||''};
  if(block._registeredRoot)out.registeredArea=area(block._registeredRoot);
  return out;
 };
@@ -24,15 +24,27 @@ function addArea(block,data,kind){
  block.append(details);block._registeredRoot=root;
  // Only populated detail categories own their summary; empty legacy details keep manual values.
  const owned={building:false,land:false,parking:false};
+ const overrides=block._summaryOverrides=clone(data.summaryOverrides||{}),sources={};
+ const floorNumber=text=>{if(/^\d+$/.test(text))return Number(text);const digits={一:1,二:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9};if(text==='十')return 10;if(text.includes('十')){const [a,b]=text.split('十');return (digits[a]||1)*10+(digits[b]||0);}return digits[text];};
+ const normalizeNo=value=>String(value).replace(/地下([一二三四五六七八九十\d]+)[層樓]\s*[-－]?\s*0*(\d+)/g,(_,floor,no)=>'B'+floorNumber(floor)+'-'+Number(no));
+ const keys=kind==='r'?['sz','parking','parkingNo']:['landSz','bldgSz','hasParking','parking'];
+ keys.forEach(key=>{const el=block.querySelector('[data-f="'+key+'"]');if(!el)return;
+  const remember=()=>{overrides[key]={value:el.value,source:sources[key]};};
+  el.addEventListener('input',remember);el.addEventListener('change',remember);
+  if(key==='parkingNo')el.addEventListener('blur',()=>{el.value=normalizeNo(el.value);remember();});
+ });
  root.addEventListener('area-totals-change',event=>{
   const v=event.detail;if(!v.valid)return;
-  const set=(key,value)=>{const el=block.querySelector('[data-f="'+key+'"]');if(el&&!root.contains(el))el.value=value;};
+  const set=(key,value)=>{if(key==='parkingNo')value=normalizeNo(value);sources[key]=value;
+   if(overrides[key]&&overrides[key].source!==value)delete overrides[key];
+   const el=block.querySelector('[data-f="'+key+'"]');if(el&&!root.contains(el))el.value=overrides[key]?overrides[key].value:value;
+  };
   if(v.building>0||owned.building){set(kind==='r'?'sz':'bldgSz',formatPropertyArea(v.building));owned.building=true;}
   if(kind==='d'&&(v.land>0||owned.land)){set('landSz',formatPropertyArea(v.land));owned.land=true;}
   if(v.parking||v.parkingNo||owned.parking){
    set('parking',v.parking);owned.parking=true;
-   if(kind==='r'){set('parkingNo',v.parkingNo);block.querySelector('[data-f="parkingNo"]').parentElement.style.display=v.parking||v.parkingNo?'':'none';}
-   else {set('hasParking',v.parking||v.parkingNo?'有':'無');block.querySelector('[data-f="parking"]').parentElement.style.display=v.parking||v.parkingNo?'':'none';}
+   if(kind==='r'){set('parkingNo',v.parkingNo);block.querySelector('[data-f="parkingNo"]').parentElement.style.display=val(block,'parking')||val(block,'parkingNo')?'':'none';}
+   else {set('hasParking',v.parking||v.parkingNo?'有':'無');block.querySelector('[data-f="parking"]').parentElement.style.display=val(block,'hasParking')==='有'?'':'none';}
   }
  });
  mountAreaEditor(root,registered.areaInput);
