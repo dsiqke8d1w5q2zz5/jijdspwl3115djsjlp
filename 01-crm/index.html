@@ -816,11 +816,11 @@
     <link rel="stylesheet" href="area-editor.css?v=20261005audit210">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
     <link rel="stylesheet" href="ui-foundation.css?v=20261005audit210">
-    <link rel="stylesheet" href="responsive-layout.css?v=20261013replay361">
-<link rel="stylesheet" href="inventory-market.css?v=20261013replay361">
+    <link rel="stylesheet" href="responsive-layout.css?v=20261013area362">
+<link rel="stylesheet" href="inventory-market.css?v=20261013area362">
 <link rel="stylesheet" href="bulk-search.css?v=20261006nav261">
 <link rel="stylesheet" href="daily-search-report.css?v=20261006report274">
-<link rel="stylesheet" href="buyer-match.css?v=20261013replay361">
+<link rel="stylesheet" href="buyer-match.css?v=20261013area362">
 <script src="./customer-search.js?v=20261006search263"></script>
 <style>.card-search-hit{font-size:13px;line-height:1.5;color:#526880;overflow-wrap:anywhere;white-space:normal;margin:4px 0 0}</style>
 </head>
@@ -5291,8 +5291,8 @@ function typeDetail(origC, viewAs) {
                 rows.push(dRow('社區大樓',a.community||''));
                 rows.push(dRow('地址',a.addr||''));
                 if (a.houseType) rows.push(dRow('房屋型態',a.houseType));
-                if (a.landSz) rows.push(dRow('土地坪數',a.landSz+'坪'));
-                if (a.bldgSz) rows.push(dRow('建物坪數',a.bldgSz+'坪'));
+                if (a.landSz) rows.push(dRow('土地坪數',formatPropertyArea(a.landSz)+'坪'));
+                if (a.bldgSz) rows.push(dRow('建物坪數',formatPropertyArea(a.bldgSz)+'坪'));
                 if (a.hasParking==='有') { rows.push(dRow('車位',a.parking||'有')); }
             });
         } else {
@@ -5799,8 +5799,8 @@ function _devBlockData(btn) {
     var get = function(f){ var el = block.querySelector('[data-f="'+f+'"]'); return el ? el.value.trim() : ''; };
     var community = get('community'), addr = get('addr');
     if (!community && !addr) { showToast('請先填寫社區或地址', 'warn'); return null; }
-    return { community:community, addr:addr, houseType:get('houseType'), landSz:get('landSz'),
-             bldgSz:get('bldgSz'), hasParking:get('hasParking'), parking:get('parking'), devType:get('devType') };
+    return { community:community, addr:addr, houseType:get('houseType'), landSz:formatPropertyArea(get('landSz')),
+             bldgSz:formatPropertyArea(get('bldgSz')), hasParking:get('hasParking'), parking:get('parking'), devType:get('devType') };
 }
 function moveDevToSp(btn) {
     var d = _devBlockData(btn); if (!d) return;
@@ -7604,6 +7604,11 @@ function getDPersons() { return getPersonBlocks('dPersonList'); }
 function clearDPersons() { clearPersonBlocks('dPersonList'); dPersonId = 0; }
 
 // ── 商機募集：社區/地址多筆 ──
+function formatPropertyArea(value) {
+    if (value === null || value === undefined || String(value).trim() === '') return '';
+    const n = Number(value);
+    return Number.isFinite(n) ? n.toFixed(2) : String(value);
+}
 var dAddrId = 0;
 function addDAddrRow(data) {
     dAddrId++;
@@ -7622,8 +7627,8 @@ function addDAddrRow(data) {
         // 房屋型態 + 土地坪數 + 建物坪數 + 車位 + 車位型態
         '<div class="da-row2" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:8px">' +
             '<div class="fg" style="margin-bottom:0"><label style="font-size:12px">房屋型態</label><select data-f="houseType" style="width:100%"><option value="">選擇</option><option value="公寓"'+(d.houseType==='公寓'?' selected':'')+'>公寓</option><option value="電梯大樓"'+(d.houseType==='電梯大樓'?' selected':'')+'>電梯大樓</option><option value="透天"'+(d.houseType==='透天'?' selected':'')+'>透天</option><option value="套房"'+(d.houseType==='套房'?' selected':'')+'>套房</option><option value="店面"'+(d.houseType==='店面'?' selected':'')+'>店面</option><option value="辦公"'+(d.houseType==='辦公'?' selected':'')+'>辦公</option><option value="土地"'+(d.houseType==='土地'?' selected':'')+'>土地</option><option value="其他"'+(d.houseType==='其他'?' selected':'')+'>其他</option></select></div>' +
-            '<div class="fg" style="margin-bottom:0"><label style="font-size:12px">土地坪數</label><div class="input-grp"><input data-f="landSz" value="'+esc(d.landSz||'')+'" style="min-width:0;flex:1"><span class="input-sfx">坪</span></div></div>' +
-            '<div class="fg" style="margin-bottom:0"><label style="font-size:12px">建物坪數</label><div class="input-grp"><input data-f="bldgSz" value="'+esc(d.bldgSz||'')+'" style="min-width:0;flex:1"><span class="input-sfx">坪</span></div></div>' +
+            '<div class="fg" style="margin-bottom:0"><label style="font-size:12px">土地坪數</label><div class="input-grp"><input data-f="landSz" inputmode="decimal" onblur="this.value=formatPropertyArea(this.value)" value="'+esc(formatPropertyArea(d.landSz))+'" style="min-width:0;flex:1"><span class="input-sfx">坪</span></div></div>' +
+            '<div class="fg" style="margin-bottom:0"><label style="font-size:12px">建物坪數</label><div class="input-grp"><input data-f="bldgSz" inputmode="decimal" onblur="this.value=formatPropertyArea(this.value)" value="'+esc(formatPropertyArea(d.bldgSz))+'" style="min-width:0;flex:1"><span class="input-sfx">坪</span></div></div>' +
             '<div class="fg" style="margin-bottom:0"><label style="font-size:12px">是否有車位</label><select data-f="hasParking" style="width:100%" onchange="var b=this.closest(\'.person-block\');var pk=b.querySelector(\'[data-f=parking]\').parentElement;pk.style.display=this.value===\'有\'?\'\':\'none\';"><option value="無"'+(d.hasParking==='有'?'':' selected')+'>無</option><option value="有"'+(d.hasParking==='有'?' selected':'')+'>有</option></select></div>' +
             '<div class="fg" style="margin-bottom:0;'+(d.hasParking==='有'?'':'display:none')+'"><label style="font-size:12px">車位型態</label><select data-f="parking" style="width:100%">'+parkHtml+'</select></div>' +
         '</div>' +
@@ -7637,7 +7642,7 @@ function getDAddrs() {
     document.querySelectorAll('#dAddrList .person-block').forEach(function(row) {
         var get = function(f){ var el=row.querySelector('[data-f="'+f+'"]'); return el?el.value.trim():''; };
         var devType = get('devType'), community = get('community'), addr = get('addr');
-        if (devType || community || addr || row._dAddrDriveUrl) r.push({ ...propertyPurposeData(row), devType:devType, community:community, addr:addr, houseType:get('houseType'), landSz:get('landSz'), bldgSz:get('bldgSz'), hasParking:get('hasParking'), parking:get('parking'), dAddrDriveUrl: row._dAddrDriveUrl || '' });
+        if (devType || community || addr || row._dAddrDriveUrl) r.push({ ...propertyPurposeData(row), devType:devType, community:community, addr:addr, houseType:get('houseType'), landSz:formatPropertyArea(get('landSz')), bldgSz:formatPropertyArea(get('bldgSz')), hasParking:get('hasParking'), parking:get('parking'), dAddrDriveUrl: row._dAddrDriveUrl || '' });
     });
     return r;
 }
@@ -13651,30 +13656,30 @@ function deleteMktTemplate(idx) {
 <script src="image-composer.js?v=20261005audit210"></script>
 <script src="area-editor.js?v=20261005audit210"></script>
 <script src="sync-notice.js?v=20261005audit210"></script>
-<script src="detail-properties.js?v=20261013replay361"></script>
+<script src="detail-properties.js?v=20261013area362"></script>
 <script src="edit-layout.js?v=20261005audit210"></script>
 <script src="property-purpose.js?v=20261005audit210"></script>
 <script src="schedule-property.js?v=20261005audit210"></script>
 <link rel="stylesheet" href="schedule-reminders.css?v=20261008prefs307">
 <script src="reminder-engine.js?v=20261008prefs307"></script>
 <script src="schedule-reminders.js?v=20261008time313"></script>
-<script src="buyer-match-engine.js?v=20261013replay361"></script>
-<script src="buyer-demands.js?v=20261013replay361"></script>
-<script src="buyer-results.js?v=20261013replay361"></script>
-<script src="buyer-grouping.js?v=20261013replay361"></script>
-<script src="inventory-market-engine.js?v=20261013replay361"></script>
-<script src="inventory-market.js?v=20261013replay361"></script>
-<script src="buyer-schedule.js?v=20261013replay361"></script>
+<script src="buyer-match-engine.js?v=20261013area362"></script>
+<script src="buyer-demands.js?v=20261013area362"></script>
+<script src="buyer-results.js?v=20261013area362"></script>
+<script src="buyer-grouping.js?v=20261013area362"></script>
+<script src="inventory-market-engine.js?v=20261013area362"></script>
+<script src="inventory-market.js?v=20261013area362"></script>
+<script src="buyer-schedule.js?v=20261013area362"></script>
 <script src="daily-search-report.js?v=20261006report274"></script>
-<script src="buyer-match.js?v=20261013replay361"></script>
+<script src="buyer-match.js?v=20261013area362"></script>
 <script src="bulk-search.js?v=20261006nav261"></script>
-<script src="seller-layout.js?v=20261013replay361"></script>
+<script src="seller-layout.js?v=20261013area362"></script>
 <script src="template-archive.js?v=20261007drag289"></script>
 <link rel="stylesheet" href="template-archive.css?v=20261007drag289">
-<script src="daily-search-notice.js?v=20261013replay361"></script>
-<link rel="stylesheet" href="daily-search-notice.css?v=20261013replay361">
-<link rel="stylesheet" href="buyer-helper-update.css?v=20261013replay361">
-<script src="buyer-helper-update.js?v=20261013replay361"></script>
+<script src="daily-search-notice.js?v=20261013area362"></script>
+<link rel="stylesheet" href="daily-search-notice.css?v=20261013area362">
+<link rel="stylesheet" href="buyer-helper-update.css?v=20261013area362">
+<script src="buyer-helper-update.js?v=20261013area362"></script>
 <script src="common-tools.js?v=20261007tools281"></script>
 <link rel="stylesheet" href="common-tools.css?v=20261007instant283">
 <script src="dashboard-actions.js?v=20261007actions286"></script>
