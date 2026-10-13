@@ -157,6 +157,7 @@
             summary.append(node('span','公設比 '+(building?(values.common/building*100).toFixed(1):'0')+'%'));
             totals.replaceChildren(...(landOnly?[metrics]:[metrics,summary]));
             if(root.id==='sellerFixedProperty') calcSellerSz(); else calcSpSellerSz(field(root,'mainBldg'));
+            root.dispatchEvent(new CustomEvent('area-totals-change',{detail:{valid:!bad,building,land:values.landShare,parking:parkingField(root,'parking').value,parkingNo:parkingField(root,'parkingNo').value}}));
         }
         function areaControls(item, label) {
             const wrap=node('div','','area-value');

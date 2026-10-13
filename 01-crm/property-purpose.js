@@ -15,13 +15,27 @@ window.propertyPurposeData=function(block){
  if(block._registeredRoot)out.registeredArea=area(block._registeredRoot);
  return out;
 };
-function addArea(block,data){
+function addArea(block,data,kind){
  const details=document.createElement('details');details.className='purpose-area';
  details.innerHTML='<summary>面積與持分明細</summary><div class="purpose-area-root"></div>';
  const root=details.lastElementChild;root.innerHTML='<div hidden>'+fields.map(k=>'<div class="fg"><input data-f="'+k+'"></div>').join('')+'</div>';
  const registered=data.registeredArea||{parking:data.rParking||data.parking||'',parkingNo:data.rParkingNo||data.parkingNo||''};
  fields.forEach(k=>root.querySelector('[data-f="'+k+'"]').value=registered[k]||'');
- block.append(details);block._registeredRoot=root;mountAreaEditor(root,registered.areaInput);
+ block.append(details);block._registeredRoot=root;
+ // Only populated detail categories own their summary; empty legacy details keep manual values.
+ const owned={building:false,land:false,parking:false};
+ root.addEventListener('area-totals-change',event=>{
+  const v=event.detail;if(!v.valid)return;
+  const set=(key,value)=>{const el=block.querySelector('[data-f="'+key+'"]');if(el&&!root.contains(el))el.value=value;};
+  if(v.building>0||owned.building){set(kind==='r'?'sz':'bldgSz',formatPropertyArea(v.building));owned.building=true;}
+  if(kind==='d'&&(v.land>0||owned.land)){set('landSz',formatPropertyArea(v.land));owned.land=true;}
+  if(v.parking||v.parkingNo||owned.parking){
+   set('parking',v.parking);owned.parking=true;
+   if(kind==='r'){set('parkingNo',v.parkingNo);block.querySelector('[data-f="parkingNo"]').parentElement.style.display=v.parking||v.parkingNo?'':'none';}
+   else {set('hasParking',v.parking||v.parkingNo?'有':'無');block.querySelector('[data-f="parking"]').parentElement.style.display=v.parking||v.parkingNo?'':'none';}
+  }
+ });
+ mountAreaEditor(root,registered.areaInput);
 }
 for(const [kind,c] of Object.entries(cfg)){
  const original=window[c.add];window[c.add]=function(data){const result=original.apply(this,arguments),block=rows(kind).at(-1);if(!block)return result;
@@ -29,7 +43,7 @@ for(const [kind,c] of Object.entries(cfg)){
   block.querySelectorAll('[onclick^="moveSpToDev"],[onclick^="moveDevToSp"],[onclick^="moveDevToRental"]').forEach(el=>el.remove());
   const button=document.createElement('button');button.type='button';button.className='purpose-button';button.textContent='轉換用途';button.onclick=()=>choose(block,kind);
   const heading=block.firstElementChild,remove=heading.querySelector('.c-del');heading.append(button);if(remove)heading.append(remove);
-  if(kind!=='s')addArea(block,d);
+  if(kind!=='s')addArea(block,d,kind);
   if(block._conversionEstimate){const note=document.createElement('p');note.className='purpose-note';note.textContent=block._conversionEstimate;heading.after(note);}
   return result;
  };
