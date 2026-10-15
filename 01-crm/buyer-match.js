@@ -71,7 +71,7 @@ function acceptJobFeed(job){if(!job?.feed)return;if(job.buyerId){const c=DB.find
 // Only an explicit manual search repairs retained rows absent from this search feed.
 async function repairHistoricalDetails(c,job,owner,epoch){
  const present=new Set((job.feed?.listings||[]).map(p=>p.id)),ds=demands(c),started=Date.parse(job.startedAt)||0;
- const candidates=BuyerResults.rows(c).filter(p=>!present.has(p.id)&&['yungching','sinyi','591'].includes(p.source)&&!c.buyerMatching?.hidden?.includes(p.id)&&tracking(c,p.id).status!=='rejected'&&(Date.parse(p.detailAttemptedAt||p.detailCheckedAt)||0)<started&&ds.some(d=>{const r=BuyerMatchEngine.evaluate(d,p);return r.status!=='excluded'&&(p.notInLatest||(r.status==='pending'&&r.pending.some(t=>/用途|主建物坪數|建坪|屋齡|車位|房間數|房屋類型|電梯|樓層|是否已完工/.test(t))));}));
+ const candidates=BuyerResults.rows(c).filter(p=>(!present.has(p.id)||(p.source==='591'&&p.availability!=='available'))&&['yungching','sinyi','591'].includes(p.source)&&!c.buyerMatching?.hidden?.includes(p.id)&&tracking(c,p.id).status!=='rejected'&&(Date.parse(p.detailAttemptedAt||p.detailCheckedAt)||0)<started&&ds.some(d=>{const r=BuyerMatchEngine.evaluate(d,p);return r.status!=='excluded'&&(p.notInLatest||(r.status==='pending'&&r.pending.some(t=>/連結有效性|用途|主建物坪數|建坪|屋齡|車位|房間數|房屋類型|電梯|樓層|是否已完工/.test(t))));}));
  let done=0,failed=0;
  for(const source of ['yungching','sinyi','591']){const rows=candidates.filter(p=>p.source===source);
  for(let i=0;i<rows.length;i+=3){if(dialog!==owner||!owner.open||epoch!==searchEpoch)return '';const batch=rows.slice(i,i+3);textStatus('正在補讀未出現在本次搜尋的舊物件 '+done+'／'+candidates.length+' 筆；每筆本次只核對一次。');
