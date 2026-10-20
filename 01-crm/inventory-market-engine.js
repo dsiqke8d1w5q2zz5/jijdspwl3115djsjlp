@@ -25,7 +25,29 @@ function exclusionGroup(config,records,id){const rows=Object.values(records||{})
 function exclusion(rows){const fields=['id','source','title','address','city','district','community','price','area','floor','floorText','age','rooms'];return {id:rows[0]?.id,ids:rows.map(p=>p.id),samples:rows.map(p=>Object.fromEntries(fields.filter(k=>p[k]!=null).map(k=>[k,p[k]])))};}
 
 const time=v=>Date.parse(v)||0;
+
+function transactionId(id){return String(id||'').replace(/^(moi(?:-presale)?:[^:]+:)0+(\d+)$/, '$1$2');}
+function reconcileTransactions(state){
+ if(!state?.records)return state;
+ const aliases={},records={},first=(a,b)=>[a,b].filter(x=>time(x)>0).sort((x,y)=>time(x)-time(y))[0];
+ for(const p of Object.values(state.records)){
+  const id=p.kind==='transaction'?transactionId(p.id):p.id;aliases[p.id]=id;
+  const prior=records[id],row={...p,id};
+  if(prior){const newer=time(p.seenAt)>=time(prior.seenAt)?row:prior;
+   records[id]={...prior,...newer,systemFirstSeenAt:first(prior.systemFirstSeenAt||prior.publishedObservedAt||prior.seenAt,p.systemFirstSeenAt||p.publishedObservedAt||p.seenAt),publishedObservedAt:first(prior.publishedObservedAt,p.publishedObservedAt)};
+  }else records[id]=row;
+ }
+ const seen=new Set(),events=[];
+ for(const e of [...(state.events||[])].sort((a,b)=>time(a.at)-time(b.at))){
+  const id=aliases[e.listingId]||e.listingId,key=e.kind==='成交'?id+'|成交':e.id;
+  if(seen.has(key))continue;seen.add(key);events.push({...e,listingId:id});
+ }
+ return {...state,records,events};
+}
+
+
 function apply(previous,config,feed,now=new Date().toISOString()){
+ previous=reconcileTransactions(previous);feed={...feed,listings:(feed.listings||[]).map(p=>p.kind==='transaction'?{...p,id:transactionId(p.id)}:p)};
  const s=structuredClone(previous||{records:{},baselines:{},events:[],ack:0});s.records||={};s.baselines||={};s.events||=[];s.candidates||={};feed={...feed,listings:(feed.listings||[]).map(p=>p.kind==='transaction'?p:matchEngine.mergeListingFields(s.records[p.id]||s.candidates[p.id],p,p.seenAt||feed.generatedAt||now))};if(config.enabled!==false)for(const p of feed.listings||[]){const source=feed.sources?.find(x=>x.id===p.source);if(!['ok','partial'].includes(source?.status))continue;if(candidate(config,p)){const prior=s.candidates[p.id];if(!prior||time(p.seenAt||feed.generatedAt)>=time(prior.seenAt))s.candidates[p.id]={...p,seenAt:p.seenAt||feed.generatedAt||now};}else delete s.candidates[p.id];}for(const id of Object.keys(s.candidates))if(!candidate(config,s.candidates[id]))delete s.candidates[id];const own=new Set(config.ownIds||[]),incoming=(feed.listings||[]).filter(p=>p.id&&!excluded(config,p)&&matches(config,p)),sources=feed.sources||[];
  for(const source of sources){if(!['ok','partial'].includes(source.status)||(['moi','moi-presale'].includes(source.id)?config.transactionsEnabled===false:config.enabled===false))continue;const rows=incoming.filter(p=>p.source===source.id),initialized=!!s.baselines[source.id];
   for(const raw of rows){const p={...raw,...(config.buildingDecisions?.[raw.id]?.same?{matchNote:'已人工確認同棟'}:config.mode!=='road'&&!raw.community?{matchNote:'建案名稱待確認'}:{}),seenAt:raw.seenAt||feed.generatedAt||now},old=s.records[p.id];if(old&&(time(p.seenAt)<time(old.seenAt)||(old.availability&&old.availability!=='active'&&time(p.seenAt)<=time(s.scans?.[source.id]?.at))))continue;
@@ -37,6 +59,7 @@ function apply(previous,config,feed,now=new Date().toISOString()){
    if(kind&&assess(config,p).match&&!assess(config,p).missing.length){const id=[source.id,p.id,kind,p.seenAt,p.price].join('|');if(!s.events.some(e=>e.id===id))s.events.push({id,kind,listingId:p.id,at:now,before:old?.price,price:p.price});}
    for(const k of ['purposeAttemptedAt','purposeCheckedAt','linkCheckedAt','lastVerifiedAvailableAt','offDuplicateOf'])if(old?.[k]&&!p[k])p[k]=old[k];
    p.systemFirstSeenAt=old?.systemFirstSeenAt||old?.firstSeenAt||old?.publishedObservedAt||(old&&systemStatus(old,s.events).at?new Date(systemStatus(old,s.events).at).toISOString():null)||old?.seenAt||now;
+   if(p.kind==='transaction')p.publishedObservedAt=[old?.publishedObservedAt,p.publishedObservedAt].filter(x=>time(x)>0).sort((a,b)=>time(a)-time(b))[0]||p.publishedObservedAt;
    s.records[p.id]=p;
   }
   if(source.status==='ok'&&!feed.incremental&&!['moi','moi-presale'].includes(source.id)&&feed.scanId){
@@ -156,5 +179,5 @@ function sortListingGroups(groups,events=[],order='date-desc'){
  const direction=order.endsWith('-asc')?1:-1;
  return groups.map((group,index)=>{const dates=group.map(({p})=>date(p)).filter(Number.isFinite);const prices=group.map(({p})=>Number(p.price)).filter(n=>Number.isFinite(n)&&n>0);return {group,index,value:order.startsWith('count-')?group.length:order.startsWith('price-')?(prices.length?Math.min(...prices):null):(dates.length?Math.max(...dates):null)};}).sort((a,b)=>a.value===null?(b.value===null?a.index-b.index:1):b.value===null?-1:direction*(a.value-b.value)||a.index-b.index).map(x=>x.group);
 }
-const api={reconcileNewListings,sortListingGroups,systemStatus,sameOffProperty,offGroups,cleanLegacyOff,confirmedAvailable,confirmedOff,changeRelevant,purposeKey,manualPurpose,eventRelevant,candidate,prioritizeGroups,excluded,exclusionGroup,exclusion,verify,criteria,assess,conditionFields,buildingTypes,norm,communityName,aliases,location,matches,apply,reminder};root.InventoryMarketEngine=api;if(typeof module!=='undefined')module.exports=api;
+const api={transactionId,reconcileTransactions,reconcileNewListings,sortListingGroups,systemStatus,sameOffProperty,offGroups,cleanLegacyOff,confirmedAvailable,confirmedOff,changeRelevant,purposeKey,manualPurpose,eventRelevant,candidate,prioritizeGroups,excluded,exclusionGroup,exclusion,verify,criteria,assess,conditionFields,buildingTypes,norm,communityName,aliases,location,matches,apply,reminder};root.InventoryMarketEngine=api;if(typeof module!=='undefined')module.exports=api;
 })(globalThis);

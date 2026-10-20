@@ -94,11 +94,22 @@ async function refreshResults(updated){await Promise.allSettled([()=>window.Buye
 async function check(){if(busy||document.hidden||dialog||document.querySelector('dialog[open]')||['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;busy=true;try{const data=await request('dailyStatus');const r=data.report;if(!data.current||data.queued||!r?.finishedAt||!['completed','partial'].includes(r.status)||!(r.buyers?.total||r.inventory?.total))return;const id=data.day+'|'+r.startedAt;if(known(id))return;const present=()=>{if(!document.hidden&&!document.querySelector('dialog[open]'))show(data,id);};if(navigator.locks)await navigator.locks.request('crm-daily-notice',present);else present();}catch{}finally{busy=false;}}
 setTimeout(check,3000);setInterval(check,15000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)check();});async function open(){
  if(dialog?.open)return;
- const view=shell();view.innerHTML='<header><h2 id="dailyNoticeTitle">早上自動搜尋結果</h2><button data-close aria-label="關閉">×</button></header><div class="daily-notice-body"><p role="status" data-loading>正在讀取早上報告…</p></div><footer><button data-close>關閉</button></footer>';view.showModal();
- try{const data=await request('dailyStatus');if(dialog!==view||!view.open)return;
- if(!data.report||data.report.status==='running'){view.querySelector('[data-loading]').textContent=!data.report?'尚無早上自動搜尋報告。':'早上自動搜尋仍在執行，完成後會自動通知。';return;}
- show(data,data.day+'|'+data.report.startedAt,true,view);
- }catch(e){if(dialog===view&&view.open)view.querySelector('[data-loading]').textContent='報告暫時無法讀取：'+e.message+'。請確認搜尋助手已連線後再試。';}
+ const view=shell();view.innerHTML='<header><h2 id="dailyNoticeTitle">早上自動搜尋結果</h2><button data-close aria-label="關閉">×</button></header><div class="daily-notice-body"><p role="status" data-loading>正在讀取早上報告…</p><p data-progress style="overflow-wrap:anywhere"></p><p data-error role="status"></p></div><footer><button data-stop hidden>停止搜尋</button><button data-retry-running hidden>重試未完成</button><button data-close>關閉</button></footer>';view.showModal();
+ let timer,flight=false,progress,ended=false;
+ const schedule=()=>{clearTimeout(timer);if(!ended&&view.open&&dialog===view)timer=setTimeout(update,10000);};
+ view.addEventListener('close',()=>{ended=true;clearTimeout(timer);},{once:true});
+ async function update(){if(flight||ended||!view.open||dialog!==view)return;if(document.hidden){schedule();return;}flight=true;
+ try{const data=await request('dailyStatus',{progressOnly:true});if(!view.open||dialog!==view)return;
+ progress=data.progress;
+ if(!progress||progress.status!=='running'){const full=await request('dailyStatus');if(!view.open||dialog!==view)return;if(full.report&&full.report.status!=='running'){ended=true;show(full,full.day+'|'+full.report.startedAt,true,view);return;}if(!full.report){view.querySelector('[data-loading]').textContent='尚無早上自動搜尋報告。';return;}progress={...full.report};}
+ const last=Date.parse(progress.lastProgressAt||progress.startedAt),stalled=Number.isFinite(last)&&Date.now()-last>=300000;
+ view.querySelector('[data-loading]').textContent=stalled?'可能停滯：已超過 5 分鐘沒有新進度。':'早上自動搜尋執行中，每 10 秒更新狀態。';
+ const names={yungching:'永慶',sinyi:'信義','591':'591'},active=(progress.active||[]).map(x=>(names[x.source]||x.source)+(x.district?'・'+x.district:''));
+ view.querySelector('[data-progress]').textContent='已讀 '+(progress.pages??'—')+' 頁｜目前來源：'+(active.join('、')||'等待下一步')+'｜最後進度：'+(Number.isFinite(last)?new Date(last).toLocaleString('zh-TW'):'尚無紀錄');
+ view.querySelector('[data-error]').textContent='';view.querySelector('[data-stop]').hidden=!stalled||!progress.id;view.querySelector('[data-retry-running]').hidden=!stalled||!progress.id;
+ }catch(e){if(view.open&&dialog===view)view.querySelector('[data-error]').textContent='暫時無法更新：'+e.message+'；10 秒後重試。';}finally{flight=false;schedule();}}
+ async function act(retry){if(flight||!progress?.id)return;flight=true;clearTimeout(timer);const buttons=[...view.querySelectorAll('[data-stop],[data-retry-running]')];buttons.forEach(b=>b.disabled=true);try{await request('cancel',{jobId:progress.id});if(retry)await request('dailyRetry');}catch(e){if(view.open)view.querySelector('[data-error]').textContent=e.message;}finally{flight=false;buttons.forEach(b=>b.disabled=false);schedule();}if(view.open)await update();}
+ view.querySelector('[data-stop]').onclick=()=>act(false);view.querySelector('[data-retry-running]').onclick=()=>act(true);await update();
 }
 
 const anchor=document.querySelector('[data-bulk="inventory"]');if(anchor){const button=document.createElement('button');button.type='button';button.className=anchor.className;button.id='dailyReportButton';button.textContent='早上報告';button.title='查看最近一次早上自動搜尋結果，不會重新搜尋';button.onclick=open;anchor.after(button);}
