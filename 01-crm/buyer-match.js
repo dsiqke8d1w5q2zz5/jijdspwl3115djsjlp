@@ -202,25 +202,28 @@ function compactControls(){
  const helper=$('bmHelper'),update=()=>{helper.hidden=helper.textContent==='正在確認搜尋助手…'||helper.textContent.startsWith('搜尋助手已連接')&&!/未完成|請執行|需更新|失敗/.test(helper.textContent);};const helperObserver=new MutationObserver(update);helperObserver.observe(helper,{childList:true,characterData:true,subtree:true});dialog.addEventListener('close',()=>helperObserver.disconnect(),{once:true});update();
 }
 const mobileMatch=window.matchMedia('(max-width:768px)');mobileMatch.addEventListener('change',e=>{if(e.matches&&dialog?.open)dialog.close();});
-let automaticPolling=false,lastCloudPoll=0;
+let automaticPolling=false,lastCloudPoll=0,automaticRevision,automaticSelection,automaticJob;
+async function runAutomaticBatch(list,input){for(const c of list){runBuyer(c,input);await new Promise(resolve=>setTimeout(resolve,0));}}
 async function pollAutomaticResults(){
  if(automaticPolling||mobileMatch.matches||document.hidden||dialog?.open)return;
  const selected=buyers().filter(c=>c.buyerMatching?.auto===true);if(!selected.length)return;
  automaticPolling=true;
+ const signature=JSON.stringify(selected.map(c=>[c.id,demands(c)]));if(signature!==automaticSelection){automaticRevision=undefined;automaticJob=undefined;automaticSelection=signature;}
  try{
   await BuyerResults.ready(selected.map(c=>c.id));
   if(Date.now()-lastCloudPoll>15*60000){
    try{
     const response=await fetch('./data/buyer-feed.json',{cache:'no-store',signal:AbortSignal.timeout(15000)});
-    if(response.ok){const data=await response.json();if(data.schema===1&&Array.isArray(data.listings)&&Array.isArray(data.sources)){selected.forEach(c=>runBuyer(c,data));lastCloudPoll=Date.now();}}
+    if(response.ok){const data=await response.json();if(data.schema===1&&Array.isArray(data.listings)&&Array.isArray(data.sources)){await runAutomaticBatch(selected,data);lastCloudPoll=Date.now();}}
    }catch{}
   }
   try{
-   const {last,manualFeeds={}}=await helperRequest('last',undefined,5000);
-   if(last)selected.forEach(c=>runBuyer(c,last));
-   selected.forEach(c=>{const data=manualFeeds[String(c.id)];if(data)runBuyer(c,data);});
-   const {job}=await helperRequest('progress',{},5000);
-   if(job?.feed)selected.filter(c=>job.buyerId?String(c.id)===job.buyerId:!job.buyerIds||job.buyerIds.includes(String(c.id))).forEach(c=>runBuyer(c,job.feed));
+   const data=await helperRequest('last',{scope:'buyers',revision:automaticRevision},5000),{last,manualFeeds={}}=data;
+   if(last)await runAutomaticBatch(selected,last);
+   for(const c of selected){const data=manualFeeds[String(c.id)];if(data)await runAutomaticBatch([c],data);}
+   const {job}=await helperRequest('progress',{jobId:automaticJob?.id,pages:automaticJob?.pages,status:automaticJob?.status,skipUnchanged:true},5000);
+   if(job?.feed)await runAutomaticBatch(selected.filter(c=>job.buyerId?String(c.id)===job.buyerId:!job.buyerIds||job.buyerIds.includes(String(c.id))),job.feed);
+   automaticRevision=data.revision;automaticJob=job;
   }catch{}
  }catch(e){console.warn('自動配對行程暫未更新',e);}
  finally{automaticPolling=false;}

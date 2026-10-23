@@ -125,10 +125,11 @@ chrome.runtime.onMessage.addListener((msg,sender,reply)=>{if(!sender.url?.starts
 
 // Inventory idle polling must not transfer every buyer's saved search results.
 async function lastResults(payload={}){
- if(payload?.scope!=='inventory')return BuyerStorage.get(['last','lastError','syncedAt','manualFeeds','inventoryFeeds']);
+ if(!['inventory','buyers'].includes(payload?.scope))return BuyerStorage.get(['last','lastError','syncedAt','manualFeeds','inventoryFeeds']);
  let {resultRevision}=await BuyerStorage.get('resultRevision');
  if(!resultRevision){resultRevision=crypto.randomUUID();await BuyerStorage.set({resultRevision});}
  if(resultRevision&&payload.revision===resultRevision)return {revision:resultRevision,unchanged:true};
+ if(payload.scope==='buyers'){const data=await BuyerStorage.get(['last','manualFeeds']);return {revision:resultRevision,last:data.last,manualFeeds:data.manualFeeds||{}};}
  const data=await BuyerStorage.get(['last','inventoryFeeds']);
  return {revision:resultRevision,inventoryFeeds:data.inventoryFeeds||{},...(data.last?.inventoryIds?.length?{last:data.last}:{})};
 }
