@@ -9,6 +9,12 @@ const assert=require('node:assert/strict'),fs=require('fs'),path=require('path')
  await p.evaluate(()=>document.querySelectorAll('.ware-item').forEach(e=>e.remove()));assert.equal((await p.evaluate(()=>crmRead591(document,'新北市'))).length,0,'embedded-only rows are never admitted');
  await p.evaluate(()=>{globalThis.fetch=async url=>{if(url.includes('bff-house'))throw Error('network timeout');return {status:404,ok:false}}});
  const checks=await p.evaluate(()=>crmVerifyListings([{source:'591',id:'591:25296250',url:'https://sale.591.com.tw/home/house/detail/2/25296250.html'}]));assert.equal(checks[0].availability,'unavailable','API failure must still try original page');
+ // A working data API must never override a dead or unverified public URL.
+ for(const sample of [{status:404,body:'',want:'unavailable'},{status:200,body:'<p>此物件已下架</p>',want:'unavailable'},{status:200,body:'<h1>Checking your browser</h1>',want:'unknown'},{status:200,body:'<div><span>法定用途</span><span>住家用</span></div>',want:'available'}]){
+ await p.evaluate(sample=>{globalThis.fetch=async url=>url.includes('bff-house')?{ok:true,json:async()=>({ware:{id:123},info:{}})}:{ok:sample.status===200,status:sample.status,text:async()=>sample.body};},sample);
+ const [check]=await p.evaluate(()=>crmVerifyListings([{source:'591',id:'591:123',url:'https://sale.591.com.tw/home/house/detail/2/123.html'}]));assert.equal(check.availability,sample.want);assert.equal(check.detailStatus,sample.want==='unknown'?'failed':'ok');
+ }
+ for(const source of ['yungching','sinyi']){const check=await p.evaluate(source=>{const doc=new DOMParser().parseFromString('<h1>此物件已下架</h1>','text/html');return source==='yungching'?crmReadYCDetail(doc):crmReadSinyiDetail(doc,'123');},source);assert.equal(check.availability,'unavailable');}
  assert.equal(E.evaluate({}, {...rows[0],availability:'unavailable'}).status,'excluded');
  assert(E.evaluate({}, rows[0]).pending.includes('連結有效性'));
  assert(!E.evaluate({}, {...rows[0],availability:'available'}).pending.includes('連結有效性'));
