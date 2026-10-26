@@ -28,13 +28,28 @@ globalThis.crmReadSinyiDetail=(doc,id)=>{const off=globalThis.crmReadUnavailable
  out.sinyiDetails.building=detail.detail||{};out.sinyiDetails.features=detail.description||[];
  out.sinyiDetails.neighborhood=(detail.lifeInfo||[]).map(group=>({type:group.type,places:(group.info||[]).map(({title,distance,time})=>({title,distance,time}))}));
  const raw=content.areaInfo?.find(x=>x.title==='主建物')?.area;if(raw!==null&&raw!==undefined&&String(raw).trim()!==''&&Number.isFinite(Number(raw))&&Number(raw)>0)out.mainArea=Number(raw);const parking=String(content.parking||'').trim();if(parking&&/平面|機械|塔式/.test(parking)){out.parking=true;out.parkingType=parking;}else if(typeof content.isParking==='boolean')out.parking=content.isParking;}if(Object.keys(out).length)out.availability='available';return out;};
+// Shared with the background worker so changing tabs/restarting a job does not reset cooldown.
+globalThis.crm591Rate ||= {nextAt:0,until:0};
+globalThis.crm591Fetch=async url=>{
+ const rate=globalThis.crm591Rate;
+ const limited=()=>Object.assign(Error('591 暫時限流，請等候冷卻後再重試'),{name:'RateLimitError',retryAt:rate.until});
+ if(rate.until>Date.now())throw limited();
+ const wait=Math.max(0,(rate.nextAt||0)-Date.now());if(wait)await new Promise(r=>setTimeout(r,wait));
+ rate.nextAt=Date.now()+1500;
+ const response=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout(6000)});
+ if(response.status===429){
+  const header=response.headers?.get('Retry-After')||'',seconds=/^\d+$/.test(header.trim())?Number(header)*1000:Date.parse(header)-Date.now();
+  rate.until=Date.now()+Math.max(60000,Number.isFinite(seconds)?seconds:0);rate.nextAt=rate.until;throw limited();
+ }
+ return response;
+};
 // Check the public URL before trusting detail data. 591 may render its fields client-side.
 globalThis.crmVerifyListings=async rows=>{
  const out=[];
  for(const row of rows){
-  let value={},verified=false,error='原物件連結尚未確認有效，請重新搜尋';
+  let value={},verified=false,rateLimited=false,retryAt=0,error='原物件連結尚未確認有效，請重新搜尋';
   try{
-   const response=await fetch(row.url,{cache:'no-store',signal:AbortSignal.timeout(6000)});
+   const response=await (row.source==='591'?globalThis.crm591Fetch(row.url):fetch(row.url,{cache:'no-store',signal:AbortSignal.timeout(6000)}));
    if([404,410].includes(response.status)){
     value={availability:'unavailable',availabilityReason:'原物件頁已失效（HTTP '+response.status+'）'};verified=true;
    }else if(response.ok){
@@ -54,15 +69,15 @@ globalThis.crmVerifyListings=async rows=>{
       const listingPage=sameURL&&/\S.+\s[-–|｜]\s*591售屋網\s*$/.test(doc.title)&&!/(不存在|已下架|錯誤|找不到)/.test(doc.title);
       if(!sameURL&&response.url){verified=false;value.availability='unknown';error='原物件連結已轉向其他頁面，尚未確認有效';}
       try{
-       const api=await fetch('https://bff-house.591.com.tw/v1/web/sale/detail?id='+encodeURIComponent(id),{cache:'no-store',signal:AbortSignal.timeout(6000)});
+       const api=await globalThis.crm591Fetch('https://bff-house.591.com.tw/v1/web/sale/detail?id='+encodeURIComponent(id));
        if(api.ok){const details=globalThis.crmRead591API(await api.json(),id);if(details){verified=verified||!!(listingPage&&(details.usage||details.buildingType));value={...details,...value,availability:verified?'available':'unknown'};}}
-      }catch{if(!verified)error='591詳細資料讀取失敗，尚未確認連結有效';}
+      }catch(e){if(e.name==='RateLimitError')throw e;if(!verified)error='591詳細資料讀取失敗，尚未確認連結有效';}
      }
     }
    }else error='原站回應 HTTP '+response.status+'，尚未確認連結有效';
-  }catch(e){error=e.name==='TimeoutError'||e.name==='AbortError'?'原物件頁讀取逾時，尚未確認連結有效':'原物件頁讀取失敗，尚未確認連結有效';}
+  }catch(e){if(e.name==='RateLimitError'){rateLimited=true;retryAt=e.retryAt;error=e.message;}else error=e.name==='TimeoutError'||e.name==='AbortError'?'原物件頁讀取逾時，尚未確認連結有效':'原物件頁讀取失敗，尚未確認連結有效';}
   if(!verified)value.availability='unknown';
-  const at=new Date().toISOString();out.push({id:row.id,...value,detailAttemptedAt:at,detailStatus:verified?'ok':'failed',detailError:verified?'':error,...(verified?{detailCheckedAt:at}:{})});
+  const at=new Date().toISOString();out.push({id:row.id,...value,detailAttemptedAt:at,detailStatus:verified?'ok':'failed',detailError:verified?'':error,...(rateLimited?{detailRateLimited:true,detailRetryAt:new Date(retryAt).toISOString()}:{}),...(verified?{detailCheckedAt:at}:{})});
  }
  return out;
 };
