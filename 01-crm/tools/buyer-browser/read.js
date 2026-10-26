@@ -28,5 +28,41 @@ globalThis.crmReadSinyiDetail=(doc,id)=>{const off=globalThis.crmReadUnavailable
  out.sinyiDetails.building=detail.detail||{};out.sinyiDetails.features=detail.description||[];
  out.sinyiDetails.neighborhood=(detail.lifeInfo||[]).map(group=>({type:group.type,places:(group.info||[]).map(({title,distance,time})=>({title,distance,time}))}));
  const raw=content.areaInfo?.find(x=>x.title==='主建物')?.area;if(raw!==null&&raw!==undefined&&String(raw).trim()!==''&&Number.isFinite(Number(raw))&&Number(raw)>0)out.mainArea=Number(raw);const parking=String(content.parking||'').trim();if(parking&&/平面|機械|塔式/.test(parking)){out.parking=true;out.parkingType=parking;}else if(typeof content.isParking==='boolean')out.parking=content.isParking;}if(Object.keys(out).length)out.availability='available';return out;};
-// The original URL is always checked, even when the details API still returns data.
-globalThis.crmVerifyListings=async rows=>{const out=[];for(const row of rows){let value={},verified=false;try{const response=await fetch(row.url,{cache:'no-store',signal:AbortSignal.timeout(6000)});if([404,410].includes(response.status)){value={availability:'unavailable',availabilityReason:'原物件頁已失效（HTTP '+response.status+'）'};verified=true;}else if(response.ok){const doc=new DOMParser().parseFromString(await response.text(),'text/html');value=globalThis.crmReadUnavailable(doc)||(row.source==='yungching'?globalThis.crmReadYCDetail(doc):row.source==='sinyi'?globalThis.crmReadSinyiDetail(doc,row.id.slice(6)):globalThis.crmRead591Detail(doc));verified=!!value.availability;if(row.source==='591'&&value.availability!=='unavailable'){try{const id=row.id.split(':').pop(),api=await fetch('https://bff-house.591.com.tw/v1/web/sale/detail?id='+encodeURIComponent(id),{cache:'no-store',signal:AbortSignal.timeout(6000)});if(api.ok){const details=globalThis.crmRead591API(await api.json(),id);if(details)value={...details,...value,availability:verified?'available':'unknown'};}}catch{}}}}catch{}if(!verified)value.availability='unknown';const at=new Date().toISOString();out.push({id:row.id,...value,detailAttemptedAt:at,detailStatus:verified?'ok':'failed',detailError:verified?'':'原物件連結尚未確認有效，請重新搜尋',...(verified?{detailCheckedAt:at}:{})});}return out;};
+// Check the public URL before trusting detail data. 591 may render its fields client-side.
+globalThis.crmVerifyListings=async rows=>{
+ const out=[];
+ for(const row of rows){
+  let value={},verified=false,error='原物件連結尚未確認有效，請重新搜尋';
+  try{
+   const response=await fetch(row.url,{cache:'no-store',signal:AbortSignal.timeout(6000)});
+   if([404,410].includes(response.status)){
+    value={availability:'unavailable',availabilityReason:'原物件頁已失效（HTTP '+response.status+'）'};verified=true;
+   }else if(response.ok){
+    const doc=new DOMParser().parseFromString(await response.text(),'text/html');
+    const off=globalThis.crmReadUnavailable(doc);
+    const blocked=/verify you are human|checking your browser|just a moment|captcha|人機驗證|安全驗證/i.test(doc.title+' '+(doc.body?.textContent||'').slice(0,1500));
+    if(off){value=off;verified=true;}
+    else if(blocked){error='原站要求驗證，尚未確認連結有效';}
+    else{
+     value=row.source==='yungching'?globalThis.crmReadYCDetail(doc):row.source==='sinyi'?globalThis.crmReadSinyiDetail(doc,row.id.slice(6)):globalThis.crmRead591Detail(doc);
+     verified=!!value.availability;
+     if(row.source==='591'&&value.availability!=='unavailable'){
+      const id=row.id.split(':').pop();
+      // A successful generic/redirected page is insufficient: require the same detail URL
+      // and a listing-specific title, then an API response for the identical listing ID.
+      const sameURL=(()=>{try{const actual=new URL(response.url),expected=new URL(row.url);return actual.origin===expected.origin&&actual.pathname===expected.pathname;}catch{return false;}})();
+      const listingPage=sameURL&&/\S.+\s[-–|｜]\s*591售屋網\s*$/.test(doc.title)&&!/(不存在|已下架|錯誤|找不到)/.test(doc.title);
+      if(!sameURL&&response.url){verified=false;value.availability='unknown';error='原物件連結已轉向其他頁面，尚未確認有效';}
+      try{
+       const api=await fetch('https://bff-house.591.com.tw/v1/web/sale/detail?id='+encodeURIComponent(id),{cache:'no-store',signal:AbortSignal.timeout(6000)});
+       if(api.ok){const details=globalThis.crmRead591API(await api.json(),id);if(details){verified=verified||!!(listingPage&&(details.usage||details.buildingType));value={...details,...value,availability:verified?'available':'unknown'};}}
+      }catch{if(!verified)error='591詳細資料讀取失敗，尚未確認連結有效';}
+     }
+    }
+   }else error='原站回應 HTTP '+response.status+'，尚未確認連結有效';
+  }catch(e){error=e.name==='TimeoutError'||e.name==='AbortError'?'原物件頁讀取逾時，尚未確認連結有效':'原物件頁讀取失敗，尚未確認連結有效';}
+  if(!verified)value.availability='unknown';
+  const at=new Date().toISOString();out.push({id:row.id,...value,detailAttemptedAt:at,detailStatus:verified?'ok':'failed',detailError:verified?'':error,...(verified?{detailCheckedAt:at}:{})});
+ }
+ return out;
+};
