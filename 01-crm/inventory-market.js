@@ -58,7 +58,7 @@ function detailRunActive(job,watch){return !cancelledDetails.has(job.id)&&latest
 const purposeQueue=new Map();let purposeFlight=false;
 function queuePurpose(e,state,job){
  if(!detailRunActive(job,e.config.id))return;
- const rows=Object.values(state?.records||{}).filter(p=>p.url&&p.kind!=='transaction'&&E.matches(e.config,p)&&!E.excluded(e.config,p)&&E.assess(e.config,p).match&&((p.availability==='off'&&p.recheckOff)||(p.availability!=='off'&&E.assess(e.config,p).missing.some(x=>x==='用途'||x==='店面用途')))&&p.purposeSearchId!==job.id&&!(Date.parse(p.detailAttemptedAt)>=Date.parse(job.startedAt)));
+ const rows=Object.values(state?.records||{}).filter(p=>p.url&&p.kind!=='transaction'&&E.matches(e.config,p)&&!E.excluded(e.config,p)&&E.assess(e.config,p).match&&((p.availability==='off'&&p.recheckOff)||(p.availability!=='off'&&(E.assess(e.config,p).missing.some(x=>x==='用途'||x==='店面用途')||(p.source==='591'&&!p.missingScans&&!(Date.parse(p.linkCheckedAt||p.detailCheckedAt)>=Date.parse(job.startedAt))))))&&p.purposeSearchId!==job.id&&!(Date.parse(p.detailAttemptedAt)>=Date.parse(job.startedAt)));
  for(const p of rows)purposeQueue.set(e.config.id+'|'+p.id,{entry:e.key,watch:e.config.id,p,job});
  return drainPurpose();
 }

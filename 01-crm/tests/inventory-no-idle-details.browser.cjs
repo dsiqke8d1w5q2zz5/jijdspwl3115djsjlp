@@ -32,7 +32,7 @@ await p.evaluate(async()=>{await InventoryMarket.tick();await InventoryMarket.ti
 // Cancellation must never authorize the post-search reader.
 await p.evaluate(async()=>{invJob={id:'cancel-test',buyerId:'inventory:idle-watch',status:'running',startedAt:new Date().toISOString()};await InventoryMarket.tick();invJob.status='cancelled';await InventoryMarket.tick();});assert.equal((await details()).length,3);
 // Missing-listing verification is likewise tied to one search, with at most one fallback.
-await p.evaluate(async()=>{await InventoryMarket.updateState('idle-watch',s=>{for(const row of Object.values(s.records))row.usage='住家用';s.records['591:10000'].missingScans=1;s.scans={'591':{id:'missing-scan',at:new Date().toISOString()}};return s;});invJob={id:'missing-search',buyerId:'inventory:idle-watch',status:'running',startedAt:new Date().toISOString()};await InventoryMarket.tick();invJob.status='completed';await InventoryMarket.tick();});
+await p.evaluate(async()=>{await InventoryMarket.updateState('idle-watch',s=>{for(const row of Object.values(s.records)){row.usage='住家用';row.linkCheckedAt=new Date().toISOString();}s.records['591:10000'].missingScans=1;s.scans={'591':{id:'missing-scan',at:new Date().toISOString()}};return s;});invJob={id:'missing-search',buyerId:'inventory:idle-watch',status:'running',startedAt:new Date().toISOString()};await InventoryMarket.tick();invJob.status='completed';await InventoryMarket.tick();});
 await p.waitForFunction(async()=>(await InventoryMarket.loadState('idle-watch')).records['591:10000'].verifiedScan==='missing-scan');
 assert.equal((await details()).length,5);assert.equal((await details()).at(-1).type,'inventoryVerify');
 await p.evaluate(()=>InventoryMarket.tick(true));assert.equal((await details()).length,5);

@@ -3,6 +3,8 @@ const assert=require('node:assert/strict'),{chromium}=require(process.env.PLAYWR
 const url='https://sale.591.com.tw/home/house/detail/2/123.html',body='<title>板橋四房含車位 - 591售屋網</title><div id="app"></div>';
 const cases=[
  {name:'dynamic valid page',want:'available'},
+ {name:'owner expired page',body:'<title>板橋四房含車位 - 591售屋網</title><h1>海山學區四房車位</h1><span>已過期</span><div><span>法定用途</span><span>住家用</span></div><div>2,998 萬元</div>',want:'unavailable'},
+ {name:'description mentions expiry',body:'<title>板橋四房含車位 - 591售屋網</title><div data-behavior-key="house_introduction"><span>已過期</span></div>',want:'available'},
  {name:'wrong API ID',apiId:124,want:'unknown'},
  {name:'empty API',empty:true,want:'unknown'},
  {name:'missing API fields',noFields:true,want:'unknown'},
