@@ -816,11 +816,11 @@
     <link rel="stylesheet" href="area-editor.css?v=20261005audit210">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
     <link rel="stylesheet" href="ui-foundation.css?v=20261005audit210">
-    <link rel="stylesheet" href="responsive-layout.css?v=20261027expiry376">
-<link rel="stylesheet" href="inventory-market.css?v=20261027expiry376">
+    <link rel="stylesheet" href="responsive-layout.css?v=20261030storage377">
+<link rel="stylesheet" href="inventory-market.css?v=20261030storage377">
 <link rel="stylesheet" href="bulk-search.css?v=20261006nav261">
 <link rel="stylesheet" href="daily-search-report.css?v=20261006report274">
-<link rel="stylesheet" href="buyer-match.css?v=20261027expiry376">
+<link rel="stylesheet" href="buyer-match.css?v=20261030storage377">
 <script src="./customer-search.js?v=20261006search263"></script>
 <style>.card-search-hit{font-size:13px;line-height:1.5;color:#526880;overflow-wrap:anywhere;white-space:normal;margin:4px 0 0}</style>
 </head>
@@ -1729,6 +1729,8 @@
 <!-- ============================================================ -->
 <!-- 區塊 1：基礎資料（區域、郵遞區號、地址自動帶入）               -->
 <!-- ============================================================ -->
+<script src="./vendor/lz-string-1.5.0.min.js"></script>
+<script src="./customer-storage.js?v=20261030storage377"></script>
 <script>
 window.onerror = function(msg, url, line, col, err) {
     if (msg === 'Script error.' && line === 0) return true;
@@ -2003,7 +2005,7 @@ function deleteCustomDist(btn, name) {
 <script>
 // ── State ──
 let DB;
-try { DB = JSON.parse(localStorage.getItem('reCRM') || '[]'); } catch(e) { console.error('DB載入失敗:', e); DB = []; }
+try { DB = JSON.parse(CRMCustomerStorage.get() || '[]'); } catch(e) { console.error('DB載入失敗:', e); DB = []; }
 var _dbMap = {};
 function rebuildDbMap(){ _dbMap={}; DB.forEach(function(c){ _dbMap[c.id]=c; }); }
 function dbById(id){ return _dbMap[id] || DB.find(function(x){return x.id===id;}); }
@@ -2066,7 +2068,7 @@ function _hashStr(s) {
     return (h >>> 0).toString(36);
 }
 migrateDB();
-try { localStorage.setItem('reCRM', JSON.stringify(DB)); } catch(e) { console.error('localStorage寫入失敗', e); }
+try { CRMCustomerStorage.set(JSON.stringify(DB)); } catch(e) { console.error('localStorage寫入失敗', e); }
 
 // Migration: 租案管理 → 房東 + 租客 (six independent types)
 function migrateAfterRestore() {
@@ -2167,7 +2169,7 @@ function _doMigrateRental() {
     });
     DB = DB.filter(function(c) { return !idsToRemove[c.id]; });
     newRecords.forEach(function(r) { DB.push(r); });
-    try { localStorage.setItem('reCRM', JSON.stringify(DB)); } catch(e) { console.error('localStorage寫入失敗', e); }
+    try { CRMCustomerStorage.set(JSON.stringify(DB)); } catch(e) { console.error('localStorage寫入失敗', e); }
     localStorage.setItem('migrated_six_types_v3', '1');
 }
 // 清除所有殘留的「租案管理」標籤
@@ -2189,7 +2191,7 @@ function _cleanupRentalTags() {
     }
     if (!localStorage.getItem('migrated_six_types_v3')) _doMigrateRental();
     _cleanupRentalTags();
-    try { localStorage.setItem('reCRM', JSON.stringify(DB)); } catch(e) { console.error('localStorage寫入失敗', e); }
+    try { CRMCustomerStorage.set(JSON.stringify(DB)); } catch(e) { console.error('localStorage寫入失敗', e); }
 })();
 // 待聯絡清除已在 migrateDB() 中處理
 
@@ -2369,7 +2371,7 @@ function _setDirty() { _localDirtyUntil = Date.now() + 60000; try { localStorage
 // 多分頁衝突偵測：其他分頁寫入 reCRM 時提示
 var _tabConflictWarned = false;
 window.addEventListener('storage', function(e) {
-    if (e.key === 'reCRM' && e.newValue && e.newValue !== _lastSyncJSON && !_tabConflictWarned) {
+    if (e.key === 'reCRM' && e.newValue && CRMCustomerStorage.decode(e.newValue) !== _lastSyncJSON && !_tabConflictWarned) {
         _tabConflictWarned = true;
         if (typeof showToast === 'function') {
             showToast('偵測到其他分頁已修改資料，請重新整理避免覆蓋', 'warn', 8000);
@@ -2378,7 +2380,7 @@ window.addEventListener('storage', function(e) {
 });
 var _quotaWarned = false;
 function _safeSetItem(key, value) {
-    try { localStorage.setItem(key, value); if(key==='reCRM') window.dispatchEvent(new Event('crm:buyers-saved')); return true; }
+    try { if(key==='reCRM') CRMCustomerStorage.set(value); else localStorage.setItem(key, value); if(key==='reCRM') window.dispatchEvent(new Event('crm:buyers-saved')); return true; }
     catch(e) {
         console.error('localStorage寫入失敗 key=' + key, e);
         if (e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014)) {
@@ -2875,7 +2877,7 @@ function autoFetchCloud(force, onDone) {
                 DB = merged;
                 migrateDB();
                 _lastSyncJSON = JSON.stringify(DB);
-                try { localStorage.setItem('reCRM', _lastSyncJSON); window.dispatchEvent(new Event('crm:buyers-saved')); } catch(e) { console.error('localStorage寫入失敗', e); }
+                try { CRMCustomerStorage.set(_lastSyncJSON); window.dispatchEvent(new Event('crm:buyers-saved')); } catch(e) { console.error('localStorage寫入失敗', e); showToast('最新資料已載入，但尚未存入手機；請先匯出備份，勿關閉頁面', 'error', 10000); }
                 render();
                 if (needsScheduleUpload) {
                     _crmMarkPending();
@@ -2909,9 +2911,11 @@ function autoFetchCloud(force, onDone) {
                     try { localStorage.setItem('crmOtherTemplates', JSON.stringify(_otherTemplates)); } catch(e) { console.error('localStorage寫入失敗', e); }
                 }
                 var status = document.getElementById('cloudStatus');
-                if (status && _crmHasPending()) status.textContent = '資料已讀取，本機變更待上傳確認…';
+                if(CRMCustomerStorage.failed){try{CRMCustomerStorage.set(JSON.stringify(DB));}catch(e){console.error('本機儲存仍未完成',e);}}
+                if (status && CRMCustomerStorage.failed) status.textContent='最新資料已載入，但未存入手機；請先匯出備份';
+                else if (status && _crmHasPending()) status.textContent = '資料已讀取，本機變更待上傳確認…';
                 else if (status) status.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22C55E;margin-right:4px;vertical-align:middle"></span>已同步 ' + new Date().toLocaleTimeString('zh-TW') + '（' + DB.filter(function(c){return !c._system;}).length + '筆）';
-            _fireDone(true);
+            _fireDone(!CRMCustomerStorage.failed);
         } catch(e) { console.error('雲端同步解析失敗:', e); _fireDone(false); }
     };
     script.src = CLOUD_URL + '?callback=' + cbName + '&t=' + Date.now();
@@ -2938,8 +2942,8 @@ window.addEventListener('online', function() {
 });
 window.addEventListener('offline', function() {
     var status = document.getElementById('cloudStatus');
-    if (status) status.textContent = '離線模式（資料已存本機）';
-    showToast('目前離線，資料會存在本機', 'warn', 3000);
+    if (status) status.textContent = CRMCustomerStorage.failed?'離線；最新變更尚未儲存，請勿關閉頁面':'離線模式（資料已存本機）';
+    showToast(CRMCustomerStorage.failed?'最新變更尚未儲存，請先匯出備份':'目前離線，資料會存在本機', 'warn', 5000);
 });
 
 // ── 封存 ──
@@ -13654,32 +13658,32 @@ function deleteMktTemplate(idx) {
 <script src="image-ai-editor.js?v=20261005audit210"></script>
 <script src="image-enhance.js?v=20261005audit210"></script>
 <script src="image-composer.js?v=20261005audit210"></script>
-<script src="area-editor.js?v=20261027expiry376"></script>
+<script src="area-editor.js?v=20261030storage377"></script>
 <script src="sync-notice.js?v=20261005audit210"></script>
-<script src="detail-properties.js?v=20261027expiry376"></script>
+<script src="detail-properties.js?v=20261030storage377"></script>
 <script src="edit-layout.js?v=20261005audit210"></script>
-<script src="property-purpose.js?v=20261027expiry376"></script>
+<script src="property-purpose.js?v=20261030storage377"></script>
 <script src="schedule-property.js?v=20261005audit210"></script>
 <link rel="stylesheet" href="schedule-reminders.css?v=20261008prefs307">
 <script src="reminder-engine.js?v=20261008prefs307"></script>
-<script src="schedule-reminders.js?v=20261008time313"></script>
-<script src="buyer-match-engine.js?v=20261027expiry376"></script>
-<script src="buyer-demands.js?v=20261027expiry376"></script>
-<script src="buyer-results.js?v=20261027expiry376"></script>
-<script src="buyer-grouping.js?v=20261027expiry376"></script>
-<script src="inventory-market-engine.js?v=20261027expiry376"></script>
-<script src="inventory-market.js?v=20261027expiry376"></script>
-<script src="buyer-schedule.js?v=20261027expiry376"></script>
+<script src="schedule-reminders.js?v=20261030storage377"></script>
+<script src="buyer-match-engine.js?v=20261030storage377"></script>
+<script src="buyer-demands.js?v=20261030storage377"></script>
+<script src="buyer-results.js?v=20261030storage377"></script>
+<script src="buyer-grouping.js?v=20261030storage377"></script>
+<script src="inventory-market-engine.js?v=20261030storage377"></script>
+<script src="inventory-market.js?v=20261030storage377"></script>
+<script src="buyer-schedule.js?v=20261030storage377"></script>
 <script src="daily-search-report.js?v=20261006report274"></script>
-<script src="buyer-match.js?v=20261027expiry376"></script>
+<script src="buyer-match.js?v=20261030storage377"></script>
 <script src="bulk-search.js?v=20261006nav261"></script>
-<script src="seller-layout.js?v=20261027expiry376"></script>
+<script src="seller-layout.js?v=20261030storage377"></script>
 <script src="template-archive.js?v=20261007drag289"></script>
 <link rel="stylesheet" href="template-archive.css?v=20261007drag289">
-<script src="daily-search-notice.js?v=20261027expiry376"></script>
-<link rel="stylesheet" href="daily-search-notice.css?v=20261027expiry376">
-<link rel="stylesheet" href="buyer-helper-update.css?v=20261027expiry376">
-<script src="buyer-helper-update.js?v=20261027expiry376"></script>
+<script src="daily-search-notice.js?v=20261030storage377"></script>
+<link rel="stylesheet" href="daily-search-notice.css?v=20261030storage377">
+<link rel="stylesheet" href="buyer-helper-update.css?v=20261030storage377">
+<script src="buyer-helper-update.js?v=20261030storage377"></script>
 <script src="common-tools.js?v=20261007tools281"></script>
 <link rel="stylesheet" href="common-tools.css?v=20261007instant283">
 <script src="dashboard-actions.js?v=20261007actions286"></script>

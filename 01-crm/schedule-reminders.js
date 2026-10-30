@@ -29,7 +29,7 @@ function mount(root,s,getDate,getTime,before){
 function read(root){return root._readReminder?.()===true;}
 const add=window.addScheduleRow;window.addScheduleRow=function(s){const r=add.apply(this,arguments),row=document.querySelector('#scheduleList>.c-row:last-child');mount(row,s,()=>rocToISO(row.querySelector('.roc-date-wrap input').value),()=>row.querySelector('.sched-time').value);return r;};
 // Only use persisted data: unsaved editor changes must never generate notifications.
-function database(){try{return JSON.parse(localStorage.getItem('reCRM')||'[]');}catch{return [];}}
+function database(){try{return JSON.parse(CRMCustomerStorage.get()||'[]');}catch{return [];}}
 async function sync(){
  if(flight)return;const cfg=config();if(!cfg.endpoint||!cfg.key){cloudMessage='LINE 尚未連線';return;}
  const pref=preferenceRecord(),changedAt=pref.reminderPreferencesUpdatedAt;const clients=database().filter(c=>c.id).map(c=>({id:String(c.id),revision:new Date(Math.max(Date.parse(c.updatedAt)||0,Date.parse(changedAt)||0)).toISOString(),items:E.items(c,pref.reminderPreferences,changedAt)}));const body=JSON.stringify(clients);if(body===lastSync)return;

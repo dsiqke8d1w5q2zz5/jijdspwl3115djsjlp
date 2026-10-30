@@ -1,16 +1,18 @@
-var CACHE_NAME = 'crm-v20261027expiry376';
+var CACHE_NAME = 'crm-v20261030storage377';
 var URLS_TO_CACHE = [
-  './buyer-helper-update.js?v=20261027expiry376',
-  './buyer-helper-update.css?v=20261027expiry376',
+  './vendor/lz-string-1.5.0.min.js',
+  './customer-storage.js?v=20261030storage377',
+  './buyer-helper-update.js?v=20261030storage377',
+  './buyer-helper-update.css?v=20261030storage377',
   './reminder-engine.js?v=20261008prefs307',
-  './schedule-reminders.js?v=20261008time313',
+  './schedule-reminders.js?v=20261030storage377',
   './schedule-reminders.css?v=20261008prefs307',
   './dashboard-actions.js?v=20261007actions286',
   './dashboard-actions.css?v=20261007menu287',
   './common-tools.js?v=20261007tools281',
   './common-tools.css?v=20261007instant283',
-  './daily-search-notice.js?v=20261027expiry376',
-  './daily-search-notice.css?v=20261027expiry376',
+  './daily-search-notice.js?v=20261030storage377',
+  './daily-search-notice.css?v=20261030storage377',
   './template-archive.js?v=20261007drag289',
   './template-archive.css?v=20261007drag289',
   './bulk-search.js?v=20261006nav261',
@@ -19,22 +21,22 @@ var URLS_TO_CACHE = [
   './daily-search-report.css?v=20261006report274',
   './',
   './index.html','./customer-search.js?v=20261006search263',
-  './seller-layout.js?v=20261027expiry376',
-  './inventory-market.css?v=20261027expiry376',
-  './inventory-market-engine.js?v=20261027expiry376',
-  './inventory-market.js?v=20261027expiry376',
-  './buyer-match.css?v=20261027expiry376',
-  './buyer-match-engine.js?v=20261027expiry376',
-  './buyer-demands.js?v=20261027expiry376',
-  './buyer-results.js?v=20261027expiry376',
-  './buyer-grouping.js?v=20261027expiry376',
-  './buyer-schedule.js?v=20261027expiry376',
-  './buyer-match.js?v=20261027expiry376',
+  './seller-layout.js?v=20261030storage377',
+  './inventory-market.css?v=20261030storage377',
+  './inventory-market-engine.js?v=20261030storage377',
+  './inventory-market.js?v=20261030storage377',
+  './buyer-match.css?v=20261030storage377',
+  './buyer-match-engine.js?v=20261030storage377',
+  './buyer-demands.js?v=20261030storage377',
+  './buyer-results.js?v=20261030storage377',
+  './buyer-grouping.js?v=20261030storage377',
+  './buyer-schedule.js?v=20261030storage377',
+  './buyer-match.js?v=20261030storage377',
   './ui-foundation.css?v=20261005audit210',
-  './responsive-layout.css?v=20261027expiry376',
-  './detail-properties.js?v=20261027expiry376',
+  './responsive-layout.css?v=20261030storage377',
+  './detail-properties.js?v=20261030storage377',
   './edit-layout.js?v=20261005audit210',
-  './property-purpose.js?v=20261027expiry376',
+  './property-purpose.js?v=20261030storage377',
   './schedule-property.js?v=20261005audit210',
   './sync-notice.js?v=20261005audit210',
   './image-storage.js?v=20260928sync1',
@@ -49,7 +51,7 @@ var URLS_TO_CACHE = [
   './image-enhance.js?v=20261005audit210',
   './image-composer.js?v=20261005audit210',
   './image-composer.css?v=20261005audit210',
-  './area-editor.js?v=20261027expiry376',
+  './area-editor.js?v=20261030storage377',
   './area-editor.css?v=20261005audit210',
   './transcript-parser.js?v=20260917audit1',
   './transcript-import.js?v=20260927center1',
@@ -60,18 +62,22 @@ self.addEventListener('install', function(e) {
   e.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
       return cache.addAll(URLS_TO_CACHE);
-    })
+    }).catch(function(error) { console.warn('離線快取未完成；仍可連線使用新版', error); })
   );
   self.skipWaiting();
 });
 
 self.addEventListener('activate', function(e) {
   e.waitUntil(
-    caches.keys().then(function(names) {
+    caches.open(CACHE_NAME).then(async function(current) {
+      var complete = (await Promise.all(URLS_TO_CACHE.map(function(url) { return current.match(url); }))).every(Boolean);
+      if (!complete) return;
+      return caches.keys().then(function(names) {
       return Promise.all(
-        names.filter(function(n) { return n !== CACHE_NAME && n !== 'crm-model-matting-v1' && n !== 'crm-model-photo-ai-v1'; })
+        names.filter(function(n) { return /^crm-v/.test(n) && n !== CACHE_NAME; })
              .map(function(n) { return caches.delete(n); })
       );
+      });
     }).then(function() {
       return caches.open('crm-model-photo-ai-v1').then(function(cache) {
         return cache.keys().then(function(keys) {
@@ -92,6 +98,9 @@ self.addEventListener('fetch', function(e) {
   if (e.request.method !== 'GET') return;
   var url = new URL(e.request.url);
   if (!/^https?:$/.test(url.protocol) || url.origin !== self.location.origin) return;
+  // Large feeds, downloads and cache-busting responses must not fill app storage.
+  if (!e.request.mode.includes('navigate') && !/\.(?:js|css|html|png|svg|ico|woff2?)$/.test(url.pathname)) return;
+  if (url.pathname.includes('/downloads/') || url.pathname.includes('/data/')) return;
   e.respondWith(
     fetch(e.request).then(function(resp) {
       // 只快取 2xx 且非 opaque 的回應

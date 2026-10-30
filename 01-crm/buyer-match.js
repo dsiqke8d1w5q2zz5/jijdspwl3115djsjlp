@@ -19,7 +19,7 @@ function helperRequest(type,payload,timeout=2000){if(['last','progress'].include
 // Sync saved criteria only. Reading storage prevents an older tab from overwriting newer settings.
 let syncTimer, syncFlight, syncedSelection='', syncWarning='';
 function savedSelection(){
- const records=JSON.parse(localStorage.getItem('reCRM')||'[]');
+ const records=JSON.parse(CRMCustomerStorage.get()||'[]');
  return records.filter(c=>!c._deleted&&!c.archived&&!c._system&&c.buyerMatching?.auto===true&&(hasType(c,'經營買方')||c.bDemands?.length)).map(c=>({id:c.id,demands:demands(c).map(d=>Object.fromEntries(['areaCities','areaDists','areaDisplay','roomTypes','budgetMin','budgetMax','budget','want','noWant','matchCriteria'].filter(k=>d[k]!==undefined).map(k=>[k,d[k]])))}));
 }
 function queueHelperSync(){clearTimeout(syncTimer);syncTimer=setTimeout(()=>syncHelper().catch(()=>{}),300);}
