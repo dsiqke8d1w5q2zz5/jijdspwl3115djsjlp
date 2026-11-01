@@ -26,7 +26,7 @@ function parse591(doc,city=''){
   const floorText=attrs.find(t=>/^(?:B?\d+F?|整棟)\//i.test(t))||'',parts=floorText.split('/');
   const floor=/^B\d+F?$/i.test(parts[0])?-firstNumber(parts[0]):/^\d+F?$/i.test(parts[0])?firstNumber(parts[0]):null;
   const ageText=attrs.find(t=>/^(?:\d+(?:\.\d+)?(?:年|個月)|新成屋|預售屋)$/.test(t))||'';
-  const buildingType=attrs.find(t=>/^(電梯大樓|華廈|公寓|透天厝|透天|別墅|套房|辦公|店面|廠房|土地)$/.test(t))||base.buildingType||'';
+  const buildingType=attrs.find(t=>/^(電梯大樓|華廈|公寓|透天厝|透天|別墅|套房|辦公|店面|廠房|土地|車位|停車位|平面車位|機械車位)$/.test(t))||base.buildingType||'';
   const layout=attrs.find(t=>/\d+房|開放式/.test(t))||'';
   rows.set(id,{...base,id,source:'591',url:url.origin+url.pathname,title,city:base.city||city,district,address:(base.city||city)+district+street,
    price,area,mainArea:firstNumber(attrs.find(t=>/^主建/.test(t))),floorText,floor,totalFloors:firstNumber(parts[1]),
@@ -46,6 +46,10 @@ globalThis.crmRead591Detail=doc=>{
  if(/您查詢的物件不存在，可能已關閉或者被刪除|您所查詢的物件已下架|此物件已下架|此房源已下架/.test(doc.body?.textContent||''))return {availability:'unavailable',availabilityReason:'591原頁顯示物件不存在、已關閉或已刪除'};const field=label=>{const el=[...doc.querySelectorAll('li,span,div')].find(e=>!e.children.length&&e.textContent.trim().replace(/[：:]/g,'')===label);if(!el)return '';const text=el.parentElement.textContent.replace(/\s+/g,' ').trim();if(text.length>100)return '';return text.replace(new RegExp('^'+label+'[\\s：:]*'),'').trim();};const legal=field('法定用途'),description=doc.querySelector('[data-behavior-key="house_introduction"]')?.textContent||'',disclosed=description.match(/(?:用途|此為|屬於)[^。\n]{0,24}?(一般商業設施|工業用|事務所住宅|工業住宅)/)?.[1]||'',usage=legal||disclosed,buildingType=field('型態');return {...(usage||buildingType?{availability:'available'}:{}),...(field('屋齡')?{ageText:field('屋齡')}:{}),...(/(?:本案|本物件|此物件|此屋|本戶|為)[\s：:]*?(?:為|是|屬於)?[\s：:]*預售(?:屋|案)/.test(description)?{constructionStatus:'presale'}:{}),...(usage?{usage,usageEvidence:legal?'591法定用途':'591屋主用途揭露'}:{}),...(buildingType?{buildingType,type:buildingType}:{})};};globalThis.crmRead591API=(data,id)=>{
  if(!data?.ware||String(data.ware.id)!==String(id))return null;
  const fields=Object.values(data.info||{}).flatMap(group=>Object.values(group||{})),value=name=>fields.find(f=>f?.name===name)?.value||'',usage=value('法定用途'),buildingType=value('型態'),layout=value('格局'),rooms=/開放式格局/.test(layout)?0:firstNumber(String(layout).match(/(\d+)房/)?.[1]),out={availability:'available',detailVersion:2};
+ // A standalone parking listing uses a different detail schema from a dwelling.
+ // Require its explicit current category plus parking-specific fields, never title keywords.
+ const parkingOnly=String(value('現況')).trim()==='車位'&&!!(value('車位種類')||value('車位類型')||firstNumber(value('車位坪數'))>0);
+ if(parkingOnly){Object.assign(out,{buildingType:'車位',type:'車位',parking:true,parkingOnly:true});const parkingType=String(value('車位類型')).trim();if(parkingType)out.parkingType=parkingType;const parkingArea=firstNumber(value('車位坪數'));if(parkingArea>0)out.area=parkingArea;}
  if(value('屋齡'))out.ageText=String(value('屋齡'));
  if(usage)Object.assign(out,{usage,usageEvidence:'591法定用途'});
  if(buildingType)Object.assign(out,{buildingType,type:buildingType});if(/電梯大樓/.test(buildingType))out.elevator=true;

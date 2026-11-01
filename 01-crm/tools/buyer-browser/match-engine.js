@@ -46,7 +46,13 @@ function remainingPreference(d){
  return true;
  }).join('、');
 }
+function isParkingOnly(p={}){
+ const exact=v=>/^(?:車位|停車位|平面車位|機械車位|獨立車位|汽車停車位)$/.test(String(v||'').normalize('NFKC').trim());
+ // Category evidence identifies a whole parking listing. Parking amenities/title words do not.
+ return [p.type,p.buildingType,p.sourceCategory,p.details591?.fields?.['現況'],p.details591?.fields?.['物件類型']].some(exact);
+}
 function evaluate(d,p){d=normalizeDemand(d);p=normalizeListing(p);const m=d.matchCriteria||{},yes=[],pending=[],no=[],preferred=[],preferenceMiss=[],preferenceUnknown=[];function check(label,known,pass){if(m.optional?.includes(label)){(known?(pass?preferred:preferenceMiss):preferenceUnknown).push(label);}else (known?(pass?yes:no):pending).push(label);}
+ if(isParkingOnly(p))no.push('排除獨立車位');
  if(p.availability==='unavailable')no.push('原物件連結有效');else if(p.source==='591'&&p.availability!=='available')pending.push('連結有效性');if(m.searchPurpose){const raw=String(p.usage||p.registeredUsage||'').trim(),category=String(p.sourceCategory||''),other=String(p.buildingType||p.type||'')+' '+String(p.title||'');const text=raw||category+' '+other;let purpose='';if(/商業用/.test(raw)||/工業住宅|事務所住宅|住商混合|住辦|工業用|一般商業設施/.test(text))purpose='住商混合';else if(/店面|店舖|店鋪|金店面/.test(text))purpose='店面';else if(/廠房|廠辦/.test(text))purpose='廠房';else if(/倉庫/.test(text))purpose='倉庫';else if(/辦公|事務所|商辦/.test(text))purpose='辦公';else if(/住宅|住家|住商/.test(raw))purpose=/住商/.test(raw)?'住商混合':'住宅';check('用途',!!purpose,purpose===m.searchPurpose);}
  const cities=(d.areaCities||[d.areaCity]).filter(x=>x&&x!=='其他縣市'),districts=Array.isArray(d.areaDists)?d.areaDists:String(d.areaDists||'').split(',').filter(Boolean);
  if(cities.length)check('縣市',!!p.city,cities.some(x=>x.replaceAll('臺','台')===String(p.city).replaceAll('臺','台')));if(districts.length)check('行政區',!!p.district,districts.includes(p.district));if(d.areaOther)pending.push('其他區域：'+d.areaOther);
@@ -77,5 +83,5 @@ function confirmationValid(record,p,pending){
  return previous.filter(([k])=>!['notInLatest','stale'].includes(k)).every(([k,v])=>JSON.stringify(v)===JSON.stringify(p[k]??null))&&pending.every(x=>record.pending.includes(x));
  }catch{return false;}
 }
-const api={searchScope,confirmationValid,remainingPreference,constructionStatus,mergeListingFields,normalizeDemand,floorRange,floorLabel,evaluate,summary,normalizeListing};if(typeof module!=='undefined')module.exports=api;root.BuyerMatchEngine=api;
+const api={isParkingOnly,searchScope,confirmationValid,remainingPreference,constructionStatus,mergeListingFields,normalizeDemand,floorRange,floorLabel,evaluate,summary,normalizeListing};if(typeof module!=='undefined')module.exports=api;root.BuyerMatchEngine=api;
 })(typeof window==='undefined'?globalThis:window);
