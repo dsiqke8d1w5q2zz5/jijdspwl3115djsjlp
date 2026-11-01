@@ -11,3 +11,4 @@
 .daily-schedule-dialog .schedule-reminder label{flex-direction:row;align-items:center;gap:6px}.daily-schedule-dialog .schedule-reminder input[type=checkbox]{width:20px;height:20px;flex:none;margin:0}
 
 .daily-notice .daily-member-link{display:inline-flex;align-items:baseline;flex-wrap:wrap;gap:4px 12px;max-width:100%;text-align:left;color:#195b7c;background:#f1f7fb;border:1px solid #cbdce7;padding:5px 9px;font:inherit;overflow-wrap:anywhere}.daily-member-link>span:first-child{min-width:0}.daily-member-action{font-size:12px;white-space:nowrap}.daily-notice .daily-member-link:hover{background:#e1edf6}.daily-notice .daily-member-link:focus-visible{outline:2px solid #197696;outline-offset:2px}
+.daily-report-issue-content:has(.ds-detail-issues){max-height:42dvh}.daily-report-issue-content>.ds-detail-issues:first-child{margin-top:6px}
