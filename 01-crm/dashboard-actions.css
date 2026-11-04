@@ -10,3 +10,7 @@
 
 /* Personal schedules retain existing today and overdue states. */
 .schedule-personal-row{box-shadow:inset 3px 0 #9874c2;padding-left:8px!important}.schedule-personal-badge{display:inline-flex;align-items:center;flex-shrink:0;white-space:nowrap;background:#f0e9f8;color:#694395;border:1px solid #ded0ee;border-radius:5px;padding:0 6px;font-size:13px;font-weight:600;line-height:20px}
+
+.schedule-personal-summary{flex:1;min-width:0;overflow-wrap:anywhere;line-height:20px}.schedule-personal-memo{white-space:pre-wrap;color:#52647c;font-weight:400}.schedule-personal-row .dash-sched-row1{align-items:baseline}.schedule-personal-row .all-sched-heading{align-items:baseline}
+
+#dashSchedule .schedule-personal-row .dash-sched-row1{display:block}.schedule-personal-row .dash-item-info{margin-right:6px}.schedule-personal-summary{display:inline}.schedule-personal-row .all-sched-heading{display:block}.schedule-personal-row .all-sched-date{margin-right:6px}
