@@ -816,11 +816,11 @@
     <link rel="stylesheet" href="area-editor.css?v=20261005audit210">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
     <link rel="stylesheet" href="ui-foundation.css?v=20261005audit210">
-    <link rel="stylesheet" href="responsive-layout.css?v=20261104search386">
-<link rel="stylesheet" href="inventory-market.css?v=20261104search386">
+    <link rel="stylesheet" href="responsive-layout.css?v=20261104association387">
+<link rel="stylesheet" href="inventory-market.css?v=20261104association387">
 <link rel="stylesheet" href="bulk-search.css?v=20261006nav261">
-<link rel="stylesheet" href="daily-search-report.css?v=20261104search386">
-<link rel="stylesheet" href="buyer-match.css?v=20261104search386">
+<link rel="stylesheet" href="daily-search-report.css?v=20261104association387">
+<link rel="stylesheet" href="buyer-match.css?v=20261104association387">
 <script src="./customer-search.js?v=20261006search263"></script>
 <style>.card-search-hit{font-size:13px;line-height:1.5;color:#526880;overflow-wrap:anywhere;white-space:normal;margin:4px 0 0}</style>
 </head>
@@ -1730,7 +1730,7 @@
 <!-- 區塊 1：基礎資料（區域、郵遞區號、地址自動帶入）               -->
 <!-- ============================================================ -->
 <script src="./vendor/lz-string-1.5.0.min.js"></script>
-<script src="./customer-storage.js?v=20261104search386"></script>
+<script src="./customer-storage.js?v=20261104association387"></script>
 <script>
 window.onerror = function(msg, url, line, col, err) {
     if (msg === 'Script error.' && line === 0) return true;
@@ -8454,7 +8454,22 @@ function addPersonalSchedule(editId) {
         var idEl = document.getElementById('ps-client-id');
         var listEl = document.getElementById('ps-client-list');
         var hintEl = document.getElementById('ps-client-hint');
+        var propertyHost=document.createElement('div');propertyHost.className='schedule-client-property-fields';propertyHost.hidden=true;
+        document.getElementById('ps-memo').parentElement.before(propertyHost);
+        var propertyClientId='',typeSelect=document.getElementById('ps-type'),dateRow=typeSelect.parentElement;
+        function refreshScheduleProperty(){
+            if(propertyClientId===idEl.value)return;
+            propertyClientId=idEl.value;
+            dateRow.prepend(typeSelect);var freshType=typeSelect.cloneNode(true);typeSelect.replaceWith(freshType);typeSelect=freshType;propertyHost.replaceChildren();propertyHost._scheduleProperty=null;
+            var owner=DB.find(function(c){return c.id===idEl.value&&!c._deleted;});
+            propertyHost.hidden=!owner;if(!owner)return;
+            var types=owner.types&&owner.types.length?owner.types:[owner.type];
+            var preferred=owner.type||types[0];
+            if(!typeSelect.value||types.indexOf(typeSelect.value)<0){if(Array.from(typeSelect.options).some(function(o){return o.value===preferred;}))typeSelect.value=preferred;}
+            propertyHost.append(typeSelect);mountScheduleProperty(propertyHost,typeSelect,owner,null,false,false);
+        }
         function _psUpdateHint() {
+            refreshScheduleProperty();
             if (idEl.value) {
                 var c = DB.find(function(x){ return x.id === idEl.value; });
                 hintEl.innerHTML = c ? '✓ 已選取：'+esc(c.name) : '';
@@ -8530,6 +8545,7 @@ function addPersonalSchedule(editId) {
                 var c = DB.find(function(x){ return x.id === clientId; });
                 if (!c) { showToast('客戶不存在', 'error'); return; }
                 if (!c.schedules) c.schedules = [];
+                _psObj.propertyRef = readScheduleProperty(propertyHost);
                 _psObj.id = _newSchedId();
                 c.schedules.push(_psObj);
                 persistAndSyncNow();
@@ -13660,35 +13676,35 @@ function deleteMktTemplate(idx) {
 <script src="image-ai-editor.js?v=20261005audit210"></script>
 <script src="image-enhance.js?v=20261005audit210"></script>
 <script src="image-composer.js?v=20261005audit210"></script>
-<script src="area-editor.js?v=20261104search386"></script>
+<script src="area-editor.js?v=20261104association387"></script>
 <script src="sync-notice.js?v=20261005audit210"></script>
-<script src="detail-properties.js?v=20261104search386"></script>
+<script src="detail-properties.js?v=20261104association387"></script>
 <script src="edit-layout.js?v=20261005audit210"></script>
-<script src="property-purpose.js?v=20261104search386"></script>
-<script src="schedule-property.js?v=20261104search386"></script>
+<script src="property-purpose.js?v=20261104association387"></script>
+<script src="schedule-property.js?v=20261104association387"></script>
 <link rel="stylesheet" href="schedule-reminders.css?v=20261008prefs307">
 <script src="reminder-engine.js?v=20261008prefs307"></script>
-<script src="schedule-reminders.js?v=20261104search386"></script>
-<script src="buyer-match-engine.js?v=20261104search386"></script>
-<script src="buyer-demands.js?v=20261104search386"></script>
-<script src="buyer-results.js?v=20261104search386"></script>
-<script src="buyer-grouping.js?v=20261104search386"></script>
-<script src="inventory-market-engine.js?v=20261104search386"></script>
-<script src="inventory-market.js?v=20261104search386"></script>
-<script src="buyer-schedule.js?v=20261104search386"></script>
-<script src="daily-search-report.js?v=20261104search386"></script>
-<script src="buyer-match.js?v=20261104search386"></script>
+<script src="schedule-reminders.js?v=20261104association387"></script>
+<script src="buyer-match-engine.js?v=20261104association387"></script>
+<script src="buyer-demands.js?v=20261104association387"></script>
+<script src="buyer-results.js?v=20261104association387"></script>
+<script src="buyer-grouping.js?v=20261104association387"></script>
+<script src="inventory-market-engine.js?v=20261104association387"></script>
+<script src="inventory-market.js?v=20261104association387"></script>
+<script src="buyer-schedule.js?v=20261104association387"></script>
+<script src="daily-search-report.js?v=20261104association387"></script>
+<script src="buyer-match.js?v=20261104association387"></script>
 <script src="bulk-search.js?v=20261006nav261"></script>
-<script src="seller-layout.js?v=20261104search386"></script>
+<script src="seller-layout.js?v=20261104association387"></script>
 <script src="template-archive.js?v=20261007drag289"></script>
 <link rel="stylesheet" href="template-archive.css?v=20261007drag289">
-<script src="daily-search-notice.js?v=20261104search386"></script>
-<link rel="stylesheet" href="daily-search-notice.css?v=20261104search386">
-<link rel="stylesheet" href="buyer-helper-update.css?v=20261104search386">
-<script src="buyer-helper-update.js?v=20261104search386"></script>
+<script src="daily-search-notice.js?v=20261104association387"></script>
+<link rel="stylesheet" href="daily-search-notice.css?v=20261104association387">
+<link rel="stylesheet" href="buyer-helper-update.css?v=20261104association387">
+<script src="buyer-helper-update.js?v=20261104association387"></script>
 <script src="common-tools.js?v=20261007tools281"></script>
 <link rel="stylesheet" href="common-tools.css?v=20261007instant283">
 <script src="dashboard-actions.js?v=20261007actions286"></script>
-<link rel="stylesheet" href="dashboard-actions.css?v=20261104search386">
+<link rel="stylesheet" href="dashboard-actions.css?v=20261104association387">
 </body>
 </html>
