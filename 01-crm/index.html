@@ -816,11 +816,11 @@
     <link rel="stylesheet" href="area-editor.css?v=20261005audit210">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
     <link rel="stylesheet" href="ui-foundation.css?v=20261005audit210">
-    <link rel="stylesheet" href="responsive-layout.css?v=20261104personal385">
-<link rel="stylesheet" href="inventory-market.css?v=20261104personal385">
+    <link rel="stylesheet" href="responsive-layout.css?v=20261104search386">
+<link rel="stylesheet" href="inventory-market.css?v=20261104search386">
 <link rel="stylesheet" href="bulk-search.css?v=20261006nav261">
-<link rel="stylesheet" href="daily-search-report.css?v=20261104personal385">
-<link rel="stylesheet" href="buyer-match.css?v=20261104personal385">
+<link rel="stylesheet" href="daily-search-report.css?v=20261104search386">
+<link rel="stylesheet" href="buyer-match.css?v=20261104search386">
 <script src="./customer-search.js?v=20261006search263"></script>
 <style>.card-search-hit{font-size:13px;line-height:1.5;color:#526880;overflow-wrap:anywhere;white-space:normal;margin:4px 0 0}</style>
 </head>
@@ -1730,7 +1730,7 @@
 <!-- 區塊 1：基礎資料（區域、郵遞區號、地址自動帶入）               -->
 <!-- ============================================================ -->
 <script src="./vendor/lz-string-1.5.0.min.js"></script>
-<script src="./customer-storage.js?v=20261104personal385"></script>
+<script src="./customer-storage.js?v=20261104search386"></script>
 <script>
 window.onerror = function(msg, url, line, col, err) {
     if (msg === 'Script error.' && line === 0) return true;
@@ -8100,7 +8100,7 @@ function addTodo(prefill) {
     box.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div style="font-weight:700;font-size:15px"><i class="ti ti-checkbox" style="color:#7C3AED"></i> 待辦事項</div><button type="button" onclick="closeOverlay(this.closest(\'.fill-overlay\'))" aria-label="關閉" style="background:none;border:none;font-size:20px;line-height:1;cursor:pointer;color:#94A3B8;padding:4px 8px;font-family:inherit">✕</button></div>' +
         '<div style="margin-bottom:10px;position:relative">' +
             '<label style="font-size:12px;color:#64748B;display:block;margin-bottom:4px">關聯客戶（可留空=個人待辦）</label>' +
-            '<input id="td-client-search" type="text" placeholder="搜尋姓名、電話、社區…" value="'+esc(preName)+'" autocomplete="off" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit">' +
+            '<input id="td-client-search" type="text" placeholder="搜尋姓名、電話、社區、路段…" value="'+esc(preName)+'" autocomplete="off" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit">' +
             '<input id="td-client-id" type="hidden" value="'+esc(pre.clientId||'')+'">' +
             '<div id="td-client-hint" style="font-size:12px;color:'+(preClient?'#7C3AED':'#94A3B8')+';margin-top:4px">'+(preClient?'✓ 已選取：'+esc(preName):'未輸入=個人待辦')+'</div>' +
             '<div id="td-client-list" style="display:none;position:fixed;background:white;border:1px solid var(--border);border-radius:8px;overflow-y:auto;overscroll-behavior:contain;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,0.1)"></div>' +
@@ -8164,11 +8164,12 @@ function addTodo(prefill) {
             ['bPersons','sPersons','dPersons','llPersons','ttPersons','cContacts','contacts'].forEach(function(key){
                 if (Array.isArray(c[key])) c[key].forEach(function(p){ if (p) { parts.push(p.name); parts.push(p.phone); } });
             });
+            parts.push(window.scheduleClientPropertySearchText?.(c)||'');
             return parts.join(' ').toLowerCase().indexOf(q) !== -1;
         }).slice(0, 20);
         if (!matches.length) { listEl.innerHTML = '<div style="padding:10px;color:#94A3B8;font-size:13px;text-align:center">沒有符合的客戶</div>'; listEl.style.display = 'block'; _tdAdjustListMaxHeight(); updateHint(); return; }
         listEl.innerHTML = matches.map(function(c){
-            var sub = c.dCommunity || c.community || c.phone || c.bPhone || c.sPhone || c.llPhone || c.ttPhone || '';
+            var sub = window.scheduleClientPropertySearchSummary?.(c,q) || c.dCommunity || c.community || c.phone || c.bPhone || c.sPhone || c.llPhone || c.ttPhone || '';
             return '<div class="td-client-opt" data-id="'+esc(c.id)+'" data-name="'+esc(c.name)+'" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #F1F5F9;font-size:14px"><div style="font-weight:600;color:#1E40AF">'+esc(c.name)+'</div>'+(sub?'<div style="font-size:12px;color:#64748B">'+esc(sub)+'</div>':'')+'</div>';
         }).join('');
         listEl.style.display = 'block';
@@ -8419,7 +8420,7 @@ function addPersonalSchedule(editId) {
     var clientSearchHtml = editing ? '' :
         '<div style="margin-bottom:10px;position:relative">' +
             '<label style="font-size:12px;color:#64748B;display:block;margin-bottom:4px">關聯客戶（可留空=個人行程）</label>' +
-            '<input id="ps-client-search" type="text" placeholder="搜尋姓名、電話、社區…" autocomplete="off" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit">' +
+            '<input id="ps-client-search" type="text" placeholder="搜尋姓名、電話、社區、路段…" autocomplete="off" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit">' +
             '<input id="ps-client-id" type="hidden" value="">' +
             '<div id="ps-client-hint" style="font-size:12px;color:#94A3B8;margin-top:4px">未輸入=個人行程</div>' +
             '<div id="ps-client-list" style="display:none;position:fixed;background:white;border:1px solid var(--border);border-radius:8px;overflow-y:auto;overscroll-behavior:contain;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,0.1)"></div>' +
@@ -8480,11 +8481,12 @@ function addPersonalSchedule(editId) {
                 ['bPersons','sPersons','dPersons','llPersons','ttPersons','cContacts','contacts'].forEach(function(key){
                     if (Array.isArray(c[key])) c[key].forEach(function(p){ if (p) { parts.push(p.name); parts.push(p.phone); } });
                 });
-                return parts.join(' ').toLowerCase().indexOf(q) !== -1;
+                parts.push(window.scheduleClientPropertySearchText?.(c)||'');
+            return parts.join(' ').toLowerCase().indexOf(q) !== -1;
             }).slice(0, 20);
             if (!matches.length) { listEl.innerHTML = '<div style="padding:10px;color:#94A3B8;font-size:13px;text-align:center">沒有符合的客戶</div>'; listEl.style.display = 'block'; _psAdjustListMaxHeight(); _psUpdateHint(); return; }
             listEl.innerHTML = matches.map(function(c){
-                var sub = c.dCommunity || c.community || c.phone || c.bPhone || c.sPhone || c.llPhone || c.ttPhone || '';
+                var sub = window.scheduleClientPropertySearchSummary?.(c,q) || c.dCommunity || c.community || c.phone || c.bPhone || c.sPhone || c.llPhone || c.ttPhone || '';
                 return '<div class="ps-client-opt" data-id="'+esc(c.id)+'" data-name="'+esc(c.name)+'" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #F1F5F9;font-size:14px"><div style="font-weight:600;color:#1E40AF">'+esc(c.name)+'</div>'+(sub?'<div style="font-size:12px;color:#64748B">'+esc(sub)+'</div>':'')+'</div>';
             }).join('');
             listEl.style.display = 'block';
@@ -13658,35 +13660,35 @@ function deleteMktTemplate(idx) {
 <script src="image-ai-editor.js?v=20261005audit210"></script>
 <script src="image-enhance.js?v=20261005audit210"></script>
 <script src="image-composer.js?v=20261005audit210"></script>
-<script src="area-editor.js?v=20261104personal385"></script>
+<script src="area-editor.js?v=20261104search386"></script>
 <script src="sync-notice.js?v=20261005audit210"></script>
-<script src="detail-properties.js?v=20261104personal385"></script>
+<script src="detail-properties.js?v=20261104search386"></script>
 <script src="edit-layout.js?v=20261005audit210"></script>
-<script src="property-purpose.js?v=20261104personal385"></script>
-<script src="schedule-property.js?v=20261005audit210"></script>
+<script src="property-purpose.js?v=20261104search386"></script>
+<script src="schedule-property.js?v=20261104search386"></script>
 <link rel="stylesheet" href="schedule-reminders.css?v=20261008prefs307">
 <script src="reminder-engine.js?v=20261008prefs307"></script>
-<script src="schedule-reminders.js?v=20261104personal385"></script>
-<script src="buyer-match-engine.js?v=20261104personal385"></script>
-<script src="buyer-demands.js?v=20261104personal385"></script>
-<script src="buyer-results.js?v=20261104personal385"></script>
-<script src="buyer-grouping.js?v=20261104personal385"></script>
-<script src="inventory-market-engine.js?v=20261104personal385"></script>
-<script src="inventory-market.js?v=20261104personal385"></script>
-<script src="buyer-schedule.js?v=20261104personal385"></script>
-<script src="daily-search-report.js?v=20261104personal385"></script>
-<script src="buyer-match.js?v=20261104personal385"></script>
+<script src="schedule-reminders.js?v=20261104search386"></script>
+<script src="buyer-match-engine.js?v=20261104search386"></script>
+<script src="buyer-demands.js?v=20261104search386"></script>
+<script src="buyer-results.js?v=20261104search386"></script>
+<script src="buyer-grouping.js?v=20261104search386"></script>
+<script src="inventory-market-engine.js?v=20261104search386"></script>
+<script src="inventory-market.js?v=20261104search386"></script>
+<script src="buyer-schedule.js?v=20261104search386"></script>
+<script src="daily-search-report.js?v=20261104search386"></script>
+<script src="buyer-match.js?v=20261104search386"></script>
 <script src="bulk-search.js?v=20261006nav261"></script>
-<script src="seller-layout.js?v=20261104personal385"></script>
+<script src="seller-layout.js?v=20261104search386"></script>
 <script src="template-archive.js?v=20261007drag289"></script>
 <link rel="stylesheet" href="template-archive.css?v=20261007drag289">
-<script src="daily-search-notice.js?v=20261104personal385"></script>
-<link rel="stylesheet" href="daily-search-notice.css?v=20261104personal385">
-<link rel="stylesheet" href="buyer-helper-update.css?v=20261104personal385">
-<script src="buyer-helper-update.js?v=20261104personal385"></script>
+<script src="daily-search-notice.js?v=20261104search386"></script>
+<link rel="stylesheet" href="daily-search-notice.css?v=20261104search386">
+<link rel="stylesheet" href="buyer-helper-update.css?v=20261104search386">
+<script src="buyer-helper-update.js?v=20261104search386"></script>
 <script src="common-tools.js?v=20261007tools281"></script>
 <link rel="stylesheet" href="common-tools.css?v=20261007instant283">
 <script src="dashboard-actions.js?v=20261007actions286"></script>
-<link rel="stylesheet" href="dashboard-actions.css?v=20261104personal385">
+<link rel="stylesheet" href="dashboard-actions.css?v=20261104search386">
 </body>
 </html>

@@ -16,6 +16,13 @@ function entries(c,type,draft=false){
  return list.map(p=>({p,ref:ref(c,p,type)}));
 }
 function resolve(r){const c=DB.find(x=>x.id===r.clientId&&!x._deleted);if(!c)return null;const found=entries(c,r.type).filter(e=>r.propertyKey?e.ref.propertyKey===r.propertyKey:e.ref.fingerprint===r.fingerprint);return found.length===1?found[0]:null;}
+function clientPropertyTexts(c){
+ const values=[c.community,c.dCommunity,c.sCommunity,c.rCommunity,c.llCommunity,c.ttCommunity,c.addr,c.dAddr,c.sAddr,c.rAddr,c.llAddr,c.ttAddr];
+ for(const key of ['sProperties','rProperties','dAddrs','deals','bDemands'])for(const p of c[key]||[])values.push(p.community,p.rCommunity,p.addr,p.rAddr,p.address,p.areaDisplay);
+ return [...new Set(values.filter(v=>typeof v==='string'&&v.trim()).map(v=>v.trim()))];
+}
+window.scheduleClientPropertySearchText=c=>clientPropertyTexts(c).join(' ');
+window.scheduleClientPropertySearchSummary=(c,q)=>{const values=clientPropertyTexts(c),matched=values.filter(v=>v.toLowerCase().includes(q));return (matched.length?matched:values).join(' · ');};
 window.schedulePropertyRef=ref;
 window.schedulePropertyToken=token;
 window.schedulePropertyDisplayLabel=function(r){
