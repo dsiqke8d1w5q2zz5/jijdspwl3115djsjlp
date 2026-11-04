@@ -7,3 +7,6 @@
 :is(#dashSchedule,#dashTodo) [data-compact-actions] :is(.dash-item-info,.dash-item-name){line-height:20px}
 :is(#dashSchedule,#dashTodo) [data-compact-actions] :is(.dash-sched-memo,.dash-todo-memo){line-height:20px}
 :is(#dashSchedule,#dashTodo) [data-compact-actions] .schedule-property-tag{padding-top:1px;padding-bottom:1px;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+
+/* Personal schedules retain existing today and overdue states. */
+.schedule-personal-row{box-shadow:inset 3px 0 #9874c2;padding-left:8px!important}.schedule-personal-badge{display:inline-flex;align-items:center;flex-shrink:0;white-space:nowrap;background:#f0e9f8;color:#694395;border:1px solid #ded0ee;border-radius:5px;padding:0 6px;font-size:13px;font-weight:600;line-height:20px}
