@@ -22,7 +22,7 @@ function mount(root,s,getDate,getTime,before){
  root.querySelectorAll('textarea').forEach(input=>{const resize=()=>{input.style.height='auto';input.style.height=input.scrollHeight+'px';};input.addEventListener('input',resize);requestAnimationFrame(resize);});
  const row=document.createElement('div');row.className='schedule-reminder';row.innerHTML='<label><input type="checkbox" data-remind>LINE 提醒</label><small data-remind-time></small>';
  const check=row.querySelector('input');check.checked=s?.remind===true;
- function update(){const t=E.timing({date:getDate(),time:getTime()},preferences()),hint=row.querySelector('small');hint.textContent=!check.checked?'勾選後透過 LINE 通知':!t?'請先選擇日期':new Date(t.due).toLocaleString('zh-TW',{timeZone:'Asia/Taipei',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' 提醒'+(t.due<=Date.now()?'（時間已過，不補發）':'')+' · '+cloudMessage;}
+ function update(event){if(event&&event.target!==root&&!event.target.matches('[data-remind],input[type=date],input[type=time],.roc-date-wrap input,select'))return;const t=E.timing({date:getDate(),time:getTime()},preferences()),hint=row.querySelector('small');hint.textContent=!check.checked?'勾選後透過 LINE 通知':!t?'請先選擇日期':new Date(t.due).toLocaleString('zh-TW',{timeZone:'Asia/Taipei',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' 提醒'+(t.due<=Date.now()?'（時間已過，不補發）':'')+' · '+cloudMessage;}
  root.addEventListener('change',update);root.addEventListener('input',update);
  if(before)before.before(row);else root.append(row);root._readReminder=()=>check.checked;update();return row;
 }
