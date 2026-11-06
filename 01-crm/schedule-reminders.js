@@ -19,6 +19,7 @@ function settings(){
  document.body.append(d);d.showModal();
 }
 function mount(root,s,getDate,getTime,before){
+ window.CRMEditingIdle?.track(root);
  root.querySelectorAll('textarea').forEach(input=>{const resize=()=>{input.style.height='auto';input.style.height=input.scrollHeight+'px';};input.addEventListener('input',resize);requestAnimationFrame(resize);});
  const row=document.createElement('div');row.className='schedule-reminder';row.innerHTML='<label><input type="checkbox" data-remind>LINE 提醒</label><small data-remind-time></small>';
  const check=row.querySelector('input');check.checked=s?.remind===true;

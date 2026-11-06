@@ -204,11 +204,12 @@ function compactControls(){
 }
 const mobileMatch=window.matchMedia('(max-width:768px)');mobileMatch.addEventListener('change',e=>{if(e.matches&&dialog?.open)dialog.close();});
 let automaticPolling=false,lastCloudPoll=0,automaticRevision,automaticSelection,automaticJob;
-async function runAutomaticBatch(list,input){for(const c of list){runBuyer(c,input);await new Promise(resolve=>setTimeout(resolve,0));}}
+async function runAutomaticBatch(list,input){for(const c of list){await window.CRMEditingIdle?.wait();runBuyer(c,input);await new Promise(resolve=>setTimeout(resolve,0));}}
 async function pollAutomaticResults(){
  if(automaticPolling||mobileMatch.matches||document.hidden||dialog?.open)return;
  const selected=buyers().filter(c=>c.buyerMatching?.auto===true);if(!selected.length)return;
  automaticPolling=true;
+ await window.CRMEditingIdle?.wait();
  const signature=JSON.stringify(selected.map(c=>[c.id,demands(c)]));if(signature!==automaticSelection){automaticRevision=undefined;automaticJob=undefined;automaticSelection=signature;}
  try{
   await BuyerResults.ready(selected.map(c=>c.id));
