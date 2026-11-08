@@ -141,3 +141,5 @@ dialog.bm-confirm-dialog{position:fixed;inset:0;margin:auto;width:min(480px,calc
 .bm-toolbar #bmFavorites{margin-left:0}
 
 .bm-dialog .bm-row-main>button.bm-confirm-match+button.bm-confirm-match{margin-left:-4px}
+
+.bm-link-review{display:grid;gap:10px;margin:12px 0;overflow-wrap:anywhere}.bm-link-review label{display:flex;align-items:flex-start;gap:8px;line-height:1.6}.bm-link-review input{flex:none;margin-top:6px}.bm-confirm-dialog button:disabled{opacity:.45;cursor:not-allowed}
