@@ -84,10 +84,10 @@ async function repairHistoricalDetails(c,job,owner,epoch){
 async function searchNow(mode){
  if(launchBusy)return;if(!helper){textStatus('請先連接搜尋助手。');return;}
  if(!helperVersion||helperVersion.localeCompare('1.2.2',undefined,{numeric:true})<0){textStatus('請用原本的 EXE 更新助手至 1.2.2，再啟用三站搜尋與加速。');return;}
- if(mode==='retry'&&(!helperVersion||helperVersion.localeCompare('1.2.11',undefined,{numeric:true})<0)){textStatus('重試未完成搜尋需要助手 1.2.11，請先更新。');return;}const c=current(),owner=dialog,epoch=++searchEpoch;if(!c)return;dialog.querySelectorAll('.bm-info-tools').forEach(el=>el.open=false);launchBusy=true;searchBusy=true;clearTimeout(watchTimer);restoreBuyer(c);render();textStatus('已先依目前需求重比已收錄資料；正在搜尋原站更新物件…');
+ if(mode==='retry'&&(!helperVersion||helperVersion.localeCompare('1.2.11',undefined,{numeric:true})<0)){textStatus('重試未完成搜尋需要助手 1.2.11，請先更新。');return;}const c=current(),owner=dialog,epoch=++searchEpoch;if(!c)return;dialog.querySelectorAll('.bm-info-tools').forEach(el=>el.open=false);launchBusy=true;searchBusy=true;clearTimeout(watchTimer);restoreBuyer(c);render();textStatus(mode==='retry'?'正在確認可重試的搜尋範圍…':'已先依目前需求重比已收錄資料；正在搜尋原站更新物件…');
  try{
   const {job:prior}=await helperRequest('progress',{});if(epoch!==searchEpoch||dialog!==owner||!owner.open)return;helperJob=prior;
-  if(mode==='retry'&&prior?.status==='running')throw Error('請先停止搜尋再重試');if(prior?.status==='running'){textStatus('正在停止舊搜尋，接著依目前需求重新搜尋…');const stopped=await helperRequest('cancel',undefined,10000);acceptJobFeed(stopped.job);}
+  if(mode==='retry'&&prior?.status==='running')throw Error('請先停止搜尋再重試');if(mode==='retry'&&prior?.status==='partial'&&prior.totalScopes>0&&prior.doneScopes>=prior.totalScopes&&Array.isArray(prior.failures)&&!prior.failures.length)throw Error('搜尋範圍已全部完成，沒有可重試的範圍；詳細資料補讀失敗請按「立即搜尋物件」，依目前需求重新補讀');if(prior?.status==='running'){textStatus('正在停止舊搜尋，接著依目前需求重新搜尋…');const stopped=await helperRequest('cancel',undefined,10000);acceptJobFeed(stopped.job);}
   if(epoch!==searchEpoch||dialog!==owner||!owner.open)return;
   const result=await helperRequest(mode==='retry'?'retry':'search',{buyerId:String(c.id),demands:demands(c).map(d=>Object.fromEntries(['areaCities','areaDists','areaDisplay','roomTypes','budgetMin','budgetMax','budget','want','noWant','matchCriteria'].filter(k=>d[k]!==undefined).map(k=>[k,d[k]])))},10000);
   launchBusy=false;
@@ -99,7 +99,7 @@ async function searchNow(mode){
    showSearchProgress(job);
    await new Promise(r=>setTimeout(r,2000));
   }
- }catch(e){if(dialog===owner&&epoch===searchEpoch)textStatus('即時搜尋未完成：'+e.message+'。已取得的結果保留。');}
+ }catch(e){if(dialog===owner&&epoch===searchEpoch){const message=(mode==='retry'?'未能重試：':'即時搜尋未完成：')+e.message+'。已取得的結果保留。';textStatus(message);showToast(message,'warn',8000);const tools=$('bmStatus').closest('.bm-info-tools');if(tools)tools.open=true;$('bmStatus').scrollIntoView({block:'nearest'});}}
  finally{if(epoch===searchEpoch){searchBusy=false;launchBusy=false;if(dialog===owner&&owner.open){render();if(helperJob?.status==='running')watchProgress(owner);}}}
 }
 async function stopSearch(){const owner=dialog;++searchEpoch;searchBusy=false;launchBusy=true;clearTimeout(watchTimer);render();try{const stopped=await helperRequest('cancel',undefined,10000);if(dialog!==owner)return;helperJob=stopped.job||null;acceptJobFeed(stopped.job);textStatus('搜尋已停止；已取得的部分結果保留，可依目前需求重新搜尋。');}catch(e){textStatus('停止搜尋未確認：'+e.message);}finally{launchBusy=false;if(dialog===owner){render();if(helperJob?.status==='running')watchProgress(owner);}}}
