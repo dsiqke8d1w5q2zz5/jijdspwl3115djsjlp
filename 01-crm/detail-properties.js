@@ -217,6 +217,13 @@
         const floor=tail.match(/(?:地下|地上|B)?(?:[0-9０-９]+|[一二三四五六七八九十百]+)(?:樓|F)(?:之[0-9０-９]+)?/i);
         return prefix+(road?road[1]:'')+(floor?floor[0]:'');
     };
+    // Same-name objects use their real address; tab position is not an identity.
+    window.propertyTabLabels=function(names,addresses){return names.map((name,i)=>{
+        if(names.filter(n=>n===name).length<2)return name;
+        const raw=String(addresses[i]||'').trim().replace(/^\d{3,6}\s*/,'');
+        const short=raw.replace(/^(?:臺北市|台北市|新北市|桃園市|臺中市|台中市|臺南市|台南市|高雄市)/,'').replace(/^[^市縣區鄉鎮]{1,5}(?:區|鄉|鎮)/,'');
+        return short?short.replace(/\s*([A-Za-zＡ-Ｚａ-ｚ0-9０-９]+戶)$/, '・$1'):name+'・地址未填';
+    });};
     function title(p, i, kind) {
         const community=String(p.rCommunity||p.community||'').trim();if(community)return community;
         const address=String(p.rAddr||p.addr||'').trim().replace(/^\d{3,6}\s*/, '');
@@ -459,7 +466,7 @@
         if(kind==='s'){const watched=new Set((window.InventoryMarket?.entries([c])||[]).filter(e=>e.config.enabled||e.config.transactionsEnabled).map(e=>e.p));entries.sort((a,b)=>Number(watched.has(b.p))-Number(watched.has(a.p))||a.index-b.index);}
         const group='property-detail-'+(++serial),names=entries.map(({p,index})=>title(p,index,kind));
         const paused=i=>kind==='s'&&!!entries[i].p.spArchived;
-        const labels=names.map((name,i)=>names.filter(n=>n===name).length>1?name+'（'+(i+1)+'）':name);
+        const labels=propertyTabLabels(names,entries.map(({p})=>p.rAddr||p.addr||''));
         const tabs='<div class="det-property-tabs" role="tablist" aria-label="切換物件">'+entries.map((_,i)=>'<button type="button" role="tab" id="'+group+'-tab-'+i+'" aria-controls="'+group+'-page-'+i+'" aria-selected="'+(i===0)+'" tabindex="'+(i===0?0:-1)+'" title="'+esc(labels[i]+(paused(i)?' · 暫停':''))+'">'+(paused(i)?'<span class="det-paused-name">'+esc(labels[i])+'</span>':esc(labels[i]))+'</button>').join('')+'</div>';
         const unlinked=c.type==='房東'?DB.filter(t=>!t._deleted&&t.linkedLandlordId===c.id&&!c.rProperties[t.linkedPropertyIdx||0]).map(t=>row('未指定物件的租客',[t.ttName||t.name,t.ttPhone||t.phone].filter(Boolean).join('　'))).join(''):'';
         return '<div class="det-property-group">'+tabs+entries.map(({p,index},i)=>{

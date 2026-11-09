@@ -7,7 +7,8 @@ function buyerFull(p){return [p.areaDisplay,p.roomTypes,p.budget?p.budget+'萬':
 function buyerShort(p){const area=String(p.areaDisplay||'').replace(/(?:臺北市|台北市|新北市|桃園市|臺中市|台中市|臺南市|台南市|高雄市)/g,'').replace(/區(?=$|[、,，／/\s])/g,'').trim();const room=String(p.roomTypes||'').replace(/[一二三四五六七八九](?=房)/g,s=>String('一二三四五六七八九'.indexOf(s)+1)).replace(/[,，、]/g,'／');return [area,room].filter(Boolean).join(room.includes('／')?'｜':'')||'買方需求';}
 function label(p,type){if(type==='經營買方')return buyerShort(p);const community=String(p.rCommunity||p.community||'').trim();if(community)return community;const address=String(p.rAddr||p.addr||'').trim().replace(/^\d{3,6}\s*/,'');return (address?(typeof compactPropertyAddress==='function'?compactPropertyAddress(address)||address:address):'')||'未命名物件';}
 function fingerprint(p,type){return JSON.stringify([p.rCommunity||p.community||'',p.rAddr||p.addr||'',type==='經營買方'?[p.areaDisplay,p.roomTypes,p.budget]:null]);}
-function ref(c,p,type){if(type==='租案管理')type='房東';return {clientId:c.id||'',type,propertyKey:p.propertyKey||'',fingerprint:fingerprint(p,type),label:label(p,type),address:p.rAddr||p.addr||''};}
+function propertyLabel(c,p,type){const list=c[configs[type]?.[0]]||[],index=list.indexOf(p);return index>=0&&window.propertyTabLabels?propertyTabLabels(list.map(p=>label(p,type)),list.map(p=>p.rAddr||p.addr||''))[index]:label(p,type);}
+function ref(c,p,type){if(type==='租案管理')type='房東';return {clientId:c.id||'',type,propertyKey:p.propertyKey||'',fingerprint:fingerprint(p,type),label:propertyLabel(c,p,type),address:p.rAddr||p.addr||''};}
 function token(r){return r?JSON.stringify([r.clientId,r.type,r.propertyKey||r.fingerprint]):'';}
 function entries(c,type,draft=false){
  if(type==='租客'){const id=draft?document.getElementById('f-linkedLandlordId').value:c.linkedLandlordId,index=draft?Number(document.getElementById('f-linkedPropertyIdx').value)||0:c.linkedPropertyIdx||0,owner=DB.find(x=>x.id===id&&!x._deleted);return owner&&owner.rProperties?.[index]?[{p:owner.rProperties[index],ref:ref(owner,owner.rProperties[index],'房東')}]:[];}
@@ -26,7 +27,7 @@ window.scheduleClientPropertySearchSummary=(c,q)=>{const values=clientPropertyTe
 window.schedulePropertyRef=ref;
 window.schedulePropertyToken=token;
 window.schedulePropertyDisplayLabel=function(r){
- if(r.type!=='經營買方')return r.label;
+ if(r.type!=='經營買方')return resolve(r)?.ref.label||r.label;
  const found=resolve(r);if(found)return buyerShort(found.p);
  const parts=String(r.label||'').split(/\s*[·｜]\s*/);
  return parts.length>1?buyerShort({areaDisplay:parts[0],roomTypes:parts[1]}):r.label;
