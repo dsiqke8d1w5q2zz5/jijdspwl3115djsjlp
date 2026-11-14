@@ -11,7 +11,7 @@ function importResults(kind,data){if(!data.report||data.report.status==='running
  const work=Promise.resolve().then(()=>kind==='buyers'?BuyerMatching.refreshBulkResults():InventoryMarket.tick());importing[kind]=work;
  work.then(()=>{imported[kind]=data.id;},e=>{window.showToast?.('搜尋結果匯入未完成：'+e.message,'error');}).finally(()=>{if(importing[kind]===work)delete importing[kind];});
 }
-async function refresh(kind){const data=await request('batchStatus',{scope:kind});render(data);importResults(kind,data);return data;}
+async function refresh(kind){const response=await request('batchStatus',{scope:kind,revision:latest[kind]?.revision}),data=response.unchanged?latest[kind]:response;render(data);importResults(kind,data);return data;}
 
 function watch(kind){clearTimeout(timer);if(!dialog?.open||scope!==kind)return;timer=setTimeout(async()=>{try{await refresh(kind);}catch(e){message('進度暫時無法讀取：'+e.message+' 搜尋不一定已停止，稍後會再確認。');}if(dialog?.open&&scope===kind)watch(kind);},3000);}
 function lock(value){launchBusy=value;if(dialog?.open)dialog.querySelector('[data-execute]').disabled=value||!!latest[scope]?.busy||latest[scope]?.report?.status==='running';document.querySelectorAll('[data-bulk]').forEach(b=>b.disabled=false);}
