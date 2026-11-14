@@ -13,3 +13,7 @@ window.addEventListener('message', async e => {
 });
 
 const updateVersion=new URL(location.href).searchParams.get("helper-update");if(updateVersion&&sessionStorage.getItem("crm-helper-updated")!==updateVersion){sessionStorage.setItem("crm-helper-updated",updateVersion);chrome.runtime.sendMessage({type:"reload"}).catch(()=>{});}
+
+// Signal interaction only; never send keys, field values, targets or page contents.
+(function(){if(typeof document==='undefined')return;let sent=-Infinity;function activity(){const at=Date.now();if(document.hidden||!document.hasFocus()||at-sent<2000)return;sent=at;try{chrome.runtime.sendMessage({type:'activity'}).catch(()=>{});}catch{}}
+for(const type of ['pointerdown','keydown','wheel'])document.addEventListener(type,activity,{capture:true,passive:true});})();
