@@ -816,11 +816,11 @@
     <link rel="stylesheet" href="area-editor.css?v=20261005audit210">
     <link rel="stylesheet" href="transcript-import.css?v=20260927center1">
     <link rel="stylesheet" href="ui-foundation.css?v=20261005audit210">
-    <link rel="stylesheet" href="responsive-layout.css?v=20261114search397">
-<link rel="stylesheet" href="inventory-market.css?v=20261114search397">
+    <link rel="stylesheet" href="responsive-layout.css?v=20261116schedule398">
+<link rel="stylesheet" href="inventory-market.css?v=20261116schedule398">
 <link rel="stylesheet" href="bulk-search.css?v=20261006nav261">
-<link rel="stylesheet" href="daily-search-report.css?v=20261114search397">
-<link rel="stylesheet" href="buyer-match.css?v=20261114search397">
+<link rel="stylesheet" href="daily-search-report.css?v=20261116schedule398">
+<link rel="stylesheet" href="buyer-match.css?v=20261116schedule398">
 <script src="./customer-search.js?v=20261006search263"></script>
 <style>.card-search-hit{font-size:13px;line-height:1.5;color:#526880;overflow-wrap:anywhere;white-space:normal;margin:4px 0 0}</style>
 </head>
@@ -1730,7 +1730,7 @@
 <!-- 區塊 1：基礎資料（區域、郵遞區號、地址自動帶入）               -->
 <!-- ============================================================ -->
 <script src="./vendor/lz-string-1.5.0.min.js"></script>
-<script src="./customer-storage.js?v=20261114search397"></script>
+<script src="./customer-storage.js?v=20261116schedule398"></script>
 <script>
 window.onerror = function(msg, url, line, col, err) {
     if (msg === 'Script error.' && line === 0) return true;
@@ -4207,7 +4207,7 @@ function renderDashboard() {
         var delBtn = s.personal
             ? '<button class="btn-ic" onclick="event.stopPropagation();deletePersonalSchedule(\''+esc(s.psId||'')+'\')" title="刪除" style="font-size:13px;padding:2px 4px"><i class="ti ti-trash" style="color:#DC2626"></i></button>'
             : '<button class="btn-ic" onclick="event.stopPropagation();deleteSchedule(\''+esc(s.id)+'\',\''+esc(s.date)+'\',\''+esc(s.time)+'\',\''+esc(s.scheduleId||'')+'\')" title="刪除" style="font-size:13px;padding:2px 4px"><i class="ti ti-trash" style="color:#DC2626"></i></button>';
-        var toTodoBtn = s.recurrence ? '' : '<button class="btn-ic" onclick="event.stopPropagation();scheduleToTodo(\''+esc(s.id)+'\',\''+esc(s.date)+'\',\''+esc(s.time)+'\',\''+esc(s.scheduleId||'')+'\')" title="轉待辦" aria-label="轉待辦" style="font-size:13px;padding:2px 4px"><span aria-hidden="true" style="color:#7C3AED;font-size:20px;line-height:1">⇄</span></button>';
+        var toTodoBtn = s.recurrence ? '' : '<button class="btn-ic" onclick="event.stopPropagation();scheduleToTodo(\''+esc(s.id)+'\',\''+esc(s.date)+'\',\''+esc(s.time)+'\',\''+esc((s.personal?s.psId:s.scheduleId)||'')+'\')" title="轉待辦" aria-label="轉待辦" style="font-size:13px;padding:2px 4px"><span aria-hidden="true" style="color:#7C3AED;font-size:20px;line-height:1">⇄</span></button>';
         var rowEdit = s.personal
             ? 'editPersonalSchedule(\''+esc(s.psId||'')+'\')'
             : 'editDashSchedule(\''+esc(s.id)+'\',\''+esc(s.date)+'\',\''+esc(s.time)+'\',\''+esc(s.scheduleId||'')+'\')';
@@ -8306,30 +8306,36 @@ function todoToSchedule(todoId) {
 // 近期行程轉待辦：直接轉，不需彈窗（日期丟掉，memo 保留）
 function scheduleToTodo(clientId, date, time, scheduleId) {
     confirmAction('將此行程轉為待辦（會取消日期）？', function() {
-        var now = _nowISO();
-        if (clientId === '_ps') {
-            var arr = _getPS();
-            var s = arr.find(function(x){ return !x._deleted && x.date === date && (x.time||'') === (time||''); });
-            if (!s) return;
-            s._deleted = true; s.updatedAt = now;
-            _savePS(arr);
-            var pt = _getPT();
-            pt.push({ id:_newTodoId(), memo:s.memo||'', addedAt:now, updatedAt:now });
-            _savePT(pt);
-        } else {
-            var c = DB.find(function(x){ return x.id === clientId; });
-            if (!c || !c.schedules) return;
-            var found = c.schedules.find(function(s){ return !s._deleted && (scheduleId ? s.id === scheduleId : s.date === date && (s.time||'') === (time||'')); });
-            if (!found) return;
-            c.schedules.forEach(function(s) {
-                if (!s._deleted && (scheduleId ? s.id === scheduleId : s.date === date && (s.time||'') === (time||''))) {
-                    s._deleted = true; s.updatedAt = now;
-                }
-            });
-            if (!c.todos) c.todos = [];
-            c.todos.push({ id:_newTodoId(), propertyRef:found.propertyRef, schedType:found.schedType, memo:found.memo||'', addedAt:now, updatedAt:now });
-            persistAndSyncNow();
+        var personal = clientId === '_ps';
+        var c = personal ? null : DB.find(function(x){ return x.id === clientId && !x._deleted; });
+        var arr = personal ? _getPS() : (c && c.schedules) || [];
+        // 日期與時間不唯一，尤其是同一天未填時間的個人行程。
+        // 有識別碼時絕不退回日期比對；舊資料只允許唯一匹配。
+        var matches = arr.filter(function(s){
+            return !s._deleted && (scheduleId ? s.id === scheduleId : s.date === date && (s.time||'') === (time||''));
+        });
+        if (matches.length !== 1) {
+            showToast('無法唯一確認這筆行程，請重新整理後再操作；資料未變更', 'warn');
+            return;
         }
+        var found = matches[0];
+        if (found.recurrence) {
+            showToast('重複行程不能直接轉待辦，請先編輯行程', 'warn');
+            return;
+        }
+        var now = _nowISO();
+        var todo = { id:_newTodoId(), propertyRef:found.propertyRef, schedType:found.schedType, memo:found.memo||'', addedAt:now, updatedAt:now };
+        found._deleted = true; found.updatedAt = now;
+        if (personal) {
+            var pt = _getPT();
+            pt.push(todo);
+            _getPSRecord().schedules = arr;
+            _getPSRecord().todos = pt;
+        } else {
+            if (!c.todos) c.todos = [];
+            c.todos.push(todo);
+        }
+        persistAndSyncNow();
         render();
         showToast('已轉為待辦', 'ok');
     });
@@ -8706,7 +8712,7 @@ function filterAllSchedList() {
         var delBtn2 = s.personal
             ? '<button class="btn-ic" onclick="closeOverlay(this.closest(\'.fill-overlay\'));deletePersonalSchedule(\''+esc(s.psId||'')+'\')" title="刪除" style="font-size:14px;padding:4px 8px"><i class="ti ti-trash" style="color:#DC2626"></i></button>'
             : '<button class="btn-ic" onclick="closeOverlay(this.closest(\'.fill-overlay\'));deleteSchedule(\''+esc(s.clientId)+'\',\''+esc(s.date)+'\',\''+esc(s.time)+'\',\''+esc(s.scheduleId||'')+'\')" title="刪除" style="font-size:14px;padding:4px 8px"><i class="ti ti-trash" style="color:#DC2626"></i></button>';
-        var toTodoBtn2 = s.recurrence ? '' : '<button class="btn-ic" onclick="closeOverlay(this.closest(\'.fill-overlay\'));scheduleToTodo(\''+(s.personal?'_ps':esc(s.clientId))+'\',\''+esc(s.date)+'\',\''+esc(s.time)+'\',\''+esc(s.scheduleId||'')+'\')" title="轉待辦" aria-label="轉待辦" style="font-size:14px;padding:4px 8px"><span aria-hidden="true" style="color:#7C3AED;font-size:20px;line-height:1">⇄</span></button>';
+        var toTodoBtn2 = s.recurrence ? '' : '<button class="btn-ic" onclick="closeOverlay(this.closest(\'.fill-overlay\'));scheduleToTodo(\''+(s.personal?'_ps':esc(s.clientId))+'\',\''+esc(s.date)+'\',\''+esc(s.time)+'\',\''+esc((s.personal?s.psId:s.scheduleId)||'')+'\')" title="轉待辦" aria-label="轉待辦" style="font-size:14px;padding:4px 8px"><span aria-hidden="true" style="color:#7C3AED;font-size:20px;line-height:1">⇄</span></button>';
         return separator + '<div class="all-sched-row'+(s.personal?' schedule-personal-row':'')+'">' +
             '<div class="all-sched-content"><div class="all-sched-heading">' +
                 '<span class="all-sched-date">'+esc(isoToMDW(s.date,true))+(s.time?' '+esc(s.time):'')+(s.recurrence?' <i class="ti ti-repeat" style="font-size:12px;color:#0E7490" title="'+esc(recurLabel(s.recurrence))+'"></i>':'')+'</span>' +
@@ -13679,36 +13685,36 @@ function deleteMktTemplate(idx) {
 <script src="image-ai-editor.js?v=20261005audit210"></script>
 <script src="image-enhance.js?v=20261005audit210"></script>
 <script src="image-composer.js?v=20261005audit210"></script>
-<script src="area-editor.js?v=20261114search397"></script>
+<script src="area-editor.js?v=20261116schedule398"></script>
 <script src="sync-notice.js?v=20261005audit210"></script>
-<script src="detail-properties.js?v=20261114search397"></script>
-<script src="edit-layout.js?v=20261114search397"></script>
-<script src="property-purpose.js?v=20261114search397"></script>
-<script src="schedule-property.js?v=20261114search397"></script>
+<script src="detail-properties.js?v=20261116schedule398"></script>
+<script src="edit-layout.js?v=20261116schedule398"></script>
+<script src="property-purpose.js?v=20261116schedule398"></script>
+<script src="schedule-property.js?v=20261116schedule398"></script>
 <link rel="stylesheet" href="schedule-reminders.css?v=20261008prefs307">
 <script src="reminder-engine.js?v=20261008prefs307"></script>
-<script src="editing-idle.js?v=20261114search397"></script>
-<script src="schedule-reminders.js?v=20261114search397"></script>
-<script src="buyer-match-engine.js?v=20261114search397"></script>
-<script src="buyer-demands.js?v=20261114search397"></script>
-<script src="buyer-results.js?v=20261114search397"></script>
-<script src="buyer-grouping.js?v=20261114search397"></script>
-<script src="inventory-market-engine.js?v=20261114search397"></script>
-<script src="inventory-market.js?v=20261114search397"></script>
-<script src="buyer-schedule.js?v=20261114search397"></script>
-<script src="daily-search-report.js?v=20261114search397"></script>
-<script src="buyer-match.js?v=20261114search397"></script>
-<script src="bulk-search.js?v=20261114search397"></script>
-<script src="seller-layout.js?v=20261114search397"></script>
+<script src="editing-idle.js?v=20261116schedule398"></script>
+<script src="schedule-reminders.js?v=20261116schedule398"></script>
+<script src="buyer-match-engine.js?v=20261116schedule398"></script>
+<script src="buyer-demands.js?v=20261116schedule398"></script>
+<script src="buyer-results.js?v=20261116schedule398"></script>
+<script src="buyer-grouping.js?v=20261116schedule398"></script>
+<script src="inventory-market-engine.js?v=20261116schedule398"></script>
+<script src="inventory-market.js?v=20261116schedule398"></script>
+<script src="buyer-schedule.js?v=20261116schedule398"></script>
+<script src="daily-search-report.js?v=20261116schedule398"></script>
+<script src="buyer-match.js?v=20261116schedule398"></script>
+<script src="bulk-search.js?v=20261116schedule398"></script>
+<script src="seller-layout.js?v=20261116schedule398"></script>
 <script src="template-archive.js?v=20261007drag289"></script>
 <link rel="stylesheet" href="template-archive.css?v=20261007drag289">
-<script src="daily-search-notice.js?v=20261114search397"></script>
-<link rel="stylesheet" href="daily-search-notice.css?v=20261114search397">
-<link rel="stylesheet" href="buyer-helper-update.css?v=20261114search397">
-<script src="buyer-helper-update.js?v=20261114search397"></script>
+<script src="daily-search-notice.js?v=20261116schedule398"></script>
+<link rel="stylesheet" href="daily-search-notice.css?v=20261116schedule398">
+<link rel="stylesheet" href="buyer-helper-update.css?v=20261116schedule398">
+<script src="buyer-helper-update.js?v=20261116schedule398"></script>
 <script src="common-tools.js?v=20261007tools281"></script>
 <link rel="stylesheet" href="common-tools.css?v=20261007instant283">
 <script src="dashboard-actions.js?v=20261007actions286"></script>
-<link rel="stylesheet" href="dashboard-actions.css?v=20261114search397">
+<link rel="stylesheet" href="dashboard-actions.css?v=20261116schedule398">
 </body>
 </html>
