@@ -31,6 +31,12 @@ globalThis.crmReadSinyiDetail=(doc,id)=>{const off=globalThis.crmReadUnavailable
 // Shared with the background worker so changing tabs/restarting a job does not reset cooldown.
 globalThis.crm591Rate ||= {nextAt:0,until:0};
 globalThis.crm591Fetch=async url=>{
+ if(globalThis.crm591WorkerTransport){
+  const value=await chrome.runtime.sendMessage({type:'detail591Fetch',url});
+  if(!value||value.error)throw Object.assign(Error(value?.error||'詳細資料未回應'),{name:value?.name||'Error',retryAt:value?.retryAt});
+  return {status:value.status,ok:value.ok,url:value.url,text:async()=>value.text,json:async()=>JSON.parse(value.text)};
+ }
+
  const rate=globalThis.crm591Rate;
  const limited=()=>Object.assign(Error('591 暫時限流，請等候冷卻後再重試'),{name:'RateLimitError',retryAt:rate.until});
  if(rate.until>Date.now())throw limited();
