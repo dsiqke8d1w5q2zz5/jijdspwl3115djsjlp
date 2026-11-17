@@ -2,7 +2,7 @@
 window.addEventListener('message', async e => {
   if(e.source!==window || e.origin!==location.origin || !e.data || e.data.channel!=='CRM_BUYER_REQUEST')return;
   const {id,type,payload}=e.data;
-  if(typeof id!=='string'||id.length>80||!['batchSearch','batchStatus','batchRetry','dailyStatus','dailyRetry','dailyRun','hello','search','sync','last','progress','cancel','reload','retry','inventorySync','inventorySearch','inventoryVerify','buyerVerify'].includes(type))return;
+  if(typeof id!=='string'||id.length>80||!['batchSearch','batchStatus','batchRetry','dailyStatus','dailyDetailsRetry','dailyRetry','dailyRun','hello','search','sync','last','progress','cancel','reload','retry','inventorySync','inventorySearch','inventoryVerify','buyerVerify'].includes(type))return;
   try{let result=await chrome.runtime.sendMessage({type,payload});
     if(result?.__crmTransfer===1){const meta=result,parts=[];let length=0;
       try{for(let index=0;index<meta.count;index++){const part=await chrome.runtime.sendMessage({type:'transferRead',token:meta.token,index});if(part?.error)throw Error(part.error);if(part?.index!==index||typeof part.text!=='string')throw Error('結果分段不完整，請重新讀取結果');parts.push(part.text);length+=part.text.length;}if(length!==meta.length)throw Error('結果長度不符，請重新讀取結果');result=JSON.parse(parts.join(''));}
