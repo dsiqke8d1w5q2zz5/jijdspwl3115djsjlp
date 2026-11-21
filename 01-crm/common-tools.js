@@ -6,6 +6,7 @@ const panel=document.createElement('div');panel.className='common-tools-panel';p
 const actions=['openTemplates()','openImgTool()','TranscriptImport.openStandalone()'];
 const names=['常用範本','圖片編輯','謄本分析'];
 actions.forEach((action,i)=>{const button=tools.querySelector('[onclick="'+action+'"]');if(!button)return;button.className='common-tools-item';button.type='button';button.lastChild.textContent=' '+names[i];button.addEventListener('click',()=>close());panel.append(button);});
+const buyer=document.createElement('a');buyer.className='common-tools-item';buyer.textContent='買方購屋費用試算';buyer.href='./buyer-cost.html';buyer.target='_blank';buyer.rel='noopener';buyer.style.textDecoration='none';buyer.addEventListener('click',()=>close());panel.append(buyer);
 const wrap=document.createElement('div');wrap.className='common-tools-wrap';
 const trigger=document.createElement('button');trigger.type='button';trigger.className='header-btn';trigger.textContent='常用工具 ▾';trigger.setAttribute('aria-expanded','false');trigger.setAttribute('aria-controls',panel.id);wrap.append(trigger,panel);tools.prepend(wrap);
 const checkin=tools.querySelector('.mc-checkin'),performance=tools.querySelector('[onclick="openPerformance()"]');performance.after(checkin);
