@@ -1,8 +1,8 @@
-var CACHE_NAME = 'crm-v20261121buyer-compact';
+var CACHE_NAME = 'crm-v20261122buyer-split';
 var URLS_TO_CACHE = [
   './buyer-cost.html',
-  './buyer-cost.css?v=20261121compact',
-  './buyer-cost.js',
+  './buyer-cost.css?v=20261122split',
+  './buyer-cost.js?v=20261122split',
   './editing-idle.js?v=20261118tabs401',
   './vendor/lz-string-1.5.0.min.js',
   './customer-storage.js?v=20261118tabs401',
