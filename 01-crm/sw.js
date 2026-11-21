@@ -1,4 +1,4 @@
-var CACHE_NAME = 'crm-v20261121buyer-cost';
+var CACHE_NAME = 'crm-v20261121buyer-icon';
 var URLS_TO_CACHE = [
   './buyer-cost.html',
   './buyer-cost.css',
@@ -13,7 +13,7 @@ var URLS_TO_CACHE = [
   './schedule-reminders.css?v=20261008prefs307',
   './dashboard-actions.js?v=20261007actions286',
   './dashboard-actions.css?v=20261118tabs401',
-  './common-tools.js?v=20261121buyer-cost',
+  './common-tools.js?v=20261121buyer-icon',
   './common-tools.css?v=20261007instant283',
   './daily-search-notice.js?v=20261118tabs401',
   './daily-search-notice.css?v=20261118tabs401',
