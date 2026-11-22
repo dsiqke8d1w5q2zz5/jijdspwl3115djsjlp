@@ -4,6 +4,18 @@ const url='https://sale.591.com.tw/home/house/detail/2/123.html',api='https://bf
 const p=await b.newPage();await p.exposeFunction('workerFetch',msg=>c.detail591Request(msg,sender));await p.setContent('<html></html>');for(const f of ['read591.js','read.js'])await p.addScriptTag({path:path.resolve('01-crm/tools/buyer-browser',f)});
 await p.evaluate(()=>{window.chrome={runtime:{sendMessage:msg=>workerFetch(msg)}};window.crm591WorkerTransport=true;window.pageTimers=0;window.setTimeout=()=>{pageTimers++;throw Error('hidden-page timer must not run')};window.fetch=()=>{throw Error('page must not fetch')};});
 session();const [valid]=await p.evaluate(url=>crmVerifyListings([{source:'591',id:'591:123',url}]),url);assert.equal(valid.availability,'available');assert.equal(calls.length,2);assert.equal(await p.evaluate(()=>pageTimers),0);assert(timers[0]>0&&metrics.some(m=>m[0]==='request'));
+// Explicit current records use one request; uncertain records keep HTML and its expiry evidence.
+for(const state of ['current','expired','missing','wrong-id','parking']){
+ const result=await p.evaluate(async({state,url})=>{
+  const calls=[],now=Math.floor(Date.now()/1000);crm591Fetch=async target=>{calls.push(target);if(target.includes('bff-house'))return {ok:true,json:async()=>({status:0,ware:{id:state==='wrong-id'?124:123,status:2,closed:0,checkstatus:0,start_time:now-100,...(state==='missing'?{}:{end_time:state==='expired'?now-1:now+1000})},info:{a:state==='parking'?[{name:'現況',value:'車位'},{name:'車位種類',value:'坡道平面'}]:[{name:'法定用途',value:'住家用'},{name:'型態',value:'電梯大樓'}]}})};return {ok:true,status:200,url,text:async()=>state==='expired'?'<title>四房含車位 - 591售屋網</title><h1>四房含車位</h1><span>已過期</span><div>2998 萬元</div>':'<title>四房含車位 - 591售屋網</title><div id="app"></div>'}};
+  const [row]=await crmVerifyListings([{source:'591',id:'591:123',url}]);return {row,calls};
+ },{state,url});
+ assert.equal(result.calls.length,['current','parking'].includes(state)?1:2,state);
+ assert.equal(result.row.availability,state==='expired'?'unavailable':state==='wrong-id'?'unknown':'available',state);
+ if(state==='parking')assert(result.row.parkingOnly);
+}
+// Restore the actual transport after the controlled state matrix.
+await p.addScriptTag({path:path.resolve('01-crm/tools/buyer-browser/read.js')});
 for(const failure of ['timeout','body-timeout']){mode=failure;session();const at=Date.now(),[unknown]=await p.evaluate(url=>crmVerifyListings([{source:'591',id:'591:123',url}]),url);assert.equal(unknown.availability,'unknown');assert.equal(unknown.detailStatus,'failed');assert(unknown.detailError.includes('逾時'));assert(Date.now()-at<1000,'worker timeout applies while page timers are suspended');}
 mode='rate';session();const n=calls.length,[limited]=await p.evaluate(url=>crmVerifyListings([{source:'591',id:'591:123',url}]),url);assert(limited.detailRateLimited);assert.equal(rate.until> Date.now()+119000,true);await c.detail591Request({url},sender);assert.equal(calls.length,n+1,'cooldown sends no requests');
 await assert.rejects(c.detail591Request({url:'https://example.com/'},sender),/範圍/);await assert.rejects(c.detail591Request({url},{...sender,tab:{id:9}}),/未授權/);await assert.rejects(c.detail591Request({url},{...sender,id:'other'}),/未授權/);await assert.rejects(c.detail591Request({url},{...sender,frameId:1}),/未授權/);await assert.rejects(c.detail591Request({url},{...sender,url:'https://evil.example/'}),/未授權/);console.log('PASS browser parser uses worker requests with zero page timers/fetch; network and response-body timeout; available/unknown/429, persisted cooldown, current-ID/tab/sender restrictions');}finally{await b.close()}})().catch(e=>{console.error(e);process.exitCode=1});

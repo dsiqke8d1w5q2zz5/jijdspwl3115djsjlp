@@ -49,12 +49,30 @@ globalThis.crm591Fetch=async url=>{
  }
  return response;
 };
-// Check the public URL before trusting detail data. 591 may render its fields client-side.
+// Only an explicit, current public sale record can skip the duplicate HTML request.
+// Missing flags, other schemas, expired records and wrong IDs retain HTML verification.
+globalThis.crm591CurrentRecord=(data,id,now=Date.now())=>{
+ const w=data?.ware;if(data?.status!==0||!w||String(w.id)!==String(id)||w.status!==2||w.closed!==0||w.checkstatus!==0)return null;
+ const start=Number(w.start_time)*1000,end=Number(w.end_time)*1000;
+ if(!Number.isFinite(start)||!Number.isFinite(end)||start<=0||start>now||end<=now||end<=start)return null;
+ const details=globalThis.crmRead591API(data,id);
+ return details&&(details.parkingOnly||(details.usage&&details.buildingType))?{...details,availabilityEvidence:'591公開在售紀錄及有效期間'}:null;
+};
+// Check the public record before trusting detail data. 591 may render its fields client-side.
 globalThis.crmVerifyListings=async rows=>{
  const out=[];
  for(const row of rows){
   let value={},verified=false,rateLimited=false,retryAt=0,error='原物件連結尚未確認有效，請重新搜尋';
   try{
+   let apiRead=false,apiDetails=null;
+   if(row.source==='591'&&globalThis.crm591WorkerTransport&&/^https:\/\/sale\.591\.com\.tw\/home\/house\/detail\/2\/\d+\.html$/.test(row.url)&&row.url.endsWith('/'+row.id.split(':').pop()+'.html')){
+    const id=row.id.split(':').pop();apiRead=true;
+    try{
+     const api=await globalThis.crm591Fetch('https://bff-house.591.com.tw/v1/web/sale/detail?id='+encodeURIComponent(id));
+     if(api.ok){const data=await api.json();apiDetails=globalThis.crmRead591API(data,id);const current=globalThis.crm591CurrentRecord(data,id);if(current){value=current;verified=true;}}
+    }catch(e){if(e.name==='RateLimitError')throw e;}
+   }
+   if(!verified){
    const response=await (row.source==='591'?globalThis.crm591Fetch(row.url):fetch(row.url,{cache:'no-store',signal:AbortSignal.timeout(6000)}));
    if([404,410].includes(response.status)){
     value={availability:'unavailable',availabilityReason:'原物件頁已失效（HTTP '+response.status+'）'};verified=true;
@@ -75,12 +93,13 @@ globalThis.crmVerifyListings=async rows=>{
       const listingPage=sameURL&&/\S.+\s[-–|｜]\s*591售屋網\s*$/.test(doc.title)&&!/(不存在|已下架|錯誤|找不到)/.test(doc.title);
       if(!sameURL&&response.url){verified=false;value.availability='unknown';error='原物件連結已轉向其他頁面，尚未確認有效';}
       try{
-       const api=await globalThis.crm591Fetch('https://bff-house.591.com.tw/v1/web/sale/detail?id='+encodeURIComponent(id));
-       if(api.ok){const details=globalThis.crmRead591API(await api.json(),id);if(details){verified=verified||!!(listingPage&&(details.usage||details.buildingType));value={...details,...value,availability:verified?'available':'unknown'};}}
+       if(!apiRead){const api=await globalThis.crm591Fetch('https://bff-house.591.com.tw/v1/web/sale/detail?id='+encodeURIComponent(id));if(api.ok)apiDetails=globalThis.crmRead591API(await api.json(),id);}
+       if(apiDetails){const details=apiDetails;verified=verified||!!(listingPage&&(details.usage||details.buildingType));value={...details,...value,availability:verified?'available':'unknown'};}
       }catch(e){if(e.name==='RateLimitError')throw e;if(!verified)error='591詳細資料讀取失敗，尚未確認連結有效';}
      }
     }
    }else error='原站回應 HTTP '+response.status+'，尚未確認連結有效';
+   }
   }catch(e){if(e.name==='RateLimitError'){rateLimited=true;retryAt=e.retryAt;error=e.message;}else error=e.name==='TimeoutError'||e.name==='AbortError'?'原物件頁讀取逾時，尚未確認連結有效':'原物件頁讀取失敗，尚未確認連結有效';}
   if(!verified)value.availability='unknown';
   const at=new Date().toISOString();out.push({id:row.id,...value,detailAttemptedAt:at,detailStatus:verified?'ok':'failed',detailError:verified?'':error,...(rateLimited?{detailRateLimited:true,detailRetryAt:new Date(retryAt).toISOString()}:{}),...(verified?{detailCheckedAt:at}:{})});
