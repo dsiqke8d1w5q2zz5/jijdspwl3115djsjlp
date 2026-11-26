@@ -1,6 +1,11 @@
 name: Complete encrypted server search test
 on:
   workflow_dispatch:
+    inputs:
+      diagnostic:
+        description: 'Diagnose source access without running the full workload'
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -24,6 +29,7 @@ jobs:
       - name: Test complete encrypted scope
         env:
           CRM_FULL_TEST_KEY: ${{ secrets.CRM_FULL_TEST_KEY_20261126 }}
+          DIAGNOSTIC: ${{ inputs.diagnostic && '1' || '0' }}
           SCOPE_FILE: 01-crm/tools/server-test/scope.encrypted.json
           TEST_OUTPUT: server-test-summary.json
         run: |
