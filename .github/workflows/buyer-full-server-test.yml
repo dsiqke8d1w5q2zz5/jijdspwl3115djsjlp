@@ -9,7 +9,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: crm-full-server-test
+  group: crm-full-server-test-${{ inputs.diagnostic && 'diagnostic' || 'full' }}
   cancel-in-progress: false
 jobs:
   full-test:
