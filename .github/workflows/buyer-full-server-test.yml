@@ -6,6 +6,10 @@ on:
         description: 'Diagnose source access without running the full workload'
         type: boolean
         default: false
+      image_recheck:
+        description: 'Recheck every prior image and repeated listing states'
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -29,6 +33,8 @@ jobs:
       - name: Test complete encrypted scope
         env:
           CRM_FULL_TEST_KEY: ${{ secrets.CRM_FULL_TEST_KEY_20261126 }}
+          IMAGES_ONLY: ${{ inputs.image_recheck && '1' || '0' }}
+          IMAGE_INPUT: 01-crm/tools/server-test/images.encrypted.json
           DIAGNOSTIC: ${{ inputs.diagnostic && '1' || '0' }}
           SCOPE_FILE: 01-crm/tools/server-test/scope.encrypted.json
           TEST_OUTPUT: server-test-summary.json
